@@ -47,7 +47,7 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         if ($category->venues()->count() > 0) {
-            return back()->with('error', 'Bu kategoride sahne var, önce sahneleri taşıyın.');
+            return back()->with('error', 'Bu kategoride mekan var, önce mekanları taşıyın.');
         }
         $category->delete();
         return back()->with('success', 'Kategori silindi.');

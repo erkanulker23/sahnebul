@@ -61,7 +61,7 @@ class EventPublicController extends Controller
         }
 
         $event->load([
-            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links',
+            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links,cover_image',
             'venue.city:id,name',
             'venue.category:id,name',
             'artists' => fn ($q) => $q

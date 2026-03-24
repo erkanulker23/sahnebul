@@ -58,7 +58,7 @@ export default function ArtistEventCreate({ venues, artists, defaultArtistId = n
                     <select id="venue_id" value={data.venue_id} onChange={(e) => setData('venue_id', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white">
                         {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
                     </select>
-                    <p className="mt-1 text-xs text-zinc-500">Mekân, onaylı sahne listenizden seçilir; listeniz boşsa önce sahne ekleyin.</p>
+                    <p className="mt-1 text-xs text-zinc-500">Mekân, onaylı mekan listenizden seçilir; listeniz boşsa önce mekan ekleyin.</p>
                 </div>
                 <AdminArtistMultiSelect
                     label="Sanatçılar *"

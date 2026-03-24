@@ -31,7 +31,7 @@ class EventController extends Controller
         if ($venues->isEmpty()) {
             return redirect()
                 ->route('artist.venues.create')
-                ->with('error', 'Etkinlik eklemek için önce bir sahne kaydı oluşturup onay alın. Mekanınız yoksa “Sahne ekle” ile başlayın.');
+                ->with('error', 'Etkinlik eklemek için önce bir mekan kaydı oluşturup onay alın. Mekanınız yoksa “Mekan ekle” ile başlayın.');
         }
 
         $artists = Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);

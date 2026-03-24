@@ -23,7 +23,7 @@ final class AdPlacementCatalog
             [
                 'key' => 'venues_list_top',
                 'label' => 'Mekanlar listesi üstü',
-                'description' => 'Mekanlar liste sayfasında (/mekanlar, /sahneler) grid’den önce.',
+                'description' => 'Mekanlar liste sayfasında (/mekanlar) grid’den önce.',
             ],
             [
                 'key' => 'events_index_top',

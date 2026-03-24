@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { iconClass } from '@/lib/icons';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, FileText, Mail, MapPin, Menu, Mic2, Moon, Sun, User, X } from 'lucide-react';
+import { Calendar, FileText, MapPin, Menu, Mic2, Moon, Sun, User, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 function navActive(routePatterns: string[]): boolean {
@@ -37,7 +37,7 @@ function PrimaryNavLinks({
     active,
     onNavigate,
 }: {
-    active: { venues: boolean; events: boolean; artists: boolean; blog: boolean; contact: boolean };
+    active: { venues: boolean; events: boolean; artists: boolean; blog: boolean };
     onNavigate?: () => void;
 }) {
     return (
@@ -53,12 +53,6 @@ function PrimaryNavLinks({
             </Link>
             <Link href={route('blog.index')} className={navLinkClass(active.blog)} onClick={onNavigate}>
                 Blog
-            </Link>
-            <Link href={route('contact')} className={navLinkClass(active.contact)} onClick={onNavigate}>
-                <span className="inline-flex items-center gap-1.5">
-                    <Mail className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                    İletişim
-                </span>
             </Link>
         </>
     );
@@ -101,7 +95,6 @@ export function AppHeader() {
         events: navActive(['events.index', 'events.show', 'events.nearby']),
         artists: navActive(['artists.index', 'artists.show']),
         blog: navActive(['blog.index', 'blog.show']),
-        contact: navActive(['contact']),
     };
 
     return (
@@ -154,7 +147,7 @@ export function AppHeader() {
                                     href={sahneCompactNav ? mekanSahibiPanelHref : profileHref}
                                     className="hidden max-w-[10rem] truncate rounded-full border border-amber-600/35 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-950 sm:inline-block dark:border-amber-500/40 dark:bg-amber-500/15 dark:font-medium dark:text-amber-300"
                                 >
-                                    {sahneCompactNav ? 'Sahne paneli' : user.name}
+                                    {sahneCompactNav ? 'Mekan paneli' : user.name}
                                 </Link>
                                 <Link
                                     href={route('logout')}
@@ -264,14 +257,6 @@ export function AppHeader() {
                             >
                                 <FileText className={iconClass.md} />
                                 Blog
-                            </Link>
-                            <Link
-                                href={route('contact')}
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
-                                onClick={closeDrawer}
-                            >
-                                <Mail className={iconClass.md} />
-                                İletişim
                             </Link>
                             <Link
                                 href={route('sehir-sec')}

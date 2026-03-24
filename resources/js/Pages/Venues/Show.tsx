@@ -9,6 +9,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
+import { Building2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Review {
@@ -159,7 +160,7 @@ function buildVenueJsonLd(params: {
                         '@type': 'ListItem',
                         position: 1,
                         name: 'Mekanlar',
-                        item: `${appUrl.replace(/\/$/, '')}/sahneler`,
+                        item: `${appUrl.replace(/\/$/, '')}/mekanlar`,
                     },
                     {
                         '@type': 'ListItem',
@@ -249,6 +250,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
             return src ? { id: m.id, src } : null;
         })
         .filter((x): x is { id: number; src: string } => x !== null);
+    const heroBackdrop = cover ?? galleryPhotos[0]?.src ?? null;
     const venueDesc = metaDescriptionFromContent(
         venue.description,
         `${venue.name} — ${venue.city.name}. ${venue.category?.name ?? 'Etkinlik mekanı'}. Yorumlar, takvim ve rezervasyon Sahnebul’da.`,
@@ -281,79 +283,73 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
             />
 
             <div className="min-h-screen">
-                {/* Breadcrumb */}
-                <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-                    <Link
-                        href={route('home')}
-                        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-400"
-                    >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Mekanlar
-                    </Link>
-                </div>
-
-                {/* Hero — tam viewport genişliği */}
-                <div className="hero-full-bleed relative mt-6 overflow-hidden">
-                    <div className="relative">
-                        <div className="aspect-[21/9] min-h-[200px] overflow-hidden sm:min-h-[240px]">
-                            {venue.cover_image ? (
-                                <img
-                                    src={imageSrc(venue.cover_image) ?? ''}
-                                    alt={venue.name}
-                                    className="h-full w-full object-cover"
+                <section
+                    className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${heroBackdrop ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'}`}
+                >
+                    {heroBackdrop ? (
+                        <img src={heroBackdrop} alt={venue.name} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                        <div className="absolute inset-0" aria-hidden>
+                            <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-800 dark:via-zinc-950 dark:to-black" />
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(217,119,6,0.2),transparent_55%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(245,158,11,0.22),transparent_55%)]" />
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.1),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.12),transparent_50%)]" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Building2
+                                    className="h-[min(40vw,11rem)] w-[min(40vw,11rem)] text-amber-700/20 dark:text-amber-400/15"
+                                    strokeWidth={1}
                                 />
-                            ) : (
-                                <div className="flex h-full min-h-[inherit] items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                                    <span className="text-9xl opacity-30">🎭</span>
-                                </div>
-                            )}
+                            </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0">
-                            <div className="mx-auto max-w-7xl px-4 pb-8 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pb-12 lg:pt-8">
-                            <span className="mb-3 inline-block rounded-full bg-amber-500/20 px-4 py-1.5 text-sm font-medium text-amber-400 backdrop-blur-sm">
-                                {venue.category.name}
-                            </span>
-                            <h1 className="font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
-                                {venue.name}
-                            </h1>
-                            <div className="mt-4 flex flex-wrap items-center gap-4 text-zinc-400">
-                                <span className="flex items-center gap-1">
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    {venue.city.name}
-                                </span>
-                                {venue.capacity && (
-                                    <span className="flex items-center gap-1">
-                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    )}
+                    <div
+                        className={
+                            heroBackdrop
+                                ? 'absolute inset-0 bg-zinc-950/70'
+                                : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
+                        }
+                    />
+                    <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+                        <Link
+                            href={route('venues.index')}
+                            className="inline-flex items-center gap-2 text-sm text-amber-300 hover:text-amber-200"
+                        >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Mekanlar
+                        </Link>
+                        <div className="mt-6 max-w-4xl">
+                            <p className="text-sm text-zinc-200">{venue.city.name}</p>
+                            <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">{venue.name}</h1>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                                <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
+                                {venue.capacity != null && venue.capacity > 0 && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
+                                        <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        {venue.capacity} kişi kapasite
+                                        {venue.capacity} kişi
                                     </span>
                                 )}
                             </div>
-                            <div className="mt-3 flex flex-wrap items-center gap-4">
-                                <div className="flex items-center gap-2">
+                            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                                <div className="flex items-center gap-2 text-zinc-300">
                                     <div className="flex text-amber-400">
                                         {'★'.repeat(Math.min(5, venue.rating_avg || 0))}
                                         <span className="text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg || 0))}</span>
                                     </div>
                                     <span className="font-semibold text-white">{venue.rating_avg || '-'}</span>
-                                    <span className="text-zinc-500">({reviewCount} değerlendirme)</span>
+                                    <span className="text-zinc-400">({reviewCount} değerlendirme)</span>
                                 </div>
                             </div>
                             {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
-                                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/10 pt-5">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">İletişim</span>
+                                <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">İletişim</span>
                                     <div className="flex flex-wrap gap-2">
                                         {venue.phone && (
                                             <a
                                                 href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
-                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 backdrop-blur-sm transition hover:bg-white/15"
+                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
                                             >
                                                 {venue.phone}
                                             </a>
@@ -363,7 +359,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                                 href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-sm text-emerald-300 backdrop-blur-sm transition hover:bg-emerald-500/30"
+                                                className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-500/30"
                                             >
                                                 WhatsApp
                                             </a>
@@ -373,29 +369,31 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                                 href={venue.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 backdrop-blur-sm transition hover:bg-white/15"
+                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
                                             >
                                                 Web
                                             </a>
                                         )}
-                                        {venue.social_links && sortVenueSocialEntries(venue.social_links).slice(0, 3).map(([key, url]) => (
-                                            <a
-                                                key={key}
-                                                href={url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 backdrop-blur-sm transition hover:bg-white/15"
-                                            >
-                                                {venueSocialLinkTitle(key)}
-                                            </a>
-                                        ))}
+                                        {venue.social_links &&
+                                            sortVenueSocialEntries(venue.social_links)
+                                                .slice(0, 3)
+                                                .map(([key, url]) => (
+                                                    <a
+                                                        key={key}
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15"
+                                                    >
+                                                        {venueSocialLinkTitle(key)}
+                                                    </a>
+                                                ))}
                                     </div>
                                 </div>
                             )}
-                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Content */}
                 <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -616,7 +614,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                             </Link>
                                             <Link
                                                 href={route('login', {
-                                                    redirect: `/sahneler/${venue.slug}`,
+                                                    redirect: `/mekanlar/${venue.slug}`,
                                                     claim_venue: venue.slug,
                                                 })}
                                                 className="rounded-lg border border-amber-600/30 px-4 py-2 text-sm font-medium text-amber-900 dark:border-amber-500/40 dark:text-amber-300"

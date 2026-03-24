@@ -18,7 +18,7 @@ interface Props {
 export default function ArtistEventsIndex({ events }: Props) {
     return (
         <ArtistLayout>
-            <SeoHead title="Etkinlikler - Sahnebul" description="Sahne paneli etkinlik listesi." noindex />
+            <SeoHead title="Etkinlikler - Sahnebul" description="Mekan paneli etkinlik listesi." noindex />
 
             <div className="flex items-center justify-between">
                 <h1 className="font-display text-2xl font-bold text-white">Etkinliklerim</h1>

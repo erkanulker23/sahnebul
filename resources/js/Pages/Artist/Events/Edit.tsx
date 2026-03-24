@@ -88,7 +88,7 @@ export default function ArtistEventEdit({ event, venues, artists }: Readonly<Pro
                         ))}
                     </select>
                     {errors.venue_id && <p className="mt-1 text-sm text-red-400">{errors.venue_id}</p>}
-                    <p className="mt-1 text-xs text-zinc-500">Etkinliğin gerçekleşeceği onaylı sahneyi seçin.</p>
+                    <p className="mt-1 text-xs text-zinc-500">Etkinliğin gerçekleşeceği onaylı mekanı seçin.</p>
                 </div>
                 <AdminArtistMultiSelect
                     label="Sanatçılar *"

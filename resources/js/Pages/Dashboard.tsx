@@ -120,7 +120,7 @@ export default function Dashboard({ recentReservations = [], upcomingEvents = []
                     <div className="mt-8 rounded-2xl border border-white/5 bg-zinc-900/50 p-8">
                         <p className="mb-4 text-white">Sahnebul'da neler yapabilirsiniz:</p>
                         <ul className="list-disc space-y-2 pl-6 text-zinc-400">
-                            <li><Link href={route('home')} className="text-amber-400 hover:text-amber-300">Sahneleri keşfedin</Link></li>
+                            <li><Link href={route('venues.index')} className="text-amber-400 hover:text-amber-300">Mekanları keşfedin</Link></li>
                             <li>Rezervasyon yapın</li>
                             <li>Değerlendirme ve yorum bırakın</li>
                         </ul>

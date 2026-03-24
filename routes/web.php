@@ -45,6 +45,7 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
+use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['throttle:search-quick', 'json.same-site'])->group(function () {
@@ -56,10 +57,12 @@ Route::middleware(['throttle:reverse-geocode', 'json.same-site'])->group(functio
 });
 
 Route::get('/', [VenueController::class, 'index'])->name('home');
-Route::get('/mekanlar', [VenueController::class, 'index']);
-Route::get('/sahneler', [VenueController::class, 'index'])->name('venues.index');
-Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show']);
-Route::get('/sahneler/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
+Route::get('/mekanlar', [VenueController::class, 'index'])->name('venues.index');
+Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
+Route::redirect('/sahneler', '/mekanlar', 301);
+Route::get('/sahneler/{venue:slug}', function (Venue $venue) {
+    return redirect()->route('venues.show', $venue->slug, 301);
+});
 Route::get('/etkinlikler', [EventController::class, 'index'])->name('events.index');
 Route::middleware(['throttle:events-nearby', 'json.same-site'])->group(function () {
     Route::get('/etkinlikler/yakinindakiler', [EventController::class, 'nearby'])->name('events.nearby');
@@ -94,31 +97,46 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/rezervasyonlarim', [ReservationController::class, 'index'])->name('reservations.index');
-    Route::get('/sahneler/{venue:slug}/rezervasyon', [ReservationController::class, 'create'])->name('reservations.create');
+    Route::get('/mekanlar/{venue:slug}/rezervasyon', [ReservationController::class, 'create'])->name('reservations.create');
+    Route::get('/sahneler/{venue:slug}/rezervasyon', function (Venue $venue) {
+        return redirect()->route('reservations.create', $venue->slug, 301);
+    });
     Route::post('/rezervasyon', [ReservationController::class, 'store'])->name('reservations.store');
 
-    Route::post('/sahneler/{venue:slug}/yorum', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/mekanlar/{venue:slug}/yorum', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/sahneler/{venue:slug}/yorum', [ReviewController::class, 'store']);
     Route::post('/yorumlar/{review}/begeni', [ReviewController::class, 'like'])->name('reviews.like');
 
     Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/uyelik/paketler', [SubscriptionController::class, 'index'])->name('subscriptions.index');
     Route::post('/uyelik/paketler', [SubscriptionController::class, 'store'])->name('subscriptions.store');
-    Route::post('/sahneler/{venue}/sahiplen', [VenueClaimController::class, 'store'])->name('venues.claim');
+    Route::post('/mekanlar/{venue}/sahiplen', [VenueClaimController::class, 'store'])->name('venues.claim');
+    Route::post('/sahneler/{venue}/sahiplen', [VenueClaimController::class, 'store']);
     Route::post('/sanatcilar/{artist}/sahiplen', [ArtistClaimController::class, 'store'])->name('artists.claim');
 });
 
 Route::middleware(['auth', 'verified', 'artist', 'gold'])->prefix('sahne')->name('artist.')->group(function () {
+    Route::redirect('sahnelerim', '/sahne/mekanlarim', 301);
+    Route::redirect('sahnelerim/ekle', '/sahne/mekanlarim/ekle', 301);
+    Route::get('sahnelerim/{venue}/duzenle', function (Venue $venue) {
+        return redirect()->route('artist.venues.edit', $venue, 301);
+    });
+    Route::post('sahnelerim', [ArtistVenueController::class, 'store']);
+    Route::put('sahnelerim/{venue}', [ArtistVenueController::class, 'update']);
+    Route::post('sahnelerim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia']);
+    Route::delete('sahnelerim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia']);
+
     Route::get('/', [ArtistDashboardController::class, 'index'])->name('dashboard');
     Route::get('/profil', [ArtistProfileController::class, 'edit'])->name('profile');
     Route::get('/sanatci-sayfam', [PublicArtistProfileController::class, 'edit'])->name('public-profile');
     Route::put('/sanatci-sayfam', [PublicArtistProfileController::class, 'update'])->name('public-profile.update');
-    Route::get('/sahnelerim', [ArtistVenueController::class, 'index'])->name('venues.index');
-    Route::get('/sahnelerim/ekle', [ArtistVenueController::class, 'create'])->name('venues.create');
-    Route::post('/sahnelerim', [ArtistVenueController::class, 'store'])->name('venues.store');
-    Route::get('/sahnelerim/{venue}/duzenle', [ArtistVenueController::class, 'edit'])->name('venues.edit');
-    Route::put('/sahnelerim/{venue}', [ArtistVenueController::class, 'update'])->name('venues.update');
-    Route::post('/sahnelerim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia'])->name('venues.media.store');
-    Route::delete('/sahnelerim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
+    Route::get('/mekanlarim', [ArtistVenueController::class, 'index'])->name('venues.index');
+    Route::get('/mekanlarim/ekle', [ArtistVenueController::class, 'create'])->name('venues.create');
+    Route::post('/mekanlarim', [ArtistVenueController::class, 'store'])->name('venues.store');
+    Route::get('/mekanlarim/{venue}/duzenle', [ArtistVenueController::class, 'edit'])->name('venues.edit');
+    Route::put('/mekanlarim/{venue}', [ArtistVenueController::class, 'update'])->name('venues.update');
+    Route::post('/mekanlarim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia'])->name('venues.media.store');
+    Route::delete('/mekanlarim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::get('/etkinlikler', [ArtistEventController::class, 'index'])->name('events.index');
     Route::get('/etkinlikler/ekle', [ArtistEventController::class, 'create'])->name('events.create');
     Route::post('/etkinlikler', [ArtistEventController::class, 'store'])->name('events.store');
@@ -140,7 +158,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('/mekanlar', [AdminVenueController::class, 'index'])->name('venues.index');
     Route::get('/mekanlar/ekle', [AdminVenueController::class, 'create'])->name('venues.create');
-    Route::get('/sahneler', [AdminVenueController::class, 'index']);
+    Route::permanentRedirect('sahneler', 'mekanlar');
     Route::post('/mekanlar', [AdminVenueController::class, 'store'])->name('venues.store');
     Route::post('/mekanlar/toplu-sil', [AdminVenueController::class, 'bulkDestroy'])->name('venues.bulk-destroy');
     Route::get('/mekanlar/{venue}/duzenle', [AdminVenueController::class, 'edit'])->name('venues.edit');

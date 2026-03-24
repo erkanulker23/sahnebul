@@ -74,7 +74,7 @@ Sunucuda cron:
 
 ## 11. Deploy (Forge)
 
-Örnek script: `scripts/forge-deploy.sh` — `composer install --no-dev`, **`rm -rf node_modules`** sonra `npm ci` (Forge’da `ENOTEMPTY` / `rmdir` hatalarını önler), `npm run build`, `migrate --force`, önbellek, `queue:restart`.
+Örnek script: `scripts/forge-deploy.sh` — `composer install --no-dev`, **`rm -rf node_modules`** sonra `npm ci`, **`NODE_OPTIONS=--max-old-space-size=4096`** ve **`npm run build:deploy`** (yalnızca `vite build`; `tsc` sunucuda atlanır — push öncesi yerelde `npm run build` çalıştırın). Forge **10 dk deploy timeout**: küçük droplet’te takılıyorsa RAM artırın veya sunucuda [swap](https://forge.laravel.com/docs/servers/php#memory) açın.
 
 ## 12. Kritik riskler (öncelik)
 

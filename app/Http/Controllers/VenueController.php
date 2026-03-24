@@ -87,7 +87,7 @@ class VenueController extends Controller
             && ($user->isArtist() || $user->hasActiveMembership('venue'));
 
         return Inertia::render('Venues/Index', [
-            'isVenuesPage' => $request->is('sahneler') || $request->is('mekanlar'),
+            'isVenuesPage' => $request->is('mekanlar'),
             'canAddVenue' => (bool) $canAddVenue,
             'venues' => $venues,
             'popularArtists' => $popularArtists,

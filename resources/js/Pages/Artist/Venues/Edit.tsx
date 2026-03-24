@@ -106,11 +106,11 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
         <ArtistLayout>
             <SeoHead title={`${venue.name} Düzenle - Sahnebul`} description="Mekan bilgilerini ve galeriyi güncelleyin." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Sahne Düzenle</h1>
+            <h1 className="font-display mb-8 text-2xl font-bold text-white">Mekan düzenle</h1>
 
             <form onSubmit={submit} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>
-                    <label className="block text-sm font-medium text-zinc-400">Sahne Adı *</label>
+                    <label className="block text-sm font-medium text-zinc-400">Mekan adı *</label>
                     <input value={data.name} onChange={(e) => setData('name', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
                     {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                 </div>

@@ -50,7 +50,7 @@ export default function AdminCategoriesIndex({ categories }: Readonly<Props>) {
 
     const handleDelete = (cat: Category) => {
         if (cat.venues_count > 0) {
-            alert('Bu kategoride sahne var, önce sahneleri taşıyın.');
+            alert('Bu kategoride mekan var, önce mekanları taşıyın.');
             return;
         }
         if (confirm('Silmek istediğinize emin misiniz?')) router.delete(route('admin.categories.destroy', cat.id));
@@ -134,7 +134,7 @@ export default function AdminCategoriesIndex({ categories }: Readonly<Props>) {
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Ad</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Slug</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Sıra</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Sahne</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Mekan</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">İşlemler</th>
                                 </tr>
                             </thead>
@@ -206,7 +206,7 @@ export default function AdminCategoriesIndex({ categories }: Readonly<Props>) {
                                 <>
                                     <p className="font-semibold text-zinc-900 dark:text-white">{cat.name}</p>
                                     <p className="mt-1 text-xs text-zinc-500">
-                                        {cat.slug} · sıra {cat.order} · {cat.venues_count} sahne
+                                        {cat.slug} · sıra {cat.order} · {cat.venues_count} mekan
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">{rowActions(cat)}</div>
                                 </>

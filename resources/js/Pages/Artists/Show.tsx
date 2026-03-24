@@ -665,7 +665,7 @@ export default function ArtistShow({
                                     <p className="mt-1 text-xl font-semibold text-zinc-700 dark:text-zinc-200">{stats.past_count}</p>
                                 </div>
                                 <div className="rounded-xl border border-zinc-200 bg-white p-4 text-center dark:border-white/10 dark:bg-zinc-900/50">
-                                    <p className="text-xs font-medium text-zinc-600 dark:text-zinc-500">Sahne Sayısı</p>
+                                    <p className="text-xs font-medium text-zinc-600 dark:text-zinc-500">Mekan sayısı</p>
                                     <p className="mt-1 text-xl font-semibold text-zinc-900 dark:text-white">{stats.venue_count}</p>
                                 </div>
                             </div>

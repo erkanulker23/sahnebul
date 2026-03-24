@@ -24,6 +24,15 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
     const footer = pageProps.settings?.footer;
     const footerLinks = (() => {
         const links = [...(footer?.links ?? [])];
+        if (!links.some((link) => link.route === 'venues.index')) {
+            links.unshift({ label: 'Mekanlar', route: 'venues.index' });
+        }
+        if (!links.some((link) => link.route === 'events.index')) {
+            links.push({ label: 'Etkinlikler', route: 'events.index' });
+        }
+        if (!links.some((link) => link.route === 'artists.index')) {
+            links.push({ label: 'Sanatçılar', route: 'artists.index' });
+        }
         if (!links.some((link) => link.route === 'blog.index')) {
             links.push({ label: 'Blog', route: 'blog.index' });
         }

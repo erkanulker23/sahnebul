@@ -48,13 +48,13 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
 
     return (
         <ArtistLayout>
-            <SeoHead title="Sahne Ekle - Sahnebul" description="Yeni mekan kaydı oluşturun." noindex />
+            <SeoHead title="Mekan Ekle - Sahnebul" description="Yeni mekan kaydı oluşturun." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Yeni Sahne Ekle</h1>
+            <h1 className="font-display mb-8 text-2xl font-bold text-white">Yeni Mekan Ekle</h1>
 
             <form onSubmit={submit} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>
-                    <label className="block text-sm font-medium text-zinc-400">Sahne Adı *</label>
+                    <label className="block text-sm font-medium text-zinc-400">Mekan adı *</label>
                     <input value={data.name} onChange={(e) => setData('name', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
                     {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                 </div>
@@ -180,7 +180,7 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
                     </div>
                 </div>
                 <button type="submit" disabled={processing} className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50">
-                    Sahne Ekle
+                    Mekan ekle
                 </button>
             </form>
         </ArtistLayout>

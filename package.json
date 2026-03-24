@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "tsc && vite build",
+        "build:deploy": "vite build",
         "dev": "vite"
     },
     "devDependencies": {

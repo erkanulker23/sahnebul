@@ -40,7 +40,7 @@ export default function ReservationsIndex({ reservations }: Props) {
                             <p className="text-5xl opacity-40">📋</p>
                             <p className="mt-4 text-zinc-400">Henüz rezervasyonunuz yok</p>
                             <Link href={route('home')} className="mt-4 inline-block text-amber-400 hover:text-amber-300">
-                                Sahneleri keşfet →
+                                Mekanları keşfet →
                             </Link>
                         </div>
                     ) : (

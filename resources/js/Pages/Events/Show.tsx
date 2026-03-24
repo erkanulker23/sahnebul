@@ -44,6 +44,7 @@ interface Event {
         whatsapp?: string | null;
         website: string | null;
         social_links?: Record<string, string> | null;
+        cover_image?: string | null;
         city?: { name: string } | null;
         category?: { name: string } | null;
     };
@@ -100,6 +101,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
     const heroBackdrop =
         imageSrc(event.cover_image) ??
         event.artists.map((a) => artistVisual(a)).find((src): src is string => Boolean(src)) ??
+        imageSrc(event.venue.cover_image ?? null) ??
         null;
     const tiers = event.ticket_tiers ?? [];
     const hasTiers = tiers.length > 0;
@@ -152,9 +154,31 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                 type="article"
                 canonicalUrl={canonicalUrl}
             />
-            <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden">
-                {heroBackdrop && <img src={heroBackdrop} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />}
-                <div className="absolute inset-0 bg-zinc-950/70" />
+            <section
+                className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${heroBackdrop ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'}`}
+            >
+                {heroBackdrop ? (
+                    <img src={heroBackdrop} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                    <div className="absolute inset-0" aria-hidden>
+                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-800 dark:via-zinc-950 dark:to-black" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(217,119,6,0.2),transparent_55%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(245,158,11,0.22),transparent_55%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.1),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.12),transparent_50%)]" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Ticket
+                                className="h-[min(40vw,11rem)] w-[min(40vw,11rem)] text-amber-700/20 dark:text-amber-400/15"
+                                strokeWidth={1}
+                            />
+                        </div>
+                    </div>
+                )}
+                <div
+                    className={
+                        heroBackdrop
+                            ? 'absolute inset-0 bg-zinc-950/70'
+                            : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
+                    }
+                />
                 <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
                     <Link href={route('venues.show', event.venue.slug)} className="text-sm text-amber-300 hover:text-amber-200">← Mekana dön</Link>
                     <div className="mt-6 max-w-4xl">

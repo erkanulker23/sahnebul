@@ -127,7 +127,7 @@ export default function Register({
         ...form,
         return_to:
             form.membership_type === 'venue' && claimVenue
-                ? `/sahneler/${claimVenue.slug}`
+                ? `/mekanlar/${claimVenue.slug}`
                 : form.membership_type === 'artist' && claimArtist
                   ? `/sanatcilar/${claimArtist.slug}`
                   : '',
@@ -136,7 +136,7 @@ export default function Register({
     const loginHref = useMemo(() => {
         if (claimVenue) {
             return route('login', {
-                redirect: `/sahneler/${claimVenue.slug}`,
+                redirect: `/mekanlar/${claimVenue.slug}`,
                 claim_venue: claimVenue.slug,
             });
         }

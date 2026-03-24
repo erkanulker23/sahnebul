@@ -19,7 +19,13 @@ if [[ -f package-lock.json ]]; then
 else
   npm install --no-audit --no-fund
 fi
-npm run build
+
+# Node heap (OOM / "transforming..." sonsuz gibi görünen takılmalar)
+# Sunucu 1GB ise Forge'da swap açın veya droplet RAM artırın.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
+
+# Sunucuda tsc atlanır (bellek + süre); tipler push öncesi yerelde `npm run build` ile doğrulanmalı
+npm run build:deploy
 
 php artisan migrate --force
 

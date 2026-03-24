@@ -12,14 +12,14 @@ class AppSettingSeeder extends Seeder
     {
         $footer = [
             'brand' => 'SAHNEBUL',
-            'description' => 'Türkiye genelinde sahneleri, sanatçıları ve etkinlikleri keşfet.',
+            'description' => 'Türkiye genelinde mekanları, sanatçıları ve etkinlikleri keşfet.',
             'contact' => [
                 'email' => 'iletisim@sahnebul.com',
                 'phone' => '+90 212 111 11 11',
                 'address' => 'İstanbul, Türkiye',
             ],
             'links' => [
-                ['label' => 'Mekanlar', 'route' => 'home'],
+                ['label' => 'Mekanlar', 'route' => 'venues.index'],
                 ['label' => 'Sanatçılar', 'route' => 'artists.index'],
                 ['label' => 'Etkinlikler', 'route' => 'events.index'],
                 ['label' => 'Blog', 'route' => 'blog.index'],

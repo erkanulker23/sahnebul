@@ -51,7 +51,7 @@ function intervalLabel(i: ActiveSubscription['plan']['interval']): string {
 function defaultCapabilities(type: ActiveSubscription['plan']['membership_type']): string[] {
     if (type === 'artist') {
         return [
-            'Sahne panelinden mekan ve etkinlik yönetimi',
+            'Mekan panelinden mekan ve etkinlik yönetimi',
             'Rezervasyonları görüntüleme ve durum güncelleme',
             'Sanatçı profilinizi bağlama ve düzenleme (onaylı profil)',
         ];
@@ -68,7 +68,7 @@ export default function ArtistDashboard({ stats, venues, recentReservations, act
 
     return (
         <ArtistLayout>
-            <SeoHead title="Sahne Panel - Sahnebul" description="Mekan ve etkinlik özetiniz; Sahnebul sahne paneli." noindex />
+            <SeoHead title="Mekan Paneli - Sahnebul" description="Mekan ve etkinlik özetiniz; Sahnebul mekan paneli." noindex />
 
             <h1 className="font-display mb-2 text-2xl font-bold text-white">Panel</h1>
             <p className="mb-8 text-sm text-zinc-500">Özet ve son işlemler. Profil ayarları için sol menüden <span className="text-zinc-400">Profil</span> sayfasını kullanın.</p>
@@ -139,7 +139,7 @@ export default function ArtistDashboard({ stats, venues, recentReservations, act
 
             <div className="mb-8 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-xl border border-white/5 bg-zinc-900/50 p-6">
-                    <p className="text-sm text-zinc-500">Sahnelerim</p>
+                    <p className="text-sm text-zinc-500">Mekanlarım</p>
                     <p className="mt-1 text-2xl font-bold text-white">{stats.venues_count}</p>
                 </div>
                 <div className="rounded-xl border border-white/5 bg-zinc-900/50 p-6">
@@ -155,12 +155,12 @@ export default function ArtistDashboard({ stats, venues, recentReservations, act
             <div className="grid gap-8 lg:grid-cols-2">
                 <div className="rounded-xl border border-white/5 bg-zinc-900/50">
                     <div className="border-b border-white/5 px-6 py-4">
-                        <h2 className="font-semibold text-white">Sahnelerim</h2>
+                        <h2 className="font-semibold text-white">Mekanlarım</h2>
                     </div>
                     <div className="divide-y divide-white/5">
                         {venues.length === 0 ? (
                             <div className="p-6">
-                                <Link href={route('artist.venues.create')} className="text-amber-400 hover:text-amber-300">+ İlk sahneni ekle</Link>
+                                <Link href={route('artist.venues.create')} className="text-amber-400 hover:text-amber-300">+ İlk mekanını ekle</Link>
                             </div>
                         ) : (
                             venues.map((v) => (
