@@ -1,3 +1,4 @@
+import { SahnebulWordmark } from '@/Components/brand/SahnebulWordmark';
 import { GlobalSearch } from '@/Components/GlobalSearch';
 import { useTheme } from '@/contexts/ThemeContext';
 import { iconClass } from '@/lib/icons';
@@ -109,11 +110,7 @@ export function AppHeader() {
             <div className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-8">
                 {/* Masaüstü: logo | nav | arama | aksiyonlar */}
                 <div className="hidden items-center gap-4 py-3 lg:flex lg:flex-nowrap">
-                    <Link href={route('home')} className="shrink-0 font-display text-xl font-bold tracking-tight">
-                        <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent dark:from-amber-400 dark:to-amber-500">
-                            SAHNEBUL
-                        </span>
-                    </Link>
+                    <SahnebulWordmark size="lg" className="shrink-0" />
                     <nav className="flex shrink-0 items-center gap-1" aria-label="Ana menü">
                         <PrimaryNavLinks active={navActiveState} />
                         <SehirSecLink
@@ -184,9 +181,7 @@ export function AppHeader() {
                 {/* Mobil: logo + aksiyonlar; arama tam genişlik */}
                 <div className="flex flex-col gap-3 py-3 lg:hidden">
                     <div className="flex items-center justify-between gap-3">
-                        <Link href={route('home')} className="shrink-0 font-display text-lg font-bold" onClick={closeDrawer}>
-                            <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">SAHNEBUL</span>
-                        </Link>
+                        <SahnebulWordmark size="md" className="shrink-0" onClick={closeDrawer} />
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"

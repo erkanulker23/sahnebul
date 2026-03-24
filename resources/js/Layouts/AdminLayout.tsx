@@ -1,3 +1,4 @@
+import { SahnebulWordmark } from '@/Components/brand/SahnebulWordmark';
 import Dropdown from '@/Components/Dropdown';
 import FlashMessage from '@/Components/FlashMessage';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -164,9 +165,12 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                 )}
             >
                 <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800 lg:h-16 lg:px-5">
-                    <Link href={route('admin.dashboard')} className="min-w-0 text-lg font-bold text-amber-600 dark:text-amber-400" onClick={closeSidebar}>
-                        SAHNEBUL
-                    </Link>
+                    <SahnebulWordmark
+                        size="sm"
+                        href={route('admin.dashboard')}
+                        onClick={closeSidebar}
+                        className="min-w-0 flex-1"
+                    />
                     <span className="shrink-0 rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-400">Admin</span>
                     <button
                         type="button"

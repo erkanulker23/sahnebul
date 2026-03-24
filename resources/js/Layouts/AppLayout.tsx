@@ -1,4 +1,5 @@
 import { AdSlot } from '@/Components/AdSlot';
+import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
@@ -71,7 +72,10 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 <footer className="border-t border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950/80">
                     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-10 px-4 py-12 sm:px-6 lg:grid-cols-6 lg:gap-8 lg:px-8">
                         <div className="min-w-0 lg:col-span-2">
-                            <p className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{footer.brand ?? 'SAHNEBUL'}</p>
+                            <div className="flex items-start gap-3">
+                                <MicrophoneMark className="mt-0.5 h-11 w-11 shrink-0" />
+                                <p className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{footer.brand ?? 'SAHNEBUL'}</p>
+                            </div>
                             <p className="mt-3 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">{footer.description}</p>
                             <div className="mt-4 space-y-1 text-sm text-zinc-600 dark:text-zinc-500">
                                 {footer.contact?.email && <p>{footer.contact.email}</p>}
