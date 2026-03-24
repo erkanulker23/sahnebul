@@ -11,10 +11,13 @@ if command -v composer >/dev/null 2>&1; then
   composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 fi
 
+# Bozuk/yarım node_modules (ENOTEMPTY: rmdir) — özellikle ardışık deploy'larda npm ci bazen patlar.
+rm -rf node_modules
+
 if [[ -f package-lock.json ]]; then
-  npm ci
+  npm ci --no-audit --no-fund
 else
-  npm install
+  npm install --no-audit --no-fund
 fi
 npm run build
 

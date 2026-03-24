@@ -74,7 +74,7 @@ Sunucuda cron:
 
 ## 11. Deploy (Forge)
 
-Örnek script: `scripts/forge-deploy.sh` — `composer install --no-dev`, `npm run build`, `migrate --force`, önbellek, `queue:restart`.
+Örnek script: `scripts/forge-deploy.sh` — `composer install --no-dev`, **`rm -rf node_modules`** sonra `npm ci` (Forge’da `ENOTEMPTY` / `rmdir` hatalarını önler), `npm run build`, `migrate --force`, önbellek, `queue:restart`.
 
 ## 12. Kritik riskler (öncelik)
 
