@@ -29,6 +29,12 @@ npm run build:deploy
 
 php artisan migrate --force
 
+# İlk kurulum: Forge Site → Environment → FORGE_DB_SEED=1 ekleyin, bir deploy alın, sonra kaldırın.
+# (Her deployda seed çalıştırmayın; mevcut veriyi çoğaltmaz ama Spotify/import süresi uzun olabilir.)
+if [[ "${FORGE_DB_SEED:-}" == "1" ]]; then
+  php artisan db:seed --force
+fi
+
 php artisan optimize:clear
 
 # Tek komut alternatifi: php artisan optimize

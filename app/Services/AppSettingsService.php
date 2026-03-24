@@ -73,6 +73,27 @@ class AppSettingsService
     }
 
     /**
+     * Footer ayarı — DB boş veya hatalıysa config/sahnebul.php varsayılanı (canlıda footer kaybolmaz).
+     *
+     * @return array<string, mixed>
+     */
+    public function getFooterSettings(): array
+    {
+        /** @var array<string, mixed> $defaults */
+        $defaults = config('sahnebul.default_footer', []);
+        if ($defaults === []) {
+            return [];
+        }
+
+        $fromDb = $this->getJsonCached('footer');
+        if (! is_array($fromDb) || $fromDb === []) {
+            return $defaults;
+        }
+
+        return array_replace_recursive($defaults, $fromDb);
+    }
+
+    /**
      * Reklam yerleşimleri — bilinen slot anahtarları ile birleştirilmiş yapı.
      *
      * @return array{slots: array<string, array<string, mixed>>}

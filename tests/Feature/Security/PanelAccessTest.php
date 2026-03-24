@@ -29,6 +29,13 @@ class PanelAccessTest extends TestCase
         $this->actingAs($user)->get('/admin')->assertOk();
     }
 
+    public function test_super_admin_can_open_admin_dashboard(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($user)->get('/admin')->assertOk();
+    }
+
     public function test_guest_cannot_access_artist_panel(): void
     {
         $this->get('/sahne')->assertRedirect(route('login', absolute: false));

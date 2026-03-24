@@ -63,7 +63,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'settings' => [
-                'footer' => fn () => $appSettings->getJsonCached('footer'),
+                'footer' => fn () => $appSettings->getFooterSettings(),
                 'ads' => fn () => $appSettings->getNormalizedAdsConfig(),
             ],
             'adminNotifications' => function () use ($request, $appSettings) {
