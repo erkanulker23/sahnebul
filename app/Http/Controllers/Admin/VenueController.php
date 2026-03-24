@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueMedia;
+use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -18,6 +20,10 @@ use Inertia\Inertia;
 
 class VenueController extends Controller
 {
+    public function __construct(
+        private readonly VenueRemoteCoverImporter $remoteCoverImporter,
+    ) {}
+
     public function create()
     {
         return Inertia::render('Admin/Venues/Create', [
@@ -96,12 +102,14 @@ class VenueController extends Controller
         unset($validated['cover_upload']);
         if ($request->hasFile('cover_upload')) {
             $validated['cover_image'] = $request->file('cover_upload')->store('venue-covers', 'public');
+        } else {
+            $validated['cover_image'] = $this->mirrorRemoteVenueCoverIfNeeded($validated['cover_image'] ?? null);
         }
 
         $validated['is_featured'] = $request->boolean('is_featured');
 
         $slugBase = Str::slug($validated['name']);
-        $validated['slug'] = $slugBase . '-' . Str::lower(Str::random(4));
+        $validated['slug'] = $slugBase.'-'.Str::lower(Str::random(4));
 
         $venue = Venue::create($validated);
 
@@ -171,6 +179,11 @@ class VenueController extends Controller
                 Storage::disk('public')->delete($venue->cover_image);
             }
             $validated['cover_image'] = $request->file('cover_upload')->store('venue-covers', 'public');
+        } else {
+            $validated['cover_image'] = $this->mirrorRemoteVenueCoverIfNeeded(
+                $validated['cover_image'] ?? null,
+                $venue->cover_image,
+            );
         }
 
         $validated['is_featured'] = $request->boolean('is_featured');
@@ -181,6 +194,80 @@ class VenueController extends Controller
         return back()->with('success', 'Mekan güncellendi.');
     }
 
+    /**
+     * Google Places vb. ile gelen kapak URL'sini hemen diske alır (form kaydı beklemeden).
+     */
+    public function importRemoteCover(Request $request, Venue $venue)
+    {
+        $validated = $request->validate([
+            'url' => 'required|string|url|max:4096',
+        ]);
+
+        $url = $validated['url'];
+
+        if (! $this->remoteCoverImporter->isMirrorableUrl($url)) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Bu kaynaktan otomatik kapak indirme desteklenmiyor.'], 422);
+            }
+
+            return back()->withErrors(['url' => 'Bu kaynaktan otomatik kapak indirme desteklenmiyor.']);
+        }
+
+        $path = $this->remoteCoverImporter->importToPublicDisk($url);
+
+        if ($path === null) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Görsel indirilemedi. Lütfen tekrar deneyin.'], 422);
+            }
+
+            return back()->withErrors(['url' => 'Görsel indirilemedi. Lütfen tekrar deneyin.']);
+        }
+
+        if ($venue->cover_image && ! Str::startsWith($venue->cover_image, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($venue->cover_image);
+        }
+
+        $venue->update(['cover_image' => $path]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['cover_image' => $path]);
+        }
+
+        return back()->with('success', 'Kapak görseli sunucuya kaydedildi.');
+    }
+
+    /**
+     * Harici (Google) kapak URL'sini venue-covers altına kopyalar; zaten yerel yol ise dokunmaz.
+     *
+     * @param  ?string  $previousCover  Güncellemede eski kapak (yerel dosya silmek için)
+     */
+    private function mirrorRemoteVenueCoverIfNeeded(?string $incoming, ?string $previousCover = null): ?string
+    {
+        if ($incoming === null || $incoming === '') {
+            return null;
+        }
+
+        if (! Str::startsWith($incoming, ['http://', 'https://'])) {
+            return $incoming;
+        }
+
+        if (! $this->remoteCoverImporter->isMirrorableUrl($incoming)) {
+            return $incoming;
+        }
+
+        $path = $this->remoteCoverImporter->importToPublicDisk($incoming);
+
+        if ($path === null) {
+            return $incoming;
+        }
+
+        if ($previousCover && ! Str::startsWith($previousCover, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($previousCover);
+        }
+
+        return $path;
+    }
+
     public function storeMedia(Request $request, Venue $venue)
     {
         $request->validate([
@@ -189,7 +276,7 @@ class VenueController extends Controller
             'photos.*' => 'image|max:10240',
         ]);
 
-        /** @var Collection<int, \Illuminate\Http\UploadedFile> $files */
+        /** @var Collection<int, UploadedFile> $files */
         $files = collect();
         if ($request->hasFile('photo')) {
             $files->push($request->file('photo'));
@@ -242,12 +329,14 @@ class VenueController extends Controller
     public function approve(Venue $venue)
     {
         $venue->update(['status' => 'approved']);
+
         return back()->with('success', 'Mekan onaylandı.');
     }
 
     public function reject(Venue $venue)
     {
         $venue->update(['status' => 'rejected']);
+
         return back()->with('success', 'Mekan reddedildi.');
     }
 

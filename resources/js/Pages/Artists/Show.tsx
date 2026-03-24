@@ -227,11 +227,14 @@ function SpotifyTrackPreview({
     trackKey,
     playingKey,
     onPlayingChange,
+    fallbackOpenUrl,
 }: Readonly<{
     src: string;
     trackKey: string;
     playingKey: string | null;
     onPlayingChange: (key: string | null) => void;
+    /** Önizleme tarayıcıda çalınamazsa (süresi dolmuş URL, autoplay vb.) yeni sekmede açılır */
+    fallbackOpenUrl?: string | null;
 }>) {
     const audioRef = useRef<HTMLAudioElement>(null);
     const isPlaying = playingKey === trackKey;
@@ -262,8 +265,18 @@ function SpotifyTrackPreview({
                         onPlayingChange(null);
                         audioRef.current?.pause();
                     } else {
-                        onPlayingChange(trackKey);
-                        void audioRef.current?.play();
+                        const el = audioRef.current;
+                        if (!el) return;
+                        void el
+                            .play()
+                            .then(() => onPlayingChange(trackKey))
+                            .catch(() => {
+                                onPlayingChange(null);
+                                const u = fallbackOpenUrl?.trim();
+                                if (u && u !== '#') {
+                                    window.open(u, '_blank', 'noopener,noreferrer');
+                                }
+                            });
                     }
                 }}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1ed760] text-black shadow-md transition hover:scale-[1.03] hover:bg-[#1fdf64] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1ed760] active:scale-95"
@@ -712,7 +725,7 @@ export default function ArtistShow({
                                 </div>
                             )}
 
-                            <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-800 bg-[#121212] p-6 shadow-xl sm:p-8">
+                            <div className="mt-8 rounded-2xl border border-zinc-800 bg-[#121212] p-6 shadow-xl sm:p-8">
                                 <div className="mb-2">
                                     <h2 className="font-display text-lg font-bold tracking-tight text-white sm:text-xl">Spotify</h2>
                                     <p className="mt-1 text-sm text-zinc-500">
@@ -765,18 +778,22 @@ export default function ArtistShow({
                                 )}
 
                                 {artist.spotify_id && (
-                                    <div className="mb-8">
+                                    <div className="relative z-[1] mb-8 isolate">
                                         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
                                             Çalar
                                         </h3>
                                         <iframe
                                             title={`${artist.name} — Spotify`}
                                             src={`https://open.spotify.com/embed/artist/${artist.spotify_id}?utm_source=generator&theme=0`}
-                                            className="h-[380px] w-full rounded-xl border-0"
-                                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                            className="h-[380px] w-full max-w-full rounded-xl border-0"
+                                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share"
                                             allowFullScreen
                                             loading="eager"
+                                            referrerPolicy="strict-origin-when-cross-origin"
                                         />
+                                        <p className="mt-2 text-xs text-zinc-500">
+                                            Gömülü çalar bazı tarayıcılarda (reklam engelleyici, gizlilik modu) yanıt vermeyebilir; tam dinleme için sayfanın altındaki Spotify&apos;da aç bağlantısını kullanın.
+                                        </p>
                                     </div>
                                 )}
 
@@ -840,6 +857,7 @@ export default function ArtistShow({
                                                                         trackKey={rowKey}
                                                                         playingKey={playingTrackKey}
                                                                         onPlayingChange={setPlayingTrackKey}
+                                                                        fallbackOpenUrl={href}
                                                                     />
                                                                 ) : (
                                                                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-800/80 text-[10px] font-medium text-zinc-500" title="Önizleme yok">

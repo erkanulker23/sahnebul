@@ -98,7 +98,7 @@ class ArtistController extends Controller
 
         $artist = Artist::create([
             ...$validated,
-            'slug' => Str::slug($validated['name']) . '-' . Str::lower(Str::random(4)),
+            'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(4)),
         ]);
 
         return redirect()->route('admin.artists.edit', $artist)->with('success', 'Sanatçı eklendi. Detayları düzenleyebilirsiniz.');
@@ -144,10 +144,15 @@ class ArtistController extends Controller
                 Storage::disk('public')->delete($artist->avatar);
             }
             $validated['avatar'] = $request->file('avatar_upload')->store('artist-avatars', 'public');
+        } elseif ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
+            $newAvatar = $validated['avatar'] ?? null;
+            if ($newAvatar === null || $newAvatar === '' || $newAvatar !== $artist->avatar) {
+                Storage::disk('public')->delete($artist->avatar);
+            }
         }
 
         if ($artist->name !== $validated['name']) {
-            $validated['slug'] = Str::slug($validated['name']) . '-' . Str::lower(Str::random(4));
+            $validated['slug'] = Str::slug($validated['name']).'-'.Str::lower(Str::random(4));
         }
 
         $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));

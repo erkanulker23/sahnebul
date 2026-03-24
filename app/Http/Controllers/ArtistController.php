@@ -6,15 +6,23 @@ use App\Models\Artist;
 use App\Models\ArtistClaimRequest;
 use App\Models\City;
 use App\Services\ITunesSearchService;
+use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
 use App\Support\TurkishAlphabet;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ArtistController extends Controller
 {
-    public function __construct(private readonly ITunesSearchService $itunesSearch) {}
+    public function __construct(
+        private readonly ITunesSearchService $itunesSearch,
+        private readonly SpotifyService $spotify,
+    ) {}
 
     public function index(Request $request)
     {
@@ -82,9 +90,9 @@ class ArtistController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return Collection<int, array<string, mixed>>
      */
-    private function artistsWithShowsThisWeek(\Carbon\CarbonInterface $weekStart, \Carbon\CarbonInterface $weekEnd): \Illuminate\Support\Collection
+    private function artistsWithShowsThisWeek(CarbonInterface $weekStart, CarbonInterface $weekEnd): Collection
     {
         $rows = DB::table('event_artists')
             ->join('events', 'events.id', '=', 'event_artists.event_id')
@@ -181,8 +189,34 @@ class ArtistController extends Controller
             'venue_count' => (clone $statsQuery)->distinct()->count('events.venue_id'),
         ];
 
-        /** Spotify Web API (Premium/Extension şartı) kullanılmıyor; iTunes Search API ücretsizdir. */
-        $latestTracks = $this->itunesSearch->latestTracksByArtistName($artist->name, 15);
+        $latestTracks = [];
+        $spotifyId = is_string($artist->spotify_id) ? trim($artist->spotify_id) : '';
+        $hasSpotifyCreds = (bool) (config('services.spotify.client_id') && config('services.spotify.client_secret'));
+
+        if ($spotifyId !== '' && $hasSpotifyCreds) {
+            $cacheKey = 'artist_latest_tracks:spotify:'.$artist->id;
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && count($cached) > 0) {
+                $latestTracks = $cached;
+            } elseif ($cached === null) {
+                try {
+                    $fromSpotify = $this->spotify->latestTracksByArtistName($artist->name, 15, $spotifyId);
+                    if (count($fromSpotify) > 0) {
+                        Cache::put($cacheKey, $fromSpotify, now()->addMinutes(45));
+                        $latestTracks = $fromSpotify;
+                    }
+                } catch (\Throwable $e) {
+                    Log::debug('Spotify latest tracks failed', [
+                        'artist_id' => $artist->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        if (count($latestTracks) === 0) {
+            $latestTracks = $this->itunesSearch->latestTracksByArtistName($artist->name, 15);
+        }
 
         app(TurkeyProvincesSync::class)->sync();
         $provinceNames = City::query()->turkiyeProvinces()->pluck('name')->values()->all();

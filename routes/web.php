@@ -3,13 +3,13 @@
 use App\Http\Controllers\Admin\AdPlacementController as AdminAdPlacementController;
 use App\Http\Controllers\Admin\ArtistClaimController as AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistController as AdminArtistController;
-use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
 use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
+use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
@@ -162,6 +162,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/mekanlar', [AdminVenueController::class, 'store'])->name('venues.store');
     Route::post('/mekanlar/toplu-sil', [AdminVenueController::class, 'bulkDestroy'])->name('venues.bulk-destroy');
     Route::get('/mekanlar/{venue}/duzenle', [AdminVenueController::class, 'edit'])->name('venues.edit');
+    Route::post('/mekanlar/{venue}/kapak-url', [AdminVenueController::class, 'importRemoteCover'])->name('venues.cover-import');
     Route::post('/mekanlar/{venue}/galeri', [AdminVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlar/{venue}/galeri/{media}', [AdminVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::put('/mekanlar/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');

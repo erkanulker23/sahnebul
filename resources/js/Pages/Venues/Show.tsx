@@ -416,7 +416,30 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                             )}
 
                             <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/5 dark:bg-zinc-900/30">
-                                <h2 className="font-display mb-6 text-xl font-bold text-zinc-900 dark:text-white">Değerlendirmeler</h2>
+                                <h2 className="font-display mb-2 text-xl font-bold text-zinc-900 dark:text-white">Değerlendirmeler</h2>
+                                <p className="mb-6 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                    Bu yeri biliyorsanız değerlendirebilirsiniz.
+                                    {!user && (
+                                        <>
+                                            {' '}
+                                            Yorum ve puan vermek için{' '}
+                                            <Link
+                                                href={route('login', { redirect: `/mekanlar/${venue.slug}` })}
+                                                className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                                            >
+                                                giriş yapın
+                                            </Link>
+                                            {' veya '}
+                                            <Link
+                                                href={route('register')}
+                                                className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                                            >
+                                                üye olun
+                                            </Link>
+                                            .
+                                        </>
+                                    )}
+                                </p>
                                 {user && !hasReviewed && (
                                     <form onSubmit={submitReview} className="mb-8 rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-white/5 dark:bg-zinc-800/30">
                                         <div className="mb-4">

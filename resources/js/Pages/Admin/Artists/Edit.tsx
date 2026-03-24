@@ -213,9 +213,26 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                             placeholder="https://... veya boş bırakıp dosya yükleyin"
                             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                         />
-                        {storageUrl(data.avatar) && (
-                            <img src={storageUrl(data.avatar) ?? ''} alt="" className="mt-2 h-24 w-24 rounded-lg object-cover" />
-                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                            {storageUrl(data.avatar) && (
+                                <img src={storageUrl(data.avatar) ?? ''} alt="" className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-700" />
+                            )}
+                            {(data.avatar?.trim() || artist.avatar) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setData('avatar', '');
+                                        setData('avatar_upload', null);
+                                    }}
+                                    className="rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm font-medium text-red-300 transition hover:border-red-400 hover:bg-red-950/60"
+                                >
+                                    Profil görselini kaldır
+                                </button>
+                            )}
+                        </div>
+                        <p className="mt-2 text-xs text-zinc-500">
+                            Kaldır dedikten sonra değişikliği kaydetmek için <strong className="text-zinc-400">Kaydet</strong>’e basın.
+                        </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Profil görseli (dosya)</label>

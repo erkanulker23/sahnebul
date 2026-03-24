@@ -200,12 +200,18 @@ export default function AdminVenueCreate({ categories, googleMapsBrowserKey = nu
                             placeholder="Facebook URL"
                             className="rounded border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                         />
-                        <input
-                            value={form.cover_image}
-                            onChange={(e) => setForm((f) => ({ ...f, cover_image: e.target.value }))}
-                            placeholder="Kapak görsel URL"
-                            className="rounded border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                        />
+                        <div className="sm:col-span-2">
+                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Kapak görseli</label>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                                Google ile seçilen kapak, mekanı ilk kez kaydettiğinizde otomatik olarak sunucuya indirilir.
+                            </p>
+                            <input
+                                value={form.cover_image}
+                                onChange={(e) => setForm((f) => ({ ...f, cover_image: e.target.value }))}
+                                placeholder="Kapak URL (Google’dan gelir; kayıtta yerel dosyaya çevrilir)"
+                                className="mt-1 w-full rounded border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                            />
+                        </div>
                         <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="rounded border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
                             <option value="pending">Beklemede</option>
                             <option value="approved">Onaylı</option>

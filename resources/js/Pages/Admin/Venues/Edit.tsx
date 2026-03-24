@@ -6,6 +6,7 @@ import SeoHead from '@/Components/SeoHead';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import { isRichTextProbablyEmpty } from '@/lib/buildVenuePayloadFromGooglePlace';
 import { Link, router, useForm } from '@inertiajs/react';
+import axios from 'axios';
 import { useState } from 'react';
 
 interface MediaItem {
@@ -54,6 +55,8 @@ const venueSocialKeys = ['instagram', 'twitter', 'youtube', 'spotify', 'tiktok',
 
 export default function AdminVenueEdit({ venue, categories, googleMapsBrowserKey = null }: Readonly<Props>) {
     const [galleryUploading, setGalleryUploading] = useState(false);
+    const [coverImporting, setCoverImporting] = useState(false);
+    const [coverImportError, setCoverImportError] = useState<string | null>(null);
     const sl = venue.social_links ?? {};
     const { data, setData, put, processing, errors, progress, transform } = useForm({
         name: venue.name,
@@ -244,7 +247,30 @@ export default function AdminVenueEdit({ venue, categories, googleMapsBrowserKey
                                         setData('description', payload.descriptionHtmlFromGoogle);
                                     }
                                     if (payload.coverImageUrlFromGoogle?.trim()) {
-                                        setData('cover_image', payload.coverImageUrlFromGoogle.trim());
+                                        const url = payload.coverImageUrlFromGoogle.trim();
+                                        setCoverImporting(true);
+                                        setCoverImportError(null);
+                                        axios
+                                            .post<{ cover_image: string }>(
+                                                route('admin.venues.cover-import', venue.id),
+                                                { url },
+                                                { headers: { Accept: 'application/json' }, timeout: 120_000 },
+                                            )
+                                            .then((res) => {
+                                                setData('cover_image', res.data.cover_image);
+                                                setData('cover_upload', null);
+                                            })
+                                            .catch((err: unknown) => {
+                                                const ax = err as {
+                                                    response?: { data?: { message?: string; errors?: { url?: string[] } } };
+                                                };
+                                                const msg =
+                                                    ax.response?.data?.errors?.url?.[0] ??
+                                                    ax.response?.data?.message ??
+                                                    'Kapak görseli indirilemedi.';
+                                                setCoverImportError(msg);
+                                            })
+                                            .finally(() => setCoverImporting(false));
                                     }
                                 }}
                             />
@@ -389,11 +415,16 @@ export default function AdminVenueEdit({ venue, categories, googleMapsBrowserKey
 
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Kapak görseli (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                            Google ile yer seçildiğinde kapak otomatik sunucuya indirilir; canlı sitede harici bağlantı kullanılmaz.
+                        </p>
                         <input
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
                             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                         />
+                        {coverImporting && <p className="mt-2 text-sm text-amber-400">Kapak görseli indiriliyor…</p>}
+                        {coverImportError && <p className="mt-2 text-sm text-red-400">{coverImportError}</p>}
                         {storageUrl(data.cover_image) && (
                             <img src={storageUrl(data.cover_image) ?? ''} alt="" className="mt-2 h-32 max-w-md rounded-lg object-cover" />
                         )}
