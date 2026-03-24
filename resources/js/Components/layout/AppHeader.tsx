@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
 import { Calendar, FileText, MapPin, Menu, Mic2, Moon, Sun, User, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 function navActive(routePatterns: string[]): boolean {
     try {
@@ -85,10 +86,15 @@ export function AppHeader() {
         if (!drawerOpen) return;
         const prev = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') closeDrawer();
+        };
+        globalThis.addEventListener('keydown', onKey);
         return () => {
             document.body.style.overflow = prev;
+            globalThis.removeEventListener('keydown', onKey);
         };
-    }, [drawerOpen]);
+    }, [drawerOpen, closeDrawer]);
 
     const navActiveState = {
         venues: navActive(['venues.index']),
@@ -98,6 +104,7 @@ export function AppHeader() {
     };
 
     return (
+        <>
         <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/95 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/95 dark:shadow-none">
             <div className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-8">
                 {/* Masaüstü: logo | nav | arama | aksiyonlar */}
@@ -203,18 +210,20 @@ export function AppHeader() {
                     <GlobalSearch className="w-full" />
                 </div>
             </div>
+        </header>
 
-            {/* Mobil drawer: birincil menü + hesap */}
-            {drawerOpen && (
+        {drawerOpen &&
+            typeof document !== 'undefined' &&
+            createPortal(
                 <>
                     <button
                         type="button"
-                        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm lg:hidden"
+                        className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm lg:hidden"
                         aria-label="Menüyü kapat"
                         onClick={closeDrawer}
                     />
                     <div
-                        className="fixed inset-y-0 right-0 z-[70] flex w-[min(100vw-3rem,20rem)] flex-col border-l border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950 lg:hidden"
+                        className="fixed inset-y-0 right-0 z-[110] flex w-[min(100vw-3rem,20rem)] flex-col border-l border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-xl dark:border-zinc-800 dark:bg-zinc-950 lg:hidden"
                         role="dialog"
                         aria-modal="true"
                         aria-label="Menü"
@@ -310,8 +319,9 @@ export function AppHeader() {
                             )}
                         </div>
                     </div>
-                </>
+                </>,
+                document.body,
             )}
-        </header>
+        </>
     );
 }
