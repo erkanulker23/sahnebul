@@ -11,7 +11,9 @@ class BlogPostSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::query()->where('email', 'admin@sahnebul.test')->first();
+        $email = (string) config('sahnebul.super_admin.email', 'erkanulker0@gmail.com');
+        $admin = User::query()->where('email', $email)->first()
+            ?? User::query()->where('role', 'super_admin')->orderBy('id')->first();
         if (! $admin) {
             return;
         }

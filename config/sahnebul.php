@@ -2,6 +2,16 @@
 
 return [
     /**
+     * AdminUserSeeder bu hesabı her `db:seed` ile günceller. .env kullanılmaz.
+     * Tam yönetim paneli: role super_admin (isAdmin / tüm admin rotaları).
+     */
+    'super_admin' => [
+        'email' => 'erkanulker0@gmail.com',
+        'password' => 'password',
+        'name' => 'Sahnebul Yönetici',
+    ],
+
+    /**
      * Veritabanında `footer` ayarı yokken Inertia / ön yüzde kullanılacak varsayılan footer.
      * AppSettingSeeder aynı yapıyı DB'ye yazar.
      */

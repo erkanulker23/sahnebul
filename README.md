@@ -72,12 +72,17 @@ php artisan serve  # Gerekirse - Valet kullanıyorsanız gerekmez
 
 Valet ile proje `https://sahnebul-v1.test` adresinde otomatik çalışır.
 
-## Demo Giriş Bilgileri
+## Giriş hesapları (seed sonrası)
 
-Seed sonrası admin hesabı:
+Üç rol örneği:
 
-- **Email:** admin@sahnebul.test
-- **Şifre:** password
+| Rol | E-posta | Şifre |
+|-----|---------|--------|
+| **Süper admin** (tüm yönetim paneli) | erkanulker0@gmail.com | password |
+| **Demo mekan sahibi** | mekan-sahibi@sahnebul.test | password |
+| **Demo sanatçı** | sanatci@sahnebul.test | password |
+
+Süper admin `config/sahnebul.php` içindeki `super_admin` ile oluşturulur; `php artisan db:seed` çalıştırınca veritabanına yazılır.
 
 ## Özellikler
 

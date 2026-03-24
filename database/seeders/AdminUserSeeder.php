@@ -10,44 +10,23 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $superEmail = trim((string) env('SUPER_ADMIN_EMAIL', 'erkanulker0@gmail.com'));
-        $plainPassword = env('SUPER_ADMIN_PASSWORD');
+        $cfg = config('sahnebul.super_admin', []);
+        $email = (string) ($cfg['email'] ?? 'erkanulker0@gmail.com');
+        $plain = (string) ($cfg['password'] ?? 'password');
+        $name = (string) ($cfg['name'] ?? 'Sahnebul Yönetici');
 
-        if ($plainPassword === null || $plainPassword === '') {
-            if (app()->environment(['local', 'testing'])) {
-                $plainPassword = 'password';
-            } else {
-                $this->command?->warn(
-                    'SUPER_ADMIN_PASSWORD .env içinde yok; süper admin kullanıcısı oluşturulmadı. '.
-                    'Forge .env içinde şifreyi tanımlayıp php artisan db:seed --class=AdminUserSeeder --force çalıştırın.'
-                );
-
-                $plainPassword = null;
-            }
+        if ($email === '') {
+            return;
         }
 
-        if ($superEmail !== '' && $plainPassword !== null) {
-            User::updateOrCreate(
-                ['email' => $superEmail],
-                [
-                    'name' => env('SUPER_ADMIN_NAME', 'Sahnebul Yönetici'),
-                    'password' => Hash::make($plainPassword),
-                    'role' => 'super_admin',
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        if (app()->environment(['local', 'testing'])) {
-            User::updateOrCreate(
-                ['email' => 'admin@sahnebul.test'],
-                [
-                    'name' => 'Admin (yerel)',
-                    'password' => Hash::make('password'),
-                    'role' => 'admin',
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
+        User::updateOrCreate(
+            ['email' => $email],
+            [
+                'name' => $name,
+                'password' => Hash::make($plain),
+                'role' => 'super_admin',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

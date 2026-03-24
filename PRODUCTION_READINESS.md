@@ -76,7 +76,7 @@ Sunucuda cron:
 
 Örnek script: `scripts/forge-deploy.sh` — `composer install --no-dev`, **`rm -rf node_modules`** sonra `npm ci`, **`NODE_OPTIONS=--max-old-space-size=4096`** ve **`npm run build:deploy`** (yalnızca `vite build`; `tsc` sunucuda atlanır — push öncesi yerelde `npm run build` çalıştırın). Forge **10 dk deploy timeout**: küçük droplet’te takılıyorsa RAM artırın veya sunucuda [swap](https://forge.laravel.com/docs/servers/php#memory) açın.
 
-**İlk veri (yereldeki gibi içerik):** Canlı veritabanında yalnızca `migrate` çalışırsa sanatçı/mekan/blog/ayar satırları oluşmaz. Bir kez **`php artisan db:seed --force`** gerekir. Forge’da Environment’a **`SUPER_ADMIN_PASSWORD`** (güçlü şifre) ve isteğe bağlı **`SUPER_ADMIN_EMAIL`** ekleyin; ardından ya SSH’tan `db:seed --force` çalıştırın ya da geçici olarak **`FORGE_DB_SEED=1`** koyup tek deploy alıp sonra kaldırın (`scripts/forge-deploy.sh` bunu destekler). Seed sonrası `optimize:clear` zaten deploy’da vardır.
+**İlk veri (yereldeki gibi içerik):** Canlı veritabanında yalnızca `migrate` çalışırsa sanatçı/mekan/blog/ayar satırları oluşmaz. Bir kez **`php artisan db:seed --force`** gerekir. Süper yönetici **`config/sahnebul.php`** → `super_admin` ile `AdminUserSeeder` tarafından oluşturulur (`.env` yok). SSH’tan `db:seed --force` veya geçici **`FORGE_DB_SEED=1`** + deploy (`scripts/forge-deploy.sh`). Seed sonrası `optimize:clear` zaten deploy’da vardır.
 
 ## 12. Kritik riskler (öncelik)
 
