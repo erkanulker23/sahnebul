@@ -61,7 +61,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
-            <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 py-5 sm:px-4 sm:py-6 lg:px-8">{children}</main>
 
             <div className="mt-auto flex w-full flex-col">
                 <AdSlot
@@ -70,7 +70,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                     className="w-full bg-zinc-100/90 py-3 dark:bg-zinc-900/40"
                 />
                 <footer className="border-t border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950/80">
-                    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-10 px-4 py-12 sm:px-6 lg:grid-cols-6 lg:gap-8 lg:px-8">
+                    <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-10 px-2.5 py-12 sm:px-5 lg:grid-cols-6 lg:gap-8 lg:px-8">
                         <div className="min-w-0 lg:col-span-2">
                             <div className="flex items-start gap-3">
                                 <MicrophoneMark className="mt-0.5 h-11 w-11 shrink-0" />

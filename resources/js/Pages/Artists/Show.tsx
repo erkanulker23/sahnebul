@@ -402,7 +402,7 @@ export default function ArtistShow({
             />
 
             <div className="min-h-screen">
-                <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-0 pt-6 sm:px-4 sm:pt-8 lg:px-8">
                     <Link
                         href={route('artists.index')}
                         className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-400"
@@ -414,7 +414,7 @@ export default function ArtistShow({
                     </Link>
                 </div>
 
-                <div className="relative mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="relative mx-auto mt-4 max-w-7xl px-0 sm:mt-6 sm:px-4 lg:px-8">
                     <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
                         {/* Sol: Fotoğraf + sosyal */}
                         <div className="shrink-0 lg:w-96">

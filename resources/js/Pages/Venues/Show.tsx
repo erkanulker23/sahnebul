@@ -396,7 +396,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                 </section>
 
                 {/* Content */}
-                <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-0 py-10 sm:px-4 sm:py-12 lg:px-8">
                     <div className="grid gap-12 lg:grid-cols-3">
                         {/* Main — mobilde ikinci sırada; masaüstünde solda */}
                         <div className="order-2 min-w-0 lg:order-1 lg:col-span-2">
@@ -630,7 +630,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                 </div>
 
                 {(venue.events?.length ?? 0) > 0 && (
-                    <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-7xl px-0 pb-14 pt-8 sm:px-4 sm:pb-16 sm:pt-10 lg:px-8">
                         <DetailEventList events={venue.events ?? []} imageSrc={imageSrc} context="venue" />
                     </div>
                 )}

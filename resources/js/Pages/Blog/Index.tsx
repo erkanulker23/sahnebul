@@ -94,7 +94,7 @@ export default function BlogIndex({ posts }: Readonly<Props>) {
                     className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-amber-600/10 blur-3xl dark:bg-amber-600/5"
                     aria-hidden
                 />
-                <div className="relative mx-auto max-w-[1600px] px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+                <div className="relative mx-auto max-w-[1600px] px-3 py-12 sm:px-5 sm:py-20 lg:px-8 lg:py-24">
                     <div className="max-w-3xl">
                         <p className="inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-white/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-800 backdrop-blur-sm dark:border-amber-500/25 dark:bg-zinc-900/60 dark:text-amber-300">
                             <BookOpen className="h-3.5 w-3.5" aria-hidden />
@@ -113,7 +113,7 @@ export default function BlogIndex({ posts }: Readonly<Props>) {
                 </div>
             </section>
 
-            <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+            <div className="mx-auto max-w-[1600px] px-0 py-8 sm:px-4 sm:py-12 lg:px-8 lg:py-14">
                 <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
                     <div className="lg:col-span-8">
                         {posts.data.length === 0 ? (
@@ -165,7 +165,7 @@ export default function BlogIndex({ posts }: Readonly<Props>) {
                                 ) : null}
 
                                 {gridPosts.length > 0 ? (
-                                    <ul className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+                                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:gap-8">
                                         {gridPosts.map((post) => (
                                             <li key={post.id}>
                                                 <Link

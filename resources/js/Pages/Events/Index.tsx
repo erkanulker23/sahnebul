@@ -442,7 +442,7 @@ export default function EventsIndex({
                     )}
                 </div>
 
-                <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8 lg:px-8 lg:pb-14 lg:pt-10">
+                <div className="mx-auto max-w-7xl px-0 pb-8 pt-4 sm:px-4 sm:pb-12 sm:pt-8 lg:px-8 lg:pb-14 lg:pt-10">
                     <AdSlot slotKey="events_index_top" className="pb-2 pt-1" />
                     <form onSubmit={handleFilterSubmit} className="flex flex-col gap-6 sm:gap-8">
                         <div className="flex flex-col gap-4 sm:gap-5">
@@ -610,7 +610,7 @@ export default function EventsIndex({
                             ) : null}
                         </div>
                     ) : (
-                        <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+                        <div className="mt-6 grid grid-cols-2 gap-2 sm:mt-10 sm:gap-3 md:gap-4 lg:grid-cols-4 lg:gap-6">
                             {events.data.map((event) => (
                                 <EventTicketCard key={event.id} event={event} />
                             ))}

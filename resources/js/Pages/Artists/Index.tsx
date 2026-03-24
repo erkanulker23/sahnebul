@@ -120,7 +120,7 @@ export default function ArtistsIndex({
             <section className="hero-full-bleed relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-white to-zinc-100 dark:from-[#0a0a0b] dark:via-[#0f0f12] dark:to-[#0a0a0b]" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(251,191,36,0.1),transparent)]" />
-                <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+                <div className="relative mx-auto max-w-7xl px-3 py-14 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
                     <div className="max-w-2xl">
                         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amber-400/80">
                             Platformumuzdaki Sanatçılar
@@ -144,8 +144,8 @@ export default function ArtistsIndex({
             )}
 
             {/* Filter */}
-            <section className="relative z-10 mx-auto max-w-7xl px-4 -mt-6 sm:px-6 lg:px-8">
-                <form onSubmit={handleFilter} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl lg:p-6 dark:border-white/[0.06] dark:bg-zinc-900/90 dark:shadow-black/20">
+            <section className="relative z-10 mx-auto max-w-7xl -mt-6 px-0 sm:px-4 lg:px-8">
+                <form onSubmit={handleFilter} className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-xl sm:p-5 lg:p-6 dark:border-white/[0.06] dark:bg-zinc-900/90 dark:shadow-black/20">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-5">
                         <div className="flex-1">
                             <label htmlFor="artist-search" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-700 dark:text-zinc-500">Sanatçı ara</label>
@@ -201,7 +201,7 @@ export default function ArtistsIndex({
             </section>
 
             {/* Artists Grid */}
-            <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <section className="mx-auto max-w-7xl px-0 py-12 sm:px-4 sm:py-16 lg:px-8">
                 {alphabetLetters.length > 0 && (
                     <div className="mb-8 rounded-2xl border border-zinc-200 bg-zinc-100/90 p-4 dark:border-white/[0.08] dark:bg-zinc-900/50">
                         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-500">
@@ -257,13 +257,13 @@ export default function ArtistsIndex({
                         <p className="mb-10 text-sm font-medium text-zinc-600 dark:text-zinc-500">
                             {artists.total ? `${artists.total} sanatçıdan ${artists.from ?? 0}-${artists.to ?? 0} arası gösteriliyor` : `${artists.data.length} sanatçı`}
                         </p>
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
                             {artists.data.map((artist) => (
                                 <Link
                                     key={artist.id}
                                     href={route('artists.show', artist.slug)}
                                     aria-label={`${artist.name}, sanatçı profili`}
-                                    className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300/80 hover:shadow-lg dark:border-white/[0.06] dark:bg-zinc-900/60 dark:hover:border-amber-500/20 dark:hover:shadow-amber-500/5"
+                                    className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300/80 hover:shadow-lg sm:rounded-2xl dark:border-white/[0.06] dark:bg-zinc-900/60 dark:hover:border-amber-500/20 dark:hover:shadow-amber-500/5"
                                 >
                                     <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
                                         {artist.avatar ? (
@@ -276,34 +276,34 @@ export default function ArtistsIndex({
                                             />
                                         ) : (
                                             <div className="flex h-full items-center justify-center bg-gradient-to-br from-amber-900/40 via-zinc-800 to-zinc-900">
-                                                <span className="font-display text-5xl font-bold tracking-tight text-amber-400/90" aria-hidden>
+                                                <span className="font-display text-2xl font-bold tracking-tight text-amber-400/90 sm:text-5xl" aria-hidden>
                                                     {initialsFromName(artist.name)}
                                                 </span>
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-90 dark:from-zinc-900 dark:opacity-80" />
-                                        <div className="absolute bottom-3 left-3 right-3">
-                                            <span className="inline-block rounded-lg bg-amber-500/90 px-2.5 py-1 text-xs font-medium text-zinc-950 backdrop-blur-sm dark:bg-amber-500/20 dark:text-amber-200">
+                                        <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
+                                            <span className="inline-block max-w-full truncate rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-zinc-950 backdrop-blur-sm sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs dark:bg-amber-500/20 dark:text-amber-200">
                                                 {artist.genre ?? 'Sanatçı'}
                                             </span>
                                         </div>
                                         {(artist.weekly_events_count ?? 0) > 0 && (
-                                            <div className="absolute left-3 top-3">
-                                                <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white shadow">
-                                                    Bu hafta {(artist.weekly_events_count ?? 0)} etkinlik
+                                            <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
+                                                <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold leading-tight text-white shadow sm:px-2.5 sm:py-1 sm:text-[11px]">
+                                                    +{(artist.weekly_events_count ?? 0)} bu hafta
                                                 </span>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="p-5">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="font-display text-lg font-bold text-zinc-900 transition group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400">
+                                    <div className="p-2.5 sm:p-5">
+                                        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                            <h3 className="line-clamp-2 font-display text-xs font-bold leading-tight text-zinc-900 transition group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400 sm:text-lg">
                                                 {artist.name}
                                             </h3>
                                             {artist.is_verified_profile && <VerifiedArtistProfileBadge />}
                                         </div>
                                         {artist.bio?.trim() && (
-                                            <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">
+                                            <p className="mt-1 line-clamp-2 text-[11px] text-zinc-600 dark:text-zinc-500 sm:mt-2 sm:text-sm">
                                                 {stripHtmlToText(artist.bio)}
                                             </p>
                                         )}

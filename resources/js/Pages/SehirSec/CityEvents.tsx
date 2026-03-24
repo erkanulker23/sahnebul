@@ -302,7 +302,7 @@ export default function SehirSecCityEvents({
                     </div>
                 </section>
 
-                <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-0 py-8 sm:px-4 sm:py-10 lg:px-8">
                     {events.data.length === 0 && (
                         <p className="rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
                             Bu şehir ve seçili filtrelere uygun etkinlik yok. Tüm şehirler ve filtreler için{' '}

@@ -66,7 +66,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
 
     return (
         <section className="relative border-y border-zinc-200/80 bg-gradient-to-b from-amber-500/[0.06] via-white to-zinc-50 py-10 dark:border-white/[0.06] dark:from-amber-500/[0.08] dark:via-[#0f0f12] dark:to-[#0a0a0b]">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-0 sm:px-4 lg:px-8">
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400/90">Bu hafta sahnede</p>
@@ -98,7 +98,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                 <div className="relative">
                     <div
                         ref={scrollerRef}
-                        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 pt-1 scroll-smooth sm:mx-0 sm:px-0"
+                        className="-mx-2.5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2.5 pb-2 pt-1 scroll-smooth sm:mx-0 sm:gap-4 sm:px-0"
                         style={{ scrollbarGutter: 'stable' }}
                     >
                         {artists.map((artist) => {

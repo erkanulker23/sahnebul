@@ -62,7 +62,7 @@ export default function Contact() {
                 type="website"
             />
 
-            <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+            <div className="mx-auto max-w-5xl px-0 py-8 sm:px-4 sm:py-10 lg:px-8 lg:py-14">
                 <div className="max-w-2xl">
                     <h1 className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">İletişim</h1>
                     <p className="mt-3 text-base text-zinc-600 dark:text-zinc-400">

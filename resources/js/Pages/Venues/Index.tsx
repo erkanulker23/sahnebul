@@ -199,7 +199,7 @@ export default function VenuesIndex({
                 />
                 <div className="absolute inset-0 bg-zinc-900/60" />
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-900/35 to-transparent" />
-                <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+                <div className="relative mx-auto max-w-7xl px-3 py-16 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
                     <div className="max-w-3xl">
                         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/70">
                             Türkiye&apos;nin Etkinlik Mekanları
@@ -222,7 +222,7 @@ export default function VenuesIndex({
 
             {/* Popular Artists */}
             {!isVenuesPage && popularArtists.length > 0 && (
-                <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                <section className="mx-auto max-w-7xl px-0 py-12 sm:px-4 sm:py-16 lg:px-8">
                     <div className="mb-10 flex items-end justify-between">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400/70">Trend</p>
@@ -263,7 +263,7 @@ export default function VenuesIndex({
 
             {isVenuesPage && (
                 <>
-                    <section className="relative z-10 mx-auto max-w-7xl px-4 -mt-8 sm:px-6 lg:px-8">
+                    <section className="relative z-10 mx-auto max-w-7xl -mt-8 px-0 sm:px-4 lg:px-8">
                         <form
                             onSubmit={handleVenueFilterSubmit}
                             className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl lg:p-6 dark:border-white/[0.06] dark:bg-zinc-900/90 dark:shadow-black/20"
@@ -327,7 +327,7 @@ export default function VenuesIndex({
                         </form>
                     </section>
 
-                    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+                    <section className="mx-auto max-w-7xl px-0 py-10 sm:px-4 sm:py-12 lg:px-8">
                         <AdSlot slotKey="venues_list_top" />
                         <div className="mb-6">
                             <h2 className="font-display text-3xl font-bold text-zinc-900 dark:text-white">Mekanlar</h2>
@@ -350,7 +350,7 @@ export default function VenuesIndex({
                                         {venues.total} mekandan {venues.from ?? 0}–{venues.to ?? 0} arası gösteriliyor
                                     </p>
                                 ) : null}
-                                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
                                     {(venues?.data ?? []).map((venue) => (
                                         <Link
                                             key={venue.id}
@@ -419,7 +419,7 @@ export default function VenuesIndex({
                     </section>
 
                     <section className="border-t border-amber-500/15 bg-gradient-to-r from-amber-500/[0.12] via-amber-400/[0.06] to-transparent dark:from-amber-500/10 dark:via-amber-600/5">
-                        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                        <div className="mx-auto max-w-7xl px-0 py-8 sm:px-4 lg:px-8">
                             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="max-w-2xl">
                                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">
@@ -490,7 +490,7 @@ export default function VenuesIndex({
             )}
 
             {locationChecked && nearbyEvents.length > 0 && (
-                <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <section className="mx-auto max-w-7xl px-0 py-4 sm:px-4 lg:px-8">
                     <div className="mb-5">
                         <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500/80">Size Yakın</p>
                         <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white">Konumunuza En Yakın Etkinlikler</h2>

@@ -14,9 +14,9 @@ export default function PageShow({ title, content }: Readonly<Props>) {
     return (
         <AppLayout>
             <SeoHead title={`${title} - Sahnebul`} description={desc} />
-            <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-4xl px-0 py-10 sm:px-4 sm:py-12 lg:px-8">
                 <h1 className="font-display text-3xl font-bold">{title}</h1>
-                <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-zinc-900/50">
+                <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-900/50 sm:p-6">
                     <RichOrPlainContent
                         content={content}
                         richClassName="prose prose-zinc max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-amber-600 prose-p:leading-relaxed dark:prose-a:text-amber-400"

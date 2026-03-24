@@ -179,7 +179,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                             : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
                     }
                 />
-                <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+                <div className="relative mx-auto max-w-6xl px-2.5 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
                     <Link href={route('venues.show', event.venue.slug)} className="text-sm text-amber-300 hover:text-amber-200">← Mekana dön</Link>
                     <div className="mt-6 max-w-4xl">
                         <p className="text-sm text-zinc-200">
@@ -205,10 +205,10 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                 </div>
             </section>
 
-            <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-6xl px-2.5 py-8 sm:px-5 sm:py-10 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-10">
                     <div className="space-y-8 lg:col-span-2">
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
                             {event.description?.trim() && (
                                 <RichOrPlainContent
                                     content={event.description}
@@ -219,7 +219,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                         </div>
 
                         {hasTiers && (
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
+                            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                                 <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Bilet fiyatları</h2>
                                 <p className="mt-1 text-sm text-zinc-500">Kategoriye göre farklı fiyatlar geçerlidir.</p>
                                 <div className="mt-4 overflow-x-auto">
@@ -255,7 +255,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
 
                         <div
                             id="bilet-kanallari"
-                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/60"
+                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6"
                         >
                             <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Biletleri nereden alabilirsiniz?</h2>
                             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{ticketSectionIntro}</p>
@@ -418,7 +418,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                     <h2 className="font-display text-2xl font-bold">Etkinlik Kuralları</h2>
                     {isLikelyRichHtml(rulesRaw) ? (
                         <div className="mt-4 text-sm text-zinc-700 dark:text-zinc-300">
@@ -543,7 +543,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                             </div>
                         )}
                         {hasTiers ? (
-                            <div className="sticky top-24 rounded-2xl border-2 border-zinc-200 bg-white p-6 shadow-lg dark:border-white/10 dark:bg-zinc-900/80">
+                            <div className="sticky top-24 rounded-2xl border-2 border-zinc-200 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-zinc-900/80 sm:p-6">
                                 <h3 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Bilet kategorileri</h3>
                                 <p className="mt-1 text-xs text-zinc-500">Salon bölümüne göre fiyatlar</p>
                                 <label htmlFor="tier-select" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -580,7 +580,7 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                             </div>
                         ) : (
                             event.ticket_price != null && (
-                                <div className="sticky top-24 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
+                                <div className="sticky top-24 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/80 sm:p-6">
                                     <h3 className="font-display text-lg font-bold">Bilet fiyatı</h3>
                                     <p className="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400">{formatTry(Number(event.ticket_price))}</p>
                                     {hasTicketChannels && (
