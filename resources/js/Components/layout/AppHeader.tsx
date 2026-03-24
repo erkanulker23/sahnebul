@@ -4,7 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { iconClass } from '@/lib/icons';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, FileText, MapPin, Menu, Mic2, Moon, Sun, User, X } from 'lucide-react';
+import { Calendar, MapPin, Menu, Mic2, Moon, Sun, User, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -39,7 +39,7 @@ function PrimaryNavLinks({
     active,
     onNavigate,
 }: {
-    active: { venues: boolean; events: boolean; artists: boolean; blog: boolean };
+    active: { venues: boolean; events: boolean; artists: boolean };
     onNavigate?: () => void;
 }) {
     return (
@@ -52,9 +52,6 @@ function PrimaryNavLinks({
             </Link>
             <Link href={route('artists.index')} className={navLinkClass(active.artists)} onClick={onNavigate}>
                 Sanatçılar
-            </Link>
-            <Link href={route('blog.index')} className={navLinkClass(active.blog)} onClick={onNavigate}>
-                Blog
             </Link>
         </>
     );
@@ -101,7 +98,6 @@ export function AppHeader() {
         venues: navActive(['venues.index']),
         events: navActive(['events.index', 'events.show', 'events.nearby']),
         artists: navActive(['artists.index', 'artists.show']),
-        blog: navActive(['blog.index', 'blog.show']),
     };
 
     return (
@@ -253,14 +249,6 @@ export function AppHeader() {
                             >
                                 <Mic2 className={iconClass.md} />
                                 Sanatçılar
-                            </Link>
-                            <Link
-                                href={route('blog.index')}
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
-                                onClick={closeDrawer}
-                            >
-                                <FileText className={iconClass.md} />
-                                Blog
                             </Link>
                             <Link
                                 href={route('sehir-sec')}
