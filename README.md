@@ -16,7 +16,7 @@ Türkiye genelinde sanatçıların sahne aldığı mekanları keşfetme, değerl
 
 ```bash
 composer install
-npm install --legacy-peer-deps
+npm install
 ```
 
 ### 2. Ortam Yapılandırması
