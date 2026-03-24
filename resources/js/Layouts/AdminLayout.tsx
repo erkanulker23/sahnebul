@@ -303,10 +303,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                         </Link>
                     </div>
                 </header>
-                <main className="admin-shell">
-                    <FlashMessage />
-                    {children}
-                </main>
+                <FlashMessage />
+                <main className="admin-shell">{children}</main>
             </div>
         </div>
     );

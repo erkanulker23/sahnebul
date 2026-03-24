@@ -67,6 +67,10 @@ export default {
                 'fade-in': 'fadeIn 0.5s ease-out',
                 'slide-up': 'slideUp 0.5s ease-out',
                 'scale-in': 'scaleIn 0.3s ease-out',
+                'toast-in': 'toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+                'toast-out': 'toastOut 0.25s ease-out forwards',
+                /** süre: resources/js/Components/FlashMessage.tsx DISMISS_MS ile eşleşmeli */
+                'toast-progress': 'toastProgress 5500ms linear forwards',
                 /** Etkinlik şeridi: uzun metinler için yavaş kaydır (içerik genişliğine göre okunaklı) */
                 marquee: 'marquee 120s linear infinite',
                 'marquee-slow': 'marquee 120s linear infinite',
@@ -87,6 +91,20 @@ export default {
                 scaleIn: {
                     '0%': { opacity: '0', transform: 'scale(0.95)' },
                     '100%': { opacity: '1', transform: 'scale(1)' },
+                },
+                /** Flash toast — giriş */
+                toastIn: {
+                    '0%': { opacity: '0', transform: 'translateY(-12px) scale(0.96)' },
+                    '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                },
+                /** Toast alt çizgisi — otomatik kapanma süresi (süre: FlashMessage ile aynı ms) */
+                toastProgress: {
+                    '0%': { transform: 'scaleX(1)' },
+                    '100%': { transform: 'scaleX(0)' },
+                },
+                toastOut: {
+                    '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                    '100%': { opacity: '0', transform: 'translateY(-6px) scale(0.98)' },
                 },
             },
             backgroundImage: {
