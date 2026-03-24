@@ -41,7 +41,15 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureRateLimiting();
 
-        if (! Schema::hasTable('app_settings')) {
+        /*
+         * Deploy / composer sırasında artisan package:discover DB olmadan çalışabilir.
+         * Veritabanı yoksa veya bağlantı kurulamazsa SMTP ön yüklemesini atla.
+         */
+        try {
+            if (! Schema::hasTable('app_settings')) {
+                return;
+            }
+        } catch (\Throwable) {
             return;
         }
 
