@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Tasarım token’ları — Tailwind zinc renkleriyle uyumlu.
+ * Özel bileşenlerde arbitrary değer yerine burayı genişletin.
+ */
+@layer base {
+    :root {
+        --ds-radius-sm: 0.375rem;
+        --ds-radius: 0.5rem;
+        --ds-radius-lg: 0.75rem;
+        --ds-radius-xl: 1rem;
+        --ds-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+        --ds-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+    }
+
+    html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /**
+     * Blade’deki body sınıfları (bg-zinc-50 / dark:bg-zinc-950) ana yüzeyi belirler.
+     * Genel element reset’i yok — Tailwind preflight yeterli.
+     */
+}
+
+@layer utilities {
+    /**
+     * AppLayout <main> içindeki hero’ları viewport kenarına kadar genişletir
+     * (max-width + yatay padding kırılması).
+     */
+    .hero-full-bleed {
+        @apply relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden;
+    }
+}
+
+@layer components {
+    /** Panel içerik kabuğu — tek seviye yatay padding */
+    .admin-shell {
+        @apply mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8;
+    }
+
+    /** Genel kart hover (liste / vitrin) */
+    .card-hover {
+        @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/5;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    /** Lucide / ikon tutarlılığı */
+    .icon-surface {
+        @apply h-5 w-5 shrink-0 stroke-[1.75] text-current;
+    }
+}

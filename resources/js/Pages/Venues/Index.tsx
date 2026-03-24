@@ -1,0 +1,523 @@
+import { AdSlot } from '@/Components/AdSlot';
+import { eventShowParam } from '@/lib/eventShowUrl';
+import EventCarousel from '@/Components/EventCarousel';
+import SeoHead from '@/Components/SeoHead';
+import AppLayout from '@/Layouts/AppLayout';
+import { Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+
+interface Artist {
+    id: number;
+    name: string;
+    slug: string;
+    genre: string | null;
+    avatar: string | null;
+    view_count?: number;
+}
+
+interface HomeEvent {
+    id: number;
+    slug: string;
+    title: string;
+    start_date: string;
+    cover_image?: string | null;
+    venue: { id: number; name: string; slug: string; category?: { name: string } | null };
+    artists: { id: number; name: string; slug: string }[];
+}
+
+interface NearbyEvent extends HomeEvent {
+    distance_km?: number;
+}
+
+interface VenueListItem {
+    id: number;
+    name: string;
+    slug: string;
+    cover_image: string | null;
+    address: string;
+    rating_avg?: number;
+    review_count?: number;
+    city?: { name: string } | null;
+    category?: { name: string } | null;
+}
+
+interface PaginatorLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface Props {
+    isVenuesPage?: boolean;
+    canAddVenue?: boolean;
+    venues?: {
+        data: VenueListItem[];
+        links?: PaginatorLink[];
+        total?: number;
+        from?: number | null;
+        to?: number | null;
+        last_page?: number;
+    };
+    cities?: Array<{ id: number; name: string; slug: string }>;
+    categories?: Array<{ id: number; name: string; slug: string }>;
+    filters?: { city?: string; category?: string; search?: string };
+    popularArtists?: Artist[];
+    todayEvents?: HomeEvent[];
+    upcomingWeekEvents?: HomeEvent[];
+}
+
+export default function VenuesIndex({
+    isVenuesPage = false,
+    canAddVenue = false,
+    venues,
+    cities = [],
+    categories = [],
+    filters = {},
+    popularArtists = [],
+    todayEvents = [],
+    upcomingWeekEvents = [],
+}: Readonly<Props>) {
+    const page = usePage();
+    const { auth, seo } = page.props as {
+        auth?: { user?: { id: number } | null };
+        seo?: { siteName: string; appUrl: string };
+    };
+    const isLoggedIn = Boolean(auth?.user);
+    const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
+    const [locationChecked, setLocationChecked] = useState(false);
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [citySlug, setCitySlug] = useState(filters.city ?? '');
+    const [categorySlug, setCategorySlug] = useState(filters.category ?? '');
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const imageSrc = (path: string | null) => {
+        if (!path) return null;
+        return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+    };
+
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setLocationChecked(true);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                try {
+                    const res = await axios.get(route('events.nearby'), {
+                        params: {
+                            lat: pos.coords.latitude,
+                            lng: pos.coords.longitude,
+                            limit: 8,
+                        },
+                    });
+                    setNearbyEvents(res.data?.events ?? []);
+                } catch {
+                    setNearbyEvents([]);
+                } finally {
+                    setLocationChecked(true);
+                }
+            },
+            () => setLocationChecked(true),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }
+        );
+    }, []);
+
+    useEffect(() => {
+        setCitySlug(filters.city ?? '');
+        setCategorySlug(filters.category ?? '');
+    }, [filters.city, filters.category]);
+
+    useEffect(() => {
+        if (searchInputRef.current === document.activeElement) {
+            return;
+        }
+        setSearch(filters.search ?? '');
+    }, [filters.search]);
+
+    const venueFilterParams = () => {
+        const p: Record<string, string> = {};
+        if (search.trim()) p.search = search.trim();
+        if (citySlug) p.city = citySlug;
+        if (categorySlug) p.category = categorySlug;
+        return p;
+    };
+
+    const handleVenueFilterSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        router.get(route('venues.index'), venueFilterParams(), { preserveState: true });
+    };
+
+    useEffect(() => {
+        if (!isVenuesPage) return;
+
+        const timer = setTimeout(() => {
+            const cur = filters.search ?? '';
+            const curCity = filters.city ?? '';
+            const curCat = filters.category ?? '';
+            if (search === cur && citySlug === curCity && categorySlug === curCat) {
+                return;
+            }
+            router.get(route('venues.index'), venueFilterParams(), { preserveState: true, replace: true });
+        }, 280);
+
+        return () => clearTimeout(timer);
+    }, [search, citySlug, categorySlug, filters.search, filters.city, filters.category, isVenuesPage]);
+
+    const siteName = seo?.siteName ?? 'Sahnebul';
+    const appUrl = seo?.appUrl ?? '';
+    const homeJsonLd = {
+        '@context': 'https://schema.org',
+        '@graph': [
+            {
+                '@type': 'WebSite',
+                name: siteName,
+                url: appUrl ? `${appUrl}/` : undefined,
+            },
+            {
+                '@type': 'Organization',
+                name: siteName,
+                url: appUrl || undefined,
+            },
+        ],
+    };
+
+    return (
+        <AppLayout>
+            <SeoHead
+                title="Mekanlar - Sahnebul"
+                description="Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da."
+                jsonLd={homeJsonLd}
+            />
+
+            {/* Hero Section — tam viewport genişliği */}
+            <section className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden">
+                <img
+                    src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2400&auto=format&fit=crop"
+                    alt="Konser mekanı"
+                    className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-zinc-900/60" />
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-900/35 to-transparent" />
+                <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+                    <div className="max-w-3xl">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/70">
+                            Türkiye&apos;nin Etkinlik Mekanları
+                        </p>
+                        <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+                            Mekanınızı
+                            {' '}
+                            <span className="mt-2 block bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
+                                keşfedin
+                            </span>
+                        </h1>
+                        <p className="mt-5 max-w-xl text-lg leading-relaxed text-zinc-400">
+                            Konser alanları, barlar, açık hava mekanları ve daha fazlası. En iyi mekanlar tek bir platformda.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <AdSlot slotKey="home_below_hero" />
+
+            {/* Popular Artists */}
+            {!isVenuesPage && popularArtists.length > 0 && (
+                <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                    <div className="mb-10 flex items-end justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400/70">Trend</p>
+                            <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white">En çok bakılan sanatçılar</h2>
+                        </div>
+                        <Link href={route('artists.index')} className="hidden text-sm font-medium text-amber-700 transition hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 sm:block">
+                            Tümünü gör →
+                        </Link>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                        {popularArtists.map((artist) => (
+                            <Link
+                                key={artist.id}
+                                href={route('artists.show', artist.slug)}
+                                className="group flex min-w-[140px] shrink-0 flex-col items-center transition hover:-translate-y-0.5"
+                            >
+                                <div className="relative h-36 w-36 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 transition group-hover:border-amber-400 dark:border-white/[0.06] dark:bg-zinc-800/80 dark:group-hover:border-amber-500/20">
+                                    {artist.avatar ? (
+                                        <img src={imageSrc(artist.avatar) ?? ''} alt={artist.name} className="h-full w-full object-cover transition group-hover:scale-105" />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center">
+                                            <span className="text-5xl opacity-50">🎤</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent dark:from-zinc-900/90" />
+                                </div>
+                                <p className="mt-3 text-center font-semibold text-zinc-900 group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400">{artist.name}</p>
+                                {artist.genre && <p className="text-xs text-zinc-600 dark:text-zinc-500">{artist.genre}</p>}
+                                <p className="mt-1 text-[11px] text-zinc-600 dark:text-zinc-500">{artist.view_count ?? 0} görüntülenme</p>
+                            </Link>
+                        ))}
+                    </div>
+                    <Link href={route('artists.index')} className="mt-6 block text-center text-sm font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 sm:hidden">
+                        Tüm sanatçılar →
+                    </Link>
+                </section>
+            )}
+
+            {isVenuesPage && (
+                <>
+                    <section className="relative z-10 mx-auto max-w-7xl px-4 -mt-8 sm:px-6 lg:px-8">
+                        <form
+                            onSubmit={handleVenueFilterSubmit}
+                            className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl lg:p-6 dark:border-white/[0.06] dark:bg-zinc-900/90 dark:shadow-black/20"
+                        >
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-5">
+                                <div className="flex-1">
+                                    <label htmlFor="venue-search" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-700 dark:text-zinc-500">
+                                        Mekan ara
+                                    </label>
+                                    <input
+                                        ref={searchInputRef}
+                                        id="venue-search"
+                                        type="search"
+                                        name="search"
+                                        placeholder="Mekan adı ile ara…"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        autoComplete="off"
+                                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-zinc-900 placeholder-zinc-500 transition focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/15 dark:border-white/[0.08] dark:bg-zinc-800/60 dark:text-white"
+                                    />
+                                </div>
+                                <div className="min-w-[200px]">
+                                    <label htmlFor="venue-city" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-700 dark:text-zinc-500">
+                                        Şehir
+                                    </label>
+                                    <select
+                                        id="venue-city"
+                                        name="city"
+                                        value={citySlug}
+                                        onChange={(e) => setCitySlug(e.target.value)}
+                                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-zinc-900 transition focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/15 dark:border-white/[0.08] dark:bg-zinc-800/60 dark:text-white"
+                                    >
+                                        <option value="">Tüm şehirler</option>
+                                        {cities.map((c) => (
+                                            <option key={c.id} value={c.slug}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="min-w-[200px]">
+                                    <label htmlFor="venue-category" className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-700 dark:text-zinc-500">
+                                        Kategori
+                                    </label>
+                                    <select
+                                        id="venue-category"
+                                        name="category"
+                                        value={categorySlug}
+                                        onChange={(e) => setCategorySlug(e.target.value)}
+                                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-zinc-900 transition focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/15 dark:border-white/[0.08] dark:bg-zinc-800/60 dark:text-white"
+                                    >
+                                        <option value="">Tüm kategoriler</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat.id} value={cat.slug}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+                        <AdSlot slotKey="venues_list_top" />
+                        <div className="mb-6">
+                            <h2 className="font-display text-3xl font-bold text-zinc-900 dark:text-white">Mekanlar</h2>
+                            <p className="mt-2 text-zinc-700 dark:text-zinc-400">Onaylı tüm etkinlik mekanları.</p>
+                        </div>
+                        {(venues?.data ?? []).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 py-20 text-center dark:border-white/10 dark:bg-zinc-900/40">
+                                <div className="mb-4 text-5xl opacity-50" aria-hidden>
+                                    🎭
+                                </div>
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Mekan bulunamadı</h3>
+                                <p className="mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-400">
+                                    Arama veya filtreleri değiştirerek tekrar deneyin.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {venues?.total != null && venues.total > 0 ? (
+                                    <p className="mb-6 text-sm font-medium text-zinc-600 dark:text-zinc-500">
+                                        {venues.total} mekandan {venues.from ?? 0}–{venues.to ?? 0} arası gösteriliyor
+                                    </p>
+                                ) : null}
+                                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                    {(venues?.data ?? []).map((venue) => (
+                                        <Link
+                                            key={venue.id}
+                                            href={route('venues.show', venue.slug)}
+                                            className="overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-white/10 dark:bg-zinc-900/60"
+                                        >
+                                            <div className="h-44 w-full bg-zinc-200 dark:bg-zinc-800">
+                                                {venue.cover_image ? (
+                                                    <img src={imageSrc(venue.cover_image) ?? ''} alt={venue.name} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
+                                                )}
+                                            </div>
+                                            <div className="p-4">
+                                                <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{venue.city?.name ?? '-'} • {venue.category?.name ?? '-'}</p>
+                                                {(venue.review_count ?? 0) > 0 && (venue.rating_avg ?? 0) > 0 ? (
+                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                                        <span className="flex text-amber-500 dark:text-amber-400" aria-hidden>
+                                                            {'★'.repeat(Math.min(5, venue.rating_avg ?? 0))}
+                                                            <span className="text-zinc-300 dark:text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg ?? 0))}</span>
+                                                        </span>
+                                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">{venue.rating_avg}</span>
+                                                        <span className="text-zinc-500 dark:text-zinc-500">({venue.review_count} değerlendirme)</span>
+                                                    </div>
+                                                ) : null}
+                                                <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">{venue.address}</p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                                {(venues?.links?.length ?? 0) > 3 && (
+                                    <div className="mt-10 flex flex-wrap gap-2">
+                                        {(venues?.links ?? []).map((link) => {
+                                            const label = link.label
+                                                .replace('&laquo; Previous', 'Önceki')
+                                                .replace('Next &raquo;', 'Sonraki');
+                                            const linkKey = link.url ?? `disabled:${link.label}`;
+                                            if (!link.url) {
+                                                return (
+                                                    <span
+                                                        key={linkKey}
+                                                        className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-400 dark:border-white/10 dark:text-zinc-600"
+                                                        dangerouslySetInnerHTML={{ __html: label }}
+                                                    />
+                                                );
+                                            }
+                                            return (
+                                                <Link
+                                                    key={linkKey}
+                                                    href={link.url}
+                                                    preserveState
+                                                    className={`rounded-lg border px-3 py-2 text-sm transition ${
+                                                        link.active
+                                                            ? 'border-amber-500 bg-amber-50 font-semibold text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
+                                                            : 'border-zinc-200 text-zinc-700 hover:border-amber-300 dark:border-white/10 dark:text-zinc-300 dark:hover:border-amber-500/30'
+                                                    }`}
+                                                    dangerouslySetInnerHTML={{ __html: label }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </section>
+
+                    <section className="border-t border-amber-500/15 bg-gradient-to-r from-amber-500/[0.12] via-amber-400/[0.06] to-transparent dark:from-amber-500/10 dark:via-amber-600/5">
+                        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="max-w-2xl">
+                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">
+                                        Mekanınız burada listelenmiyor mu?
+                                    </h2>
+                                    <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
+                                        Sahnebul’da görünür olmak için mekan üyeliği oluşturun; onay sonrası mekanınız bu listede yer alır.
+                                    </p>
+                                </div>
+                                <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+                                    {!isLoggedIn && (
+                                        <>
+                                            <Link
+                                                href={route('register')}
+                                                className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                            >
+                                                Üye ol, mekan üyeliği al
+                                            </Link>
+                                            <Link
+                                                href={route('login')}
+                                                className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 py-3 text-center text-sm font-medium text-zinc-800 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/15 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
+                                            >
+                                                Zaten üye misiniz? Giriş
+                                            </Link>
+                                        </>
+                                    )}
+                                    {isLoggedIn && canAddVenue && (
+                                        <Link
+                                            href={route('artist.venues.create')}
+                                            className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                        >
+                                            Mekanınızı ekleyin
+                                        </Link>
+                                    )}
+                                    {isLoggedIn && !canAddVenue && (
+                                        <Link
+                                            href={route('subscriptions.index', { type: 'venue' })}
+                                            className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                        >
+                                            Mekan üyeliği oluştur
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </>
+            )}
+
+            {/* Bugünkü etkinlikler — slider */}
+            {!isVenuesPage && (
+                <div id="haftalik-etkinlikler">
+                    <EventCarousel
+                        accent="amber"
+                        subtitle="Bugün"
+                        title="Bugünkü etkinlikler"
+                        events={todayEvents}
+                        emptyMessage="Bugün için yayınlanmış etkinlik bulunmuyor. Yakında yeni tarihler eklenecek."
+                    />
+                    <EventCarousel
+                        accent="violet"
+                        subtitle="Önümüzdeki 7 gün"
+                        title="Bu haftaki etkinlikler"
+                        events={upcomingWeekEvents}
+                        emptyMessage="Önümüzdeki günler için eklenmiş etkinlik yok. Takipte kalın!"
+                    />
+                </div>
+            )}
+
+            {locationChecked && nearbyEvents.length > 0 && (
+                <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                    <div className="mb-5">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500/80">Size Yakın</p>
+                        <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white">Konumunuza En Yakın Etkinlikler</h2>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                        {nearbyEvents.map((event) => (
+                            <Link
+                                key={event.id}
+                                href={route('events.show', eventShowParam(event))}
+                                className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 transition hover:border-emerald-300 dark:border-emerald-500/20 dark:bg-emerald-500/10"
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <p className="font-semibold text-zinc-900 dark:text-white">{event.title}</p>
+                                    <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white">
+                                        {(event.distance_km ?? 0).toFixed(1)} km
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{event.venue.name}</p>
+                                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                    {new Date(event.start_date).toLocaleString('tr-TR')}
+                                </p>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+        </AppLayout>
+    );
+}

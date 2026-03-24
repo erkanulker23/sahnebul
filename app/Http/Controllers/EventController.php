@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Artist;
+use App\Models\Category;
+use App\Models\Event;
+use App\Services\TurkeyProvincesSync;
+use App\Support\EventListingQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class EventController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = EventListingQuery::base()->with([
+            'venue:id,name,slug,cover_image,category_id,city_id',
+            'venue.category:id,name,slug',
+            'artists:id,name,slug,avatar,genre',
+        ]);
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%'.$request->string('search').'%');
+        }
+        if ($request->filled('category')) {
+            $query->whereHas('venue.category', fn ($q) => $q->where('slug', $request->string('category')));
+        }
+
+        if ($request->filled('period')) {
+            $period = $request->string('period');
+            if ($period === 'today') {
+                $query->whereDate('start_date', today());
+            } elseif ($period === 'tomorrow') {
+                $query->whereDate('start_date', today()->addDay());
+            } elseif ($period === 'week') {
+                $query->whereBetween('start_date', [now()->startOfWeek(), now()->copy()->endOfWeek()]);
+            }
+        }
+
+        if ($request->filled('genre')) {
+            $genre = $request->string('genre');
+            $query->whereHas('artists', fn ($q) => $q->where('genre', $genre));
+        }
+
+        if ($request->filled('city_id')) {
+            $cityId = (int) $request->input('city_id');
+            $query->whereHas('venue', fn ($q) => $q->where('city_id', $cityId));
+        }
+
+        if ($request->filled('district_id')) {
+            $districtId = (int) $request->input('district_id');
+            $query->whereHas('venue', fn ($q) => $q->where('district_id', $districtId));
+        }
+
+        EventListingQuery::applyDefaultOrder($query);
+
+        /** Üst şerit: liste ile aynı filtrelerdeki gerçek etkinlikler (tıklanınca detaya gider) */
+        $tickerEvents = (clone $query)->limit(24)->get(['id', 'slug', 'title', 'start_date']);
+
+        $events = $query->paginate(20)->withQueryString();
+
+        $categories = Category::query()->orderBy('order')->get(['id', 'name', 'slug']);
+
+        $genres = Artist::query()
+            ->approved()
+            ->notIntlImport()
+            ->whereNotNull('genre')
+            ->where('genre', '!=', '')
+            ->distinct()
+            ->orderBy('genre')
+            ->pluck('genre');
+
+        $tickerItems = $tickerEvents
+            ->map(fn (Event $e) => [
+                'id' => $e->id,
+                'slug' => $e->slug,
+                'label' => $e->title.' · '.$e->start_date->translatedFormat('d MMMM'),
+            ])
+            ->values()
+            ->all();
+
+        $provinces = app(TurkeyProvincesSync::class)->forSelect();
+
+        return Inertia::render('Events/Index', [
+            'events' => $events,
+            'categories' => $categories,
+            'genres' => $genres,
+            'provinces' => $provinces,
+            'tickerItems' => $tickerItems,
+            'tickerFallback' => 'Yakında yayınlanacak etkinlikler için bizi takip edin.',
+            'filters' => $request->only(['search', 'category', 'period', 'genre', 'city_id', 'district_id']),
+        ]);
+    }
+
+    public function nearby(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
+            'limit' => 'nullable|integer|min:1|max:30',
+        ]);
+
+        $lat = (float) $validated['lat'];
+        $lng = (float) $validated['lng'];
+        $limit = (int) ($validated['limit'] ?? 8);
+
+        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(venues.latitude)) * cos(radians(venues.longitude) - radians(?)) + sin(radians(?)) * sin(radians(venues.latitude))))';
+
+        $events = Event::query()
+            ->published()
+            ->where('start_date', '>=', now())
+            ->whereHas('venue', fn ($q) => $q->approved()->whereNotNull('latitude')->whereNotNull('longitude'))
+            ->join('venues', 'venues.id', '=', 'events.venue_id')
+            ->select('events.*')
+            ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
+            ->with(['venue:id,name,slug,latitude,longitude', 'artists:id,name,slug'])
+            ->orderBy('distance_km')
+            ->orderBy('start_date')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'events' => $events,
+        ]);
+    }
+}

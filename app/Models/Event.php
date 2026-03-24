@@ -1,0 +1,190 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Event extends Model
+{
+    protected $fillable = [
+        'venue_id', 'title', 'slug', 'description', 'start_date', 'end_date',
+        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'status',
+        'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
+    ];
+
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'ticket_price' => 'decimal:2',
+        'is_full' => 'boolean',
+        'view_count' => 'integer',
+        'sahnebul_reservation_enabled' => 'boolean',
+        'ticket_outlets' => 'array',
+    ];
+
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
+    }
+
+    public function artists(): BelongsToMany
+    {
+        return $this->belongsToMany(Artist::class, 'event_artists')
+            ->withPivot('is_headliner', 'order')
+            ->withTimestamps();
+    }
+
+    /**
+     * @param  list<int|string>  $artistIds
+     */
+    public function syncArtistsByIds(array $artistIds): void
+    {
+        $ordered = array_values(array_unique(array_map('intval', $artistIds)));
+        $ordered = array_values(array_filter($ordered, fn (int $id) => $id > 0));
+        $sync = [];
+        foreach ($ordered as $order => $id) {
+            $sync[$id] = ['is_headliner' => $order === 0, 'order' => $order];
+        }
+        $this->artists()->sync($sync);
+    }
+
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function ticketTiers(): HasMany
+    {
+        return $this->hasMany(EventTicketTier::class)->orderBy('sort_order');
+    }
+
+    /** En düşük bilet fiyatı (kategoriler veya tek fiyat). */
+    public function minPrice(): ?float
+    {
+        if ($this->relationLoaded('ticketTiers') && $this->ticketTiers->isNotEmpty()) {
+            return (float) $this->ticketTiers->min('price');
+        }
+        if ($this->ticket_price !== null) {
+            return (float) $this->ticket_price;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int, array{name?: string, description?: string|null, price?: mixed, sort_order?: int}>|null  $tiers
+     */
+    public function syncTicketTiers(?array $tiers): void
+    {
+        $this->ticketTiers()->delete();
+        if (empty($tiers)) {
+            return;
+        }
+        foreach (array_values($tiers) as $i => $row) {
+            $name = isset($row['name']) ? trim((string) $row['name']) : '';
+            if ($name === '' || ! isset($row['price'])) {
+                continue;
+            }
+            $this->ticketTiers()->create([
+                'name' => $name,
+                'description' => isset($row['description']) ? trim((string) $row['description']) ?: null : null,
+                'price' => $row['price'],
+                'sort_order' => (int) ($row['sort_order'] ?? $i),
+            ]);
+        }
+    }
+
+    public function scopePublished($query)
+    {
+        return $query->where($query->getModel()->getTable().'.status', 'published');
+    }
+
+    public function scopeUpcoming($query)
+    {
+        return $query->where('start_date', '>=', now());
+    }
+
+    public function scopePast($query)
+    {
+        return $query->where('start_date', '<', now());
+    }
+
+    /** Kamu detay URL’si: /etkinlikler/{slug}-{id} */
+    public function publicUrlSegment(): string
+    {
+        return $this->slug.'-'.$this->id;
+    }
+
+    /**
+     * @param  array<int, mixed>|null  $raw
+     * @return list<array{label: string, url: string}>
+     */
+    public static function normalizeTicketOutletsInput(?array $raw): array
+    {
+        if ($raw === null || $raw === []) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $label = trim((string) ($row['label'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            if ($label === '' || $url === '') {
+                continue;
+            }
+            if (filter_var($url, FILTER_VALIDATE_URL) === false || ! preg_match('#^https?://#i', $url)) {
+                continue;
+            }
+            $out[] = ['label' => $label, 'url' => $url];
+        }
+
+        return array_slice($out, 0, 15);
+    }
+
+    public const TICKET_MODE_EXTERNAL = 'external_platforms';
+
+    public const TICKET_MODE_SAHNEBUL = 'sahnebul';
+
+    public const TICKET_MODE_PHONE = 'phone_only';
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    public static function applyTicketAcquisitionToValidatedArray(array $validated): array
+    {
+        $mode = $validated['ticket_acquisition_mode'] ?? self::TICKET_MODE_SAHNEBUL;
+        if (! in_array($mode, [self::TICKET_MODE_EXTERNAL, self::TICKET_MODE_SAHNEBUL, self::TICKET_MODE_PHONE], true)) {
+            $mode = self::TICKET_MODE_SAHNEBUL;
+        }
+        $validated['ticket_acquisition_mode'] = $mode;
+
+        $outlets = self::normalizeTicketOutletsInput($validated['ticket_outlets'] ?? null);
+
+        if ($mode === self::TICKET_MODE_EXTERNAL && count($outlets) === 0) {
+            throw ValidationException::withMessages([
+                'ticket_outlets' => 'Harici platform seçildiğinde en az bir geçerli bağlantı girin (ör. Biletix — etkinliğin https ile başlayan sayfası).',
+            ]);
+        }
+
+        if ($mode === self::TICKET_MODE_EXTERNAL) {
+            $validated['ticket_outlets'] = $outlets;
+            $validated['sahnebul_reservation_enabled'] = false;
+        } elseif ($mode === self::TICKET_MODE_SAHNEBUL) {
+            $validated['ticket_outlets'] = $outlets;
+            $validated['sahnebul_reservation_enabled'] = true;
+        } else {
+            $validated['ticket_outlets'] = [];
+            $validated['sahnebul_reservation_enabled'] = false;
+        }
+
+        return $validated;
+    }
+}

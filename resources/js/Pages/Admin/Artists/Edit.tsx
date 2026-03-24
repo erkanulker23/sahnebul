@@ -1,0 +1,456 @@
+import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
+import AdminLayout from '@/Layouts/AdminLayout';
+import RichTextEditor from '@/Components/RichTextEditor';
+import SeoHead from '@/Components/SeoHead';
+import { initialMusicGenres } from '@/lib/musicGenresForm';
+import { Link, router, useForm } from '@inertiajs/react';
+
+interface MediaItem {
+    id: number;
+    path: string;
+}
+
+interface Artist {
+    id: number;
+    name: string;
+    slug: string;
+    events_count?: number;
+    genre: string | null;
+    music_genres?: string[] | null;
+    bio: string | null;
+    avatar: string | null;
+    website: string | null;
+    status: string;
+    social_links?: Record<string, string> | null;
+    manager_info?: { name?: string; company?: string; phone?: string; email?: string } | null;
+    public_contact?: { email?: string; phone?: string; note?: string } | null;
+    media: MediaItem[];
+}
+
+interface Props {
+    artist: Artist;
+    musicGenreOptions: string[];
+}
+
+function storageUrl(path: string | null): string | null {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `/storage/${path}`;
+}
+
+export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<Props>) {
+    const sl = artist.social_links ?? {};
+    const mgr = artist.manager_info ?? {};
+    const pub = artist.public_contact ?? {};
+    const { data, setData, put, processing, errors, progress } = useForm({
+        name: artist.name,
+        music_genres: initialMusicGenres(artist.music_genres, artist.genre, musicGenreOptions),
+        bio: artist.bio ?? '',
+        avatar: artist.avatar ?? '',
+        website: artist.website ?? '',
+        status: artist.status,
+        social_links: {
+            instagram: sl.instagram ?? '',
+            twitter: sl.twitter ?? '',
+            youtube: sl.youtube ?? '',
+            spotify: sl.spotify ?? '',
+            tiktok: sl.tiktok ?? '',
+            facebook: sl.facebook ?? '',
+        },
+        manager_info: {
+            name: mgr.name ?? '',
+            company: mgr.company ?? '',
+            phone: mgr.phone ?? '',
+            email: mgr.email ?? '',
+        },
+        public_contact: {
+            email: pub.email ?? '',
+            phone: pub.phone ?? '',
+            note: pub.note ?? '',
+        },
+        avatar_upload: null as File | null,
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        put(route('admin.artists.update', artist.id), {
+            // Yalnızca dosya yüklenirken FormData kullan; aksi halde JSON gövde iç içe social_links’i güvenilir iletir.
+            forceFormData: data.avatar_upload instanceof File,
+            preserveScroll: true,
+            onSuccess: () => setData('avatar_upload', null),
+        });
+    };
+
+    const addGallery = (file: File) => {
+        router.post(
+            route('admin.artists.media.store', artist.id),
+            { photo: file },
+            { forceFormData: true, preserveScroll: true }
+        );
+    };
+
+    const removeGallery = (mediaId: number) => {
+        if (!confirm('Bu görseli silmek istiyor musunuz?')) return;
+        router.delete(route('admin.artists.media.destroy', { artist: artist.id, media: mediaId }), {
+            preserveScroll: true,
+        });
+    };
+
+    const destroyArtist = () => {
+        const n = artist.events_count ?? 0;
+        if (n > 0) {
+            if (confirm(`Bu sanatçıya bağlı ${n} etkinlik var. Bu etkinlikleri de silmek istiyor musunuz?`)) {
+                router.delete(route('admin.artists.destroy', artist.id), {
+                    data: { delete_related_events: true },
+                });
+                return;
+            }
+            if (
+                !confirm(
+                    'Yalnızca sanatçı silinsin mi? Etkinlik kayıtları kalır; bu sanatçı etkinliklerden çıkarılır.',
+                )
+            ) {
+                return;
+            }
+        } else if (!confirm('Sanatçıyı ve tüm verilerini silmek istediğinize emin misiniz?')) {
+            return;
+        }
+        router.delete(route('admin.artists.destroy', artist.id));
+    };
+
+    const toggleMusicGenre = (label: string) => {
+        const cur = data.music_genres;
+        if (cur.includes(label)) {
+            setData(
+                'music_genres',
+                cur.filter((g) => g !== label)
+            );
+        } else {
+            setData('music_genres', [...cur, label]);
+        }
+    };
+
+    return (
+        <AdminLayout>
+            <SeoHead title={`${artist.name} — Düzenle`} description="Sanatçıyı düzenleyin." noindex />
+            <div className="space-y-6">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <Link href={route('admin.artists.index')} className="text-sm text-amber-400 hover:text-amber-300">
+                            ← Sanatçı listesi
+                        </Link>
+                        <h1 className="mt-2 text-2xl font-bold text-white">Sanatçı düzenle</h1>
+                        <p className="mt-1 text-sm text-zinc-500">/{artist.slug}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Link
+                            href={route('artists.show', artist.slug)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                        >
+                            Sitede aç
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={destroyArtist}
+                            className="rounded-lg bg-red-600/90 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500"
+                        >
+                            Sil
+                        </button>
+                    </div>
+                </div>
+
+                <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Ad *</label>
+                            <input
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                            {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Durum *</label>
+                            <select
+                                value={data.status}
+                                onChange={(e) => setData('status', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            >
+                                <option value="pending">Beklemede</option>
+                                <option value="approved">Onaylı</option>
+                                <option value="rejected">Reddedildi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Website</label>
+                            <input
+                                type="url"
+                                value={data.website}
+                                onChange={(e) => setData('website', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                    </div>
+
+                    <MusicGenresChecklist
+                        variant="admin"
+                        label="Müzik türü"
+                        helperText="Birden fazla seçebilirsiniz. Listeyi Yönetim → Müzik türleri sayfasından düzenleyebilirsiniz."
+                        options={musicGenreOptions}
+                        selected={data.music_genres}
+                        onToggle={toggleMusicGenre}
+                        error={errors.music_genres}
+                    />
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Profil görseli (URL)</label>
+                        <input
+                            value={data.avatar}
+                            onChange={(e) => setData('avatar', e.target.value)}
+                            placeholder="https://... veya boş bırakıp dosya yükleyin"
+                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                        />
+                        {storageUrl(data.avatar) && (
+                            <img src={storageUrl(data.avatar) ?? ''} alt="" className="mt-2 h-24 w-24 rounded-lg object-cover" />
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Profil görseli (dosya)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setData('avatar_upload', e.target.files?.[0] ?? null)}
+                            className="mt-1 w-full text-sm text-zinc-300"
+                        />
+                        {progress && (
+                            <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
+                        )}
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Instagram</label>
+                            <input
+                                value={data.social_links.instagram}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, instagram: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">X / Twitter</label>
+                            <input
+                                value={data.social_links.twitter}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, twitter: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">YouTube</label>
+                            <input
+                                value={data.social_links.youtube}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, youtube: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Spotify</label>
+                            <input
+                                value={data.social_links.spotify}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, spotify: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">TikTok</label>
+                            <input
+                                value={data.social_links.tiktok}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, tiktok: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Facebook</label>
+                            <input
+                                value={data.social_links.facebook}
+                                onChange={(e) =>
+                                    setData('social_links', { ...data.social_links, facebook: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                            <h3 className="text-sm font-semibold text-zinc-300">Yayındaki iletişim (opsiyonel)</h3>
+                            <p className="mt-1 text-xs text-zinc-500">Boş alanlar sitede gösterilmez.</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">İletişim e-posta</label>
+                            <input
+                                type="email"
+                                value={data.public_contact.email}
+                                onChange={(e) =>
+                                    setData('public_contact', { ...data.public_contact, email: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">İletişim telefon</label>
+                            <input
+                                value={data.public_contact.phone}
+                                onChange={(e) =>
+                                    setData('public_contact', { ...data.public_contact, phone: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-zinc-400">İletişim notu</label>
+                            <textarea
+                                value={data.public_contact.note}
+                                onChange={(e) =>
+                                    setData('public_contact', { ...data.public_contact, note: e.target.value })
+                                }
+                                rows={2}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                            <h3 className="text-sm font-semibold text-zinc-300">Menajer (opsiyonel)</h3>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Ad / unvan</label>
+                            <input
+                                value={data.manager_info.name}
+                                onChange={(e) =>
+                                    setData('manager_info', { ...data.manager_info, name: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Ajans / şirket</label>
+                            <input
+                                value={data.manager_info.company}
+                                onChange={(e) =>
+                                    setData('manager_info', { ...data.manager_info, company: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Menajer telefon</label>
+                            <input
+                                value={data.manager_info.phone}
+                                onChange={(e) =>
+                                    setData('manager_info', { ...data.manager_info, phone: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-400">Menajer e-posta</label>
+                            <input
+                                type="email"
+                                value={data.manager_info.email}
+                                onChange={(e) =>
+                                    setData('manager_info', { ...data.manager_info, email: e.target.value })
+                                }
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <span className="block text-sm font-medium text-zinc-400">Biyografi</span>
+                        <RichTextEditor
+                            value={data.bio}
+                            onChange={(html) => setData('bio', html)}
+                            placeholder="Sanatçı biyografisi…"
+                            className="mt-2"
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="rounded-lg bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                        >
+                            Kaydet
+                        </button>
+                        {artist.status === 'pending' && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.artists.approve', artist.id), {}, { preserveScroll: true })}
+                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                                >
+                                    Onayla
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.artists.reject', artist.id), {}, { preserveScroll: true })}
+                                    className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                                >
+                                    Reddet
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </form>
+
+                <section className="mt-10 max-w-3xl rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                    <h2 className="text-lg font-semibold text-white">Galeri</h2>
+                    <p className="mt-1 text-sm text-zinc-500">Fotoğraf ekleyin veya silin.</p>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="mt-4 block text-sm text-zinc-300"
+                        onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) addGallery(f);
+                            e.target.value = '';
+                        }}
+                    />
+                    <div className="mt-4 flex flex-wrap gap-3">
+                        {artist.media.map((m) => (
+                            <div key={m.id} className="relative">
+                                <img
+                                    src={storageUrl(m.path) ?? ''}
+                                    alt=""
+                                    className="h-28 w-28 rounded-lg object-cover ring-1 ring-zinc-700"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => removeGallery(m.id)}
+                                    className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+        </AdminLayout>
+    );
+}

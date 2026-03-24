@@ -1,0 +1,247 @@
+import AdminLayout from '@/Layouts/AdminLayout';
+import SeoHead from '@/Components/SeoHead';
+import { Link } from '@inertiajs/react';
+
+interface Venue {
+    id: number;
+    name: string;
+    slug: string;
+    status: string;
+    city: { name: string };
+    category: { name: string };
+}
+
+interface Reservation {
+    id: number;
+    reservation_date: string;
+    status: string;
+    total_amount: number;
+    user: { name: string };
+    venue: { name: string };
+}
+
+interface Props {
+    stats: Record<string, number>;
+    recentVenues: Venue[];
+    recentReservations: Reservation[];
+    popularVenues: { id: number; name: string; slug: string; review_count: number; rating_avg: number }[];
+    usersChart: { date: string; count: number }[];
+    pendingArtists: { id: number; name: string; slug: string; genre: string | null; created_at: string }[];
+    upcomingEvents: { id: number; title: string; start_date: string; status: string; venue: { name: string; slug: string } }[];
+}
+
+export default function AdminDashboard({ stats, recentVenues, recentReservations, popularVenues, usersChart, pendingArtists, upcomingEvents }: Readonly<Props>) {
+    return (
+        <AdminLayout>
+            <SeoHead title="Yönetim paneli - Admin | Sahnebul" description="Sahnebul yönetim özeti." noindex />
+
+            <div className="space-y-6">
+                <h1 className="mb-8 text-2xl font-bold text-white">Yönetim paneli</h1>
+
+                {/* Stats Grid */}
+                <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <StatCard label="Toplam Kullanıcı" value={stats.users_count} />
+                    <StatCard label="Toplam Mekan" value={stats.venues_count} />
+                    <StatCard label="Onay Bekleyen Mekan" value={stats.pending_venues} highlight />
+                    <StatCard label="Onay Bekleyen Sanatçı" value={stats.pending_artists ?? 0} highlight={(stats.pending_artists ?? 0) > 0} />
+                    <StatCard label="Taslak Etkinlik" value={stats.draft_events ?? 0} highlight={(stats.draft_events ?? 0) > 0} />
+                    <StatCard label="Bugünkü Rezervasyon" value={stats.reservations_today} />
+                    <StatCard label="Onay Bekleyen Yorum" value={stats.reviews_pending ?? 0} highlight={stats.reviews_pending > 0} />
+                    <StatCard label="Yaklaşan Etkinlik" value={stats.events_upcoming ?? 0} />
+                    <StatCard label="Toplam Gelir (₺)" value={Number(stats.total_revenue ?? 0).toLocaleString('tr-TR')} />
+                    <StatCard label="Bu Hafta Yeni Üye" value={stats.new_users_week ?? 0} />
+                </div>
+
+                <div className="grid gap-8 lg:grid-cols-2">
+                    <SectionCard title="Hızlı İşlemler">
+                        <div className="grid gap-3 p-4 sm:grid-cols-2">
+                            <Link href={route('admin.venues.index', { status: 'pending' })} className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400 transition hover:bg-amber-500/20">
+                                Onay bekleyen mekanlar ({stats.pending_venues})
+                            </Link>
+                            <Link href={route('admin.artists.index', { status: 'pending' })} className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400 transition hover:bg-amber-500/20">
+                                Onay bekleyen sanatçılar ({stats.pending_artists ?? 0})
+                            </Link>
+                            <Link href={route('admin.events.index', { status: 'draft' })} className="rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm text-zinc-300 transition hover:bg-zinc-800">
+                                Taslak etkinlikleri incele ({stats.draft_events ?? 0})
+                            </Link>
+                            <Link href={route('admin.reviews.index')} className="rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm text-zinc-300 transition hover:bg-zinc-800">
+                                Yorum moderasyonu ({stats.reviews_pending ?? 0})
+                            </Link>
+                        </div>
+                    </SectionCard>
+
+                    {/* Son Mekanlar */}
+                    <SectionCard title="Son Eklenen Mekanlar" link={route('admin.venues.index')} linkLabel="Tümü">
+                        {recentVenues.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Henüz mekan yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {recentVenues.map((v) => (
+                                    <Link
+                                        key={v.id}
+                                        href={route('admin.venues.index', { status: v.status })}
+                                        className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-white">{v.name}</p>
+                                            <p className="text-sm text-zinc-500">{v.city.name} • {v.category.name}</p>
+                                        </div>
+                                        <StatusBadge status={v.status} />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard title="Onay Bekleyen Sanatçılar" link={route('admin.artists.index', { status: 'pending' })} linkLabel="Tümü">
+                        {pendingArtists.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Onay bekleyen sanatçı yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {pendingArtists.map((a) => (
+                                    <Link key={a.id} href={route('admin.artists.index', { status: 'pending' })} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50">
+                                        <div>
+                                            <p className="font-medium text-white">{a.name}</p>
+                                            <p className="text-sm text-zinc-500">{a.genre ?? 'Sanatçı'} • {new Date(a.created_at).toLocaleDateString('tr-TR')}</p>
+                                        </div>
+                                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">pending</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    {/* Son Rezervasyonlar */}
+                    <SectionCard title="Son Rezervasyonlar" link={route('admin.reservations.index')} linkLabel="Tümü">
+                        {recentReservations?.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Henüz rezervasyon yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {recentReservations?.map((r) => (
+                                    <Link
+                                        key={r.id}
+                                        href={route('admin.reservations.show', r.id)}
+                                        className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-white">{r.user.name}</p>
+                                            <p className="text-sm text-zinc-500">{r.venue.name}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm text-amber-400">₺{Number(r.total_amount).toLocaleString('tr-TR')}</p>
+                                            <StatusBadge status={r.status} />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    {/* Popüler Mekanlar */}
+                    <SectionCard title="En Çok Değerlendirilen Mekanlar" link={route('admin.venues.index')} linkLabel="Tümü">
+                        {popularVenues?.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Veri yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {popularVenues?.map((v) => (
+                                    <div key={v.id} className="flex items-center justify-between px-4 py-3">
+                                        <p className="font-medium text-white">{v.name}</p>
+                                        <span className="text-sm text-zinc-500">
+                                            ★ {v.rating_avg || '-'} ({v.review_count} yorum)
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    {/* Kullanıcı Grafiği */}
+                    <SectionCard title="Son 14 Gün - Yeni Üye Sayısı">
+                        {usersChart?.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Henüz veri yok.</p>
+                        ) : (
+                            <div className="flex h-40 items-end gap-1 p-4">
+                                {usersChart?.map((d) => (
+                                    <div
+                                        key={d.date}
+                                        className="flex flex-1 flex-col items-center"
+                                        title={`${d.date}: ${d.count}`}
+                                    >
+                                        <div
+                                            className="w-full min-w-[8px] rounded-t bg-amber-500/60 transition hover:bg-amber-500"
+                                            style={{ height: `${Math.max((d.count / Math.max(...usersChart.map((x) => x.count), 1)) * 100, 8)}%` }}
+                                        />
+                                        <span className="mt-1 text-[10px] text-zinc-500">
+                                            {new Date(d.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard title="Yaklaşan Etkinlikler" link={route('admin.events.index', { status: 'published' })} linkLabel="Tümü">
+                        {upcomingEvents.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Yaklaşan etkinlik bulunamadı.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {upcomingEvents.map((e) => (
+                                    <Link key={e.id} href={route('admin.events.index', { status: 'published' })} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50">
+                                        <div>
+                                            <p className="font-medium text-white">{e.title}</p>
+                                            <p className="text-sm text-zinc-500">{e.venue.name}</p>
+                                        </div>
+                                        <span className="text-sm text-amber-400">
+                                            {new Date(e.start_date).toLocaleDateString('tr-TR')}
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+                </div>
+            </div>
+        </AdminLayout>
+    );
+}
+
+function StatCard({ label, value, highlight }: Readonly<{ label: string; value: string | number; highlight?: boolean }>) {
+    return (
+        <div className={`rounded-lg border p-6 ${highlight ? 'border-amber-500/50 bg-amber-500/10' : 'border-zinc-800 bg-zinc-900'}`}>
+            <p className="text-sm text-zinc-500">{label}</p>
+            <p className={`mt-1 text-2xl font-bold ${highlight ? 'text-amber-400' : 'text-white'}`}>{value}</p>
+        </div>
+    );
+}
+
+function SectionCard({ title, children, link, linkLabel }: Readonly<{ title: string; children: React.ReactNode; link?: string; linkLabel?: string }>) {
+    return (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900">
+            <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
+                <h2 className="font-semibold text-white">{title}</h2>
+                {link && linkLabel && (
+                    <Link href={link} className="text-sm text-amber-400 hover:text-amber-300">
+                        {linkLabel} →
+                    </Link>
+                )}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+function StatusBadge({ status }: Readonly<{ status: string }>) {
+    const colors: Record<string, string> = {
+        approved: 'bg-green-500/20 text-green-400',
+        confirmed: 'bg-green-500/20 text-green-400',
+        completed: 'bg-blue-500/20 text-blue-400',
+        pending: 'bg-amber-500/20 text-amber-400',
+        cancelled: 'bg-red-500/20 text-red-400',
+        rejected: 'bg-red-500/20 text-red-400',
+    };
+    return (
+        <span className={`rounded-full px-2 py-0.5 text-xs ${colors[status] || 'bg-zinc-500/20 text-zinc-400'}`}>
+            {status}
+        </span>
+    );
+}

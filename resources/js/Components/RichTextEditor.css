@@ -1,0 +1,55 @@
+/* TipTap / ProseMirror — admin zengin metin */
+.sahne-tiptap-editor .ProseMirror {
+    outline: none;
+    min-height: 200px;
+}
+
+.sahne-tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+    color: rgb(113 113 122);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.sahne-tiptap-editor .ProseMirror ul,
+.sahne-tiptap-editor .ProseMirror ol {
+    padding-left: 1.25rem;
+    margin: 0.5rem 0;
+}
+
+.sahne-tiptap-editor .ProseMirror h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 1rem 0 0.5rem;
+}
+
+.sahne-tiptap-editor .ProseMirror h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0.75rem 0 0.35rem;
+}
+
+.sahne-tiptap-editor .ProseMirror a {
+    color: rgb(251 191 36);
+    text-decoration: underline;
+}
+
+.sahne-tiptap-editor .ProseMirror blockquote {
+    border-left: 3px solid rgb(245 158 11 / 0.5);
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    color: rgb(161 161 170);
+}
+
+.sahne-tiptap-editor .ProseMirror img {
+    display: block;
+    height: auto;
+    margin: 0.75rem 0;
+}
+
+.sahne-tiptap-editor .ProseMirror hr {
+    margin: 1rem 0;
+    border: 0;
+    border-top: 1px solid rgb(63 63 70);
+}
