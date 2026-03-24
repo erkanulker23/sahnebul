@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 /** tailwind `toast-progress` animasyon süresi ile aynı olmalı */
 const DISMISS_MS = 5500;
 
-/** İlk cümle başlık, ". " sonrası açıklama (örn. "Eklendi. Detayları düzenleyin.") */
+/** İlk cümle başlık, ". " sonrası açıklama */
 function splitFlashText(text: string): { headline: string; supporting?: string } {
     const t = text.trim();
     const i = t.indexOf('. ');
@@ -70,7 +70,8 @@ export default function FlashMessage() {
     const toast = (
         <div
             className={cn(
-                'pointer-events-none fixed left-3 right-3 top-3 z-[200] flex justify-center sm:left-auto sm:right-5 sm:top-5 sm:justify-end',
+                /* Üst bar ile çakışmasın: alt köşe + güvenli alan */
+                'pointer-events-none fixed inset-x-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-[240] flex justify-center sm:inset-x-auto sm:bottom-8 sm:right-8 sm:justify-end',
                 !visible &&
                     'animate-toast-out motion-reduce:animate-none motion-reduce:opacity-0 motion-reduce:duration-0',
             )}
@@ -80,48 +81,59 @@ export default function FlashMessage() {
         >
             <div
                 className={cn(
-                    'pointer-events-auto relative w-full max-w-md overflow-hidden rounded-2xl border shadow-ds-lg',
+                    'pointer-events-auto relative w-full min-w-[min(100%,17.5rem)] max-w-lg overflow-hidden rounded-2xl border shadow-2xl ring-1 backdrop-blur-md',
+                    isError
+                        ? 'border-rose-300/90 bg-white/95 ring-rose-200/60 dark:border-rose-800/90 dark:bg-zinc-950/95 dark:ring-rose-900/50'
+                        : 'border-emerald-300/90 bg-white/95 ring-emerald-200/60 dark:border-emerald-800/80 dark:bg-zinc-950/95 dark:ring-emerald-900/40',
                     visible && 'animate-toast-in motion-reduce:animate-none',
                     !visible && 'motion-reduce:animate-none',
                 )}
             >
                 <div
                     className={cn(
-                        'absolute left-0 top-0 h-full w-1 rounded-l-2xl',
-                        isError ? 'bg-rose-500 dark:bg-rose-500' : 'bg-emerald-500 dark:bg-emerald-400',
+                        'absolute left-0 top-0 h-full w-1.5 rounded-l-2xl',
+                        isError ? 'bg-rose-500 dark:bg-rose-400' : 'bg-emerald-500 dark:bg-emerald-400',
                     )}
                     aria-hidden
                 />
-                <div className="flex gap-3 px-4 py-3.5 pl-5 pr-11">
+                <div className="flex gap-4 px-5 py-4 pl-6 pr-12">
                     <div
                         className={cn(
-                            'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                            'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-inner',
                             isError
-                                ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400'
-                                : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/80 dark:text-emerald-400',
+                                ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
                         )}
                     >
-                        {isError ? <XCircle className="h-5 w-5 stroke-[2]" aria-hidden /> : <CheckCircle2 className="h-5 w-5 stroke-[2]" aria-hidden />}
+                        {isError ? <XCircle className="h-6 w-6 stroke-[2]" aria-hidden /> : <CheckCircle2 className="h-6 w-6 stroke-[2]" aria-hidden />}
                     </div>
-                    <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="font-display text-sm font-semibold leading-snug text-zinc-900 dark:text-zinc-50">{headline}</p>
+                    <div className="min-w-0 flex-1 space-y-1 pt-0.5">
+                        <p
+                            className={cn(
+                                'text-[11px] font-bold uppercase tracking-wider',
+                                isError ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400',
+                            )}
+                        >
+                            {isError ? 'Hata' : 'Başarılı'}
+                        </p>
+                        <p className="font-display text-base font-semibold leading-snug text-zinc-900 dark:text-zinc-50">{headline}</p>
                         {supporting ? (
-                            <p className="mt-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{supporting}</p>
+                            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{supporting}</p>
                         ) : null}
                     </div>
                 </div>
                 <button
                     type="button"
                     onClick={dismiss}
-                    className="absolute right-2 top-2 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    className="absolute right-2.5 top-2.5 rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                     aria-label="Bildirimi kapat"
                 >
-                    <CloseIcon className="h-4 w-4 stroke-[2]" aria-hidden />
+                    <CloseIcon className="h-5 w-5 stroke-[2]" aria-hidden />
                 </button>
                 <div
                     className={cn(
-                        'h-0.5 origin-left rounded-b-2xl',
-                        isError ? 'bg-rose-400/80 dark:bg-rose-500/60' : 'bg-emerald-400/80 dark:bg-emerald-500/60',
+                        'h-1 origin-left rounded-b-2xl',
+                        isError ? 'bg-rose-400/90 dark:bg-rose-500/70' : 'bg-emerald-400/90 dark:bg-emerald-500/70',
                         visible && 'motion-reduce:hidden animate-toast-progress',
                     )}
                     aria-hidden

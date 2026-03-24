@@ -92,9 +92,9 @@ export default {
                     '0%': { opacity: '0', transform: 'scale(0.95)' },
                     '100%': { opacity: '1', transform: 'scale(1)' },
                 },
-                /** Flash toast — giriş */
+                /** Flash toast — giriş (alt köşe: aşağıdan hafif kayma) */
                 toastIn: {
-                    '0%': { opacity: '0', transform: 'translateY(-12px) scale(0.96)' },
+                    '0%': { opacity: '0', transform: 'translateY(14px) scale(0.97)' },
                     '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
                 },
                 /** Toast alt çizgisi — otomatik kapanma süresi (süre: FlashMessage ile aynı ms) */
@@ -104,7 +104,7 @@ export default {
                 },
                 toastOut: {
                     '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
-                    '100%': { opacity: '0', transform: 'translateY(-6px) scale(0.98)' },
+                    '100%': { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
                 },
             },
             backgroundImage: {
