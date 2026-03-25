@@ -137,22 +137,25 @@ class ArtistSeeder extends Seeder
         Artist::whereNotIn('slug', $slugs)->whereNull('spotify_id')->delete();
 
         foreach ($artists as $a) {
+            $slug = Str::slug($a['name']);
+            $explicitAvatar = isset($a['avatar']) ? trim((string) $a['avatar']) : '';
+            // Yerel storage yolu sunucuda olmayacağı için: tam URL kullan veya picsum (slug ile deterministik).
             $data = [
                 'name' => $a['name'],
                 'genre' => $a['genre'],
                 'bio' => $a['bio'],
                 'status' => 'approved',
                 'country_code' => 'TR',
+                'avatar' => $explicitAvatar !== ''
+                    ? $a['avatar']
+                    : 'https://picsum.photos/seed/sahnebul-artist-'.$slug.'/400/400',
             ];
-            if (! empty($a['avatar'] ?? null)) {
-                $data['avatar'] = $a['avatar'];
-            }
             if (array_key_exists('spotify_id', $a)) {
                 $rawSid = $a['spotify_id'];
                 if ($rawSid === null || (is_string($rawSid) && trim($rawSid) === '')) {
                     $data['spotify_id'] = null;
                     $data['spotify_url'] = null;
-                    $social = Artist::where('slug', Str::slug($a['name']))->value('social_links');
+                    $social = Artist::where('slug', $slug)->value('social_links');
                     $social = is_array($social) ? $social : [];
                     unset($social['spotify']);
                     $data['social_links'] = $social;
@@ -161,14 +164,14 @@ class ArtistSeeder extends Seeder
                     $data['spotify_id'] = $sid;
                     $spotifyPage = 'https://open.spotify.com/artist/'.$sid;
                     $data['spotify_url'] = $spotifyPage;
-                    $social = Artist::where('slug', Str::slug($a['name']))->value('social_links');
+                    $social = Artist::where('slug', $slug)->value('social_links');
                     $social = is_array($social) ? $social : [];
                     $social['spotify'] = $spotifyPage;
                     $data['social_links'] = $social;
                 }
             }
             Artist::updateOrCreate(
-                ['slug' => Str::slug($a['name'])],
+                ['slug' => $slug],
                 $data
             );
         }

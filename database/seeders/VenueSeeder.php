@@ -10,6 +10,19 @@ use Illuminate\Support\Str;
 
 class VenueSeeder extends Seeder
 {
+    /** Tam URL — sunucuda dosya olmadan kapak görünsün (storage senkronu gerekmez). */
+    private const COVER_STAGE = 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=1600&auto=format&fit=crop';
+
+    private const COVER_CROWD = 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?q=80&w=1600&auto=format&fit=crop';
+
+    private const COVER_HALL = 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1600&auto=format&fit=crop';
+
+    private const COVER_CLUB = 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1600&auto=format&fit=crop';
+
+    private const COVER_LIGHTS = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1600&auto=format&fit=crop';
+
+    private const COVER_OPEN_AIR = 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=1600&auto=format&fit=crop';
+
     public function run(): void
     {
         $istanbul = City::where('slug', 'istanbul')->first();
@@ -18,7 +31,7 @@ class VenueSeeder extends Seeder
         $konser = Category::where('slug', 'konser-alani')->first(); // Str::slug('Konser Alanı')
         $kafe = Category::where('slug', 'kafe')->first();
 
-        if (!$istanbul || !$bar) {
+        if (! $istanbul || ! $bar) {
             return;
         }
 
@@ -32,6 +45,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 41.0317,
                 'longitude' => 28.9749,
                 'capacity' => 500,
+                'cover_image' => self::COVER_CLUB,
             ],
             [
                 'name' => 'Zorlu PSM',
@@ -42,6 +56,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 41.0679,
                 'longitude' => 29.0126,
                 'capacity' => 2300,
+                'cover_image' => self::COVER_HALL,
             ],
             [
                 'name' => 'Nardis Jazz Club',
@@ -52,6 +67,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 41.0242,
                 'longitude' => 28.9740,
                 'capacity' => 120,
+                'cover_image' => self::COVER_STAGE,
             ],
             [
                 'name' => 'KüçükÇiftlik Park',
@@ -75,6 +91,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 41.1066,
                 'longitude' => 29.0285,
                 'capacity' => 800,
+                'cover_image' => self::COVER_CROWD,
             ],
             [
                 'name' => 'IF Performance Hall',
@@ -85,6 +102,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 41.1080,
                 'longitude' => 29.0174,
                 'capacity' => 1500,
+                'cover_image' => self::COVER_LIGHTS,
             ],
         ];
 
@@ -98,6 +116,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 39.9225,
                 'longitude' => 32.8538,
                 'capacity' => 1200,
+                'cover_image' => self::COVER_HALL,
             ];
         }
 
@@ -112,6 +131,7 @@ class VenueSeeder extends Seeder
                 'latitude' => 40.1950,
                 'longitude' => 29.0600,
                 'capacity' => 650,
+                'cover_image' => self::COVER_OPEN_AIR,
             ];
         }
 
