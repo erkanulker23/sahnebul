@@ -4,12 +4,13 @@ import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { eventStatusTr } from '@/lib/statusLabels';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Event {
     id: number;
     title: string;
     start_date: string;
+    created_at: string;
     status: string;
     ticket_price: number | null;
     view_count?: number;
@@ -20,18 +21,36 @@ interface Event {
 
 interface Props {
     events: { data: Event[]; links: unknown[] };
-    filters?: { status?: string; venue_id?: string };
+    venues: { id: number; name: string }[];
+    filters?: { status?: string; venue_id?: string; search?: string };
 }
 
-const filterLink =
-    'rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800';
+const fieldClass =
+    'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white sm:w-auto';
 
-export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
+export default function AdminEventsIndex({ events, venues, filters }: Readonly<Props>) {
     const [selectedRows, setSelectedRows] = useState<Record<number, true>>({});
 
     useEffect(() => {
         setSelectedRows({});
-    }, [filters?.status, filters?.venue_id]);
+    }, [filters?.status, filters?.venue_id, filters?.search]);
+
+    const submitFilters = useCallback((e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const search = ((fd.get('search') as string) || '').trim();
+        const status = (fd.get('status') as string) || '';
+        const venueId = (fd.get('venue_id') as string) || '';
+        router.get(
+            route('admin.events.index'),
+            {
+                ...(search ? { search } : {}),
+                ...(status ? { status } : {}),
+                ...(venueId ? { venue_id: venueId } : {}),
+            },
+            { preserveState: true },
+        );
+    }, []);
 
     const selectedCount = Object.keys(selectedRows).length;
 
@@ -103,6 +122,14 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                 cell: (e) => <span className="font-medium text-zinc-900 dark:text-white">{e.title}</span>,
             },
             {
+                key: 'created',
+                header: 'Eklenme',
+                mobileLabel: 'Eklenme',
+                cell: (e) => (
+                    <span className="text-zinc-600 dark:text-zinc-400">{formatTurkishDateTime(e.created_at)}</span>
+                ),
+            },
+            {
                 key: 'venue',
                 header: 'Mekan',
                 mobileLabel: 'Mekan',
@@ -135,7 +162,9 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             e.status === 'published'
                                 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                                : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400'
+                                : e.status === 'cancelled'
+                                  ? 'bg-red-500/15 text-red-700 dark:text-red-400'
+                                  : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400'
                         }`}
                     >
                         {eventStatusTr(e.status)}
@@ -180,7 +209,7 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
             <div className="space-y-6">
                 <AdminPageHeader
                     title="Etkinlik Yönetimi"
-                    description="Etkinlikleri oluşturun, yayınlayın ve düzenleyin."
+                    description="Etkinlikleri oluşturun, yayınlayın ve düzenleyin. Liste en son eklenen kayıtlar üstte olacak şekilde sıralanır."
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
                             <AdminExcelActions exportPath="/admin/etkinlikler/excel" importPath="/admin/etkinlikler/excel-ice-aktar" />
@@ -194,16 +223,69 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                     }
                 />
 
+                <form
+                    onSubmit={submitFilters}
+                    className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 lg:flex-row lg:flex-wrap lg:items-end"
+                >
+                    <div className="min-w-0 flex-1 lg:max-w-xs">
+                        <label htmlFor="evt-search" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Başlıkta ara
+                        </label>
+                        <input
+                            id="evt-search"
+                            type="search"
+                            name="search"
+                            placeholder="Etkinlik adı…"
+                            defaultValue={filters?.search ?? ''}
+                            className={fieldClass}
+                        />
+                    </div>
+                    <div className="w-full lg:w-52">
+                        <label htmlFor="evt-venue" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Mekan
+                        </label>
+                        <select
+                            id="evt-venue"
+                            name="venue_id"
+                            defaultValue={filters?.venue_id ?? ''}
+                            className={fieldClass}
+                        >
+                            <option value="">Tüm mekanlar</option>
+                            {venues.map((v) => (
+                                <option key={v.id} value={String(v.id)}>
+                                    {v.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w-full lg:w-44">
+                        <label htmlFor="evt-status" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Durum
+                        </label>
+                        <select id="evt-status" name="status" defaultValue={filters?.status ?? ''} className={fieldClass}>
+                            <option value="">Tümü</option>
+                            <option value="draft">Taslak</option>
+                            <option value="published">Yayında</option>
+                            <option value="cancelled">İptal</option>
+                        </select>
+                    </div>
+                    <div className="flex w-full flex-wrap gap-2 lg:w-auto">
+                        <button
+                            type="submit"
+                            className="inline-flex flex-1 items-center justify-center rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400 lg:flex-none"
+                        >
+                            Filtrele
+                        </button>
+                        <Link
+                            href={route('admin.events.index')}
+                            className="inline-flex flex-1 items-center justify-center rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 lg:flex-none"
+                        >
+                            Sıfırla
+                        </Link>
+                    </div>
+                </form>
+
                 <div className="flex flex-wrap items-center gap-2">
-                    <Link href={route('admin.events.index')} className={filterLink}>
-                        Tümü
-                    </Link>
-                    <Link href={route('admin.events.index', { status: 'draft' })} className={filterLink}>
-                        Taslak
-                    </Link>
-                    <Link href={route('admin.events.index', { status: 'published' })} className={filterLink}>
-                        Yayında
-                    </Link>
                     {selectedCount > 0 && (
                         <div className="ml-auto flex flex-wrap items-center gap-2">
                             <button

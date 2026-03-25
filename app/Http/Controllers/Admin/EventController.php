@@ -30,10 +30,23 @@ class EventController extends Controller
 
     public function index(Request $request)
     {
+        $validated = $request->validate([
+            'status' => ['nullable', 'string', Rule::in(['draft', 'published', 'cancelled'])],
+            'venue_id' => ['nullable', 'integer', Rule::exists('venues', 'id')],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $searchTerm = isset($validated['search']) ? trim((string) $validated['search']) : '';
+
         $events = Event::with(['venue', 'artists', 'ticketTiers'])
-            ->when($request->status, fn ($q) => $q->where('status', $request->status))
-            ->when($request->venue_id, fn ($q) => $q->where('venue_id', $request->venue_id))
-            ->latest('start_date')
+            ->when($validated['status'] ?? null, fn ($q, string $s) => $q->where('status', $s))
+            ->when($validated['venue_id'] ?? null, fn ($q, int $v) => $q->where('venue_id', $v))
+            ->when($searchTerm !== '', function ($q) use ($searchTerm): void {
+                $like = '%'.addcslashes($searchTerm, '%_\\').'%';
+                $q->where('title', 'like', $like);
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
 
@@ -52,7 +65,12 @@ class EventController extends Controller
 
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
-            'filters' => array_filter($request->only(['status', 'venue_id']), fn ($v) => $v !== null && $v !== ''),
+            'venues' => Venue::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'status' => $validated['status'] ?? '',
+                'venue_id' => isset($validated['venue_id']) ? (string) $validated['venue_id'] : '',
+                'search' => $searchTerm,
+            ],
         ]);
     }
 
@@ -307,7 +325,7 @@ class EventController extends Controller
             $published++;
         }
 
-        $query = $request->only(['status', 'venue_id']);
+        $query = $request->only(['status', 'venue_id', 'search']);
 
         if ($published === 0 && $skipped === 0) {
             return redirect()->route('admin.events.index', $query)->with('error', 'Seçili kayıt bulunamadı.');
@@ -371,7 +389,7 @@ class EventController extends Controller
             return $n;
         });
 
-        return redirect()->route('admin.events.index', $request->only(['status', 'venue_id']))->with('success', "{$count} etkinlik silindi.");
+        return redirect()->route('admin.events.index', $request->only(['status', 'venue_id', 'search']))->with('success', "{$count} etkinlik silindi.");
     }
 
     private function performEventDelete(Event $event): void
