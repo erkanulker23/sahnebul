@@ -1,7 +1,9 @@
 import { AdSlot } from '@/Components/AdSlot';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import EventCarousel from '@/Components/EventCarousel';
 import SeoHead from '@/Components/SeoHead';
+import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
@@ -38,6 +40,8 @@ interface VenueListItem {
     address: string;
     rating_avg?: number;
     review_count?: number;
+    weekly_events_count?: number;
+    monthly_events_count?: number;
     city?: { name: string } | null;
     category?: { name: string } | null;
 }
@@ -367,12 +371,17 @@ export default function VenuesIndex({
                                             href={route('venues.show', venue.slug)}
                                             className="overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-white/10 dark:bg-zinc-900/60"
                                         >
-                                            <div className="h-44 w-full bg-zinc-200 dark:bg-zinc-800">
+                                            <div className="relative h-44 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
                                                 {venue.cover_image ? (
                                                     <img src={imageSrc(venue.cover_image) ?? ''} alt={venue.name} className="h-full w-full object-cover" />
                                                 ) : (
                                                     <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
                                                 )}
+                                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/20" />
+                                                <ThisWeekEventsBadge
+                                                    weekCount={venue.weekly_events_count ?? 0}
+                                                    monthCount={venue.monthly_events_count ?? 0}
+                                                />
                                             </div>
                                             <div className="p-4">
                                                 <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
@@ -520,7 +529,7 @@ export default function VenuesIndex({
                                 </div>
                                 <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{event.venue.name}</p>
                                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                    {new Date(event.start_date).toLocaleString('tr-TR')}
+                                    {formatTurkishDateTime(event.start_date)}
                                 </p>
                             </Link>
                         ))}

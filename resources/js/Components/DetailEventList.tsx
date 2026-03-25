@@ -1,5 +1,6 @@
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { eventTicketBadge } from '@/lib/eventTicketBadge';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
 import { ChevronRight, Clock } from 'lucide-react';
 import { useMemo } from 'react';
@@ -124,9 +125,7 @@ function EventListRow({
     imageSrc: (path: string | null | undefined) => string | null;
 }>) {
     const start = new Date(ev.start_date);
-    const dayNum = start.toLocaleDateString('tr-TR', { day: 'numeric' });
-    const monthName = start.toLocaleDateString('tr-TR', { month: 'long' });
-    const timeStr = start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    const whenLabel = formatTurkishDateTime(ev.start_date);
     const badge = eventTicketBadge(ev);
     const sub = subtitleForEvent(ev, context);
     const thumb = thumbUrl(ev, context, imageSrc);
@@ -139,20 +138,18 @@ function EventListRow({
                 className={`group flex overflow-hidden rounded-xl border bg-white shadow-sm transition hover:border-zinc-300 hover:shadow-md dark:border-white/[0.08] dark:bg-zinc-900/40 dark:hover:border-white/15 ${
                     ended ? 'border-zinc-200 opacity-80 dark:border-white/10' : 'border-zinc-200'
                 }`}
-                aria-label={`${ev.title}, ${sub}, ${timeStr}`}
+                aria-label={`${ev.title}, ${sub}, ${whenLabel}`}
             >
                 <span className={`w-1 shrink-0 ${ended ? 'bg-zinc-400 dark:bg-zinc-600' : 'bg-[#e9785c]'}`} aria-hidden />
                 <div className="flex min-w-0 flex-1 items-stretch gap-3 py-3 pl-3 pr-2 sm:gap-4 sm:pl-4 sm:pr-3">
-                    <div className="flex w-[52px] shrink-0 flex-col items-center justify-center border-r border-zinc-200 pr-3 text-center dark:border-white/10 sm:w-[56px]">
-                        <span className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-white sm:text-[1.65rem]">{dayNum}</span>
-                        <span className="mt-0.5 text-xs capitalize text-zinc-600 dark:text-zinc-400">{monthName}</span>
+                    <div className="flex w-[min(100%,7.5rem)] shrink-0 flex-col items-center justify-center border-r border-zinc-200 px-1.5 py-1 text-center dark:border-white/10 sm:w-32">
+                        <span className="inline-flex items-start gap-1 text-center text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
+                            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} aria-hidden />
+                            {whenLabel}
+                        </span>
                     </div>
                     <div className="min-w-0 flex-1 self-center">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                                <Clock className="h-3.5 w-3.5 text-zinc-400" strokeWidth={2} aria-hidden />
-                                {timeStr}
-                            </span>
                             {ended ? (
                                 <span className="rounded-full bg-zinc-500/15 px-2.5 py-0.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                                     Sona erdi

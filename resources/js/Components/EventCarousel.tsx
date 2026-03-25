@@ -1,4 +1,5 @@
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
 import { useCallback, useRef } from 'react';
 
@@ -176,15 +177,7 @@ export default function EventCarousel({
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                                     <IconCalendar className="h-4 w-4 shrink-0" />
-                                    <time dateTime={event.start_date}>
-                                        {new Date(event.start_date).toLocaleString('tr-TR', {
-                                            weekday: 'short',
-                                            day: 'numeric',
-                                            month: 'short',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </time>
+                                    <time dateTime={event.start_date}>{formatTurkishDateTime(event.start_date)}</time>
                                 </div>
                                 {event.artists.length > 0 && (
                                     <p

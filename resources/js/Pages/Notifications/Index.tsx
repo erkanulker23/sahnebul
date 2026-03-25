@@ -1,4 +1,5 @@
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 interface Notification {
@@ -33,7 +34,7 @@ export default function NotificationsIndex({ notifications }: Props) {
                                     className={`rounded-xl border p-6 ${n.read_at ? 'border-white/5 bg-zinc-900/30' : 'border-amber-500/20 bg-amber-500/5'}`}
                                 >
                                     <p className="text-zinc-300">{(n.data as { message?: string })?.message || 'Bildirim'}</p>
-                                    <p className="mt-2 text-sm text-zinc-500">{new Date(n.created_at).toLocaleString('tr-TR')}</p>
+                                    <p className="mt-2 text-sm text-zinc-500">{formatTurkishDateTime(n.created_at)}</p>
                                 </div>
                             ))}
                         </div>

@@ -1,6 +1,7 @@
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { eventStatusTr } from '@/lib/statusLabels';
 import { Link, router } from '@inertiajs/react';
 import { Building2, CalendarDays, Eye, MapPin, Ticket, Users } from 'lucide-react';
@@ -217,16 +218,7 @@ export default function ArtistEventsIndex({
                         );
                         const priceLabel = displayPrice(ev);
                         const lineup = lineupLabel(ev.artists);
-                        const when = ev.start_date
-                            ? new Date(ev.start_date).toLocaleString('tr-TR', {
-                                  weekday: 'short',
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                              })
-                            : 'Tarih atanmadı';
+                        const when = ev.start_date ? formatTurkishDateTime(ev.start_date) : 'Tarih atanmadı';
 
                         return (
                             <article

@@ -1,4 +1,6 @@
+import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
 import { useCallback, useRef } from 'react';
 
@@ -10,6 +12,7 @@ export type WeekSliderArtist = {
     genre: string | null;
     is_verified_profile?: boolean;
     week_first_show: string | null;
+    week_events_count?: number;
 };
 
 interface Props {
@@ -31,21 +34,14 @@ function formatShowTime(iso: string | null): string | null {
     if (!iso) return null;
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleString('tr-TR', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatTurkishDateTime(d);
 }
 
 function formatWeekCaption(startIso: string, endIso: string): string {
     const s = new Date(startIso);
     const e = new Date(endIso);
     if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return '';
-    const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
-    return `${s.toLocaleDateString('tr-TR', opts)} – ${e.toLocaleDateString('tr-TR', { ...opts, year: 'numeric' })}`;
+    return `${formatTurkishDateTime(s, { withTime: false })} – ${formatTurkishDateTime(e, { withTime: false })}`;
 }
 
 export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Readonly<Props>) {
@@ -126,6 +122,11 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                                        <ThisWeekEventsBadge
+                                            weekCount={artist.week_events_count ?? 0}
+                                            monthCount={0}
+                                            variant="slider"
+                                        />
                                         {showLine && (
                                             <div className="absolute bottom-2 left-2 right-2">
                                                 <span className="inline-flex rounded-lg bg-emerald-600/95 px-2 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm">

@@ -1,3 +1,4 @@
+import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
 import { reservationStatusTr } from '@/lib/statusLabels';
@@ -44,7 +45,7 @@ export default function ArtistReservationsIndex({ reservations, stats }: Props) 
                         <div>
                             <p className="font-semibold text-white">{r.user.name}</p>
                             <p className="text-sm text-zinc-500">{r.venue.name}</p>
-                            <p className="mt-1 text-zinc-400">{r.reservation_date} {r.reservation_time} • ₺{Number(r.total_amount).toLocaleString('tr-TR')}</p>
+                            <p className="mt-1 text-zinc-400">{formatTurkishDateTimeFromParts(r.reservation_date, r.reservation_time)} • ₺{Number(r.total_amount).toLocaleString('tr-TR')}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             {r.status === 'pending' && (

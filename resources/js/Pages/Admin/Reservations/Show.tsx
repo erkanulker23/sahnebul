@@ -1,3 +1,4 @@
+import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -54,7 +55,7 @@ export default function AdminReservationShow({ reservation }: Props) {
                             )}
                             <div>
                                 <dt className="text-sm text-zinc-500">Tarih / Saat</dt>
-                                <dd className="text-white">{reservation.reservation_date} {reservation.reservation_time}</dd>
+                                <dd className="text-white">{formatTurkishDateTimeFromParts(reservation.reservation_date, reservation.reservation_time)}</dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-zinc-500">Tip</dt>

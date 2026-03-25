@@ -2,6 +2,7 @@ import { AdSlot } from '@/Components/AdSlot';
 import SeoHead from '@/Components/SeoHead';
 import { stripHtmlToText } from '@/utils/seo';
 import AppLayout from '@/Layouts/AppLayout';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
 import { ArrowRight, ArrowUpRight, BookOpen, Calendar } from 'lucide-react';
 
@@ -30,24 +31,12 @@ interface Props {
     };
 }
 
-function formatBlogDate(iso: string): string {
-    try {
-        return new Date(iso).toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        });
-    } catch {
-        return '';
-    }
-}
-
 function PostMeta({ post, className = '' }: Readonly<{ post: Post; className?: string }>) {
     return (
         <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm ${className}`}>
             <span className="inline-flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
                 <Calendar className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-                <time dateTime={post.published_at}>{formatBlogDate(post.published_at)}</time>
+                <time dateTime={post.published_at}>{formatTurkishDateTime(post.published_at)}</time>
             </span>
             {post.author?.name ? (
                 <>

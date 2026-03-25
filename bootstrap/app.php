@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureUserIsArtist;
 use App\Http\Middleware\EnsureUserIsCustomer;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RefreshZiggyForRequest;
 use App\Support\AuthPortalUrls;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -34,6 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 at: $trusted === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $trusted)))),
             );
         }
+
+        $middleware->web(prepend: [
+            RefreshZiggyForRequest::class,
+        ]);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,

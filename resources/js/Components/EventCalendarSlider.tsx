@@ -1,4 +1,5 @@
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { stripHtmlToText } from '@/utils/seo';
 import { Link } from '@inertiajs/react';
 import { Music2 } from 'lucide-react';
@@ -217,11 +218,7 @@ export default function EventCalendarSlider({
                         <div className="flex items-center justify-between gap-4">
                             <h3 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">
                                 {selectedDateKey
-                                    ? new Date(`${selectedDateKey}T12:00:00`).toLocaleDateString('tr-TR', {
-                                          weekday: 'long',
-                                          day: 'numeric',
-                                          month: 'long',
-                                      })
+                                    ? formatTurkishDateTime(`${selectedDateKey}T12:00:00`, { withTime: false })
                                     : 'Yaklaşan etkinlikler'}
                             </h3>
                             <div className="flex gap-2">
@@ -266,15 +263,9 @@ export default function EventCalendarSlider({
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-violet-500/5 opacity-0 transition group-hover:opacity-100" />
                                         <div className="relative flex gap-5 p-5">
-                                            <div className="flex min-w-[88px] flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-3 py-4 text-center">
-                                                <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-300/90">
-                                                    {new Date(event.start_date).toLocaleDateString('tr-TR', { month: 'short' })}
-                                                </span>
-                                                <span className="mt-1 text-3xl font-bold tabular-nums text-amber-500 dark:text-amber-400">
-                                                    {new Date(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit' })}
-                                                </span>
-                                                <span className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                                    {new Date(event.start_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                            <div className="flex min-w-[5.75rem] max-w-[6.5rem] flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-2 py-3 text-center">
+                                                <span className="text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-200/95">
+                                                    {formatTurkishDateTime(event.start_date)}
                                                 </span>
                                             </div>
                                             <div className="min-w-0 flex-1">

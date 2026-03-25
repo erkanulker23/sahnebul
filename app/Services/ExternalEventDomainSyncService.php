@@ -84,10 +84,7 @@ class ExternalEventDomainSyncService
 
         if ($venue !== null) {
             $updates = [];
-            $venueImg = $this->normalizedCrawlImage($external->image_url);
-            if (($venue->cover_image === null || $venue->cover_image === '') && $venueImg) {
-                $updates['cover_image'] = $venueImg;
-            }
+            // Dış kaynak görseli etkinlik afişidir; mevcut mekanın kapağını asla güncelleme.
             if ($street !== '' && ($venue->address === null || $venue->address === '' || $venue->address === $venue->name.', '.$cityName)) {
                 $updates['address'] = $street;
             }
@@ -128,7 +125,8 @@ class ExternalEventDomainSyncService
             'address' => $address,
             'latitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $latF : null,
             'longitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $lngF : null,
-            'cover_image' => $this->normalizedCrawlImage($external->image_url),
+            // Crawl görseli etkinliğe yazılır; mekan kaydı için afişi kapak yapmıyoruz.
+            'cover_image' => null,
             'status' => 'approved',
         ]);
     }

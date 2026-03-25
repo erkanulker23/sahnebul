@@ -44,6 +44,16 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         }
         case 'password.request':
             return '/forgot-password';
+        case 'admin.event-artist-reports.index':
+            return `/admin/sanatci-etkinlik-raporlari${queryString(params ?? {})}`;
+        case 'admin.event-artist-reports.update': {
+            const raw = params?.report ?? params?.id;
+            if (typeof raw === 'string' || typeof raw === 'number') {
+                return `/admin/sanatci-etkinlik-raporlari/${raw}`;
+            }
+
+            return '/admin/sanatci-etkinlik-raporlari';
+        }
         default:
             return '/';
     }

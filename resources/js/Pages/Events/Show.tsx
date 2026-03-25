@@ -2,6 +2,7 @@ import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -127,54 +128,63 @@ function UpcomingEventsSection({
 }>) {
     if (items.length === 0) return null;
     return (
-        <div className="mt-10">
-            <h2 className="font-display text-2xl font-bold">{title}</h2>
-            {description ? <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">{description}</p> : null}
-            <div className={`grid gap-4 sm:grid-cols-2 ${description ? 'mt-5' : 'mt-4'}`}>
+        <section className="scroll-mt-24">
+            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{title}</h2>
+            {description ? (
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{description}</p>
+            ) : null}
+            <ul className="mt-6 grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((ev) => {
                     const p = minPriceFromEvent(ev);
                     const relatedCover = upcomingCardImageSrc(
                         (ev.listing_image && ev.listing_image.trim() !== '' ? ev.listing_image : ev.cover_image) ?? null,
                     );
                     return (
-                        <div
+                        <li
                             key={ev.id}
-                            className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60"
+                            className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-colors hover:border-amber-400/60 dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-amber-500/35"
                         >
-                            <Link href={route('events.show', eventShowParam(ev))} className="block">
+                            <Link
+                                href={route('events.show', eventShowParam(ev))}
+                                className="group flex flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950"
+                            >
                                 {relatedCover ? (
-                                    <img src={relatedCover} alt={ev.title} className="aspect-[16/9] w-full object-cover" />
-                                ) : null}
-                                <div className={relatedCover ? 'p-4 pt-3' : 'p-4'}>
-                                    <p className="font-semibold text-zinc-900 dark:text-white">{ev.title}</p>
-                                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                        {new Date(ev.start_date).toLocaleString('tr-TR', {
-                                            weekday: 'short',
-                                            day: 'numeric',
-                                            month: 'short',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </p>
-                                    {p != null && <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">{formatTry(p)}</p>}
+                                    <img
+                                        src={relatedCover}
+                                        alt=""
+                                        className="aspect-[5/3] w-full object-cover transition duration-300 group-hover:opacity-90"
+                                    />
+                                ) : (
+                                    <div className="flex aspect-[5/3] w-full items-center justify-center bg-zinc-100 text-4xl dark:bg-zinc-800">
+                                        🎭
+                                    </div>
+                                )}
+                                <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
+                                    <p className="text-base font-semibold leading-snug text-zinc-900 dark:text-white">{ev.title}</p>
+                                    <div className="space-y-1.5 text-sm">
+                                        <p className="text-zinc-600 dark:text-zinc-400">{formatTurkishDateTime(ev.start_date)}</p>
+                                        {p != null ? (
+                                            <p className="font-semibold text-amber-600 dark:text-amber-400">{formatTry(p)}</p>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </Link>
                             {showVenue && ev.venue ? (
-                                <div className="border-t border-zinc-100 px-4 py-3 dark:border-white/10">
-                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Mekân</p>
-                                    <Link
-                                        href={route('venues.show', ev.venue.slug)}
-                                        className="text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                    >
-                                        {ev.venue.name}
-                                    </Link>
-                                </div>
+                                <Link
+                                    href={route('venues.show', ev.venue.slug)}
+                                    className="border-t border-zinc-100 px-4 py-3.5 text-sm font-medium leading-snug text-amber-700 transition hover:bg-zinc-50 dark:border-white/10 dark:text-amber-400 dark:hover:bg-white/5 sm:px-5"
+                                >
+                                    <span className="block text-xs font-normal uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                                        Mekân
+                                    </span>
+                                    <span className="mt-1 block line-clamp-2">{ev.venue.name}</span>
+                                </Link>
                             ) : null}
-                        </div>
+                        </li>
                     );
                 })}
-            </div>
-        </div>
+            </ul>
+        </section>
     );
 }
 
@@ -253,7 +263,7 @@ export default function EventShow({
             ? sortVenueSocialEntries(event.venue.social_links)
             : [];
     const dateSummary = event.start_date
-        ? `Tarih: ${new Date(event.start_date).toLocaleString('tr-TR')}.`
+        ? `Tarih: ${formatTurkishDateTime(event.start_date)}.`
         : 'Tarih yakında açıklanacak.';
     const eventDesc = metaDescriptionFromContent(
         event.description,
@@ -313,7 +323,7 @@ export default function EventShow({
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
                             {event.start_date ? (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                    {new Date(event.start_date).toLocaleString('tr-TR')}
+                                    {formatTurkishDateTime(event.start_date)}
                                 </span>
                             ) : (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200">Tarih duyurulacak</span>
@@ -491,22 +501,7 @@ export default function EventShow({
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">Etkinlik Tarihi</p>
                                 {event.start_date ? (
-                                    <>
-                                        <p className="mt-2 font-semibold">
-                                            {new Date(event.start_date).toLocaleDateString('tr-TR', {
-                                                weekday: 'long',
-                                                day: '2-digit',
-                                                month: 'long',
-                                                year: 'numeric',
-                                            })}
-                                        </p>
-                                        <p className="mt-1 text-sm text-zinc-500">
-                                            {new Date(event.start_date).toLocaleTimeString('tr-TR', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
-                                        </p>
-                                    </>
+                                    <p className="mt-2 font-semibold">{formatTurkishDateTime(event.start_date)}</p>
                                 ) : (
                                     <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>
                                 )}
@@ -668,7 +663,7 @@ export default function EventShow({
                                                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{r.comment}</p>
                                                 ) : null}
                                                 <p className="mt-1 text-xs text-zinc-400">
-                                                    {new Date(r.created_at).toLocaleString('tr-TR')}
+                                                    {formatTurkishDateTime(r.created_at)}
                                                 </p>
                                             </div>
                                         </div>
@@ -777,18 +772,6 @@ export default function EventShow({
                         </div>
                     </div>
                 )}
-
-                        <UpcomingEventsSection
-                            title="Bu mekânda yaklaşan etkinlikler"
-                            description="Aynı mekânda, bugünden sonra gerçekleşecek diğer yayında etkinlikler (farklı sanatçılar dahil)."
-                            items={venueUpcomingEvents}
-                        />
-                        <UpcomingEventsSection
-                            title="Sanatçıların diğer yaklaşan etkinlikleri"
-                            description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
-                            items={artistUpcomingEvents}
-                            showVenue
-                        />
                     </div>
 
                     <aside className="mt-10 lg:mt-0">
@@ -890,6 +873,20 @@ export default function EventShow({
                             )
                         )}
                     </aside>
+
+                    <div className="mt-12 space-y-12 border-t border-zinc-200 pt-12 dark:border-white/10 lg:col-span-3 lg:mt-14 lg:space-y-14 lg:pt-14">
+                        <UpcomingEventsSection
+                            title="Bu mekânda yaklaşan etkinlikler"
+                            description="Aynı mekânda, bugünden sonra gerçekleşecek diğer yayında etkinlikler (farklı sanatçılar dahil)."
+                            items={venueUpcomingEvents}
+                        />
+                        <UpcomingEventsSection
+                            title="Sanatçıların diğer yaklaşan etkinlikleri"
+                            description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
+                            items={artistUpcomingEvents}
+                            showVenue
+                        />
+                    </div>
                 </div>
             </div>
         </AppLayout>

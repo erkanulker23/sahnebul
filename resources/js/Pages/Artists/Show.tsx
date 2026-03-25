@@ -1,6 +1,7 @@
 import DetailEventList from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { truncateMetaDescription } from '@/utils/seo';
@@ -310,15 +311,6 @@ export default function ArtistShow({
     const [claimEmail, setClaimEmail] = useState('');
     const [claimLoading, setClaimLoading] = useState(false);
     const [playingTrackKey, setPlayingTrackKey] = useState<string | null>(null);
-    const formatDate = (dateStr: string) =>
-        new Date(dateStr).toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-
     const hasEvents = upcomingEvents.length > 0 || pastEvents.length > 0;
     const nextEvent = upcomingEvents[0];
     const cityOptions = useMemo(() => {
@@ -716,7 +708,7 @@ export default function ArtistShow({
                                     <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">Sıradaki Konser</p>
                                     <p className="mt-1 font-display text-2xl font-bold text-zinc-900 dark:text-white">{nextEvent.title}</p>
                                     <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{nextEvent.venue.name}</p>
-                                    <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200">{formatDate(nextEvent.start_date)}</p>
+                                    <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200">{formatTurkishDateTime(nextEvent.start_date)}</p>
                                 </div>
                             )}
 
@@ -1032,7 +1024,7 @@ export default function ArtistShow({
                                                         <p className="text-sm text-zinc-600 dark:text-zinc-500">{event.venue.name}</p>
                                                     </div>
                                                     <span className="text-sm text-zinc-500 dark:text-zinc-500">
-                                                        {formatDate(event.start_date)}
+                                                        {formatTurkishDateTime(event.start_date)}
                                                     </span>
                                                 </Link>
                                             ))}

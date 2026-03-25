@@ -39,6 +39,11 @@ class ArtistController extends Controller
                     ->published()
                     ->whereHas('venue', fn ($v) => $v->approved())
                     ->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]),
+                'events as monthly_events_count' => fn ($q) => $q
+                    ->published()
+                    ->whereHas('venue', fn ($v) => $v->approved())
+                    ->where('start_date', '>=', now()->startOfDay())
+                    ->where('start_date', '<=', now()->endOfMonth()),
             ]);
 
         if ($request->filled('search')) {
@@ -108,7 +113,11 @@ class ArtistController extends Controller
                     ->orWhere('artists.country_code', '!=', 'INT');
             })
             ->whereBetween('events.start_date', [$weekStart, $weekEnd])
-            ->select('event_artists.artist_id', DB::raw('MIN(events.start_date) as first_show'))
+            ->select(
+                'event_artists.artist_id',
+                DB::raw('MIN(events.start_date) as first_show'),
+                DB::raw('COUNT(events.id) as week_events_count')
+            )
             ->groupBy('event_artists.artist_id')
             ->orderBy('first_show')
             ->limit(48)
@@ -119,7 +128,7 @@ class ArtistController extends Controller
         }
 
         $idsOrdered = $rows->pluck('artist_id')->map(fn ($id) => (int) $id)->all();
-        $firstShowById = $rows->keyBy(fn ($r) => (int) $r->artist_id);
+        $metaByArtistId = $rows->keyBy(fn ($r) => (int) $r->artist_id);
 
         $loaded = Artist::query()
             ->whereIn('id', $idsOrdered)
@@ -131,12 +140,14 @@ class ArtistController extends Controller
             ->keyBy('id');
 
         return collect($idsOrdered)
-            ->map(function (int $id) use ($loaded, $firstShowById) {
+            ->map(function (int $id) use ($loaded, $metaByArtistId) {
                 $artist = $loaded->get($id);
                 if (! $artist) {
                     return null;
                 }
-                $first = $firstShowById->get($id)?->first_show;
+                $meta = $metaByArtistId->get($id);
+                $first = $meta?->first_show;
+                $weekCount = (int) ($meta?->week_events_count ?? 0);
 
                 return [
                     'id' => $artist->id,
@@ -146,6 +157,7 @@ class ArtistController extends Controller
                     'genre' => $artist->genre,
                     'is_verified_profile' => (bool) $artist->is_verified_profile,
                     'week_first_show' => $first ? (string) $first : null,
+                    'week_events_count' => $weekCount,
                 ];
             })
             ->filter()

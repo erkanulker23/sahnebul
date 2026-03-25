@@ -1,5 +1,6 @@
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { AdSlot } from '@/Components/AdSlot';
 import AppLayout from '@/Layouts/AppLayout';
 import SeoHead from '@/Components/SeoHead';
@@ -111,11 +112,7 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
         imageSrc(headliner?.avatar) ??
         imageSrc(event.venue.cover_image);
 
-    const d = new Date(event.start_date);
-    const dayNum = d.getDate();
-    const monthLabel = d.toLocaleDateString('tr-TR', { month: 'long' });
-    const weekdayShort = d.toLocaleDateString('tr-TR', { weekday: 'short' });
-    const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    const whenLabel = formatTurkishDateTime(event.start_date);
 
     return (
         <div className="group h-full">
@@ -138,12 +135,8 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                         </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                    <div className="absolute right-3 top-3 flex flex-col items-end rounded-xl bg-white/95 px-3 py-2 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10">
-                        <span className="font-display text-2xl font-bold tabular-nums leading-none text-zinc-900 dark:text-white">{dayNum}</span>
-                        <span className="mt-0.5 text-[10px] font-medium capitalize leading-tight text-zinc-500 dark:text-zinc-400">{monthLabel}</span>
-                        <span className="mt-1 text-[11px] font-semibold tabular-nums text-amber-600 dark:text-amber-400">
-                            {weekdayShort} · {timeStr}
-                        </span>
+                    <div className="absolute right-3 top-3 max-w-[min(100%,11.5rem)] rounded-xl bg-white/95 px-3 py-2 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10">
+                        <p className="text-[10px] font-semibold leading-snug text-zinc-900 dark:text-white sm:text-[11px]">{whenLabel}</p>
                     </div>
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-4 pt-3.5">

@@ -1,6 +1,7 @@
 import { AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { router } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
@@ -94,7 +95,7 @@ export default function AdminReviewsIndex({ reviews, filters }: Readonly<Props>)
                                     <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                                         <span className="text-amber-600 dark:text-amber-400">{'★'.repeat(review.rating)}</span>
                                         <span className="text-zinc-500 dark:text-zinc-400">
-                                            {new Date(review.created_at).toLocaleDateString('tr-TR')}
+                                            {formatTurkishDateTime(review.created_at)}
                                         </span>
                                         {!review.is_approved && (
                                             <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-400">

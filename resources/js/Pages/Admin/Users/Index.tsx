@@ -1,6 +1,7 @@
 import { AdminButton, AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
@@ -80,7 +81,7 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                 key: 'created',
                 header: 'Kayıt',
                 mobileLabel: 'Kayıt',
-                cell: (user) => <span className="text-zinc-600 dark:text-zinc-400">{new Date(user.created_at).toLocaleDateString('tr-TR')}</span>,
+                cell: (user) => <span className="text-zinc-600 dark:text-zinc-400">{formatTurkishDateTime(user.created_at)}</span>,
             },
         ],
         [],

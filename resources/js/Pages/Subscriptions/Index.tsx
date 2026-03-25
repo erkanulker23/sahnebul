@@ -2,6 +2,7 @@ import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
 import AppLayout from '@/Layouts/AppLayout';
 import ArtistLayout from '@/Layouts/ArtistLayout';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link, router } from '@inertiajs/react';
 
 interface Plan {
@@ -50,7 +51,7 @@ function SubscriptionContent({
 
             {activeSubscription && (
                 <div className="mt-6 rounded-xl border border-green-500/40 bg-green-500/10 p-4 text-green-300">
-                    Aktif paket: <b>{activeSubscription.plan?.name ?? 'Gold'}</b> — bitiş: {new Date(activeSubscription.ends_at).toLocaleDateString('tr-TR')}
+                    Aktif paket: <b>{activeSubscription.plan?.name ?? 'Gold'}</b> — bitiş: {formatTurkishDateTime(activeSubscription.ends_at)}
                 </div>
             )}
 
@@ -130,7 +131,7 @@ export default function SubscriptionIndex({
 
                 {activeSubscription && (
                     <div className="mt-6 rounded-xl border border-green-500/40 bg-green-500/10 p-4 text-green-700 dark:text-green-300">
-                        Aktif paket: <b>{activeSubscription.plan?.name ?? 'Gold'}</b> - bitiş: {new Date(activeSubscription.ends_at).toLocaleDateString('tr-TR')}
+                        Aktif paket: <b>{activeSubscription.plan?.name ?? 'Gold'}</b> - bitiş: {formatTurkishDateTime(activeSubscription.ends_at)}
                     </div>
                 )}
 

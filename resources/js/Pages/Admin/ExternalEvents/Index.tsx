@@ -2,6 +2,7 @@ import { AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { router, useForm } from '@inertiajs/react';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
 import { Eye, X } from 'lucide-react';
 
@@ -45,7 +46,7 @@ interface PreviewPayload {
 
 interface Props {
     items: { data: ExternalEventItem[] };
-    filters: { source: string; status: 'all' | 'pending' | 'synced' | 'rejected'; search: string };
+    filters: { source: string; status: 'all' | 'pending' | 'synced' | 'rejected'; search: string; artist: string };
     sources: string[];
     crawlLookups?: { cities: CrawlLookupItem[]; categories: CrawlLookupItem[] };
 }
@@ -79,6 +80,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
     const queryForm = useForm({
         source: filters.source ?? '',
         status: filters.status ?? 'pending',
+        artist: filters.artist ?? '',
         search: filters.search ?? '',
     });
     const crawlForm = useForm({
@@ -479,7 +481,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                                                                 <td className="max-w-[8rem] px-2 py-2">{row.venue_name}</td>
                                                                 <td className="whitespace-nowrap px-2 py-2">{row.city_name}</td>
                                                                 <td className="px-2 py-2">{row.category_name}</td>
-                                                                <td className="whitespace-nowrap px-2 py-2">{row.start_date}</td>
+                                                                <td className="whitespace-nowrap px-2 py-2">{formatTurkishDateTime(row.start_date)}</td>
                                                                 <td className="max-w-[8rem] px-2 py-2">{row.performers || '—'}</td>
                                                                 <td className="whitespace-nowrap px-2 py-2 uppercase">{row.source}</td>
                                                             </tr>
@@ -535,11 +537,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                                     </div>
                                     <div>
                                         <dt className="font-medium text-zinc-500 dark:text-zinc-400">Tarih</dt>
-                                        <dd>
-                                            {detailItem.start_date
-                                                ? new Date(detailItem.start_date).toLocaleString('tr-TR')
-                                                : '—'}
-                                        </dd>
+                                        <dd>{formatTurkishDateTime(detailItem.start_date)}</dd>
                                     </div>
                                     {detailItem.category_name ? (
                                         <div>
@@ -566,7 +564,10 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                     </div>
                 )}
 
-                <form onSubmit={submitFilters} className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2 lg:grid-cols-4">
+                <form
+                    onSubmit={submitFilters}
+                    className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2 lg:grid-cols-6"
+                >
                     <select
                         value={queryForm.data.source}
                         onChange={(e) => queryForm.setData('source', e.target.value)}
@@ -583,6 +584,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                         value={queryForm.data.status}
                         onChange={(e) => queryForm.setData('status', e.target.value as Props['filters']['status'])}
                         className={selectClass}
+                        aria-label="Durum"
                     >
                         <option value="pending">Bekleyen</option>
                         <option value="synced">Aktarılan</option>
@@ -590,10 +592,17 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                         <option value="all">Tümü</option>
                     </select>
                     <input
+                        value={queryForm.data.artist}
+                        onChange={(e) => queryForm.setData('artist', e.target.value)}
+                        placeholder="Sanatçı (kaynak performer)…"
+                        className={selectClass}
+                        aria-label="Sanatçıya göre filtrele"
+                    />
+                    <input
                         value={queryForm.data.search}
                         onChange={(e) => queryForm.setData('search', e.target.value)}
                         placeholder="Başlık, mekan veya şehir…"
-                        className={`${selectClass} lg:col-span-1`}
+                        className={`${selectClass} sm:col-span-2 lg:col-span-2`}
                     />
                     <button
                         type="submit"
@@ -650,7 +659,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                                                 {item.venue_name ?? 'Çeşitli mekanlar'} / {item.city_name ?? '—'}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                                                {item.start_date ? new Date(item.start_date).toLocaleString('tr-TR') : '—'}
+                                                {formatTurkishDateTime(item.start_date)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${st.className}`}>{st.label}</span>
@@ -688,9 +697,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                                             {item.venue_name ?? 'Çeşitli mekanlar'} · {item.city_name ?? '—'}
                                         </p>
-                                        <p className="mt-1 text-xs text-zinc-500">
-                                            {item.start_date ? new Date(item.start_date).toLocaleString('tr-TR') : '—'}
-                                        </p>
+                                        <p className="mt-1 text-xs text-zinc-500">{formatTurkishDateTime(item.start_date)}</p>
                                         {item.external_url && (
                                             <a
                                                 href={item.external_url}

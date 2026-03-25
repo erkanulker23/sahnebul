@@ -24,6 +24,15 @@ class VenueController extends Controller
     {
         $query = Venue::query()
             ->with(['category', 'city', 'media'])
+            ->withCount([
+                'events as weekly_events_count' => fn ($q) => $q
+                    ->published()
+                    ->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]),
+                'events as monthly_events_count' => fn ($q) => $q
+                    ->published()
+                    ->where('start_date', '>=', now()->startOfDay())
+                    ->where('start_date', '<=', now()->endOfMonth()),
+            ])
             ->approved();
 
         if ($request->filled('city')) {

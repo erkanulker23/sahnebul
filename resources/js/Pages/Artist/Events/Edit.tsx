@@ -4,6 +4,7 @@ import TicketSalesEditor, { emptyTicketOutletRow, inferTicketAcquisitionMode, ou
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link, useForm } from '@inertiajs/react';
 
 interface EventArtistLineup {
@@ -105,7 +106,7 @@ function ReviewColumn({
                                     ) : null}
                                     {r.created_at ? (
                                         <p className="mt-1 text-xs text-zinc-600">
-                                            {new Date(r.created_at).toLocaleString('tr-TR')}
+                                            {formatTurkishDateTime(r.created_at)}
                                         </p>
                                     ) : null}
                                 </div>

@@ -3,6 +3,7 @@ import Dropdown from '@/Components/Dropdown';
 import FlashMessage from '@/Components/FlashMessage';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
@@ -151,7 +152,11 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                 return (
                     <Link
                         key={item.href}
-                        href={route(item.href)}
+                        href={
+                            item.href === 'admin.event-artist-reports.index'
+                                ? safeRoute(item.href)
+                                : route(item.href)
+                        }
                         onClick={closeSidebar}
                         className={cn(
                             'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
@@ -298,7 +303,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                                     </span>
                                 </Dropdown.Link>
                                 <Dropdown.Link
-                                    href={route('admin.event-artist-reports.index', { status: 'pending' })}
+                                    href={safeRoute('admin.event-artist-reports.index', { status: 'pending' })}
                                     className={notifLinkClass}
                                 >
                                     <span>Kadro / etkinlik raporu</span>

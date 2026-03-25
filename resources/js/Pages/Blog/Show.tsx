@@ -1,5 +1,6 @@
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
 
@@ -43,7 +44,7 @@ export default function BlogShow({ post, related }: Readonly<Props>) {
                 <Link href={route('blog.index')} className="text-sm text-amber-500">← Blog</Link>
                 <h1 className="mt-4 text-4xl font-bold">{post.title}</h1>
                 <p className="mt-2 text-sm text-zinc-500">
-                    {new Date(post.published_at).toLocaleDateString('tr-TR')} {post.author?.name ? `• ${post.author.name}` : ''}
+                    {formatTurkishDateTime(post.published_at)} {post.author?.name ? `• ${post.author.name}` : ''}
                 </p>
                 {post.cover_image && <img src={post.cover_image} alt={post.title} className="mt-6 max-h-[420px] w-full rounded-2xl object-cover" />}
                 <article className="mt-8 max-w-none text-zinc-800 dark:text-zinc-100">

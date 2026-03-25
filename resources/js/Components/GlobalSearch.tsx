@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
 import { Calendar, MapPin, Mic2, Search, X } from 'lucide-react';
@@ -156,7 +157,7 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate font-medium text-zinc-900 dark:text-white">{ev.title}</span>
                                                 <span className="block text-xs text-zinc-500">
-                                                    {new Date(ev.start_date).toLocaleString('tr-TR')}
+                                                    {formatTurkishDateTime(ev.start_date)}
                                                     {ev.venue_name ? ` · ${ev.venue_name}` : ''}
                                                 </span>
                                             </span>

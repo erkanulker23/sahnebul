@@ -1,4 +1,5 @@
 import { AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -56,7 +57,7 @@ export default function AdminReservationsIndex({ reservations, stats, filters }:
                 mobileLabel: 'Tarih',
                 cell: (r) => (
                     <span className="text-zinc-600 dark:text-zinc-400">
-                        {r.reservation_date} {r.reservation_time}
+                        {formatTurkishDateTimeFromParts(r.reservation_date, r.reservation_time)}
                     </span>
                 ),
             },

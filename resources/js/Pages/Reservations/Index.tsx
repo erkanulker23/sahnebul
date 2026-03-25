@@ -1,4 +1,5 @@
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
 
@@ -53,7 +54,7 @@ export default function ReservationsIndex({ reservations }: Props) {
                                                 {r.venue.name}
                                             </Link>
                                             {r.event && <p className="mt-1 text-sm text-zinc-500">{r.event.title}</p>}
-                                            <p className="mt-2 text-sm text-zinc-400">{r.reservation_date} • {r.reservation_time}</p>
+                                            <p className="mt-2 text-sm text-zinc-400">{formatTurkishDateTimeFromParts(r.reservation_date, r.reservation_time)}</p>
                                         </div>
                                         <div className="text-right">
                                             <span className={`rounded-full px-3 py-1 text-sm ${

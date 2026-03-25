@@ -31,7 +31,7 @@ class ExternalEventController extends Controller
         if (! Schema::hasTable('external_events')) {
             return Inertia::render('Admin/ExternalEvents/Index', [
                 'items' => ['data' => []],
-                'filters' => ['source' => '', 'status' => 'pending', 'search' => ''],
+                'filters' => ['source' => '', 'status' => 'pending', 'search' => '', 'artist' => ''],
                 'sources' => array_keys(config('crawler.sources', [])),
                 'crawlLookups' => $crawlLookups,
             ]);
@@ -41,6 +41,7 @@ class ExternalEventController extends Controller
             'source' => ['nullable', 'string', 'max:64'],
             'status' => ['nullable', 'in:all,pending,synced,rejected'],
             'search' => ['nullable', 'string', 'max:120'],
+            'artist' => ['nullable', 'string', 'max:120'],
         ]);
 
         $query = ExternalEvent::query()->latest();
@@ -71,12 +72,22 @@ class ExternalEventController extends Controller
             });
         }
 
+        if (! empty($filters['artist'])) {
+            $artist = addcslashes((string) $filters['artist'], '%_\\');
+            $like = "%{$artist}%";
+            $query->where(function ($q) use ($like): void {
+                $q->where('meta->raw->performer', 'like', $like)
+                    ->orWhere('meta->raw->performer->name', 'like', $like);
+            });
+        }
+
         return Inertia::render('Admin/ExternalEvents/Index', [
             'items' => $query->paginate(25)->withQueryString(),
             'filters' => [
                 'source' => $filters['source'] ?? '',
                 'status' => $status,
                 'search' => $filters['search'] ?? '',
+                'artist' => $filters['artist'] ?? '',
             ],
             'sources' => array_keys(config('crawler.sources', [])),
             'crawlLookups' => $crawlLookups,

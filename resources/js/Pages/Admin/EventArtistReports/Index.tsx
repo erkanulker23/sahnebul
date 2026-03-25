@@ -3,6 +3,8 @@ import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { cn } from '@/lib/cn';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, router } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 
@@ -72,13 +74,17 @@ export default function AdminEventArtistReportsIndex({ reports, filters }: Reado
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
         const status = (fd.get('status') as string) || undefined;
-        router.get(route('admin.event-artist-reports.index'), { ...(status ? { status } : {}) }, { preserveState: true });
+        router.get(
+            safeRoute('admin.event-artist-reports.index'),
+            { ...(status ? { status } : {}) },
+            { preserveState: true },
+        );
     };
 
     const patchReport = (id: number, status: 'resolved' | 'dismissed') => {
         const admin_note = (notes[id] ?? '').trim() || null;
         router.patch(
-            route('admin.event-artist-reports.update', id),
+            safeRoute('admin.event-artist-reports.update', { report: id }),
             { status, admin_note },
             { preserveScroll: true },
         );
@@ -130,7 +136,7 @@ export default function AdminEventArtistReportsIndex({ reports, filters }: Reado
                                             {statusTr(r.status)}
                                         </span>
                                         <span className="text-xs text-zinc-500">
-                                            {new Date(r.created_at).toLocaleString('tr-TR')}
+                                            {formatTurkishDateTime(r.created_at)}
                                         </span>
                                     </div>
                                     <p className="font-medium text-zinc-900 dark:text-white">
@@ -162,7 +168,7 @@ export default function AdminEventArtistReportsIndex({ reports, filters }: Reado
                                         </p>
                                     ) : null}
                                     {r.reviewed_at ? (
-                                        <p className="text-xs text-zinc-400">İnceleme: {new Date(r.reviewed_at).toLocaleString('tr-TR')}</p>
+                                        <p className="text-xs text-zinc-400">İnceleme: {formatTurkishDateTime(r.reviewed_at)}</p>
                                     ) : null}
                                 </div>
                                 {r.status === 'pending' ? (

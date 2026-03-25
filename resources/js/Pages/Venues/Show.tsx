@@ -4,6 +4,7 @@ import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import VenuePhotoGallery from '@/Components/VenuePhotoGallery';
 import SeoHead, { metaDescriptionFromContent, type SharedSeo } from '@/Components/SeoHead';
 import { toAbsoluteUrl, truncateMetaDescription } from '@/utils/seo';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { safeRoute } from '@/lib/safeRoute';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import AppLayout from '@/Layouts/AppLayout';
@@ -483,7 +484,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                                         <p className="font-medium text-zinc-900 dark:text-white">{r.user.name}</p>
                                                         <div className="mt-1 flex items-center gap-2 text-amber-600 dark:text-amber-400">
                                                             {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
-                                                            <span className="text-sm text-zinc-500">{new Date(r.created_at).toLocaleDateString('tr-TR')}</span>
+                                                            <span className="text-sm text-zinc-500">{formatTurkishDateTime(r.created_at)}</span>
                                                         </div>
                                                         {r.comment && <p className="mt-2 text-zinc-700 dark:text-zinc-400">{r.comment}</p>}
                                                     </div>

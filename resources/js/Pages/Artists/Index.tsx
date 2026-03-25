@@ -1,6 +1,7 @@
 import ArtistsWeekSlider from '@/Components/ArtistsWeekSlider';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
+import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import { stripHtmlToText } from '@/utils/seo';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import AppLayout from '@/Layouts/AppLayout';
@@ -15,6 +16,7 @@ interface Artist {
     avatar: string | null;
     genre: string | null;
     weekly_events_count?: number;
+    monthly_events_count?: number;
     /** Bağlı kullanıcının e-postası doğrulanmış, profil sahiplenilmiş. */
     is_verified_profile?: boolean;
 }
@@ -40,6 +42,7 @@ interface Props {
         genre: string | null;
         is_verified_profile?: boolean;
         week_first_show: string | null;
+        week_events_count?: number;
     }>;
     weekRange?: { start: string; end: string };
 }
@@ -287,13 +290,10 @@ export default function ArtistsIndex({
                                                 {artist.genre ?? 'Sanatçı'}
                                             </span>
                                         </div>
-                                        {(artist.weekly_events_count ?? 0) > 0 && (
-                                            <div className="absolute left-2 top-2 sm:left-3 sm:top-3">
-                                                <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold leading-tight text-white shadow sm:px-2.5 sm:py-1 sm:text-[11px]">
-                                                    +{(artist.weekly_events_count ?? 0)} bu hafta
-                                                </span>
-                                            </div>
-                                        )}
+                                        <ThisWeekEventsBadge
+                                            weekCount={artist.weekly_events_count ?? 0}
+                                            monthCount={artist.monthly_events_count ?? 0}
+                                        />
                                     </div>
                                     <div className="p-2.5 sm:p-5">
                                         <div className="flex flex-wrap items-center gap-1 sm:gap-2">

@@ -1,6 +1,7 @@
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { eventStatusTr, reservationStatusTr, venueArtistStatusTr } from '@/lib/statusLabels';
 import { Link } from '@inertiajs/react';
 
@@ -113,15 +114,12 @@ export default function ArtistDashboard({
                             <p className="mt-3 text-sm text-zinc-300">
                                 <span className="text-zinc-500">Bitiş tarihi: </span>
                                 <time dateTime={activeSubscription.ends_at} className="font-medium text-amber-200">
-                                    {new Date(activeSubscription.ends_at).toLocaleString('tr-TR', {
-                                        dateStyle: 'long',
-                                        timeStyle: 'short',
-                                    })}
+                                    {formatTurkishDateTime(activeSubscription.ends_at)}
                                 </time>
                             </p>
                             <p className="mt-1 text-xs text-zinc-500">
                                 Başlangıç:{' '}
-                                {new Date(activeSubscription.starts_at).toLocaleDateString('tr-TR', { dateStyle: 'long' })}
+                                {formatTurkishDateTime(activeSubscription.starts_at)}
                             </p>
                         </div>
                         <Link
@@ -219,12 +217,7 @@ export default function ArtistDashboard({
                                         <p className="font-medium text-white">{ev.title}</p>
                                         <p className="mt-0.5 text-xs text-zinc-500">
                                             {ev.venue_name ?? '—'} ·{' '}
-                                            {ev.start_date
-                                                ? new Date(ev.start_date).toLocaleString('tr-TR', {
-                                                      dateStyle: 'medium',
-                                                      timeStyle: 'short',
-                                                  })
-                                                : 'Tarih yok'}
+                                            {ev.start_date ? formatTurkishDateTime(ev.start_date) : 'Tarih yok'}
                                             {' · '}
                                             <span className="text-zinc-400">{eventStatusTr(ev.status)}</span>
                                         </p>

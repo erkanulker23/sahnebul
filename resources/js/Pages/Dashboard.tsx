@@ -1,5 +1,6 @@
 import SeoHead from '@/Components/SeoHead';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { formatTurkishDateTime, formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import { reservationStatusTr } from '@/lib/statusLabels';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Link } from '@inertiajs/react';
@@ -151,7 +152,7 @@ export default function Dashboard({
                                                 )}
                                             </div>
                                             <div className="shrink-0 text-right">
-                                                <p className="text-xs text-zinc-500">{new Date(e.start_date).toLocaleDateString('tr-TR')}</p>
+                                                <p className="text-xs text-zinc-500">{formatTurkishDateTime(e.start_date)}</p>
                                                 {e.ticket_price != null && <p className="text-sm text-amber-400">{e.ticket_price} ₺</p>}
                                             </div>
                                         </Link>
@@ -175,7 +176,7 @@ export default function Dashboard({
                                         <div>
                                             <p className="font-medium text-white">{r.venue.name}</p>
                                             <p className="text-sm text-zinc-500">
-                                                {new Date(r.reservation_date).toLocaleDateString('tr-TR')} {r.reservation_time}
+                                                {formatTurkishDateTimeFromParts(r.reservation_date, r.reservation_time)}
                                                 {r.event && ` • ${r.event.title}`}
                                             </p>
                                         </div>

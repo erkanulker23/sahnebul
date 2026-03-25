@@ -2,6 +2,7 @@ import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } 
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { eventStatusTr } from '@/lib/statusLabels';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -97,7 +98,7 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                 header: 'Tarih',
                 mobileLabel: 'Tarih',
                 cell: (e) => (
-                    <span className="text-zinc-600 dark:text-zinc-400">{new Date(e.start_date).toLocaleString('tr-TR')}</span>
+                    <span className="text-zinc-600 dark:text-zinc-400">{formatTurkishDateTime(e.start_date)}</span>
                 ),
             },
             {

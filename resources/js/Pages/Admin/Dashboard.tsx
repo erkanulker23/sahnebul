@@ -1,3 +1,4 @@
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link } from '@inertiajs/react';
@@ -102,7 +103,7 @@ export default function AdminDashboard({ stats, recentVenues, recentReservations
                                     <Link key={a.id} href={route('admin.artists.index', { status: 'pending' })} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50">
                                         <div>
                                             <p className="font-medium text-white">{a.name}</p>
-                                            <p className="text-sm text-zinc-500">{a.genre ?? 'Sanatçı'} • {new Date(a.created_at).toLocaleDateString('tr-TR')}</p>
+                                            <p className="text-sm text-zinc-500">{a.genre ?? 'Sanatçı'} • {formatTurkishDateTime(a.created_at)}</p>
                                         </div>
                                         <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">pending</span>
                                     </Link>
@@ -171,8 +172,8 @@ export default function AdminDashboard({ stats, recentVenues, recentReservations
                                             className="w-full min-w-[8px] rounded-t bg-amber-500/60 transition hover:bg-amber-500"
                                             style={{ height: `${Math.max((d.count / Math.max(...usersChart.map((x) => x.count), 1)) * 100, 8)}%` }}
                                         />
-                                        <span className="mt-1 text-[10px] text-zinc-500">
-                                            {new Date(d.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}
+                                        <span className="mt-1 text-center text-[9px] leading-tight text-zinc-500">
+                                            {formatTurkishDateTime(d.date, { withTime: false })}
                                         </span>
                                     </div>
                                 ))}
@@ -192,7 +193,7 @@ export default function AdminDashboard({ stats, recentVenues, recentReservations
                                             <p className="text-sm text-zinc-500">{e.venue.name}</p>
                                         </div>
                                         <span className="text-sm text-amber-400">
-                                            {new Date(e.start_date).toLocaleDateString('tr-TR')}
+                                            {formatTurkishDateTime(e.start_date)}
                                         </span>
                                     </Link>
                                 ))}
