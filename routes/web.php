@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdPlacementController as AdminAdPlacementControll
 use App\Http\Controllers\Admin\ArtistClaimController as AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistController as AdminArtistController;
 use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
+use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -157,6 +158,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::delete('/kullanicilar/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
     Route::get('/mekanlar', [AdminVenueController::class, 'index'])->name('venues.index');
+    Route::get('/mekanlar/excel', [AdminCatalogExcelController::class, 'exportVenues'])->name('venues.excel-export');
+    Route::post('/mekanlar/excel-ice-aktar', [AdminCatalogExcelController::class, 'importVenues'])->name('venues.excel-import');
     Route::get('/mekanlar/ekle', [AdminVenueController::class, 'create'])->name('venues.create');
     Route::permanentRedirect('sahneler', 'mekanlar');
     Route::post('/mekanlar', [AdminVenueController::class, 'store'])->name('venues.store');
@@ -171,6 +174,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::delete('/mekanlar/{venue}', [AdminVenueController::class, 'destroy'])->name('venues.destroy');
 
     Route::get('/etkinlikler', [AdminEventController::class, 'index'])->name('events.index');
+    Route::get('/etkinlikler/excel', [AdminCatalogExcelController::class, 'exportEvents'])->name('events.excel-export');
+    Route::post('/etkinlikler/excel-ice-aktar', [AdminCatalogExcelController::class, 'importEvents'])->name('events.excel-import');
     Route::get('/etkinlikler/ekle', [AdminEventController::class, 'create'])->name('events.create');
     Route::post('/etkinlikler', [AdminEventController::class, 'store'])->name('events.store');
     Route::post('/etkinlikler/toplu-sil', [AdminEventController::class, 'bulkDestroy'])->name('events.bulk-destroy');
@@ -184,6 +189,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');
 
     Route::get('/sanatcilar', [AdminArtistController::class, 'index'])->name('artists.index');
+    Route::get('/sanatcilar/excel', [AdminCatalogExcelController::class, 'exportArtists'])->name('artists.excel-export');
+    Route::post('/sanatcilar/excel-ice-aktar', [AdminCatalogExcelController::class, 'importArtists'])->name('artists.excel-import');
     Route::get('/sanatcilar/ekle', [AdminArtistController::class, 'create'])->name('artists.create');
     Route::post('/sanatcilar', [AdminArtistController::class, 'store'])->name('artists.store');
     Route::post('/sanatcilar/toplu-sil', [AdminArtistController::class, 'bulkDestroy'])->name('artists.bulk-destroy');
@@ -204,6 +211,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::delete('/yorumlar/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
 
     Route::get('/kategoriler', [AdminCategoryController::class, 'index'])->name('categories.index');
+    Route::get('/kategoriler/excel', [AdminCatalogExcelController::class, 'exportCategories'])->name('categories.excel-export');
+    Route::post('/kategoriler/excel-ice-aktar', [AdminCatalogExcelController::class, 'importCategories'])->name('categories.excel-import');
     Route::post('/kategoriler', [AdminCategoryController::class, 'store'])->name('categories.store');
     Route::put('/kategoriler/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/kategoriler/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
@@ -211,6 +220,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::permanentRedirect('sanatci-turleri', 'muzik-turleri');
 
     Route::get('/muzik-turleri', [AdminMusicGenreController::class, 'index'])->name('music-genres.index');
+    Route::get('/muzik-turleri/excel', [AdminCatalogExcelController::class, 'exportMusicGenres'])->name('music-genres.excel-export');
+    Route::post('/muzik-turleri/excel-ice-aktar', [AdminCatalogExcelController::class, 'importMusicGenres'])->name('music-genres.excel-import');
     Route::post('/muzik-turleri', [AdminMusicGenreController::class, 'store'])->name('music-genres.store');
     Route::put('/muzik-turleri/{musicGenre}', [AdminMusicGenreController::class, 'update'])->name('music-genres.update');
     Route::delete('/muzik-turleri/{musicGenre}', [AdminMusicGenreController::class, 'destroy'])->name('music-genres.destroy');

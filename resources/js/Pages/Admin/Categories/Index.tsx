@@ -1,4 +1,4 @@
-import { AdminPageHeader } from '@/Components/Admin';
+import { AdminExcelActions, AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { router } from '@inertiajs/react';
@@ -88,7 +88,13 @@ export default function AdminCategoriesIndex({ categories }: Readonly<Props>) {
             <SeoHead title="Kategoriler - Admin | Sahnebul" description="Etkinlik kategorilerini yönetin." noindex />
 
             <div className="space-y-6">
-                <AdminPageHeader title="Kategori Yönetimi" description="Mekan kategorilerini sıralayın ve düzenleyin." />
+                <AdminPageHeader
+                    title="Kategori Yönetimi"
+                    description="Mekan kategorilerini sıralayın ve düzenleyin."
+                    actions={
+                        <AdminExcelActions exportRoute="admin.categories.excel-export" importRoute="admin.categories.excel-import" />
+                    }
+                />
 
                 <form onSubmit={handleStore} className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:flex-wrap sm:items-end">
                     <div className="min-w-0 flex-1 sm:max-w-[min(100%,20rem)]">

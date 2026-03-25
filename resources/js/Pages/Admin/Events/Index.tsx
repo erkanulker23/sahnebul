@@ -1,4 +1,4 @@
-import { AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -146,12 +146,15 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                     title="Etkinlik Yönetimi"
                     description="Etkinlikleri oluşturun, yayınlayın ve düzenleyin."
                     actions={
-                        <Link
-                            href={route('admin.events.create')}
-                            className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
-                        >
-                            + Yeni etkinlik
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <AdminExcelActions exportRoute="admin.events.excel-export" importRoute="admin.events.excel-import" />
+                            <Link
+                                href={route('admin.events.create')}
+                                className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
+                            >
+                                + Yeni etkinlik
+                            </Link>
+                        </div>
                     }
                 />
 

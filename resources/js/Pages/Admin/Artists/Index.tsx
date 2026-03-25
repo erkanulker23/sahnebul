@@ -1,4 +1,4 @@
-import { AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { venueArtistStatusTr } from '@/lib/statusLabels';
@@ -176,12 +176,15 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                     title="Sanatçı Yönetimi"
                     description="Profilleri onaylayın, düzenleyin veya kaldırın."
                     actions={
-                        <Link
-                            href={route('admin.artists.create')}
-                            className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
-                        >
-                            + Yeni sanatçı
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <AdminExcelActions exportRoute="admin.artists.excel-export" importRoute="admin.artists.excel-import" />
+                            <Link
+                                href={route('admin.artists.create')}
+                                className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
+                            >
+                                + Yeni sanatçı
+                            </Link>
+                        </div>
                     }
                 />
 

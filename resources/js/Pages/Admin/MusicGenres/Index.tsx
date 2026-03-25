@@ -1,4 +1,4 @@
-import { AdminPageHeader } from '@/Components/Admin';
+import { AdminExcelActions, AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { router } from '@inertiajs/react';
@@ -105,6 +105,12 @@ export default function AdminMusicGenresIndex({ musicGenres }: Readonly<Props>) 
                 <AdminPageHeader
                     title="Müzik türü yönetimi"
                     description="Buradaki her satır, sanatçı ekle/düzenle ve sanatçı panelindeki müzik türü listesinde görünür. Sıra ve adları buradan yönetin."
+                    actions={
+                        <AdminExcelActions
+                            exportRoute="admin.music-genres.excel-export"
+                            importRoute="admin.music-genres.excel-import"
+                        />
+                    }
                 />
 
                 <form onSubmit={handleStore} className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:flex-row sm:flex-wrap sm:items-end">
