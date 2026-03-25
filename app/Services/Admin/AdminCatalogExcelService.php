@@ -4,8 +4,12 @@ namespace App\Services\Admin;
 
 use App\Models\Artist;
 use App\Models\Category;
+use App\Models\City;
+use App\Models\District;
 use App\Models\Event;
 use App\Models\MusicGenre;
+use App\Models\Neighborhood;
+use App\Models\User;
 use App\Models\Venue;
 use App\Support\ArtistProfileInputs;
 use Carbon\Carbon;
@@ -96,6 +100,32 @@ final class AdminCatalogExcelService
         $updated = 0;
         $errors = [];
 
+        $venueRules = [
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'district_id' => ['nullable', 'integer', 'exists:districts,id'],
+            'neighborhood_id' => ['nullable', 'integer', 'exists:neighborhoods,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'address' => ['required', 'string', 'max:1000'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'capacity' => ['nullable', 'integer', 'min:1'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'whatsapp' => ['nullable', 'string', 'max:40'],
+            'website' => ['nullable', 'url', 'max:255'],
+            'social_links' => ['nullable', 'array'],
+            'social_links.*' => ['nullable', 'string', 'max:500'],
+            'cover_image' => ['nullable', 'string', 'max:4096'],
+            'status' => ['required', 'in:pending,approved,rejected'],
+            'is_featured' => ['boolean'],
+            'rating_avg' => ['integer', 'min:0'],
+            'review_count' => ['integer', 'min:0'],
+            'view_count' => ['integer', 'min:0'],
+        ];
+
         foreach ($sheet as $idx => $row) {
             $line = $idx + 2;
             try {
@@ -130,35 +160,11 @@ final class AdminCatalogExcelService
                     'view_count' => self::intOrNull($row['view_count'] ?? null) ?? 0,
                 ];
 
-                Validator::make($payload, [
-                    'user_id' => ['nullable', 'integer', 'exists:users,id'],
-                    'category_id' => ['required', 'integer', 'exists:categories,id'],
-                    'city_id' => ['required', 'integer', 'exists:cities,id'],
-                    'district_id' => ['nullable', 'integer', 'exists:districts,id'],
-                    'neighborhood_id' => ['nullable', 'integer', 'exists:neighborhoods,id'],
-                    'name' => ['required', 'string', 'max:255'],
-                    'slug' => ['nullable', 'string', 'max:255'],
-                    'description' => ['nullable', 'string'],
-                    'address' => ['required', 'string', 'max:1000'],
-                    'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-                    'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-                    'capacity' => ['nullable', 'integer', 'min:1'],
-                    'phone' => ['nullable', 'string', 'max:40'],
-                    'whatsapp' => ['nullable', 'string', 'max:40'],
-                    'website' => ['nullable', 'url', 'max:255'],
-                    'social_links' => ['nullable', 'array'],
-                    'social_links.*' => ['nullable', 'string', 'max:500'],
-                    'cover_image' => ['nullable', 'string', 'max:4096'],
-                    'status' => ['required', 'in:pending,approved,rejected'],
-                    'is_featured' => ['boolean'],
-                    'rating_avg' => ['integer', 'min:0'],
-                    'review_count' => ['integer', 'min:0'],
-                    'view_count' => ['integer', 'min:0'],
-                ])->validate();
+                $venue = self::resolveVenueForExcelImport($id, $row);
 
-                if ($id !== null && Venue::query()->whereKey($id)->exists()) {
-                    /** @var Venue $venue */
-                    $venue = Venue::query()->findOrFail($id);
+                if ($venue !== null) {
+                    $payload = self::applyVenueFkFallbacksFromExisting($venue, $row, $payload);
+                    Validator::make($payload, $venueRules)->validate();
                     $slug = Str::slug((string) ($payload['slug'] ?: $venue->slug));
                     Validator::make(['slug' => $slug], [
                         'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('venues', 'slug')->ignore($venue->id)],
@@ -167,10 +173,33 @@ final class AdminCatalogExcelService
                     $venue->update($payload);
                     $updated++;
                 } else {
-                    $slugBase = Str::slug($payload['name']);
-                    $slug = Str::slug((string) ($payload['slug'] ?: $slugBase.'-'.Str::lower(Str::random(4))));
-                    while (Venue::query()->where('slug', $slug)->exists()) {
+                    $payload = self::applyVenueOptionalFksForNewRow($row, $payload);
+                    Validator::make($payload, $venueRules)->validate();
+
+                    $slugCell = trim((string) ($row['slug'] ?? ''));
+                    if ($slugCell !== '') {
+                        $candidate = Str::slug($slugCell);
+                        $collision = Venue::query()->where('slug', $candidate)->first();
+                        if ($collision !== null) {
+                            $payload = self::applyVenueFkFallbacksFromExisting($collision, $row, $payload);
+                            Validator::make($payload, $venueRules)->validate();
+                            $slug = Str::slug((string) ($payload['slug'] ?: $collision->slug));
+                            Validator::make(['slug' => $slug], [
+                                'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('venues', 'slug')->ignore($collision->id)],
+                            ])->validate();
+                            $payload['slug'] = $slug;
+                            $collision->update($payload);
+                            $updated++;
+
+                            continue;
+                        }
+                        $slug = $candidate;
+                    } else {
+                        $slugBase = Str::slug($payload['name']);
                         $slug = Str::slug($slugBase.'-'.Str::lower(Str::random(4)));
+                        while (Venue::query()->where('slug', $slug)->exists()) {
+                            $slug = Str::slug($slugBase.'-'.Str::lower(Str::random(4)));
+                        }
                     }
                     Validator::make(['slug' => $slug], [
                         'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('venues', 'slug')],
@@ -187,6 +216,81 @@ final class AdminCatalogExcelService
         }
 
         return self::importRedirectResponse($created, $updated, $errors, 'Mekan');
+    }
+
+    private static function resolveVenueForExcelImport(?int $id, array $row): ?Venue
+    {
+        if ($id !== null && Venue::query()->whereKey($id)->exists()) {
+            return Venue::query()->find($id);
+        }
+
+        $rawSlug = trim((string) ($row['slug'] ?? ''));
+        if ($rawSlug === '') {
+            return null;
+        }
+        $norm = Str::slug($rawSlug);
+
+        return $norm === '' ? null : Venue::query()->where('slug', $norm)->first();
+    }
+
+    /**
+     * Güncellemede: Excel’de boş veya bu veritabanında olmayan FK’ler için mevcut kayıttaki değer korunur.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function applyVenueFkFallbacksFromExisting(Venue $venue, array $row, array $payload): array
+    {
+        $p = $payload;
+
+        $cell = trim((string) ($row['user_id'] ?? ''));
+        if ($cell === '' || ! User::query()->whereKey((int) $cell)->exists()) {
+            $p['user_id'] = $venue->user_id;
+        }
+
+        $cell = trim((string) ($row['category_id'] ?? ''));
+        if ($cell === '' || ! Category::query()->whereKey((int) $cell)->exists()) {
+            $p['category_id'] = $venue->category_id;
+        }
+
+        $cell = trim((string) ($row['city_id'] ?? ''));
+        if ($cell === '' || ! City::query()->whereKey((int) $cell)->exists()) {
+            $p['city_id'] = $venue->city_id;
+        }
+
+        $cell = trim((string) ($row['district_id'] ?? ''));
+        if ($cell === '' || ! District::query()->whereKey((int) $cell)->exists()) {
+            $p['district_id'] = $venue->district_id;
+        }
+
+        $cell = trim((string) ($row['neighborhood_id'] ?? ''));
+        if ($cell === '' || ! Neighborhood::query()->whereKey((int) $cell)->exists()) {
+            $p['neighborhood_id'] = $venue->neighborhood_id;
+        }
+
+        return $p;
+    }
+
+    /**
+     * Yeni mekanda: isteğe bağlı FK’ler yalnızca geçerliyse yazılır; değilse null.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function applyVenueOptionalFksForNewRow(array $row, array $payload): array
+    {
+        $p = $payload;
+
+        $cell = trim((string) ($row['user_id'] ?? ''));
+        $p['user_id'] = ($cell !== '' && User::query()->whereKey((int) $cell)->exists()) ? (int) $cell : null;
+
+        $cell = trim((string) ($row['district_id'] ?? ''));
+        $p['district_id'] = ($cell !== '' && District::query()->whereKey((int) $cell)->exists()) ? (int) $cell : null;
+
+        $cell = trim((string) ($row['neighborhood_id'] ?? ''));
+        $p['neighborhood_id'] = ($cell !== '' && Neighborhood::query()->whereKey((int) $cell)->exists()) ? (int) $cell : null;
+
+        return $p;
     }
 
     public static function exportEvents(): StreamedResponse
