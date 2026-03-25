@@ -93,7 +93,7 @@ class SettingsController extends Controller
             'support_email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:80',
             'address' => 'nullable|string|max:500',
-            'seo_default_description' => 'nullable|string|max:500',
+            'seo_default_description' => 'nullable|string|max:5000',
             'seo_keywords' => 'nullable|string|max:500',
             'seo_twitter_handle' => 'nullable|string|max:64',
             'seo_google_site_verification' => 'nullable|string|max:128',

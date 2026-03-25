@@ -4,6 +4,8 @@ import SeoHead from '@/Components/SeoHead';
 import { Link, router, usePage } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
+type PageErrors = Record<string, string>;
+
 interface SitePublicProps {
     site_name: string;
     contact_email: string;
@@ -85,7 +87,12 @@ export default function AdminSettingsIndex({
     canManageSiteIdentity = false,
     mapsApi,
 }: Readonly<Props>) {
-    const { auth } = usePage().props as { auth?: { is_super_admin?: boolean } };
+    const page = usePage();
+    const { auth, errors: pageErrors } = page.props as {
+        auth?: { is_super_admin?: boolean };
+        errors?: PageErrors;
+    };
+    const errors = pageErrors ?? {};
     const superAdmin = canManageSiteIdentity || auth?.is_super_admin === true;
 
     const sp = sitePublic;
@@ -110,12 +117,14 @@ export default function AdminSettingsIndex({
     const [ogFile, setOgFile] = useState<File | null>(null);
     const [mapsApiKeyInput, setMapsApiKeyInput] = useState('');
     const [removeMapsKey, setRemoveMapsKey] = useState(false);
+    const [siteFormBusy, setSiteFormBusy] = useState(false);
 
     useEffect(() => {
         setFooter(settings?.footer ?? '');
         setLegalBySlug(buildLegalState(settings?.legal_pages));
     }, [settings?.footer, settings?.legal_pages]);
 
+    /** Sunucudaki sitePublic yalnızca gerçekten değişince senkronize et (nesne referansına bağlanma — her Inertia yanıtında formu sıfırlıyordu). */
     useEffect(() => {
         if (!sp) return;
         setSiteName(sp.site_name ?? '');
@@ -133,7 +142,20 @@ export default function AdminSettingsIndex({
         setLogoFile(null);
         setFaviconFile(null);
         setOgFile(null);
-    }, [sp]);
+    }, [
+        sp?.site_name,
+        sp?.contact_email,
+        sp?.support_email,
+        sp?.phone,
+        sp?.address,
+        sp?.seo_default_description,
+        sp?.seo_keywords,
+        sp?.seo_twitter_handle,
+        sp?.seo_google_site_verification,
+        sp?.logo_url,
+        sp?.favicon_url,
+        sp?.seo_og_image_url,
+    ]);
 
     const legalPagesJson = useMemo(() => legalStateToJson(legalBySlug), [legalBySlug]);
     const currentLegal = legalBySlug[legalSlug] ?? { title: '', content: '' };
@@ -182,12 +204,35 @@ export default function AdminSettingsIndex({
         if (mapsApiKeyInput.trim() !== '') fd.append('google_maps_api_key', mapsApiKeyInput.trim());
         router.post(route('admin.settings.site'), fd, {
             forceFormData: true,
+            preserveScroll: true,
+            onStart: () => setSiteFormBusy(true),
+            onFinish: () => setSiteFormBusy(false),
             onSuccess: () => {
                 setMapsApiKeyInput('');
                 setRemoveMapsKey(false);
             },
         });
     };
+
+    const siteFormErrorList = useMemo(() => {
+        const keys = [
+            'site_name',
+            'contact_email',
+            'support_email',
+            'phone',
+            'address',
+            'seo_default_description',
+            'seo_keywords',
+            'seo_twitter_handle',
+            'seo_google_site_verification',
+            'logo',
+            'favicon',
+            'seo_og_image',
+            'google_maps_api_key',
+            'remove_google_maps_api_key',
+        ];
+        return keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
+    }, [errors]);
 
     const inputClass =
         'mt-1 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60';
@@ -220,6 +265,19 @@ export default function AdminSettingsIndex({
                 </div>
 
                 <form onSubmit={submitSite} className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+                    {siteFormErrorList.length > 0 && (
+                        <div
+                            className="mb-4 rounded-lg border border-rose-500/50 bg-rose-950/40 px-4 py-3 text-sm text-rose-100"
+                            role="alert"
+                        >
+                            <p className="font-semibold text-rose-200">Kayıt yapılamadı — lütfen alanları kontrol edin:</p>
+                            <ul className="mt-2 list-inside list-disc space-y-1 text-rose-100/95">
+                                {siteFormErrorList.map((msg, i) => (
+                                    <li key={`${i}-${msg.slice(0, 40)}`}>{msg}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <h2 className="font-semibold text-white">Site kimliği, SEO ve iletişim</h2>
                     <p className="mt-2 text-sm text-zinc-400">
                         Logo, favicon, site adı, varsayılan meta açıklaması, iletişim ve destek e-postaları. Bu alanları{' '}
@@ -478,8 +536,12 @@ export default function AdminSettingsIndex({
                     </fieldset>
 
                     {superAdmin && (
-                        <button type="submit" className="mt-6 rounded bg-amber-500 px-4 py-2 font-semibold text-zinc-950">
-                            Site / SEO / iletişim kaydet
+                        <button
+                            type="submit"
+                            disabled={siteFormBusy}
+                            className="mt-6 rounded bg-amber-500 px-4 py-2 font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {siteFormBusy ? 'Kaydediliyor…' : 'Site / SEO / iletişim kaydet'}
                         </button>
                     )}
                 </form>
