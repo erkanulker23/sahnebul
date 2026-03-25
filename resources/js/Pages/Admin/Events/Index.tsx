@@ -3,7 +3,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import { eventStatusTr } from '@/lib/statusLabels';
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Event {
     id: number;
@@ -17,12 +17,65 @@ interface Event {
 
 interface Props {
     events: { data: Event[]; links: unknown[] };
+    filters?: { status?: string; venue_id?: string };
 }
 
 const filterLink =
     'rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800';
 
-export default function AdminEventsIndex({ events }: Readonly<Props>) {
+export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
+    const [selectedRows, setSelectedRows] = useState<Record<number, true>>({});
+
+    useEffect(() => {
+        setSelectedRows({});
+    }, [filters?.status, filters?.venue_id]);
+
+    const selectedCount = Object.keys(selectedRows).length;
+
+    const toggleRow = useCallback((row: Event, checked: boolean) => {
+        setSelectedRows((prev) => {
+            const next = { ...prev };
+            if (checked) {
+                next[row.id] = true;
+            } else {
+                delete next[row.id];
+            }
+            return next;
+        });
+    }, []);
+
+    const togglePage = useCallback(
+        (checked: boolean) => {
+            setSelectedRows((prev) => {
+                const next = { ...prev };
+                for (const e of events.data) {
+                    if (checked) {
+                        next[e.id] = true;
+                    } else {
+                        delete next[e.id];
+                    }
+                }
+                return next;
+            });
+        },
+        [events.data],
+    );
+
+    const bulkDeleteSelected = useCallback(() => {
+        const ids = Object.keys(selectedRows).map(Number);
+        if (ids.length === 0) {
+            return;
+        }
+        if (
+            !confirm(
+                `${ids.length} etkinliği kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+            )
+        ) {
+            return;
+        }
+        router.post(route('admin.events.bulk-destroy'), { ids });
+    }, [selectedRows]);
+
     const columns: AdminColumn<Event>[] = useMemo(
         () => [
             {
@@ -102,7 +155,7 @@ export default function AdminEventsIndex({ events }: Readonly<Props>) {
                     }
                 />
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Link href={route('admin.events.index')} className={filterLink}>
                         Tümü
                     </Link>
@@ -112,12 +165,27 @@ export default function AdminEventsIndex({ events }: Readonly<Props>) {
                     <Link href={route('admin.events.index', { status: 'published' })} className={filterLink}>
                         Yayında
                     </Link>
+                    {selectedCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={bulkDeleteSelected}
+                            className="ml-auto inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/70"
+                        >
+                            Seçilenleri sil ({selectedCount})
+                        </button>
+                    )}
                 </div>
 
                 <AdminDataTable
                     columns={columns}
                     rows={events.data}
                     getRowKey={(e) => e.id}
+                    selection={{
+                        getRowId: (e) => e.id,
+                        isRowSelected: (e) => Boolean(selectedRows[e.id]),
+                        onToggleRow: toggleRow,
+                        onTogglePage: togglePage,
+                    }}
                     actions={(event) => (
                         <>
                             {event.status === 'draft' && (

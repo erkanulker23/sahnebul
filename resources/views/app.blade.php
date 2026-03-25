@@ -5,7 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        @php
+            $inertiaDocumentMeta = isset($page) && is_array($page)
+                ? \App\Support\InertiaDocumentMeta::fromInertiaPage($page)
+                : null;
+        @endphp
+        @if ($inertiaDocumentMeta !== null)
+            @include('partials.inertia-document-meta', ['doc' => $inertiaDocumentMeta])
+        @else
+            <title inertia>{{ config('app.name', 'Sahnebul') }}</title>
+        @endif
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

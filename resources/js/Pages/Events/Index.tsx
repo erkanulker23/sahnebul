@@ -21,7 +21,7 @@ function EventCardImage({
                 <span aria-hidden className="text-3xl opacity-90 sm:text-4xl">
                     🎤
                 </span>
-                <span className="line-clamp-4 max-w-[95%] text-balance break-words text-center font-['Montserrat',system-ui,sans-serif] text-sm font-extrabold leading-tight text-white sm:text-base md:text-lg">
+                <span className="line-clamp-4 max-w-[95%] text-balance break-words text-center font-display text-sm font-bold leading-tight text-white sm:text-base md:text-lg">
                     {alt}
                 </span>
             </div>
@@ -38,8 +38,6 @@ function EventCardImage({
         />
     );
 }
-
-const JJ_RED = '#E30613';
 
 function ChevronDown({ className }: Readonly<{ className?: string }>) {
     return (
@@ -73,7 +71,7 @@ interface PaginatorLink {
 export type LocationOption = { id: number; name: string };
 
 interface Props {
-    events: { data: EventItem[]; links: PaginatorLink[] };
+    events: { data: EventItem[]; links: PaginatorLink[]; total?: number; from?: number | null; to?: number | null };
     categories: { id: number; name: string; slug: string }[];
     genres: string[];
     provinces: LocationOption[];
@@ -105,65 +103,50 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
 
     const d = new Date(event.start_date);
     const dayNum = d.getDate();
-    const monthShort = d.toLocaleDateString('tr-TR', { month: 'short' });
+    const monthLabel = d.toLocaleDateString('tr-TR', { month: 'long' });
     const weekdayShort = d.toLocaleDateString('tr-TR', { weekday: 'short' });
-    const dateSubline = `${weekdayShort.toLocaleUpperCase('tr-TR')} · ${monthShort.toLocaleUpperCase('tr-TR')}`;
     const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
     return (
         <div className="group h-full">
             <Link
                 href={route('events.show', eventShowParam(event))}
-                className="relative block aspect-[3/4] min-h-[260px] w-full overflow-hidden rounded-xl bg-neutral-200 shadow-[0_12px_40px_rgba(0,0,0,0.15)] ring-1 ring-black/10 transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.22)] dark:bg-neutral-800 dark:ring-white/10 sm:min-h-[300px] lg:min-h-[320px]"
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/5 dark:border-white/[0.08] dark:bg-zinc-900/50 dark:hover:border-amber-500/35"
             >
-                {bg ? (
-                    <EventCardImage
-                        src={bg}
-                        alt={displayName}
-                        className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-neutral-200 via-neutral-300 to-neutral-400 text-5xl dark:from-neutral-800 dark:via-neutral-800 dark:to-neutral-950 sm:text-6xl">
-                        <span aria-hidden className="select-none opacity-80">
-                            🎤
+                <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800/80">
+                    {bg ? (
+                        <EventCardImage
+                            src={bg}
+                            alt={displayName}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                        />
+                    ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-amber-100/40 text-5xl dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950">
+                            <span aria-hidden className="select-none opacity-70">
+                                🎤
+                            </span>
+                        </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
+                    <div className="absolute right-3 top-3 flex flex-col items-end rounded-xl bg-white/95 px-3 py-2 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10">
+                        <span className="font-display text-2xl font-bold tabular-nums leading-none text-zinc-900 dark:text-white">{dayNum}</span>
+                        <span className="mt-0.5 text-[10px] font-medium capitalize leading-tight text-zinc-500 dark:text-zinc-400">{monthLabel}</span>
+                        <span className="mt-1 text-[11px] font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                            {weekdayShort} · {timeStr}
                         </span>
                     </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/45 to-black/50" />
-
-                {/* Tarih — sadece sağ üst */}
-                <div className="absolute right-2 top-2 z-20 w-[4.25rem] overflow-hidden rounded-md bg-white text-center shadow-lg ring-1 ring-black/15 sm:right-2.5 sm:top-2.5 sm:w-[4.75rem] lg:w-[5rem]">
-                    <div className="px-1 pt-1.5 sm:px-1.5 sm:pt-2">
-                        <p className="font-['Montserrat',system-ui,sans-serif] text-xl font-black leading-none text-black tabular-nums sm:text-2xl">
-                            {dayNum}
-                        </p>
-                        <p className="mt-0.5 font-['Montserrat',system-ui,sans-serif] text-[7px] font-bold uppercase leading-[1.25] tracking-wide text-neutral-800 sm:text-[8px]">
-                            {dateSubline}
-                        </p>
-                    </div>
-                    <div className="mx-1.5 my-1 h-px bg-neutral-300 sm:mx-2" />
-                    <p className="pb-1.5 font-['Montserrat',system-ui,sans-serif] text-[9px] font-bold tabular-nums text-black sm:pb-2 sm:text-[10px]">
-                        {timeStr}
-                    </p>
                 </div>
-
-                {/* Başlık — görselin ortasında, büyük; alt şerit için pb ile alan */}
-                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-3 pb-28 pt-12 sm:px-5 sm:pb-32 sm:pt-14 lg:pb-36">
-                    <p className="max-w-[min(100%,20rem)] text-center text-balance break-words font-['Montserrat',system-ui,sans-serif] text-base font-extrabold leading-[1.15] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] sm:max-w-[min(100%,22rem)] sm:text-lg sm:leading-[1.12] md:text-xl lg:text-2xl lg:leading-tight">
-                        <span className="line-clamp-4 break-words">{displayName}</span>
-                    </p>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-2 p-2.5 pb-3 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:p-3 sm:pb-4 lg:p-4 lg:pb-5">
-                    <p className="min-w-0 max-w-full font-['Montserrat',system-ui,sans-serif] text-[11px] font-semibold leading-snug text-white drop-shadow-md line-clamp-2 sm:max-w-[60%] sm:text-xs md:text-sm">
-                        {event.venue.name}
-                    </p>
-                    <span
-                        className="inline-flex w-fit shrink-0 items-center gap-1 self-end px-2.5 py-1.5 font-['Montserrat',system-ui,sans-serif] text-[9px] font-bold uppercase tracking-wider text-white shadow-md transition group-hover:brightness-110 sm:self-auto sm:gap-1.5 sm:px-3 sm:py-2 sm:text-[10px] md:text-xs"
-                        style={{ backgroundColor: JJ_RED }}
-                    >
+                <div className="flex min-h-0 flex-1 flex-col p-4 pt-3.5">
+                    <h2 className="font-display text-base font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
+                        <span className="line-clamp-2">{displayName}</span>
+                    </h2>
+                    <p className="mt-2 line-clamp-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">{event.venue.name}</p>
+                    {event.venue.category?.name && (
+                        <p className="mt-1 text-xs font-medium text-amber-700/90 dark:text-amber-400/90">{event.venue.category.name}</p>
+                    )}
+                    <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400">
                         Detaylar
-                        <svg className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+                        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                         </svg>
                     </span>
@@ -180,7 +163,7 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 const FILTER_SELECT_CLASS =
-    "h-full min-h-[44px] w-full min-w-0 cursor-pointer appearance-none rounded-lg border-2 border-black bg-black py-2.5 pl-2.5 pr-9 font-['Montserrat',system-ui,sans-serif] text-[10px] font-bold uppercase leading-tight tracking-wide text-white outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-jjred disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-800 dark:bg-neutral-900 sm:min-h-[48px] sm:py-3 sm:pl-3 sm:pr-10 sm:text-[11px] md:text-xs";
+    'h-full min-h-[44px] w-full min-w-0 cursor-pointer appearance-none rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 pl-3 pr-9 text-sm font-medium text-zinc-900 outline-none ring-amber-500/0 transition hover:border-zinc-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-zinc-800/60 dark:text-zinc-100 dark:hover:border-white/15 dark:focus:border-amber-500/60 sm:min-h-[48px] sm:py-3 sm:pl-3.5 sm:pr-10';
 
 export default function EventsIndex({
     events,
@@ -397,13 +380,13 @@ export default function EventsIndex({
         tickerItems.map((item, i) => (
             <Fragment key={`${dupKey}-${item.id}-${i}`}>
                 {i > 0 && (
-                    <span className="mx-3 shrink-0 select-none text-white/75 sm:mx-4" aria-hidden>
-                        •
+                    <span className="mx-3 shrink-0 select-none text-zinc-500 sm:mx-4" aria-hidden>
+                        ·
                     </span>
                 )}
                 <Link
                     href={route('events.show', eventShowParam(item))}
-                    className="shrink-0 text-white/95 underline-offset-4 transition hover:text-white hover:underline focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    className="shrink-0 text-amber-200/95 underline-offset-4 transition hover:text-amber-50 hover:underline focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
                     prefetch
                 >
                     {item.label}
@@ -416,50 +399,59 @@ export default function EventsIndex({
             <SeoHead
                 title="Etkinlikler & Konserler & Performanslar - Sahnebul"
                 description="Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri."
-            >
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet" />
-            </SeoHead>
+            />
 
-            <div className="isolate min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-                {/* Kırmızı ticker: liste ile aynı filtreler, yavaş kayma, satırlar etkinlik detayına gider */}
-                <div className="overflow-hidden border-b border-black/10 bg-jjred py-2 text-white sm:py-2.5">
+            <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+                <div className="relative overflow-hidden border-b border-zinc-200/80 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 py-2.5 text-zinc-100 dark:border-white/10">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-zinc-900 to-transparent sm:w-24" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-zinc-900 to-transparent sm:w-24" />
                     {tickerItems.length > 0 ? (
                         <div
-                            className="flex w-max animate-marquee whitespace-nowrap font-['Montserrat',system-ui,sans-serif] text-[11px] font-semibold uppercase leading-normal tracking-wide motion-reduce:animate-none sm:text-xs md:text-sm"
+                            className="flex w-max animate-marquee whitespace-nowrap text-sm font-medium motion-reduce:animate-none"
                             aria-label="Yaklaşan etkinlikler, konserler ve performanslar"
                         >
-                            <div className="flex w-max items-center px-8 sm:px-10">{tickerRow('a')}</div>
-                            <div className="flex w-max items-center px-8 sm:px-10" aria-hidden="true">
+                            <div className="flex w-max items-center px-10 sm:px-14">{tickerRow('a')}</div>
+                            <div className="flex w-max items-center px-10 sm:px-14" aria-hidden="true">
                                 {tickerRow('b')}
                             </div>
                         </div>
                     ) : (
-                        <p className="px-4 py-1 text-center text-[11px] font-medium uppercase leading-normal tracking-wide text-white/95 sm:text-xs md:text-sm">
-                            {tickerFallback}
-                        </p>
+                        <p className="px-4 py-0.5 text-center text-sm text-zinc-300">{tickerFallback}</p>
                     )}
                 </div>
 
-                <div className="mx-auto max-w-7xl px-0 pb-8 pt-4 sm:px-4 sm:pb-12 sm:pt-8 lg:px-8 lg:pb-14 lg:pt-10">
-                    <AdSlot slotKey="events_index_top" className="pb-2 pt-1" />
-                    <form onSubmit={handleFilterSubmit} className="flex flex-col gap-6 sm:gap-8">
-                        <div className="flex flex-col gap-4 sm:gap-5">
-                            <div>
-                                <h1 className="scroll-mt-24 text-balance font-['Montserrat',system-ui,sans-serif] text-2xl font-black uppercase leading-[1.05] tracking-tight text-black dark:text-white sm:text-3xl sm:leading-[1.08] md:text-4xl lg:text-4xl xl:text-5xl">
-                                    Etkinlikler & Konserler & Performanslar
-                                </h1>
-                                <p className="mt-1.5 max-w-2xl font-['Montserrat',system-ui,sans-serif] text-xs font-medium leading-relaxed text-neutral-600 dark:text-neutral-400 sm:mt-2 sm:text-sm">
-                                    Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin.
-                                </p>
+                <div className="mx-auto max-w-7xl px-0 pb-10 pt-5 sm:px-4 sm:pb-14 sm:pt-8 lg:px-8 lg:pb-16">
+                    <AdSlot slotKey="events_index_top" className="pb-3 pt-1" />
+                    <form onSubmit={handleFilterSubmit} className="flex flex-col gap-8">
+                        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-zinc-900/40 sm:p-6 lg:p-8">
+                            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Etkinlikler</p>
+                                    <h1 className="mt-2 scroll-mt-24 text-balance font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                                        Konser ve etkinlikleri keşfedin
+                                    </h1>
+                                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
+                                        Tarih, müzik tarzı, kategori ve şehre göre filtreleyin; yaklaşan gösterileri tek yerde listeleyin.
+                                    </p>
+                                </div>
+                                <div className="w-full shrink-0 lg:max-w-md">
+                                    <label htmlFor="events-search" className="sr-only">
+                                        Etkinlik ara
+                                    </label>
+                                    <input
+                                        id="events-search"
+                                        type="search"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Etkinlik veya sanatçı ara…"
+                                        className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 shadow-inner placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-800/50 dark:text-white dark:placeholder:text-zinc-500"
+                                    />
+                                </div>
                             </div>
 
-                            <div>
-                                <p className="mb-2 font-['Montserrat',system-ui,sans-serif] text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-500 sm:text-xs">
-                                    Filtreler
-                                </p>
-                                <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+                            <div className="mt-8 border-t border-zinc-100 pt-6 dark:border-white/[0.06]">
+                                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">Filtreler</p>
+                                <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
                                 <label className="relative block min-w-0">
                                     <span className="sr-only">Zaman</span>
                                     <select
@@ -476,7 +468,7 @@ export default function EventsIndex({
                                         <option value="tomorrow">Yarın</option>
                                         <option value="week">Bu hafta</option>
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white opacity-90 sm:right-3 sm:h-4 sm:w-4" />
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
 
                                 <label className="relative block min-w-0">
@@ -497,7 +489,7 @@ export default function EventsIndex({
                                             </option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white opacity-90 sm:right-3 sm:h-4 sm:w-4" />
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
 
                                 <label className="relative block min-w-0">
@@ -518,7 +510,7 @@ export default function EventsIndex({
                                             </option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white opacity-90 sm:right-3 sm:h-4 sm:w-4" />
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
 
                                 <label className="relative block min-w-0">
@@ -541,7 +533,7 @@ export default function EventsIndex({
                                             </option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white opacity-90 sm:right-3 sm:h-4 sm:w-4" />
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
 
                                 <label className="relative block min-w-0">
@@ -563,68 +555,78 @@ export default function EventsIndex({
                                             </option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white opacity-90 sm:right-3 sm:h-4 sm:w-4" />
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Etkinlik ara…"
-                                className="min-h-[44px] min-w-0 flex-1 rounded-lg border-2 border-neutral-200 bg-neutral-50 px-3 py-2.5 font-['Montserrat',system-ui,sans-serif] text-sm font-medium leading-snug text-black placeholder:text-neutral-400 focus:border-jjred focus:outline-none focus:ring-2 focus:ring-jjred/30 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:placeholder:text-neutral-500 sm:min-h-[48px] sm:max-w-md sm:px-4"
-                            />
-                            {activeChips.map((chip) => (
-                                <button
-                                    key={chip.key}
-                                    type="button"
-                                    onClick={chip.clear}
-                                    className="inline-flex max-w-full items-center gap-1.5 self-start border-2 border-jjred bg-white px-2.5 py-1.5 font-['Montserrat',system-ui,sans-serif] text-[10px] font-bold uppercase leading-snug text-jjred transition hover:bg-jjred hover:text-white dark:bg-neutral-900 dark:hover:bg-jjred sm:gap-2 sm:px-3 sm:py-2 sm:text-xs"
-                                >
-                                    <span className="min-w-0 truncate">{chip.label}</span>
-                                    <span className="shrink-0 text-sm leading-none sm:text-base" aria-hidden>
-                                        ×
-                                    </span>
-                                </button>
-                            ))}
+                            {activeChips.length > 0 && (
+                                <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-6 dark:border-white/[0.06]">
+                                    {activeChips.map((chip) => (
+                                        <button
+                                            key={chip.key}
+                                            type="button"
+                                            onClick={chip.clear}
+                                            className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-500/35 bg-amber-500/[0.08] px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:bg-amber-500/15 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20"
+                                        >
+                                            <span className="min-w-0 truncate">{chip.label}</span>
+                                            <span className="shrink-0 text-base leading-none opacity-70" aria-hidden>
+                                                ×
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </form>
 
                     {events.data.length === 0 ? (
-                        <div className="mx-auto mt-12 max-w-md text-center sm:mt-16">
-                            <p className="font-['Montserrat',system-ui,sans-serif] text-sm font-semibold leading-relaxed text-neutral-500 dark:text-neutral-400 sm:text-base">
+                        <div className="mx-auto mt-14 max-w-md rounded-2xl border border-zinc-200/90 bg-white px-6 py-10 text-center shadow-sm dark:border-white/[0.08] dark:bg-zinc-900/40 sm:mt-16">
+                            <p className="text-4xl" aria-hidden>
+                                🎫
+                            </p>
+                            <p className="mt-4 text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
                                 {hasQueryFilters
-                                    ? 'Bu filtrelere uygun etkinlik bulunamadı. Tarz veya il seçiliyse, içe aktarılan etkinlikler listeden çıkmış olabilir.'
+                                    ? 'Bu filtrelere uygun etkinlik bulunamadı. Farklı tarih veya konum deneyebilirsiniz.'
                                     : 'Şu an listelenecek yayında etkinlik yok.'}
                             </p>
                             {hasQueryFilters ? (
                                 <Link
                                     href={route('events.index')}
-                                    className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-lg border-2 border-jjred bg-white px-5 py-2.5 font-['Montserrat',system-ui,sans-serif] text-xs font-bold uppercase tracking-wide text-jjred transition hover:bg-jjred hover:text-white dark:bg-neutral-900 dark:hover:text-white"
+                                    className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
                                 >
                                     Tüm filtreleri kaldır
                                 </Link>
                             ) : null}
                         </div>
                     ) : (
-                        <div className="mt-6 grid grid-cols-2 gap-2 sm:mt-10 sm:gap-3 md:gap-4 lg:grid-cols-4 lg:gap-6">
-                            {events.data.map((event) => (
-                                <EventTicketCard key={event.id} event={event} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="mt-10 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                                <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">Yaklaşan etkinlikler</h2>
+                                {events.total != null && events.total > 0 && (
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                        {events.from != null && events.to != null
+                                            ? `${events.from}–${events.to} / ${events.total} etkinlik`
+                                            : `Toplam ${events.total} etkinlik`}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                                {events.data.map((event) => (
+                                    <EventTicketCard key={event.id} event={event} />
+                                ))}
+                            </div>
+                        </>
                     )}
 
                     {events.links && events.links.length > 3 && (
-                        <nav className="mt-10 flex flex-wrap items-center justify-center gap-1.5 sm:mt-14 sm:gap-2" aria-label="Sayfalama">
+                        <nav className="mt-12 flex flex-wrap items-center justify-center gap-2 sm:mt-14" aria-label="Sayfalama">
                             {events.links.map((link, i) => {
                                 if (link.url === null) {
                                     return (
                                         <span
                                             key={`p-${link.label}-${i}`}
-                                            className="min-w-[2.25rem] px-2.5 py-1.5 text-center font-['Montserrat',system-ui,sans-serif] text-xs text-neutral-400 dark:text-neutral-500 sm:min-w-[2.5rem] sm:px-3 sm:py-2 sm:text-sm"
+                                            className="min-w-[2.5rem] px-3 py-2 text-center text-sm text-zinc-400 dark:text-zinc-500"
                                             dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(link.label) }}
                                         />
                                     );
@@ -634,10 +636,10 @@ export default function EventsIndex({
                                         key={link.url}
                                         href={link.url}
                                         preserveScroll
-                                        className={`min-w-[2.25rem] rounded-md px-2.5 py-1.5 text-center font-['Montserrat',system-ui,sans-serif] text-xs font-bold uppercase leading-none transition sm:min-w-[2.5rem] sm:px-3 sm:py-2 sm:text-sm ${
+                                        className={`min-w-[2.5rem] rounded-xl px-3 py-2 text-center text-sm font-semibold transition ${
                                             link.active
-                                                ? 'bg-jjred text-white'
-                                                : 'border border-black text-black hover:bg-black hover:text-white dark:border-neutral-600 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:hover:text-white'
+                                                ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                                                : 'border border-zinc-200 bg-white text-zinc-700 hover:border-amber-400/50 hover:text-amber-800 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300'
                                         }`}
                                         dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(link.label) }}
                                     />

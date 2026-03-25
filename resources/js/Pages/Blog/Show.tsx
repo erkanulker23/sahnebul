@@ -25,10 +25,20 @@ interface Props {
 
 export default function BlogShow({ post, related }: Readonly<Props>) {
     const desc = metaDescriptionFromContent(post.content, `${post.title} — Sahnebul blog.`);
+    const publishedIso =
+        post.published_at && !Number.isNaN(Date.parse(post.published_at))
+            ? new Date(post.published_at).toISOString()
+            : null;
 
     return (
         <AppLayout>
-            <SeoHead title={post.title} description={desc} image={post.cover_image ?? null} type="article" />
+            <SeoHead
+                title={post.title}
+                description={desc}
+                image={post.cover_image ?? null}
+                type="article"
+                articlePublishedTime={publishedIso}
+            />
             <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
                 <Link href={route('blog.index')} className="text-sm text-amber-500">← Blog</Link>
                 <h1 className="mt-4 text-4xl font-bold">{post.title}</h1>

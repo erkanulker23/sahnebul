@@ -37,4 +37,10 @@ return [
         ],
         'copyright' => '© '.date('Y').' Sahnebul. Tüm hakları saklıdır.',
     ],
+
+    /**
+     * OG/Twitter önizlemesinde görsel yokken kullanılır (mutlak yol, public altında).
+     * Üretimde 1200×630 PNG/JPEG önerilir; SVG bazı ağlarda sınırlı desteklenir.
+     */
+    'default_og_image' => env('SAHNE_DEFAULT_OG_IMAGE', '/images/sahnebul-og.svg'),
 ];

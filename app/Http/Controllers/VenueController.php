@@ -29,7 +29,7 @@ class VenueController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         $venues = $query->latest()->paginate(12)->withQueryString();
@@ -112,7 +112,11 @@ class VenueController extends Controller
 
         $venue->load([
             'category', 'city', 'media',
-            'events' => fn ($q) => $q->published()->upcoming()->with(['artists:id,name,slug,avatar'])->orderBy('start_date')->limit(12),
+            'events' => fn ($q) => $q->published()
+                ->where('start_date', '>=', now()->subMonths(24))
+                ->with(['artists:id,name,slug,avatar'])
+                ->orderBy('start_date')
+                ->limit(120),
             'reviews' => fn ($q) => $q->where('is_approved', true)->with(['user', 'media', 'likes', 'replies'])->latest()->limit(20),
         ]);
         $venue->reviews_count = $venue->reviews()->where('is_approved', true)->count();

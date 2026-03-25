@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
                 'siteName' => (string) config('app.name'),
                 'appUrl' => $appUrl,
                 'defaultDescription' => 'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.',
-                'defaultImage' => null,
+                'defaultImage' => config('sahnebul.default_og_image'),
                 'locale' => 'tr_TR',
             ],
             'auth' => [

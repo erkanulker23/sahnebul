@@ -8,9 +8,9 @@ use App\Models\Event;
 use App\Models\Venue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class EventController extends Controller
@@ -34,7 +34,7 @@ class EventController extends Controller
 
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
-            'filters' => $request->only(['status', 'venue_id']),
+            'filters' => array_filter($request->only(['status', 'venue_id']), fn ($v) => $v !== null && $v !== ''),
         ]);
     }
 
@@ -203,11 +203,41 @@ class EventController extends Controller
 
     public function destroy(Event $event)
     {
+        $this->performEventDelete($event);
+
+        return redirect()->route('admin.events.index')->with('success', 'Etkinlik silindi.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer', 'exists:events,id'],
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $count = (int) DB::transaction(function () use ($ids): int {
+            $n = 0;
+            foreach ($ids as $id) {
+                $event = Event::query()->find($id);
+                if ($event) {
+                    $this->performEventDelete($event);
+                    $n++;
+                }
+            }
+
+            return $n;
+        });
+
+        return redirect()->route('admin.events.index', $request->only(['status', 'venue_id']))->with('success', "{$count} etkinlik silindi.");
+    }
+
+    private function performEventDelete(Event $event): void
+    {
         if ($event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {
             Storage::disk('public')->delete($event->cover_image);
         }
         $event->delete();
-
-        return redirect()->route('admin.events.index')->with('success', 'Etkinlik silindi.');
     }
 }

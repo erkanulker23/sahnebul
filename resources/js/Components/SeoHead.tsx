@@ -18,6 +18,8 @@ type Props = {
     /** Tam mutlak URL; verilmezse mevcut sayfa (appUrl + usePage().url) */
     canonicalUrl?: string;
     noindex?: boolean;
+    /** article:published_time (ISO 8601) — blog vb. */
+    articlePublishedTime?: string | null;
     /** Ana sayfa / liste için schema.org JSON-LD */
     jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
     children?: ReactNode;
@@ -28,7 +30,7 @@ const FALLBACK_SEO: SharedSeo = {
     appUrl: typeof window !== 'undefined' ? window.location.origin : '',
     defaultDescription:
         'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.',
-    defaultImage: null,
+    defaultImage: typeof window !== 'undefined' ? `${window.location.origin}/images/sahnebul-og.svg` : null,
     locale: 'tr_TR',
 };
 
@@ -39,6 +41,7 @@ export default function SeoHead({
     type = 'website',
     canonicalUrl,
     noindex = false,
+    articlePublishedTime,
     jsonLd,
     children,
 }: Readonly<Props>) {
@@ -60,27 +63,41 @@ export default function SeoHead({
         ? 'noindex, nofollow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 
+    const published = articlePublishedTime?.trim() ?? '';
+
     return (
         <Head title={title}>
-            <meta name="description" content={desc} />
-            <meta name="robots" content={robots} />
-            <link rel="canonical" href={canonical} />
+            <meta head-key="description" name="description" content={desc} />
+            <meta head-key="robots" name="robots" content={robots} />
+            <link head-key="canonical" rel="canonical" href={canonical} />
+            <link head-key="hreflang-tr" rel="alternate" hrefLang="tr" href={canonical} />
+            <link head-key="hreflang-x-default" rel="alternate" hrefLang="x-default" href={canonical} />
 
-            <meta property="og:type" content={type} />
-            <meta property="og:site_name" content={siteName} />
-            <meta property="og:locale" content={seo.locale} />
-            <meta property="og:title" content={fullTitle} />
-            <meta property="og:description" content={desc} />
-            <meta property="og:url" content={canonical} />
-            {absImage ? <meta property="og:image" content={absImage} /> : null}
-            {absImage ? <meta property="og:image:alt" content={fullTitle} /> : null}
+            <meta head-key="og-type" property="og:type" content={type} />
+            <meta head-key="og-site" property="og:site_name" content={siteName} />
+            <meta head-key="og-locale" property="og:locale" content={seo.locale} />
+            <meta head-key="og-title" property="og:title" content={fullTitle} />
+            <meta head-key="og-desc" property="og:description" content={desc} />
+            <meta head-key="og-url" property="og:url" content={canonical} />
+            {absImage ? <meta head-key="og-image" property="og:image" content={absImage} /> : null}
+            {absImage && absImage.startsWith('https://') ? (
+                <meta head-key="og-image-secure" property="og:image:secure_url" content={absImage} />
+            ) : null}
+            {absImage ? <meta head-key="og-image-alt" property="og:image:alt" content={fullTitle} /> : null}
+            {published !== '' && type === 'article' ? (
+                <meta head-key="article-published" property="article:published_time" content={published} />
+            ) : null}
 
-            <meta name="twitter:card" content={absImage ? 'summary_large_image' : 'summary'} />
-            <meta name="twitter:title" content={fullTitle} />
-            <meta name="twitter:description" content={desc} />
-            {absImage ? <meta name="twitter:image" content={absImage} /> : null}
+            <meta head-key="tw-card" name="twitter:card" content={absImage ? 'summary_large_image' : 'summary'} />
+            <meta head-key="tw-title" name="twitter:title" content={fullTitle} />
+            <meta head-key="tw-desc" name="twitter:description" content={desc} />
+            {absImage ? <meta head-key="tw-image" name="twitter:image" content={absImage} /> : null}
 
-            {jsonLd != null ? <script type="application/ld+json">{JSON.stringify(jsonLd)}</script> : null}
+            {jsonLd != null ? (
+                <script head-key="jsonld" type="application/ld+json">
+                    {JSON.stringify(jsonLd)}
+                </script>
+            ) : null}
 
             {children}
         </Head>

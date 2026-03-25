@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Sahnebul">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#18181b"/>
+      <stop offset="100%" style="stop-color:#09090b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <text x="600" y="330" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="76" font-weight="700" fill="#f59e0b">Sahnebul</text>
+  <text x="600" y="410" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="28" fill="#a1a1aa">Konser · Mekan · Sanatç1</text>
+</svg>

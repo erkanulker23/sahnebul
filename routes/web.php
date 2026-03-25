@@ -173,6 +173,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/etkinlikler', [AdminEventController::class, 'index'])->name('events.index');
     Route::get('/etkinlikler/ekle', [AdminEventController::class, 'create'])->name('events.create');
     Route::post('/etkinlikler', [AdminEventController::class, 'store'])->name('events.store');
+    Route::post('/etkinlikler/toplu-sil', [AdminEventController::class, 'bulkDestroy'])->name('events.bulk-destroy');
     Route::get('/etkinlikler/{event}/duzenle', [AdminEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [AdminEventController::class, 'update'])->name('events.update');
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');

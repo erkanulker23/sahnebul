@@ -55,7 +55,8 @@ export function AdSlot({
         settings?: { ads?: { slots?: Record<string, AdSlotConfig> } };
     };
     const cfg = page.settings?.ads?.slots?.[slotKey];
-    if (!cfg?.enabled) {
+    /** Yalnızca açık boolean true; string/1 yanlışlıkla açılmasın, kapalı = kesinlikle gösterme */
+    if (cfg?.enabled !== true) {
         return null;
     }
 

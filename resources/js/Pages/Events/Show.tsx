@@ -182,9 +182,16 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                 <div className="relative mx-auto max-w-6xl px-2.5 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
                     <Link href={route('venues.show', event.venue.slug)} className="text-sm text-amber-300 hover:text-amber-200">← Mekana dön</Link>
                     <div className="mt-6 max-w-4xl">
-                        <p className="text-sm text-zinc-200">
-                            {event.venue.name}
-                            {event.venue.city?.name ? ` · ${event.venue.city.name}` : ''}
+                        <p className="text-sm">
+                            <Link
+                                href={route('venues.show', event.venue.slug)}
+                                className="inline-flex flex-wrap items-baseline gap-x-1.5 rounded-sm text-zinc-100 transition hover:text-amber-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400"
+                            >
+                                <span className="font-medium">{event.venue.name}</span>
+                                {event.venue.city?.name ? (
+                                    <span className="font-normal text-zinc-300">· {event.venue.city.name}</span>
+                                ) : null}
+                            </Link>
                         </p>
                         <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl">{event.title}</h1>
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
@@ -335,13 +342,27 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                             </div>
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">Mekan / Kategori</p>
-                                <p className="mt-2 font-semibold">{event.venue.name}</p>
+                                <p className="mt-2 font-semibold">
+                                    <Link
+                                        href={route('venues.show', event.venue.slug)}
+                                        className="text-zinc-900 hover:text-amber-600 hover:underline dark:text-white dark:hover:text-amber-400"
+                                    >
+                                        {event.venue.name}
+                                    </Link>
+                                </p>
                                 <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{event.venue.category?.name ?? '-'}</p>
                                 <p className="mt-1 text-sm text-zinc-500">{event.venue.address}</p>
                             </div>
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:col-span-2">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">Mekan iletişimi</p>
-                                <p className="mt-2 font-semibold text-zinc-900 dark:text-white">{event.venue.name}</p>
+                                <p className="mt-2 font-semibold text-zinc-900 dark:text-white">
+                                    <Link
+                                        href={route('venues.show', event.venue.slug)}
+                                        className="hover:text-amber-600 hover:underline dark:hover:text-amber-400"
+                                    >
+                                        {event.venue.name}
+                                    </Link>
+                                </p>
                                 <div className="mt-4 space-y-4 text-sm">
                                     {event.venue.phone && (
                                         <div>

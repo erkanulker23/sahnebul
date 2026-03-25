@@ -166,28 +166,32 @@ export default function VenuesIndex({
 
     const siteName = seo?.siteName ?? 'Sahnebul';
     const appUrl = seo?.appUrl ?? '';
-    const homeJsonLd = {
-        '@context': 'https://schema.org',
-        '@graph': [
-            {
-                '@type': 'WebSite',
-                name: siteName,
-                url: appUrl ? `${appUrl}/` : undefined,
-            },
-            {
-                '@type': 'Organization',
-                name: siteName,
-                url: appUrl || undefined,
-            },
-        ],
-    };
+    const defaultDesc =
+        (page.props as { seo?: { defaultDescription?: string } }).seo?.defaultDescription ??
+        'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.';
+    const venuesListDesc =
+        'Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da.';
+    const homeJsonLd =
+        appUrl !== ''
+            ? {
+                  '@context': 'https://schema.org',
+                  '@type': 'WebSite',
+                  name: siteName,
+                  url: `${appUrl.replace(/\/$/, '')}/`,
+                  potentialAction: {
+                      '@type': 'SearchAction',
+                      target: `${appUrl.replace(/\/$/, '')}/mekanlar?search={search_term_string}`,
+                      'query-input': 'required name=search_term_string',
+                  },
+              }
+            : null;
 
     return (
         <AppLayout>
             <SeoHead
-                title="Mekanlar - Sahnebul"
-                description="Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da."
-                jsonLd={homeJsonLd}
+                title={isVenuesPage ? 'Mekanlar - Sahnebul' : 'Sahnebul — Konser, etkinlik ve mekan keşfi'}
+                description={isVenuesPage ? venuesListDesc : defaultDesc}
+                jsonLd={isVenuesPage ? null : homeJsonLd}
             />
 
             {/* Hero Section — tam viewport genişliği */}

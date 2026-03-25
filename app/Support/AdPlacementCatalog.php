@@ -120,8 +120,14 @@ final class AdPlacementCatalog
             $html = substr($html, 0, 65535);
         }
 
+        $enabledRaw = $data['enabled'] ?? false;
+        $enabled = filter_var($enabledRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($enabled === null) {
+            $enabled = false;
+        }
+
         return [
-            'enabled' => filter_var($data['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'enabled' => $enabled,
             'type' => $type,
             'image_url' => isset($data['image_url']) ? mb_substr((string) $data['image_url'], 0, 2048) : '',
             'link_url' => isset($data['link_url']) ? mb_substr((string) $data['link_url'], 0, 2048) : '',
@@ -143,7 +149,8 @@ final class AdPlacementCatalog
         $cta = htmlspecialchars((string) ($b['cta'] ?? 'Detay'), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         return [
-            'enabled' => true,
+            /** Eski top_banner / sidebar_banner kayıtları yalnızca şablon taşır; yayında göstermek için panelde Aktif işaretlenmeli. */
+            'enabled' => false,
             'type' => 'custom_html',
             'image_url' => '',
             'link_url' => '',
