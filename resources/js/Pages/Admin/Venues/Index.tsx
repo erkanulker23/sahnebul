@@ -167,7 +167,7 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                     description="Mekanları onaylayın, düzenleyin veya kaldırın."
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
-                            <AdminExcelActions exportRoute="admin.venues.excel-export" importRoute="admin.venues.excel-import" />
+                            <AdminExcelActions exportPath="/admin/mekanlar/excel" importPath="/admin/mekanlar/excel-ice-aktar" />
                             <Link
                                 href={route('admin.venues.create')}
                                 className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"

@@ -107,8 +107,8 @@ export default function AdminMusicGenresIndex({ musicGenres }: Readonly<Props>) 
                     description="Buradaki her satır, sanatçı ekle/düzenle ve sanatçı panelindeki müzik türü listesinde görünür. Sıra ve adları buradan yönetin."
                     actions={
                         <AdminExcelActions
-                            exportRoute="admin.music-genres.excel-export"
-                            importRoute="admin.music-genres.excel-import"
+                            exportPath="/admin/muzik-turleri/excel"
+                            importPath="/admin/muzik-turleri/excel-ice-aktar"
                         />
                     }
                 />

@@ -147,7 +147,7 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                     description="Etkinlikleri oluşturun, yayınlayın ve düzenleyin."
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
-                            <AdminExcelActions exportRoute="admin.events.excel-export" importRoute="admin.events.excel-import" />
+                            <AdminExcelActions exportPath="/admin/etkinlikler/excel" importPath="/admin/etkinlikler/excel-ice-aktar" />
                             <Link
                                 href={route('admin.events.create')}
                                 className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"

@@ -92,7 +92,7 @@ export default function AdminCategoriesIndex({ categories }: Readonly<Props>) {
                     title="Kategori Yönetimi"
                     description="Mekan kategorilerini sıralayın ve düzenleyin."
                     actions={
-                        <AdminExcelActions exportRoute="admin.categories.excel-export" importRoute="admin.categories.excel-import" />
+                        <AdminExcelActions exportPath="/admin/kategoriler/excel" importPath="/admin/kategoriler/excel-ice-aktar" />
                     }
                 />
 

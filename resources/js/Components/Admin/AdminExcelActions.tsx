@@ -2,9 +2,9 @@ import { router } from '@inertiajs/react';
 import { useRef } from 'react';
 
 type Props = {
-    /** Ziggy route adı, örn. admin.venues.excel-export */
-    exportRoute: string;
-    importRoute: string;
+    /** Uygulama köküne göre path; Ziggy listesi güncel olmasa da çalışır (örn. /admin/sanatcilar/excel). */
+    exportPath: string;
+    importPath: string;
 };
 
 const exportBtnClass =
@@ -14,12 +14,12 @@ const importBtnClass =
     'inline-flex items-center justify-center rounded-lg border border-sky-600/80 bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500 hover:border-sky-500 dark:border-sky-500 dark:bg-sky-600 dark:hover:bg-sky-500';
 
 /** Admin liste sayfalarında tam Excel dışa / içe aktarma (aynı sütun başlıklarıyla gidiş-dönüş). */
-export function AdminExcelActions({ exportRoute, importRoute }: Readonly<Props>) {
+export function AdminExcelActions({ exportPath, importPath }: Readonly<Props>) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
         <>
-            <a href={route(exportRoute)} className={exportBtnClass}>
+            <a href={exportPath} className={exportBtnClass}>
                 Excel indir
             </a>
             <input
@@ -35,7 +35,7 @@ export function AdminExcelActions({ exportRoute, importRoute }: Readonly<Props>)
                     }
                     const fd = new FormData();
                     fd.append('file', f);
-                    router.post(route(importRoute), fd, { forceFormData: true });
+                    router.post(importPath, fd, { forceFormData: true });
                 }}
             />
             <button type="button" onClick={() => inputRef.current?.click()} className={importBtnClass}>
