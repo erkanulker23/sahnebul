@@ -12,9 +12,9 @@ class InactiveUserMiddlewareTest extends TestCase
 
     public function test_inactive_user_cannot_login_via_credentials(): void
     {
-        $user = User::factory()->inactive()->create();
+        $user = User::factory()->inactive()->create(['role' => 'customer']);
 
-        $this->post('/login', [
+        $this->post('/giris/kullanici', [
             'email' => $user->email,
             'password' => 'password',
         ])->assertSessionHasErrors('email');

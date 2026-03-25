@@ -150,7 +150,7 @@ class ArtistController extends Controller
             ->values();
     }
 
-    public function show(Artist $artist)
+    public function show(Request $request, Artist $artist)
     {
         if ($artist->status !== 'approved') {
             abort(404);
@@ -237,6 +237,12 @@ class ArtistController extends Controller
             'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
         ]);
 
+        $u = $request->user();
+        $isFavorited = $u !== null
+            && $u->isCustomer()
+            && $u->email_verified_at !== null
+            && $u->favoriteArtists()->whereKey($artist->id)->exists();
+
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
             'upcomingEvents' => $upcomingEvents,
@@ -247,6 +253,10 @@ class ArtistController extends Controller
             'claimStatus' => auth()->check()
                 ? ArtistClaimRequest::where('artist_id', $artist->id)->where('user_id', auth()->id())->value('status')
                 : null,
+            'artistFavorite' => [
+                'canToggle' => $u !== null && $u->isCustomer() && $u->email_verified_at !== null,
+                'isFavorited' => $isFavorited,
+            ],
         ]);
     }
 }

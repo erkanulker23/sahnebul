@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\Event;
 use App\Models\Venue;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -50,7 +51,10 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $request->merge([
+            'ticket_tiers' => Event::filterTicketTierRowsFromRequestInput($request->input('ticket_tiers')),
             'artist_ids' => $request->input('artist_ids') ?? [],
+            'start_date' => $request->input('start_date') ?: null,
+            'end_date' => $request->input('end_date') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -59,13 +63,32 @@ class EventController extends Controller
                 'integer',
                 Rule::exists('venues', 'id')->where(fn ($q) => $q->where('user_id', $request->user()->id)->where('status', 'approved')),
             ],
-            'artist_ids' => 'required|array|min:1',
+            'artist_ids' => 'nullable|array',
             'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $start = $request->input('start_date');
+                    if (! $start) {
+                        return;
+                    }
+                    try {
+                        if (Carbon::parse($value)->lt(Carbon::parse($start))) {
+                            $fail('Bitiş tarihi başlangıçtan önce olamaz.');
+                        }
+                    } catch (\Throwable) {
+                        $fail('Geçerli bir bitiş tarihi girin.');
+                    }
+                },
+            ],
             'ticket_price' => 'nullable|numeric|min:0',
             'capacity' => 'nullable|integer|min:1',
             'is_full' => 'sometimes|boolean',
@@ -85,7 +108,7 @@ class EventController extends Controller
         unset($validated['ticket_tiers']);
 
         $validated['is_full'] = $request->boolean('is_full');
-        $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(4);
+        $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(4);
         $validated['status'] = 'draft';
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''
             ? trim((string) $validated['ticket_purchase_note'])
@@ -135,7 +158,10 @@ class EventController extends Controller
         }
 
         $request->merge([
+            'ticket_tiers' => Event::filterTicketTierRowsFromRequestInput($request->input('ticket_tiers')),
             'artist_ids' => $request->input('artist_ids') ?? [],
+            'start_date' => $request->input('start_date') ?: null,
+            'end_date' => $request->input('end_date') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -150,6 +176,7 @@ class EventController extends Controller
                         ->first();
                     if (! $venue) {
                         $fail('Geçersiz mekan seçimi.');
+
                         return;
                     }
                     if ($venue->status !== 'approved' && $id !== (int) $event->venue_id) {
@@ -157,13 +184,32 @@ class EventController extends Controller
                     }
                 },
             ],
-            'artist_ids' => 'required|array|min:1',
+            'artist_ids' => 'nullable|array',
             'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $start = $request->input('start_date');
+                    if (! $start) {
+                        return;
+                    }
+                    try {
+                        if (Carbon::parse($value)->lt(Carbon::parse($start))) {
+                            $fail('Bitiş tarihi başlangıçtan önce olamaz.');
+                        }
+                    } catch (\Throwable) {
+                        $fail('Geçerli bir bitiş tarihi girin.');
+                    }
+                },
+            ],
             'ticket_price' => 'nullable|numeric|min:0',
             'capacity' => 'nullable|integer|min:1',
             'is_full' => 'sometimes|boolean',

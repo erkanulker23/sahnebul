@@ -8,30 +8,64 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 
-export default function Login({
+const portalMeta: Record<
+    string,
+    { title: string; description: string; headline: string; sub: string }
+> = {
+    kullanici: {
+        title: 'Kullanıcı girişi - Sahnebul',
+        description: 'Favoriler, etkinlik hatırlatmaları ve rezervasyonlar.',
+        headline: 'Kullanıcı girişi',
+        sub: 'Standart hesabınızla giriş yapın',
+    },
+    sanatci: {
+        title: 'Sanatçı paneli girişi - Sahnebul',
+        description: 'Sanatçı paneli: profil, etkinlikler ve mekanlar.',
+        headline: 'Sanatçı paneli',
+        sub: 'Sanatçı hesabınızla giriş yapın',
+    },
+    mekan: {
+        title: 'Mekan paneli girişi - Sahnebul',
+        description: 'Mekan üyeliği veya size bağlı mekan kaydı ile panel.',
+        headline: 'Mekan paneli',
+        sub: 'Mekan hesabınızla giriş yapın',
+    },
+    yonetim: {
+        title: 'Yönetim girişi - Sahnebul',
+        description: 'Yalnızca yönetici hesapları.',
+        headline: 'Yönetim paneli',
+        sub: 'Yönetici hesabınızla giriş yapın',
+    },
+};
+
+export default function LoginPortal({
+    portal,
     status,
     canResetPassword,
     claimVenueSlug = null,
     claimArtistSlug = null,
 }: Readonly<{
+    portal: string;
     status?: string;
     canResetPassword: boolean;
     claimVenueSlug?: string | null;
     claimArtistSlug?: string | null;
 }>) {
+    const meta = portalMeta[portal] ?? portalMeta.kullanici;
+
     const registerHref = useMemo(() => {
+        if (portal !== 'kullanici') {
+            return route('register');
+        }
         if (claimVenueSlug) {
-            return route('register', {
-                claim_venue: claimVenueSlug,
-            });
+            return route('register', { claim_venue: claimVenueSlug });
         }
         if (claimArtistSlug) {
-            return route('register', {
-                claim_artist: claimArtistSlug,
-            });
+            return route('register', { claim_artist: claimArtistSlug });
         }
         return route('register');
-    }, [claimVenueSlug, claimArtistSlug]);
+    }, [portal, claimVenueSlug, claimArtistSlug]);
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -40,21 +74,19 @@ export default function Login({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('login'), { onFinish: () => reset('password') });
+        post(route('login.store', { portal }), { onFinish: () => reset('password') });
     };
 
     return (
         <GuestLayout>
-            <SeoHead title="Giriş Yap - Sahnebul" description="Sahnebul hesabınıza giriş yapın." noindex />
+            <SeoHead title={meta.title} description={meta.description} noindex />
 
             {status && (
-                <div className="mb-4 rounded-lg bg-green-500/20 p-3 text-sm text-green-400">
-                    {status}
-                </div>
+                <div className="mb-4 rounded-lg bg-green-500/20 p-3 text-sm text-green-400">{status}</div>
             )}
 
-            <h2 className="font-display text-2xl font-bold text-white">Giriş Yap</h2>
-            <p className="mt-2 text-sm text-zinc-500">Hesabınıza giriş yapın</p>
+            <h2 className="font-display text-2xl font-bold text-white">{meta.headline}</h2>
+            <p className="mt-2 text-sm text-zinc-500">{meta.sub}</p>
 
             <form onSubmit={submit} className="mt-8 space-y-6">
                 <div>
@@ -97,10 +129,7 @@ export default function Login({
                         <span className="ms-2 text-sm text-zinc-400">Beni hatırla</span>
                     </label>
                     {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="text-sm text-amber-400 hover:text-amber-300"
-                        >
+                        <Link href={route('password.request')} className="text-sm text-amber-400 hover:text-amber-300">
                             Şifremi unuttum
                         </Link>
                     )}
@@ -111,12 +140,32 @@ export default function Login({
                 </PrimaryButton>
             </form>
 
-            <p className="mt-6 text-center text-sm text-zinc-500">
-                Hesabınız yok mu?{' '}
-                <Link href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
-                    Kayıt olun
-                </Link>
-            </p>
+            <div className="mt-6 space-y-3 border-t border-white/10 pt-6 text-center text-sm text-zinc-500">
+                <p>Diğer girişler:</p>
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+                    <Link href={route('login')} className="text-amber-400 hover:text-amber-300">
+                        Kullanıcı
+                    </Link>
+                    <Link href={route('login.sanatci')} className="text-amber-400 hover:text-amber-300">
+                        Sanatçı
+                    </Link>
+                    <Link href={route('login.mekan')} className="text-amber-400 hover:text-amber-300">
+                        Mekan
+                    </Link>
+                    <Link href={route('login.admin')} className="text-amber-400 hover:text-amber-300">
+                        Yönetim
+                    </Link>
+                </div>
+            </div>
+
+            {portal === 'kullanici' && (
+                <p className="mt-4 text-center text-sm text-zinc-500">
+                    Hesabınız yok mu?{' '}
+                    <Link href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                        Kayıt olun
+                    </Link>
+                </p>
+            )}
         </GuestLayout>
     );
 }

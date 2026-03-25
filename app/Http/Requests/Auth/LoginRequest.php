@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\PortalAccess;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -57,6 +58,44 @@ class LoginRequest extends FormRequest
             throw ValidationException::withMessages([
                 'email' => 'Bu hesap dondurulmuş. Yardım için destek ile iletişime geçin.',
             ]);
+        }
+
+        RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Kimlik doğrulaması + seçilen giriş kapısına uygun rol kontrolü (uygunsuzsa oturum açılmaz).
+     *
+     * @param  'kullanici'|'sanatci'|'mekan'|'yonetim'  $portal
+     */
+    public function authenticateForPortal(string $portal): void
+    {
+        $this->ensureIsNotRateLimited();
+
+        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = Auth::user();
+        if ($user !== null && ! $user->is_active) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Bu hesap dondurulmuş. Yardım için destek ile iletişime geçin.',
+            ]);
+        }
+
+        try {
+            if ($user !== null) {
+                PortalAccess::ensure($user, $portal);
+            }
+        } catch (ValidationException $e) {
+            Auth::logout();
+            throw $e;
         }
 
         RateLimiter::clear($this->throttleKey());

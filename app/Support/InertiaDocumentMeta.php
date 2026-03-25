@@ -266,8 +266,9 @@ final class InertiaDocumentMeta
                 $localDate = $start;
             }
         }
+        $dateLine = $localDate !== '' ? 'Tarih: '.$localDate.'.' : 'Tarih yakında açıklanacak.';
         $desc = SeoFormatting::truncateMetaDescription(
-            $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. Tarih: '.$localDate.'. Bilet ve detaylar Sahnebul’da.',
+            $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. '.$dateLine.' Bilet ve detaylar Sahnebul’da.',
         );
 
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);

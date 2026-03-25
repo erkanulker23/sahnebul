@@ -48,8 +48,13 @@ interface PaginatorLink {
     active: boolean;
 }
 
+const DEFAULT_HOME_HERO_IMAGE =
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2400&auto=format&fit=crop';
+
 interface Props {
     isVenuesPage?: boolean;
+    /** Süper yönetici ayarlarından; yalnızca ana sayfa (/) için dolu gelir. */
+    homeHeroImageUrl?: string | null;
     canAddVenue?: boolean;
     venues?: {
         data: VenueListItem[];
@@ -69,6 +74,7 @@ interface Props {
 
 export default function VenuesIndex({
     isVenuesPage = false,
+    homeHeroImageUrl = null,
     canAddVenue = false,
     venues,
     cities = [],
@@ -194,10 +200,10 @@ export default function VenuesIndex({
                 jsonLd={isVenuesPage ? null : homeJsonLd}
             />
 
-            {/* Hero Section — tam viewport genişliği */}
+            {/* Hero Section — tam viewport genişliği (görsel: Admin → Ayarlar → Ana sayfa banner) */}
             <section className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden">
                 <img
-                    src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2400&auto=format&fit=crop"
+                    src={homeHeroImageUrl?.trim() ? homeHeroImageUrl.trim() : DEFAULT_HOME_HERO_IMAGE}
                     alt="Konser mekanı"
                     className="absolute inset-0 h-full w-full object-cover"
                 />

@@ -4,7 +4,7 @@ import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichConte
 import { eventShowParam } from '@/lib/eventShowUrl';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ExternalLink, MessageCircle, Ticket } from 'lucide-react';
 
 interface Artist {
@@ -32,7 +32,7 @@ interface Event {
     title: string;
     description: string | null;
     event_rules: string | null;
-    start_date: string;
+    start_date: string | null;
     end_date: string | null;
     ticket_price: number | null;
     cover_image: string | null;
@@ -67,6 +67,7 @@ interface Props {
         cover_image?: string | null;
         ticket_tiers?: TicketTier[];
     }[];
+    eventCustomerActions?: { canToggle: boolean; hasReminder: boolean };
 }
 
 function formatTry(n: number): string {
@@ -88,8 +89,13 @@ function minPriceFromEvent(ev: { ticket_price: number | null; ticket_tiers?: Tic
 
 type SharedSeo = { appUrl: string };
 
-export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
+export default function EventShow({
+    event,
+    relatedEvents,
+    eventCustomerActions = { canToggle: false, hasReminder: false },
+}: Readonly<Props>) {
     const page = usePage();
+    const authed = Boolean((page.props as { auth?: { user?: unknown } }).auth?.user);
     const seo = (page.props as { seo?: SharedSeo }).seo;
     const appUrl = (seo?.appUrl ?? '').replace(/\/$/, '');
     const canonicalUrl = appUrl ? `${appUrl}/etkinlikler/${eventShowParam(event)}` : undefined;
@@ -139,11 +145,13 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
         event.venue.social_links && Object.keys(event.venue.social_links).length > 0
             ? sortVenueSocialEntries(event.venue.social_links)
             : [];
-    const eventDesc =
-        metaDescriptionFromContent(
-            event.description,
-            `${event.title} — ${event.venue.name}${event.venue.city?.name ? `, ${event.venue.city.name}` : ''}. Tarih: ${new Date(event.start_date).toLocaleString('tr-TR')}. Bilet ve detaylar Sahnebul’da.`,
-        );
+    const dateSummary = event.start_date
+        ? `Tarih: ${new Date(event.start_date).toLocaleString('tr-TR')}.`
+        : 'Tarih yakında açıklanacak.';
+    const eventDesc = metaDescriptionFromContent(
+        event.description,
+        `${event.title} — ${event.venue.name}${event.venue.city?.name ? `, ${event.venue.city.name}` : ''}. ${dateSummary} Bilet ve detaylar Sahnebul’da.`,
+    );
 
     return (
         <AppLayout>
@@ -196,7 +204,13 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                         <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl">{event.title}</h1>
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
-                            <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">{new Date(event.start_date).toLocaleString('tr-TR')}</span>
+                            {event.start_date ? (
+                                <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
+                                    {new Date(event.start_date).toLocaleString('tr-TR')}
+                                </span>
+                            ) : (
+                                <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200">Tarih duyurulacak</span>
+                            )}
                             {!hasTiers && event.ticket_price != null && (
                                 <span className="rounded-full bg-emerald-500 px-3 py-1 font-semibold text-white">{formatTry(Number(event.ticket_price))}</span>
                             )}
@@ -207,6 +221,38 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                                         ` – ${formatTry(Math.max(...tiers.map((t) => parseFloat(t.price))))}`}
                                 </span>
                             )}
+                        </div>
+                        <div className="mt-6 flex flex-wrap items-center gap-3">
+                            {eventCustomerActions.canToggle ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.post(route('user.event-reminders.toggle', event.id), {}, { preserveScroll: true })
+                                        }
+                                        className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                                    >
+                                        {eventCustomerActions.hasReminder
+                                            ? 'E-posta hatırlatıcısını kapat'
+                                            : 'Yarın e-posta hatırlat + takvime ekle'}
+                                    </button>
+                                    {eventCustomerActions.hasReminder ? (
+                                        <a
+                                            href={route('user.events.ics', event.id)}
+                                            className="text-sm text-amber-300 underline hover:text-amber-200"
+                                        >
+                                            Takvim dosyası (.ics) indir
+                                        </a>
+                                    ) : null}
+                                </>
+                            ) : !authed ? (
+                                <Link
+                                    href={route('login', { redirect: `/etkinlikler/${eventShowParam(event)}` })}
+                                    className="rounded-full border border-amber-400/40 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-500/10"
+                                >
+                                    Hatırlatıcı için giriş yapın
+                                </Link>
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -337,8 +383,26 @@ export default function EventShow({ event, relatedEvents }: Readonly<Props>) {
                         <div className="grid gap-6 sm:grid-cols-2">
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">Etkinlik Tarihi</p>
-                                <p className="mt-2 font-semibold">{new Date(event.start_date).toLocaleDateString('tr-TR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                                <p className="mt-1 text-sm text-zinc-500">{new Date(event.start_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                {event.start_date ? (
+                                    <>
+                                        <p className="mt-2 font-semibold">
+                                            {new Date(event.start_date).toLocaleDateString('tr-TR', {
+                                                weekday: 'long',
+                                                day: '2-digit',
+                                                month: 'long',
+                                                year: 'numeric',
+                                            })}
+                                        </p>
+                                        <p className="mt-1 text-sm text-zinc-500">
+                                            {new Date(event.start_date).toLocaleTimeString('tr-TR', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>
+                                )}
                             </div>
                             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
                                 <p className="text-xs uppercase tracking-wide text-zinc-500">Mekan / Kategori</p>

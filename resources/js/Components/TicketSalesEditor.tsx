@@ -133,11 +133,11 @@ export default function TicketSalesEditor({
             {showOutlets && (
                 <div className={boxClass}>
                     <p className={labelClass}>
-                        {acquisitionMode === 'external_platforms' ? 'Bilet satın alma bağlantıları *' : 'İsteğe bağlı harici bağlantılar'}
+                        {acquisitionMode === 'external_platforms' ? 'Bilet satın alma bağlantıları' : 'İsteğe bağlı harici bağlantılar'}
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-500">
                         {acquisitionMode === 'external_platforms'
-                            ? 'Her satırda platform adı ve etkinliğin doğrudan sayfa adresi (https://…) olmalı.'
+                            ? 'Taslakta boş bırakılabilir. Yayında (yayınlandı) iken en az bir geçerli https adresi gerekir. Her satırda platform adı ve etkinlik sayfası olmalı.'
                             : 'Örn. bilet ayrıca Biletix’te satılıyorsa buraya ekleyin.'}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">

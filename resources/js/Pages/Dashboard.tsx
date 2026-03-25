@@ -14,6 +14,21 @@ interface Reservation {
     event?: { title: string } | null;
 }
 
+interface FavoriteArtistRow {
+    id: number;
+    name: string;
+    slug: string;
+    avatar: string | null;
+}
+
+interface ReminderEventRow {
+    id: number;
+    slug: string;
+    title: string;
+    start_date: string;
+    venue: { name: string; slug: string };
+}
+
 interface Props {
     recentReservations: Reservation[];
     upcomingEvents: {
@@ -25,9 +40,16 @@ interface Props {
         venue: { name: string; slug: string };
         artists: { id: number; name: string; slug: string; avatar: string | null }[];
     }[];
+    favoriteArtists?: FavoriteArtistRow[];
+    reminderEvents?: ReminderEventRow[];
 }
 
-export default function Dashboard({ recentReservations = [], upcomingEvents = [] }: Readonly<Props>) {
+export default function Dashboard({
+    recentReservations = [],
+    upcomingEvents = [],
+    favoriteArtists = [],
+    reminderEvents = [],
+}: Readonly<Props>) {
     const imageSrc = (path: string | null) => {
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
@@ -41,10 +63,62 @@ export default function Dashboard({ recentReservations = [], upcomingEvents = []
                 </h2>
             }
         >
-            <SeoHead title="Panel - Sahnebul" description="Rezervasyonlarınız ve yaklaşan etkinlik özetiniz." noindex />
+            <SeoHead title="Kullanıcı paneli - Sahnebul" description="Favori sanatçılar, etkinlik hatırlatmaları ve rezervasyonlar." noindex />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8 grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/5 bg-zinc-900/50 p-6">
+                            <h3 className="font-display text-lg font-bold text-white">Favori sanatçılar</h3>
+                            <p className="mt-1 text-sm text-zinc-500">Profillerden ♥ ile ekleyin.</p>
+                            {favoriteArtists.length === 0 ? (
+                                <p className="mt-4 text-sm text-zinc-500">Henüz favori yok.</p>
+                            ) : (
+                                <ul className="mt-4 space-y-2">
+                                    {favoriteArtists.map((a) => (
+                                        <li key={a.id}>
+                                            <Link
+                                                href={route('artists.show', a.slug)}
+                                                className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300"
+                                            >
+                                                {imageSrc(a.avatar) ? (
+                                                    <img src={imageSrc(a.avatar)!} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                                ) : null}
+                                                <span>{a.name}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <div className="rounded-2xl border border-white/5 bg-zinc-900/50 p-6">
+                            <h3 className="font-display text-lg font-bold text-white">Takvim ve hatırlatmalar</h3>
+                            <p className="mt-1 text-sm text-zinc-500">Etkinlik sayfasından e-posta hatırlatıcı açın; yarın sabah özet e-postası gider.</p>
+                            {reminderEvents.length === 0 ? (
+                                <p className="mt-4 text-sm text-zinc-500">Kayıtlı hatırlatma yok.</p>
+                            ) : (
+                                <ul className="mt-4 space-y-2">
+                                    {reminderEvents.map((e) => (
+                                        <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                                            <Link
+                                                href={route('events.show', eventShowParam(e))}
+                                                className="font-medium text-white hover:text-amber-400"
+                                            >
+                                                {e.title}
+                                            </Link>
+                                            <a
+                                                href={route('user.events.ics', e.id)}
+                                                className="text-amber-400 hover:text-amber-300"
+                                            >
+                                                .ics
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="mb-8">
                         <Link href={route('reservations.index')} className="block rounded-2xl border border-white/5 bg-zinc-900/50 p-6 transition hover:border-amber-500/20">
                             <p className="text-sm text-zinc-500">Rezervasyonlarım</p>
@@ -121,6 +195,8 @@ export default function Dashboard({ recentReservations = [], upcomingEvents = []
                         <p className="mb-4 text-white">Sahnebul'da neler yapabilirsiniz:</p>
                         <ul className="list-disc space-y-2 pl-6 text-zinc-400">
                             <li><Link href={route('venues.index')} className="text-amber-400 hover:text-amber-300">Mekanları keşfedin</Link></li>
+                            <li><Link href={route('artists.index')} className="text-amber-400 hover:text-amber-300">Sanatçıları keşfedin</Link> ve favorileyin</li>
+                            <li>Etkinliklere hatırlatıcı ekleyin; .ics ile takviminize alın</li>
                             <li>Rezervasyon yapın</li>
                             <li>Değerlendirme ve yorum bırakın</li>
                         </ul>

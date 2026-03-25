@@ -9,7 +9,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Building2 } from 'lucide-react';
+import { Building2, Eye } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Review {
@@ -40,6 +40,7 @@ interface Venue {
     rating_avg: number;
     review_count: number;
     reviews_count: number;
+    view_count?: number;
     category: { name: string };
     city: { name: string };
     media: { id: number; type: string; path: string }[];
@@ -341,6 +342,10 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                     <span className="font-semibold text-white">{venue.rating_avg || '-'}</span>
                                     <span className="text-zinc-400">({reviewCount} değerlendirme)</span>
                                 </div>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-zinc-200">
+                                    <Eye className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden strokeWidth={2} />
+                                    {(venue.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
+                                </span>
                             </div>
                             {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
                                 <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">

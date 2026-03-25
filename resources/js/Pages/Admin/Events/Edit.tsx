@@ -2,12 +2,12 @@ import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
 import AdminEventVenueField from '@/Components/AdminEventVenueField';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import TicketSalesEditor, { emptyTicketOutletRow, inferTicketAcquisitionMode, outletsFromServer } from '@/Components/TicketSalesEditor';
-import TicketTiersEditor, { emptyTierRow, tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
+import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Tier {
     id: number;
@@ -23,7 +23,7 @@ interface EventModel {
     title: string;
     description: string | null;
     event_rules: string | null;
-    start_date: string;
+    start_date: string | null;
     end_date: string | null;
     ticket_price: string | number | null;
     capacity: number | null;
@@ -54,7 +54,7 @@ function storageUrl(path: string | null): string | null {
 }
 
 function toTierRows(tiers: Tier[] | undefined): TierRow[] {
-    if (!tiers?.length) return [emptyTierRow()];
+    if (!tiers?.length) return [];
     return tiers.map((t) => ({
         name: t.name,
         description: t.description ?? '',
@@ -78,7 +78,7 @@ export default function AdminEventEdit({
         title: event.title,
         description: event.description ?? '',
         event_rules: event.event_rules ?? '',
-        start_date: event.start_date?.slice(0, 16) ?? '',
+        start_date: event.start_date != null && event.start_date !== '' ? event.start_date.slice(0, 16) : '',
         end_date: event.end_date?.slice(0, 16) ?? '',
         ticket_price: event.ticket_price != null ? String(event.ticket_price) : '',
         capacity: event.capacity?.toString() ?? '',
@@ -123,6 +123,23 @@ export default function AdminEventEdit({
         router.delete(route('admin.events.destroy', event.id));
     };
 
+    const validationSummary = useMemo(() => {
+        const e = errors as Record<string, string | string[] | undefined>;
+        const msgs: string[] = [];
+        for (const val of Object.values(e)) {
+            if (typeof val === 'string' && val.trim() !== '') {
+                msgs.push(val);
+            } else if (Array.isArray(val)) {
+                for (const s of val) {
+                    if (typeof s === 'string' && s.trim() !== '') {
+                        msgs.push(s);
+                    }
+                }
+            }
+        }
+        return [...new Set(msgs)];
+    }, [errors]);
+
     return (
         <AdminLayout>
             <SeoHead title={`${event.title} — Düzenle`} description="Etkinliği düzenleyin." noindex />
@@ -154,6 +171,19 @@ export default function AdminEventEdit({
                 </div>
 
                 <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                    {validationSummary.length > 0 && (
+                        <div
+                            className="rounded-lg border border-red-500/50 bg-red-950/50 px-4 py-3 text-sm text-red-100"
+                            role="alert"
+                        >
+                            <p className="font-semibold text-red-200">Kayıt yapılamadı — lütfen aşağıdaki uyarıları giderin:</p>
+                            <ul className="mt-2 list-inside list-disc space-y-1">
+                                {validationSummary.map((msg) => (
+                                    <li key={msg}>{msg}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <AdminEventVenueField
                             venues={venueOptions}
@@ -180,22 +210,24 @@ export default function AdminEventEdit({
                             {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Başlangıç *</label>
+                            <label className="block text-sm font-medium text-zinc-400">Başlangıç (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.start_date}
                                 onChange={(e) => setData('start_date', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
+                            {errors.start_date && <p className="mt-1 text-sm text-red-400">{errors.start_date}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Bitiş</label>
+                            <label className="block text-sm font-medium text-zinc-400">Bitiş (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.end_date}
                                 onChange={(e) => setData('end_date', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
+                            {errors.end_date && <p className="mt-1 text-sm text-red-400">{errors.end_date}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Genel bilet fiyatı (₺)</label>
@@ -228,11 +260,11 @@ export default function AdminEventEdit({
                             </select>
                         </div>
                         <AdminArtistMultiSelect
-                            label="Sanatçılar *"
+                            label="Sanatçılar (isteğe bağlı)"
                             artists={artists}
                             value={data.artist_ids}
                             onChange={(artist_ids) => setData('artist_ids', artist_ids)}
-                            helperText="En az bir sanatçı zorunludur. İlk sıra headliner; ↑↓ ile sırayı değiştirin."
+                            helperText="Taslakta boş bırakılabilir. Yayına alırken en az bir sanatçı gerekir. İlk sıra headliner; ↑↓ ile sırayı değiştirin."
                             showOrderControls
                         />
                         {(errors.artist_ids || errors['artist_ids.0']) && (

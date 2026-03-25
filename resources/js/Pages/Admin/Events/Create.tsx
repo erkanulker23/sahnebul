@@ -1,12 +1,12 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
 import AdminEventVenueField from '@/Components/AdminEventVenueField';
 import TicketSalesEditor, { emptyTicketOutletRow, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
-import TicketTiersEditor, { emptyTierRow, tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
+import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { Link, useForm } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Props {
     venues: { id: number; name: string }[];
@@ -36,7 +36,7 @@ export default function AdminEventCreate({
         capacity: '',
         status: 'draft',
         artist_ids: [] as number[],
-        ticket_tiers: [emptyTierRow()] as TierRow[],
+        ticket_tiers: [] as TierRow[],
         cover_image: '',
         cover_upload: null as File | null,
         ticket_acquisition_mode: 'sahnebul' as TicketAcquisitionMode,
@@ -69,6 +69,23 @@ export default function AdminEventCreate({
         });
     };
 
+    const validationSummary = useMemo(() => {
+        const e = errors as Record<string, string | string[] | undefined>;
+        const msgs: string[] = [];
+        for (const val of Object.values(e)) {
+            if (typeof val === 'string' && val.trim() !== '') {
+                msgs.push(val);
+            } else if (Array.isArray(val)) {
+                for (const s of val) {
+                    if (typeof s === 'string' && s.trim() !== '') {
+                        msgs.push(s);
+                    }
+                }
+            }
+        }
+        return [...new Set(msgs)];
+    }, [errors]);
+
     return (
         <AdminLayout>
             <SeoHead title="Etkinlik Ekle" description="Yeni etkinlik kaydı." noindex />
@@ -78,6 +95,19 @@ export default function AdminEventCreate({
                 </Link>
                 <h1 className="mb-6 text-2xl font-bold dark:text-white">Yeni Etkinlik Ekle</h1>
                 <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                    {validationSummary.length > 0 && (
+                        <div
+                            className="rounded-lg border border-red-500/50 bg-red-950/50 px-4 py-3 text-sm text-red-100"
+                            role="alert"
+                        >
+                            <p className="font-semibold text-red-200">Kayıt yapılamadı — lütfen aşağıdaki uyarıları giderin:</p>
+                            <ul className="mt-2 list-inside list-disc space-y-1">
+                                {validationSummary.map((msg) => (
+                                    <li key={msg}>{msg}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <AdminEventVenueField
                             venues={venueOptions}
@@ -104,22 +134,24 @@ export default function AdminEventCreate({
                             {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Başlangıç *</label>
+                            <label className="block text-sm font-medium text-zinc-400">Başlangıç (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.start_date}
                                 onChange={(e) => setData('start_date', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
+                            {errors.start_date && <p className="mt-1 text-sm text-red-400">{errors.start_date}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Bitiş</label>
+                            <label className="block text-sm font-medium text-zinc-400">Bitiş (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.end_date}
                                 onChange={(e) => setData('end_date', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
+                            {errors.end_date && <p className="mt-1 text-sm text-red-400">{errors.end_date}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Genel bilet fiyatı (₺)</label>
@@ -152,11 +184,11 @@ export default function AdminEventCreate({
                             </select>
                         </div>
                         <AdminArtistMultiSelect
-                            label="Sanatçılar *"
+                            label="Sanatçılar (isteğe bağlı)"
                             artists={artists}
                             value={data.artist_ids}
                             onChange={(artist_ids) => setData('artist_ids', artist_ids)}
-                            helperText="En az bir onaylı sanatçı zorunludur; etkinlik hem mekân hem sanatçı sayfalarında görünür. İlk sıra headliner — ↑↓ ile sırayı değiştirebilirsiniz."
+                            helperText="Taslakta boş bırakılabilir. Yayına alırken en az bir sanatçı gerekir. İlk sıra headliner — ↑↓ ile sırayı değiştirebilirsiniz."
                             showOrderControls
                         />
                         {(errors.artist_ids || errors['artist_ids.0']) && (

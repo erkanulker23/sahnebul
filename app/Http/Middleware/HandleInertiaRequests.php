@@ -68,6 +68,12 @@ class HandleInertiaRequests extends Middleware
                 'twitterHandle' => $twitterHandle !== '' ? $twitterHandle : null,
                 'googleSiteVerification' => $googleSiteVerification !== '' ? $googleSiteVerification : null,
             ],
+            'authPortalLogins' => [
+                'customer' => route('login', absolute: false),
+                'artist' => route('login.sanatci', absolute: false),
+                'venue' => route('login.mekan', absolute: false),
+                'admin' => route('login.admin', absolute: false),
+            ],
             'auth' => [
                 'user' => $user,
                 /** Hesaba bağlı onaylı sanatçı kaydı (sahne paneli — sanatçı sayfası düzenleme) */

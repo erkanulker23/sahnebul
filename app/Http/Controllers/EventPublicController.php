@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EventPublicController extends Controller
 {
-    public function show(string $event, ExternalEventPublicController $externalEvents): Response|RedirectResponse
+    public function show(Request $request, string $event, ExternalEventPublicController $externalEvents): Response|RedirectResponse
     {
         if (preg_match('/^dis(\d+)$/i', $event, $m)) {
             return $externalEvents->showForPublicSegment((int) $m[1], $event);
@@ -23,7 +24,7 @@ class EventPublicController extends Controller
             return redirect()->route('events.show', ['event' => $canonical], 301);
         }
 
-        return $this->renderPublishedEventShow($model);
+        return $this->renderPublishedEventShow($request, $model);
     }
 
     private function resolvePublicEventParameter(string $segment): Event
@@ -49,7 +50,7 @@ class EventPublicController extends Controller
         abort(404);
     }
 
-    private function renderPublishedEventShow(Event $event): Response
+    private function renderPublishedEventShow(Request $request, Event $event): Response
     {
         if ($event->venue?->status !== 'approved') {
             abort(404);
@@ -88,9 +89,21 @@ class EventPublicController extends Controller
             ->with('ticketTiers')
             ->get(['id', 'slug', 'title', 'start_date', 'ticket_price', 'venue_id', 'is_full', 'cover_image']);
 
+        $u = $request->user();
+        $hasEventReminder = $u !== null
+            && $u->isCustomer()
+            && $u->email_verified_at !== null
+            && $u->remindedEvents()->whereKey($event->id)->exists();
+
         return Inertia::render('Events/Show', [
             'event' => $event,
             'relatedEvents' => $relatedEvents,
+            'eventCustomerActions' => [
+                'canToggle' => $u !== null && $u->isCustomer() && $u->email_verified_at !== null
+                    && $event->start_date !== null
+                    && $event->start_date->isFuture(),
+                'hasReminder' => $hasEventReminder,
+            ],
         ]);
     }
 }

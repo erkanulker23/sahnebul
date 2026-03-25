@@ -12,16 +12,17 @@ class AuthenticationTest extends TestCase
 
     public function test_login_screen_can_be_rendered(): void
     {
-        $response = $this->get('/login');
+        $this->get('/login')->assertRedirect('/giris/kullanici');
+        $response = $this->get('/giris/kullanici');
 
-        $response->assertStatus(200);
+        $response->assertOk();
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'customer']);
 
-        $response = $this->post('/login', [
+        $response = $this->post('/giris/kullanici', [
             'email' => $user->email,
             'password' => 'password',
         ]);
@@ -32,9 +33,9 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'customer']);
 
-        $this->post('/login', [
+        $this->post('/giris/kullanici', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);

@@ -36,6 +36,7 @@ class SettingsController extends Controller
         $logoPath = isset($site['logo_path']) && is_string($site['logo_path']) ? trim($site['logo_path']) : '';
         $faviconPath = isset($site['favicon_path']) && is_string($site['favicon_path']) ? trim($site['favicon_path']) : '';
         $ogPath = isset($seo['default_og_image_path']) && is_string($seo['default_og_image_path']) ? trim($seo['default_og_image_path']) : '';
+        $homeHeroPath = isset($site['home_hero_image_path']) && is_string($site['home_hero_image_path']) ? trim($site['home_hero_image_path']) : '';
 
         $mapsRaw = $this->appSettings->getRaw('google_maps_browser_key');
         $mapsKeyInDb = is_string($mapsRaw) && trim($mapsRaw) !== '';
@@ -61,6 +62,7 @@ class SettingsController extends Controller
                 'logo_url' => $logoPath !== '' ? $this->appSettings->publicStorageUrl($logoPath) : null,
                 'favicon_url' => $faviconPath !== '' ? $this->appSettings->publicStorageUrl($faviconPath) : null,
                 'seo_og_image_url' => $ogPath !== '' ? $this->appSettings->publicStorageUrl($ogPath) : null,
+                'home_hero_url' => $homeHeroPath !== '' ? $this->appSettings->publicStorageUrl($homeHeroPath) : null,
             ],
             'canManageSiteIdentity' => $request->user()?->isSuperAdmin() ?? false,
             'mapsApi' => [
@@ -103,6 +105,8 @@ class SettingsController extends Controller
             'logo' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp,svg',
             'favicon' => 'nullable|file|max:1024|mimes:ico,png,jpg,jpeg,svg,webp',
             'seo_og_image' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp',
+            'home_hero' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
+            'remove_home_hero' => 'sometimes|boolean',
             'google_maps_api_key' => 'nullable|string|max:512',
             'remove_google_maps_api_key' => 'sometimes|boolean',
         ]);
@@ -114,6 +118,9 @@ class SettingsController extends Controller
         $faviconPath = isset($current['favicon_path']) && is_string($current['favicon_path']) ? trim($current['favicon_path']) : '';
         $ogPath = isset($currentSeo['default_og_image_path']) && is_string($currentSeo['default_og_image_path'])
             ? trim($currentSeo['default_og_image_path'])
+            : '';
+        $homeHeroPath = isset($current['home_hero_image_path']) && is_string($current['home_hero_image_path'])
+            ? trim($current['home_hero_image_path'])
             : '';
 
         if ($request->boolean('remove_logo')) {
@@ -140,10 +147,19 @@ class SettingsController extends Controller
             $ogPath = $request->file('seo_og_image')->store('site', 'public');
         }
 
+        if ($request->boolean('remove_home_hero')) {
+            $this->deletePublicSiteAsset($homeHeroPath);
+            $homeHeroPath = '';
+        } elseif ($request->hasFile('home_hero')) {
+            $this->deletePublicSiteAsset($homeHeroPath);
+            $homeHeroPath = $request->file('home_hero')->store('site', 'public');
+        }
+
         $payload = [
             'site_name' => $this->nullableTrim($validated['site_name'] ?? null),
             'logo_path' => $logoPath !== '' ? $logoPath : null,
             'favicon_path' => $faviconPath !== '' ? $faviconPath : null,
+            'home_hero_image_path' => $homeHeroPath !== '' ? $homeHeroPath : null,
             'contact_email' => $this->nullableTrim($validated['contact_email'] ?? null),
             'support_email' => $this->nullableTrim($validated['support_email'] ?? null),
             'phone' => $this->nullableTrim($validated['phone'] ?? null),

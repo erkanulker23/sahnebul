@@ -174,6 +174,7 @@ function socialLinkTitle(key: string): string {
 interface Artist {
     id: number;
     user_id?: number | null;
+    view_count?: number;
     /** Bağlı kullanıcının e-postası doğrulanmış, profil sahiplenilmiş. */
     is_verified_profile?: boolean;
     name: string;
@@ -220,6 +221,7 @@ interface Props {
     /** TurkiyeAPI ile senkron 81 il adı (şehir filtresi). */
     provinceNames?: string[];
     claimStatus?: string | null;
+    artistFavorite?: { canToggle: boolean; isFavorited: boolean };
 }
 
 function SpotifyTrackPreview({
@@ -297,6 +299,7 @@ export default function ArtistShow({
     stats,
     provinceNames = [],
     claimStatus,
+    artistFavorite = { canToggle: false, isFavorited: false },
 }: Readonly<Props>) {
     const page = usePage().props as { auth?: { user?: { id: number } | null } };
     const user = page.auth?.user;
@@ -634,7 +637,32 @@ export default function ArtistShow({
                                     {artist.name}
                                 </h1>
                                 {artist.is_verified_profile && <VerifiedArtistProfileBadge size="md" className="self-center" />}
+                                {artistFavorite.canToggle ? (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                        }
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                            artistFavorite.isFavorited
+                                                ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
+                                                : 'border border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40'
+                                        }`}
+                                    >
+                                        {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
+                                    </button>
+                                ) : !user ? (
+                                    <Link
+                                        href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                        className="rounded-full border border-amber-500/40 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                                    >
+                                        Favoriler için giriş
+                                    </Link>
+                                ) : null}
                             </div>
+                            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                                {(artist.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
+                            </p>
 
                             {resolvedSocialList.length > 0 && (
                                 <div className="mt-4">

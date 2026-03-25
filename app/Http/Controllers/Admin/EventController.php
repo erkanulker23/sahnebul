@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -45,8 +46,10 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $request->merge([
+            'ticket_tiers' => Event::filterTicketTierRowsFromRequestInput($request->input('ticket_tiers')),
             'description' => $request->input('description') ?: null,
             'event_rules' => $request->input('event_rules') ?: null,
+            'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'ticket_price' => $request->input('ticket_price') ?: null,
             'capacity' => $request->input('capacity') ?: null,
@@ -59,12 +62,31 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $start = $request->input('start_date');
+                    if (! $start) {
+                        return;
+                    }
+                    try {
+                        if (Carbon::parse($value)->lt(Carbon::parse($start))) {
+                            $fail('Bitiş tarihi başlangıçtan önce olamaz.');
+                        }
+                    } catch (\Throwable) {
+                        $fail('Geçerli bir bitiş tarihi girin.');
+                    }
+                },
+            ],
             'ticket_price' => 'nullable|numeric|min:0',
             'capacity' => 'nullable|integer|min:1',
             'status' => 'required|in:draft,published,cancelled',
-            'artist_ids' => 'required|array|min:1',
+            'artist_ids' => 'nullable|array',
             'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
             'ticket_tiers' => 'nullable|array',
             'ticket_tiers.*.name' => 'required|string|max:255',
@@ -128,8 +150,10 @@ class EventController extends Controller
     public function update(Request $request, Event $event)
     {
         $request->merge([
+            'ticket_tiers' => Event::filterTicketTierRowsFromRequestInput($request->input('ticket_tiers')),
             'description' => $request->input('description') ?: null,
             'event_rules' => $request->input('event_rules') ?: null,
+            'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'ticket_price' => $request->input('ticket_price') ?: null,
             'capacity' => $request->input('capacity') ?: null,
@@ -142,12 +166,31 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $start = $request->input('start_date');
+                    if (! $start) {
+                        return;
+                    }
+                    try {
+                        if (Carbon::parse($value)->lt(Carbon::parse($start))) {
+                            $fail('Bitiş tarihi başlangıçtan önce olamaz.');
+                        }
+                    } catch (\Throwable) {
+                        $fail('Geçerli bir bitiş tarihi girin.');
+                    }
+                },
+            ],
             'ticket_price' => 'nullable|numeric|min:0',
             'capacity' => 'nullable|integer|min:1',
             'status' => 'required|in:draft,published,cancelled',
-            'artist_ids' => 'required|array|min:1',
+            'artist_ids' => 'nullable|array',
             'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
             'ticket_tiers' => 'nullable|array',
             'ticket_tiers.*.name' => 'required|string|max:255',
@@ -201,6 +244,13 @@ class EventController extends Controller
     {
         if ($event->artists()->count() === 0) {
             return back()->with('error', 'Yayınlamak için etkinliğe en az bir onaylı sanatçı bağlanmalıdır.');
+        }
+        if ($event->ticket_acquisition_mode === Event::TICKET_MODE_EXTERNAL
+            && count(Event::normalizeTicketOutletsInput($event->ticket_outlets)) === 0) {
+            return back()->with(
+                'error',
+                'Harici platform modunda yayınlamak için en az bir geçerli bilet bağlantısı (https) ekleyin veya bilet satış modunu “Sahnebul” / “Telefon” olarak değiştirin.',
+            );
         }
         $event->update(['status' => 'published']);
 

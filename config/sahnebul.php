@@ -54,6 +54,8 @@ return [
         'site_name' => null,
         'logo_path' => null,
         'favicon_path' => null,
+        /** Ana sayfa (/) hero arka planı — public storage `site/` altında. */
+        'home_hero_image_path' => null,
         'seo' => [
             'default_description' => null,
             'default_og_image_path' => null,

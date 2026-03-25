@@ -12,19 +12,30 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class AuthenticatedSessionController extends Controller
+class PortalAuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
+    private function portalFromRoute(): string
+    {
+        return match (Route::currentRouteName()) {
+            'login' => 'kullanici',
+            'login.sanatci' => 'sanatci',
+            'login.mekan' => 'mekan',
+            'login.admin' => 'yonetim',
+            default => abort(404),
+        };
+    }
+
     public function create(Request $request): Response
     {
+        $portal = $this->portalFromRoute();
+
         $redirect = SafeRedirect::relativePath($request->query('redirect'));
         if ($redirect !== null) {
             $request->session()->put('url.intended', $redirect);
         }
 
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('Auth/LoginPortal', [
+            'portal' => $portal,
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
             'claimVenueSlug' => SafeRedirect::slugParam($request->query('claim_venue')),
@@ -32,21 +43,25 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, string $portal): RedirectResponse
     {
-        $request->authenticate();
+        $allowed = ['kullanici', 'sanatci', 'mekan', 'yonetim'];
+        abort_unless(in_array($portal, $allowed, true), 404);
+
+        $request->authenticateForPortal($portal);
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $default = match ($portal) {
+            'kullanici' => route('dashboard', absolute: false),
+            'sanatci' => route('artist.dashboard', absolute: false),
+            'mekan' => route('artist.venues.index', absolute: false),
+            'yonetim' => route('admin.dashboard', absolute: false),
+        };
+
+        return redirect()->intended($default);
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();

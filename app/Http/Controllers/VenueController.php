@@ -8,12 +8,17 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenueClaimRequest;
+use App\Services\AppSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class VenueController extends Controller
 {
+    public function __construct(
+        private readonly AppSettingsService $appSettings,
+    ) {}
+
     public function index(Request $request)
     {
         $query = Venue::query()
@@ -86,8 +91,18 @@ class VenueController extends Controller
             && $user->hasActiveGoldSubscription()
             && ($user->isArtist() || $user->hasActiveMembership('venue'));
 
+        $homeHeroImageUrl = null;
+        if (! $request->is('mekanlar')) {
+            $site = $this->appSettings->getSitePublicSettings();
+            $heroPath = isset($site['home_hero_image_path']) && is_string($site['home_hero_image_path'])
+                ? trim($site['home_hero_image_path'])
+                : '';
+            $homeHeroImageUrl = $heroPath !== '' ? $this->appSettings->publicStorageUrl($heroPath) : null;
+        }
+
         return Inertia::render('Venues/Index', [
             'isVenuesPage' => $request->is('mekanlar'),
+            'homeHeroImageUrl' => $homeHeroImageUrl,
             'canAddVenue' => (bool) $canAddVenue,
             'venues' => $venues,
             'popularArtists' => $popularArtists,

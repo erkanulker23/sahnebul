@@ -44,6 +44,10 @@ export default function AdminExternalEventsIndex({ items, filters, sources }: Re
         status: filters.status ?? 'pending',
         search: filters.search ?? '',
     });
+    const crawlForm = useForm({
+        source: 'all',
+        limit: 200,
+    });
 
     const allVisibleIds = useMemo(() => items.data.map((i) => i.id), [items.data]);
     const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
@@ -64,6 +68,10 @@ export default function AdminExternalEventsIndex({ items, filters, sources }: Re
     const runBulk = (action: 'sync' | 'reject') => {
         if (selectedIds.length === 0) return;
         router.post(route('admin.external-events.bulk'), { action, ids: selectedIds }, { preserveScroll: true });
+    };
+
+    const runCrawl = () => {
+        crawlForm.post(route('admin.external-events.crawl'), { preserveScroll: true });
     };
 
     const rowActions = (item: ExternalEventItem) => {
@@ -118,6 +126,51 @@ export default function AdminExternalEventsIndex({ items, filters, sources }: Re
                         </>
                     }
                 />
+
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+                    <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        Bilet sitelerinden aday etkinlikleri veritabanına alır. İşlem birkaç dakika sürebilir; bittikten sonra aşağıdaki liste güncellenir.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Kaynak
+                            <select
+                                value={crawlForm.data.source}
+                                onChange={(e) => crawlForm.setData('source', e.target.value)}
+                                className={selectClass}
+                                disabled={crawlForm.processing}
+                            >
+                                <option value="all">Tüm kaynaklar</option>
+                                {sources.map((source) => (
+                                    <option key={source} value={source}>
+                                        {source}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="flex w-full max-w-[8rem] flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                            Kayıt limiti
+                            <input
+                                type="number"
+                                min={1}
+                                max={500}
+                                value={crawlForm.data.limit}
+                                onChange={(e) => crawlForm.setData('limit', Number(e.target.value) || 1)}
+                                className={selectClass}
+                                disabled={crawlForm.processing}
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={runCrawl}
+                            disabled={crawlForm.processing || sources.length === 0}
+                            className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
+                        >
+                            {crawlForm.processing ? 'Çekiliyor…' : 'Verileri çek'}
+                        </button>
+                    </div>
+                </div>
 
                 <form onSubmit={submitFilters} className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2 lg:grid-cols-4">
                     <select

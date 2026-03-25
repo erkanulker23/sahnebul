@@ -5,17 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ExternalEvent;
 use App\Services\ExternalEventDomainSyncService;
+use App\Services\MarketplaceExternalEventImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ExternalEventController extends Controller
 {
-    public function __construct(private readonly ExternalEventDomainSyncService $externalEventSync)
-    {
-    }
+    public function __construct(
+        private readonly ExternalEventDomainSyncService $externalEventSync,
+        private readonly MarketplaceExternalEventImportService $marketplaceImport,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -129,5 +132,51 @@ class ExternalEventController extends Controller
         }
 
         return back()->with('success', "{$affected} kayıt etkinliklere aktarıldı.");
+    }
+
+    public function crawl(Request $request): RedirectResponse
+    {
+        if (! Schema::hasTable('external_events')) {
+            return back()->with('error', 'external_events tablosu bulunamadı. Önce migration çalıştırın.');
+        }
+
+        $sourceKeys = array_keys(config('crawler.sources', []));
+        $data = $request->validate([
+            'source' => ['nullable', 'string', Rule::in(array_merge(['', 'all'], $sourceKeys))],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $sourceOption = $data['source'] ?? 'all';
+        if ($sourceOption === '') {
+            $sourceOption = 'all';
+        }
+
+        $limit = $data['limit'] ?? 250;
+
+        $results = $this->marketplaceImport->import($sourceOption, $limit, false);
+
+        if ($results === []) {
+            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
+        }
+
+        $lines = [];
+        $allFailed = true;
+
+        foreach ($results as $r) {
+            if (! empty($r['error'])) {
+                $lines[] = "{$r['source']}: {$r['error']}";
+            } else {
+                $allFailed = false;
+                $lines[] = "{$r['source']}: {$r['processed']} kayıt alındı veya güncellendi.";
+            }
+        }
+
+        $message = implode(' ', $lines);
+
+        if ($allFailed && $lines !== []) {
+            return back()->with('error', $message);
+        }
+
+        return back()->with('success', $message);
     }
 }

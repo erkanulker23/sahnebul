@@ -5,12 +5,14 @@ use App\Http\Middleware\EnsureUserHasGoldSubscription;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsArtist;
+use App\Http\Middleware\EnsureUserIsCustomer;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -42,9 +44,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'super_admin' => EnsureUserIsSuperAdmin::class,
             'artist' => EnsureUserIsArtist::class,
+            'customer' => EnsureUserIsCustomer::class,
             'gold' => EnsureUserHasGoldSubscription::class,
             'json.same-site' => EnsureJsonApiNotCrossSite::class,
         ]);
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('admin') || $request->is('admin/*')) {
+                return route('login.admin', absolute: false);
+            }
+            if ($request->is('sahne') || $request->is('sahne/*')) {
+                return route('login.sanatci', absolute: false);
+            }
+
+            return route('login', absolute: false);
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Üretimde: LOG_LEVEL, günlük kanalı ve harici APM (Sentry vb.) .env üzerinden yapılandırılır.

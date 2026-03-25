@@ -43,6 +43,9 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SehirSecCityController;
 use App\Http\Controllers\SehirSecController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\User\EventIcsController;
+use App\Http\Controllers\User\EventReminderController;
+use App\Http\Controllers\User\FavoriteArtistController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
@@ -116,6 +119,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/sanatcilar/{artist}/sahiplen', [ArtistClaimController::class, 'store'])->name('artists.claim');
 });
 
+Route::middleware(['auth', 'verified', 'customer'])->group(function () {
+    Route::post('/hesabim/favori-sanatci/{artist}', [FavoriteArtistController::class, 'toggle'])
+        ->whereNumber('artist')
+        ->name('user.favorites.artists.toggle');
+    Route::post('/hesabim/etkinlik-hatirlat/{event}', [EventReminderController::class, 'toggle'])
+        ->whereNumber('event')
+        ->name('user.event-reminders.toggle');
+    Route::get('/hesabim/etkinlikler/{event}/takvim.ics', [EventIcsController::class, 'show'])
+        ->whereNumber('event')
+        ->name('user.events.ics');
+});
+
 Route::middleware(['auth', 'verified', 'artist', 'gold'])->prefix('sahne')->name('artist.')->group(function () {
     Route::redirect('sahnelerim', '/sahne/mekanlarim', 301);
     Route::redirect('sahnelerim/ekle', '/sahne/mekanlarim/ekle', 301);
@@ -185,6 +200,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');
+    Route::post('/dis-kaynak-etkinlikler/veri-cek', [AdminExternalEventController::class, 'crawl'])
+        ->middleware('throttle:6,1')
+        ->name('external-events.crawl');
     Route::post('/dis-kaynak-etkinlikler/toplu-islem', [AdminExternalEventController::class, 'bulk'])->name('external-events.bulk');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/aktar', [AdminExternalEventController::class, 'sync'])->name('external-events.sync');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');

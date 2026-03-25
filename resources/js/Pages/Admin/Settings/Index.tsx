@@ -19,6 +19,8 @@ interface SitePublicProps {
     logo_url: string | null;
     favicon_url: string | null;
     seo_og_image_url: string | null;
+    /** Ana sayfa (/) hero arka planı */
+    home_hero_url: string | null;
 }
 
 interface MapsApiProps {
@@ -115,6 +117,8 @@ export default function AdminSettingsIndex({
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [faviconFile, setFaviconFile] = useState<File | null>(null);
     const [ogFile, setOgFile] = useState<File | null>(null);
+    const [removeHomeHero, setRemoveHomeHero] = useState(false);
+    const [homeHeroFile, setHomeHeroFile] = useState<File | null>(null);
     const [mapsApiKeyInput, setMapsApiKeyInput] = useState('');
     const [removeMapsKey, setRemoveMapsKey] = useState(false);
     const [siteFormBusy, setSiteFormBusy] = useState(false);
@@ -139,9 +143,11 @@ export default function AdminSettingsIndex({
         setRemoveLogo(false);
         setRemoveFavicon(false);
         setRemoveOg(false);
+        setRemoveHomeHero(false);
         setLogoFile(null);
         setFaviconFile(null);
         setOgFile(null);
+        setHomeHeroFile(null);
     }, [
         sp?.site_name,
         sp?.contact_email,
@@ -155,6 +161,7 @@ export default function AdminSettingsIndex({
         sp?.logo_url,
         sp?.favicon_url,
         sp?.seo_og_image_url,
+        sp?.home_hero_url,
     ]);
 
     const legalPagesJson = useMemo(() => legalStateToJson(legalBySlug), [legalBySlug]);
@@ -197,9 +204,11 @@ export default function AdminSettingsIndex({
         if (removeLogo) fd.append('remove_logo', '1');
         if (removeFavicon) fd.append('remove_favicon', '1');
         if (removeOg) fd.append('remove_seo_og_image', '1');
+        if (removeHomeHero) fd.append('remove_home_hero', '1');
         if (logoFile) fd.append('logo', logoFile);
         if (faviconFile) fd.append('favicon', faviconFile);
         if (ogFile) fd.append('seo_og_image', ogFile);
+        if (homeHeroFile) fd.append('home_hero', homeHeroFile);
         if (removeMapsKey) fd.append('remove_google_maps_api_key', '1');
         if (mapsApiKeyInput.trim() !== '') fd.append('google_maps_api_key', mapsApiKeyInput.trim());
         router.post(route('admin.settings.site'), fd, {
@@ -228,6 +237,7 @@ export default function AdminSettingsIndex({
             'logo',
             'favicon',
             'seo_og_image',
+            'home_hero',
             'google_maps_api_key',
             'remove_google_maps_api_key',
         ];
@@ -344,6 +354,34 @@ export default function AdminSettingsIndex({
                                 <label className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
                                     <input type="checkbox" checked={removeFavicon} onChange={(e) => setRemoveFavicon(e.target.checked)} />
                                     Favicon’u kaldır
+                                </label>
+                            )}
+                        </div>
+
+                        <div>
+                            <span className={labelClass}>Ana sayfa banner (hero görseli)</span>
+                            <p className="mt-1 max-w-xl text-xs text-zinc-500">
+                                Yalnızca ana sayfa (<code className="rounded bg-zinc-800 px-1 text-zinc-300">/</code>) üst bölümünde tam genişlik arka plan olarak kullanılır. Önerilen oran yaklaşık 21:9 veya geniş yatay; en fazla 6 MB, JPEG/PNG/WebP.
+                            </p>
+                            {sp?.home_hero_url && !removeHomeHero && (
+                                <div className="mt-3 max-w-xl overflow-hidden rounded-lg border border-zinc-700">
+                                    <img
+                                        src={sp.home_hero_url}
+                                        alt="Mevcut ana sayfa banner önizlemesi"
+                                        className="max-h-40 w-full object-cover object-center"
+                                    />
+                                </div>
+                            )}
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="mt-2 block w-full max-w-xl text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950"
+                                onChange={(ev) => setHomeHeroFile(ev.target.files?.[0] ?? null)}
+                            />
+                            {sp?.home_hero_url && (
+                                <label className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
+                                    <input type="checkbox" checked={removeHomeHero} onChange={(e) => setRemoveHomeHero(e.target.checked)} />
+                                    Banner’ı kaldır (varsayılan stok görsele dönülür)
                                 </label>
                             )}
                         </div>

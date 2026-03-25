@@ -12,7 +12,7 @@ class PanelAccessTest extends TestCase
 
     public function test_guest_cannot_access_admin_panel(): void
     {
-        $this->get('/admin')->assertRedirect(route('login', absolute: false));
+        $this->get('/admin')->assertRedirect(route('login.admin', absolute: false));
     }
 
     public function test_customer_cannot_access_admin_panel(): void
@@ -52,7 +52,7 @@ class PanelAccessTest extends TestCase
 
     public function test_guest_cannot_access_artist_panel(): void
     {
-        $this->get('/sahne')->assertRedirect(route('login', absolute: false));
+        $this->get('/sahne')->assertRedirect(route('login.sanatci', absolute: false));
     }
 
     public function test_artist_without_gold_is_redirected_from_sahne_panel(): void

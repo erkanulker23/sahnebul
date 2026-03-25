@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 class Event extends Model
 {
@@ -98,6 +98,49 @@ class Event extends Model
         }
     }
 
+    /**
+     * İstek gövdesindeki bilet kategorilerinden yalnızca adı ve geçerli fiyatı dolu satırları alır (boş şablon satırlarını atar).
+     *
+     * @return list<array{name: string, description: string|null, price: float, sort_order: int}>
+     */
+    public static function filterTicketTierRowsFromRequestInput(mixed $raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $priceRaw = $row['price'] ?? null;
+            if ($priceRaw === '' || $priceRaw === null) {
+                continue;
+            }
+            if (! is_numeric($priceRaw)) {
+                continue;
+            }
+            $price = (float) $priceRaw;
+            if ($price < 0) {
+                continue;
+            }
+            $desc = $row['description'] ?? null;
+            $description = is_string($desc) ? (trim($desc) !== '' ? trim($desc) : null) : null;
+            $out[] = [
+                'name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'sort_order' => count($out),
+            ];
+        }
+
+        return $out;
+    }
+
     public function scopePublished($query)
     {
         return $query->where($query->getModel()->getTable().'.status', 'published');
@@ -169,9 +212,12 @@ class Event extends Model
         $outlets = self::normalizeTicketOutletsInput($validated['ticket_outlets'] ?? null);
 
         if ($mode === self::TICKET_MODE_EXTERNAL && count($outlets) === 0) {
-            throw ValidationException::withMessages([
-                'ticket_outlets' => 'Harici platform seçildiğinde en az bir geçerli bağlantı girin (ör. Biletix — etkinliğin https ile başlayan sayfası).',
-            ]);
+            $status = $validated['status'] ?? 'draft';
+            if ($status === 'published') {
+                throw ValidationException::withMessages([
+                    'ticket_outlets' => 'Yayında durumunda harici platform seçiliyse en az bir geçerli bağlantı girin (https ile başlayan bilet sayfası). Taslak olarak kaydedip bağlantıları sonra ekleyebilirsiniz.',
+                ]);
+            }
         }
 
         if ($mode === self::TICKET_MODE_EXTERNAL) {

@@ -9,16 +9,17 @@ import { Link, useForm } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { FormEventHandler, KeyboardEvent, useMemo, useRef, useState } from 'react';
 
-function passwordRuleStatus(password: string) {
+function passwordRuleStatus(password: string | undefined | null) {
+    const p = password ?? '';
     return {
-        minLength: password.length >= 10,
-        letters: /[a-z]/.test(password) && /[A-Z]/.test(password),
-        number: /\d/.test(password),
-        symbol: /[^A-Za-z0-9]/.test(password),
+        minLength: p.length >= 10,
+        letters: /[a-z]/.test(p) && /[A-Z]/.test(p),
+        number: /\d/.test(p),
+        symbol: /[^A-Za-z0-9]/.test(p),
     };
 }
 
-function passwordMeetsAllRules(password: string): boolean {
+function passwordMeetsAllRules(password: string | undefined | null): boolean {
     const s = passwordRuleStatus(password);
     return s.minLength && s.letters && s.number && s.symbol;
 }
@@ -161,19 +162,19 @@ export default function Register({
     const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, current: 'venue' | 'artist') => {
         if (e.key === 'ArrowRight' && current === 'venue') {
             e.preventDefault();
-            setData({ membership_type: 'artist', venue_name: '' });
+            setData((prev) => ({ ...prev, membership_type: 'artist', venue_name: '' }));
             requestAnimationFrame(() => artistTabRef.current?.focus());
         } else if (e.key === 'ArrowLeft' && current === 'artist') {
             e.preventDefault();
-            setData({ membership_type: 'venue' });
+            setData((prev) => ({ ...prev, membership_type: 'venue' }));
             requestAnimationFrame(() => venueTabRef.current?.focus());
         } else if (e.key === 'Home') {
             e.preventDefault();
-            setData({ membership_type: 'venue' });
+            setData((prev) => ({ ...prev, membership_type: 'venue' }));
             venueTabRef.current?.focus();
         } else if (e.key === 'End') {
             e.preventDefault();
-            setData({ membership_type: 'artist', venue_name: '' });
+            setData((prev) => ({ ...prev, membership_type: 'artist', venue_name: '' }));
             artistTabRef.current?.focus();
         }
     };
@@ -223,7 +224,7 @@ export default function Register({
                     role="tab"
                     aria-selected={data.membership_type === 'venue'}
                     tabIndex={data.membership_type === 'venue' ? 0 : -1}
-                    onClick={() => setData({ membership_type: 'venue' })}
+                    onClick={() => setData((prev) => ({ ...prev, membership_type: 'venue' }))}
                     onKeyDown={(e) => handleTabKeyDown(e, 'venue')}
                     className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-sm font-medium transition ${
                         data.membership_type === 'venue'
@@ -239,7 +240,7 @@ export default function Register({
                     role="tab"
                     aria-selected={data.membership_type === 'artist'}
                     tabIndex={data.membership_type === 'artist' ? 0 : -1}
-                    onClick={() => setData({ membership_type: 'artist', venue_name: '' })}
+                    onClick={() => setData((prev) => ({ ...prev, membership_type: 'artist', venue_name: '' }))}
                     onKeyDown={(e) => handleTabKeyDown(e, 'artist')}
                     className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-center text-sm font-medium transition ${
                         data.membership_type === 'artist'

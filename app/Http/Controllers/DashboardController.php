@@ -19,6 +19,22 @@ class DashboardController extends Controller
             return redirect()->route('artist.dashboard');
         }
 
+        if (! $user->isCustomer()) {
+            return redirect()->route('home')->with('error', 'Bu özet paneli yalnızca kullanıcı hesapları içindir.');
+        }
+
+        $favoriteArtists = $user->favoriteArtists()
+            ->orderBy('name')
+            ->get(['artists.id', 'artists.name', 'artists.slug', 'artists.avatar']);
+
+        $reminderEvents = $user->remindedEvents()
+            ->published()
+            ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+            ->with(['venue:id,name,slug'])
+            ->orderBy('start_date')
+            ->limit(30)
+            ->get(['events.id', 'events.slug', 'events.title', 'events.start_date', 'events.venue_id']);
+
         $recentReservations = $user->reservations()
             ->with(['venue', 'event'])
             ->latest('reservation_date')
@@ -36,6 +52,8 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'recentReservations' => $recentReservations,
             'upcomingEvents' => $upcomingEvents,
+            'favoriteArtists' => $favoriteArtists,
+            'reminderEvents' => $reminderEvents,
         ]);
     }
 }
