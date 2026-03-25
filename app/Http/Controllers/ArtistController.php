@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
+use App\Support\DailyUniqueEntityView;
 use App\Support\TurkishAlphabet;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class ArtistController extends Controller
@@ -156,8 +158,15 @@ class ArtistController extends Controller
             abort(404);
         }
 
-        $artist->increment('view_count');
-        $artist->refresh();
+        if (Schema::hasColumn('artists', 'view_count')) {
+            DailyUniqueEntityView::recordOncePerVisitorPerDay(
+                $request,
+                'artist',
+                (int) $artist->id,
+                fn () => $artist->increment('view_count')
+            );
+            $artist->refresh();
+        }
 
         $artist->load(['media']);
 

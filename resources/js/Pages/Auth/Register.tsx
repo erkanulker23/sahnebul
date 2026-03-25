@@ -187,12 +187,12 @@ export default function Register({
         <GuestLayout>
             <SeoHead
                 title="Kayıt Ol - Sahnebul"
-                description="Sanatçı veya mekan üyeliği ile hesap oluşturun; Gold paketlere ve panele erişin."
+                description="Sanatçı veya mekân yönetimi için ücretsiz hesap oluşturun; onaylı profil ve panel erişimi."
                 noindex
             />
 
             <h2 className="font-display text-2xl font-bold text-white">Kayıt Ol</h2>
-            <p className="mt-2 text-sm text-zinc-500">Sanatçı veya mekan üyeliği için hesap oluşturun</p>
+            <p className="mt-2 text-sm text-zinc-500">Sanatçı veya mekân yönetimi için ücretsiz hesap oluşturun</p>
 
             {claimArtist && (
                 <div

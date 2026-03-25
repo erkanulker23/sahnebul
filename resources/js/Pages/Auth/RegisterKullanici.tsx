@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { useForm } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
@@ -65,7 +66,7 @@ export default function RegisterKullanici() {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('register.kullanici.store'), {
+        post(safeRoute('register.kullanici.store'), {
             onFinish: () => reset('password', 'password_confirmation'),
         });
     };

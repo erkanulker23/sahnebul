@@ -174,7 +174,7 @@ export default function VenuesIndex({
     const appUrl = seo?.appUrl ?? '';
     const defaultDesc =
         (page.props as { seo?: { defaultDescription?: string } }).seo?.defaultDescription ??
-        'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.';
+        'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; ücretsiz mekân ve etkinlik yönetimi.';
     const venuesListDesc =
         'Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da.';
     const homeJsonLd =
@@ -436,7 +436,7 @@ export default function VenuesIndex({
                                         Mekanınız burada listelenmiyor mu?
                                     </h2>
                                     <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
-                                        Sahnebul’da görünür olmak için mekan üyeliği oluşturun; onay sonrası mekanınız bu listede yer alır.
+                                        Ücretsiz hesapla mekânınızı ekleyin; admin onayı sonrası bu listede görünür.
                                     </p>
                                 </div>
                                 <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
@@ -446,7 +446,7 @@ export default function VenuesIndex({
                                                 href={route('register', { uyelik: 'mekan' })}
                                                 className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
                                             >
-                                                Üye ol, mekan üyeliği al
+                                                Üye ol, mekânını ekle
                                             </Link>
                                             <Link
                                                 href={route('login.mekan')}
@@ -466,10 +466,10 @@ export default function VenuesIndex({
                                     )}
                                     {isLoggedIn && !canAddVenue && (
                                         <Link
-                                            href={route('subscriptions.index', { type: 'venue' })}
+                                            href={route('register', { uyelik: 'mekan' })}
                                             className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
                                         >
-                                            Mekan üyeliği oluştur
+                                            Mekân eklemek için kayıt
                                         </Link>
                                     )}
                                 </div>

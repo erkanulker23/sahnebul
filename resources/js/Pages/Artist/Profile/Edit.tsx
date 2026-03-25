@@ -8,8 +8,7 @@ import SeoHead from '@/Components/SeoHead';
 export default function ArtistProfileEdit({
     mustVerifyEmail,
     status,
-    cities = [],
-}: PageProps<{ mustVerifyEmail: boolean; status?: string; cities?: { id: number; name: string; slug: string }[] }>) {
+}: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
     return (
         <ArtistLayout>
             <SeoHead title="Profil - Sahne Panel" description="Sahne paneli profil ayarları." noindex />
@@ -22,7 +21,7 @@ export default function ArtistProfileEdit({
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
-                        cities={cities}
+                        omitCityField
                         className="max-w-xl"
                     />
                 </div>

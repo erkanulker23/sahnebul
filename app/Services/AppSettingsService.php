@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AppSetting;
 use App\Models\Artist;
 use App\Models\Event;
+use App\Models\EventArtistReport;
 use App\Models\Review;
 use App\Models\Venue;
 use App\Support\AdPlacementCatalog;
@@ -329,7 +330,7 @@ class AppSettingsService
     /**
      * Admin badge sayıları — tek cache anahtarı, TTL kısa.
      *
-     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int}
+     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int, pending_event_artist_reports: int}
      */
     public function getAdminNotificationCounts(): array
     {
@@ -339,6 +340,9 @@ class AppSettingsService
                 'pending_artists' => Artist::where('status', 'pending')->count(),
                 'draft_events' => Event::where('status', 'draft')->count(),
                 'pending_reviews' => Review::where('is_approved', false)->count(),
+                'pending_event_artist_reports' => Schema::hasTable('event_artist_reports')
+                    ? EventArtistReport::where('status', EventArtistReport::STATUS_PENDING)->count()
+                    : 0,
             ];
         });
     }

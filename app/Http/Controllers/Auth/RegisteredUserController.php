@@ -130,6 +130,6 @@ class RegisteredUserController extends Controller
             return redirect(route('dashboard', absolute: false));
         }
 
-        return redirect(route('subscriptions.index', ['type' => 'venue'], false));
+        return redirect(route('artist.venues.create', absolute: false));
     }
 }

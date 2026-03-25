@@ -4,8 +4,9 @@ import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichConte
 import { eventShowParam } from '@/lib/eventShowUrl';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
-import { Link, router, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ExternalLink, MessageCircle, Ticket } from 'lucide-react';
+import { useState } from 'react';
 
 interface Artist {
     id: number;
@@ -56,17 +57,31 @@ interface Event {
     ticket_purchase_note?: string | null;
 }
 
+interface EventReviewRow {
+    id: number;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+    user: { id: number; name: string; avatar?: string | null };
+}
+
+interface UpcomingEventCard {
+    id: number;
+    slug: string;
+    title: string;
+    start_date: string;
+    ticket_price: number | null;
+    cover_image?: string | null;
+    listing_image?: string | null;
+    ticket_tiers?: TicketTier[];
+    venue?: { name: string; slug: string };
+}
+
 interface Props {
     event: Event;
-    relatedEvents: {
-        id: number;
-        slug: string;
-        title: string;
-        start_date: string;
-        ticket_price: number | null;
-        cover_image?: string | null;
-        ticket_tiers?: TicketTier[];
-    }[];
+    venueUpcomingEvents?: UpcomingEventCard[];
+    artistUpcomingEvents?: UpcomingEventCard[];
+    eventReviews?: EventReviewRow[];
     eventCustomerActions?: { canToggle: boolean; hasReminder: boolean };
 }
 
@@ -89,13 +104,91 @@ function minPriceFromEvent(ev: { ticket_price: number | null; ticket_tiers?: Tic
 
 type SharedSeo = { appUrl: string };
 
+function eventReviewStars(rating: number): string {
+    const n = Math.min(5, Math.max(1, Math.round(rating)));
+    return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
+}
+
+function upcomingCardImageSrc(path: string | null | undefined): string | null {
+    if (!path?.trim()) return null;
+    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+}
+
+function UpcomingEventsSection({
+    title,
+    description,
+    items,
+    showVenue,
+}: Readonly<{
+    title: string;
+    description?: string;
+    items: UpcomingEventCard[];
+    showVenue?: boolean;
+}>) {
+    if (items.length === 0) return null;
+    return (
+        <div className="mt-10">
+            <h2 className="font-display text-2xl font-bold">{title}</h2>
+            {description ? <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">{description}</p> : null}
+            <div className={`grid gap-4 sm:grid-cols-2 ${description ? 'mt-5' : 'mt-4'}`}>
+                {items.map((ev) => {
+                    const p = minPriceFromEvent(ev);
+                    const relatedCover = upcomingCardImageSrc(
+                        (ev.listing_image && ev.listing_image.trim() !== '' ? ev.listing_image : ev.cover_image) ?? null,
+                    );
+                    return (
+                        <div
+                            key={ev.id}
+                            className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60"
+                        >
+                            <Link href={route('events.show', eventShowParam(ev))} className="block">
+                                {relatedCover ? (
+                                    <img src={relatedCover} alt={ev.title} className="aspect-[16/9] w-full object-cover" />
+                                ) : null}
+                                <div className={relatedCover ? 'p-4 pt-3' : 'p-4'}>
+                                    <p className="font-semibold text-zinc-900 dark:text-white">{ev.title}</p>
+                                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                        {new Date(ev.start_date).toLocaleString('tr-TR', {
+                                            weekday: 'short',
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}
+                                    </p>
+                                    {p != null && <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">{formatTry(p)}</p>}
+                                </div>
+                            </Link>
+                            {showVenue && ev.venue ? (
+                                <div className="border-t border-zinc-100 px-4 py-3 dark:border-white/10">
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Mekân</p>
+                                    <Link
+                                        href={route('venues.show', ev.venue.slug)}
+                                        className="text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                    >
+                                        {ev.venue.name}
+                                    </Link>
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 export default function EventShow({
     event,
-    relatedEvents,
+    venueUpcomingEvents = [],
+    artistUpcomingEvents = [],
+    eventReviews = [],
     eventCustomerActions = { canToggle: false, hasReminder: false },
 }: Readonly<Props>) {
     const page = usePage();
-    const authed = Boolean((page.props as { auth?: { user?: unknown } }).auth?.user);
+    const authPayload = (page.props as { auth?: { user?: { id: number } | null } }).auth;
+    const authUser = authPayload?.user ?? null;
+    const authed = Boolean(authUser);
     const seo = (page.props as { seo?: SharedSeo }).seo;
     const appUrl = (seo?.appUrl ?? '').replace(/\/$/, '');
     const canonicalUrl = appUrl ? `${appUrl}/etkinlikler/${eventShowParam(event)}` : undefined;
@@ -141,6 +234,20 @@ export default function EventShow({
     ];
     const displayRules = rules.length > 0 ? rules : defaultRules;
     const ogImage = heroBackdrop;
+    const [eventReviewOpen, setEventReviewOpen] = useState(false);
+    const eventReviewForm = useForm({ rating: 5, comment: '' });
+    const hasEventReviewed = Boolean(authUser && eventReviews.some((r) => r.user.id === authUser.id));
+    const submitEventReview = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!authed || hasEventReviewed) return;
+        eventReviewForm.post(route('event-reviews.store', event.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                eventReviewForm.reset();
+                setEventReviewOpen(false);
+            },
+        });
+    };
     const socialEntries =
         event.venue.social_links && Object.keys(event.venue.social_links).length > 0
             ? sortVenueSocialEntries(event.venue.social_links)
@@ -525,6 +632,129 @@ export default function EventShow({
                     )}
                 </div>
 
+                <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
+                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik değerlendirmeleri</h2>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        Bu geceyi deneyimleyenlerin notları. Mekân yorumları için{' '}
+                        <Link href={route('venues.show', event.venue.slug)} className="text-amber-600 hover:underline dark:text-amber-400">
+                            mekân sayfasına
+                        </Link>{' '}
+                        göz atın.
+                    </p>
+                    {eventReviews.length > 0 && (
+                        <ul className="mt-5 space-y-4">
+                            {eventReviews.map((r) => {
+                                const av = imageSrc(r.user.avatar ?? null);
+                                return (
+                                    <li
+                                        key={r.id}
+                                        className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0 dark:border-white/10"
+                                    >
+                                        <div className="flex gap-3">
+                                            {av ? (
+                                                <img src={av} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                                                    {(r.user.name || '?').slice(0, 1).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-zinc-900 dark:text-white">{r.user.name}</p>
+                                                <p className="text-sm text-amber-600 dark:text-amber-400">
+                                                    {eventReviewStars(r.rating)}{' '}
+                                                    <span className="text-zinc-500 dark:text-zinc-400">{r.rating}/5</span>
+                                                </p>
+                                                {r.comment?.trim() ? (
+                                                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{r.comment}</p>
+                                                ) : null}
+                                                <p className="mt-1 text-xs text-zinc-400">
+                                                    {new Date(r.created_at).toLocaleString('tr-TR')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                    {authed && !hasEventReviewed && (
+                        <div className="mt-5">
+                            {!eventReviewOpen ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setEventReviewOpen(true)}
+                                    className="rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-500/15 dark:text-amber-200"
+                                >
+                                    Bu etkinliği değerlendir
+                                </button>
+                            ) : (
+                                <form onSubmit={submitEventReview} className="max-w-md space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-white/10 dark:bg-zinc-800/50">
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                                        Puan
+                                        <select
+                                            value={eventReviewForm.data.rating}
+                                            onChange={(e) => eventReviewForm.setData('rating', Number(e.target.value))}
+                                            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white"
+                                        >
+                                            {[5, 4, 3, 2, 1].map((n) => (
+                                                <option key={n} value={n}>
+                                                    {n} — {eventReviewStars(n)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                                        Yorum (isteğe bağlı)
+                                        <textarea
+                                            value={eventReviewForm.data.comment}
+                                            onChange={(e) => eventReviewForm.setData('comment', e.target.value)}
+                                            rows={3}
+                                            maxLength={2000}
+                                            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white"
+                                        />
+                                    </label>
+                                    {(eventReviewForm.errors as { rating?: string; comment?: string }).rating && (
+                                        <p className="text-sm text-red-600">
+                                            {(eventReviewForm.errors as { rating?: string }).rating}
+                                        </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="submit"
+                                            disabled={eventReviewForm.processing}
+                                            className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                                        >
+                                            Gönder
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setEventReviewOpen(false)}
+                                            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm dark:border-white/15"
+                                        >
+                                            Vazgeç
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    )}
+                    {!authed && (
+                        <p className="mt-4 text-sm text-zinc-500">
+                            Değerlendirme yapmak için{' '}
+                            <Link
+                                href={route('login', { redirect: `/etkinlikler/${eventShowParam(event)}` })}
+                                className="text-amber-600 hover:underline dark:text-amber-400"
+                            >
+                                giriş yapın
+                            </Link>
+                            .
+                        </p>
+                    )}
+                    {authed && hasEventReviewed && (
+                        <p className="mt-4 text-sm text-zinc-500">Bu etkinlik için zaten değerlendirme yaptınız.</p>
+                    )}
+                </div>
+
                 {event.artists.length > 0 && (
                     <div className="mt-8">
                         <h2 className="mb-4 font-display text-2xl font-bold">Performans Sanatçıları</h2>
@@ -548,37 +778,17 @@ export default function EventShow({
                     </div>
                 )}
 
-                        {relatedEvents.length > 0 && (
-                            <div className="mt-10">
-                                <h2 className="mb-4 font-display text-2xl font-bold">Aynı Mekandaki Diğer Etkinlikler</h2>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {relatedEvents.map((ev) => {
-                                        const p = minPriceFromEvent(ev);
-                                        const relatedCover = imageSrc(ev.cover_image ?? null);
-                                        return (
-                                            <Link
-                                                key={ev.id}
-                                                href={route('events.show', eventShowParam(ev))}
-                                                className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60"
-                                            >
-                                                {relatedCover && (
-                                                    <img
-                                                        src={relatedCover}
-                                                        alt={ev.title}
-                                                        className="aspect-[16/9] w-full object-cover"
-                                                    />
-                                                )}
-                                                <div className={relatedCover ? 'p-4 pt-3' : 'p-4'}>
-                                                    <p className="font-semibold text-zinc-900 dark:text-white">{ev.title}</p>
-                                                    <p className="mt-1 text-sm text-zinc-500">{new Date(ev.start_date).toLocaleDateString('tr-TR')}</p>
-                                                    {p != null && <p className="mt-2 text-sm text-amber-500">{formatTry(p)}</p>}
-                                                </div>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
+                        <UpcomingEventsSection
+                            title="Bu mekânda yaklaşan etkinlikler"
+                            description="Aynı mekânda, bugünden sonra gerçekleşecek diğer yayında etkinlikler (farklı sanatçılar dahil)."
+                            items={venueUpcomingEvents}
+                        />
+                        <UpcomingEventsSection
+                            title="Sanatçıların diğer yaklaşan etkinlikleri"
+                            description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
+                            items={artistUpcomingEvents}
+                            showVenue
+                        />
                     </div>
 
                     <aside className="mt-10 lg:mt-0">

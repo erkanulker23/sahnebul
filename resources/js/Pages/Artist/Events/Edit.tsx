@@ -4,12 +4,20 @@ import TicketSalesEditor, { emptyTicketOutletRow, inferTicketAcquisitionMode, ou
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
-import { useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
+
+interface EventArtistLineup {
+    id: number;
+    name: string;
+    slug?: string;
+    avatar?: string | null;
+    display_image?: string | null;
+}
 
 interface Event {
     id: number;
     venue_id: number;
-    artists?: { id: number; name: string }[];
+    artists?: EventArtistLineup[];
     title: string;
     description: string | null;
     event_rules: string | null;
@@ -28,15 +36,95 @@ interface Event {
 interface CatalogArtist {
     id: number;
     name: string;
+    avatar?: string | null;
+}
+
+interface PanelReviewRow {
+    id: number;
+    rating: number;
+    comment: string | null;
+    created_at: string | null;
+    user: { id: number; name: string; avatar?: string | null };
 }
 
 interface Props {
     event: Event;
     venues: { id: number; name: string }[];
     artists: CatalogArtist[];
+    venueReviews: PanelReviewRow[];
+    eventReviews: PanelReviewRow[];
 }
 
-export default function ArtistEventEdit({ event, venues, artists }: Readonly<Props>) {
+function storageSrc(path: string | null | undefined): string | null {
+    const p = path?.trim();
+    if (!p) return null;
+    if (p.startsWith('http://') || p.startsWith('https://')) return p;
+    return `/storage/${p}`;
+}
+
+function starLabel(rating: number): string {
+    const n = Math.min(5, Math.max(1, Math.round(rating)));
+    return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
+}
+
+function ReviewColumn({
+    title,
+    hint,
+    rows,
+}: Readonly<{ title: string; hint: string; rows: PanelReviewRow[] }>) {
+    return (
+        <div className="rounded-xl border border-white/10 bg-zinc-900/40 p-5">
+            <h2 className="font-display text-lg font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-xs text-zinc-500">{hint}</p>
+            {rows.length === 0 ? (
+                <p className="mt-4 text-sm text-zinc-500">Henüz değerlendirme yok.</p>
+            ) : (
+                <ul className="mt-4 max-h-80 space-y-4 overflow-y-auto pr-1">
+                    {rows.map((r) => (
+                        <li key={r.id} className="border-b border-white/5 pb-4 last:border-0 last:pb-0">
+                            <div className="flex items-start gap-3">
+                                {storageSrc(r.user.avatar) ? (
+                                    <img
+                                        src={storageSrc(r.user.avatar) ?? ''}
+                                        alt=""
+                                        className="mt-0.5 h-9 w-9 shrink-0 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs text-zinc-400">
+                                        {(r.user.name || '?').slice(0, 1).toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-zinc-200">{r.user.name}</p>
+                                    <p className="text-xs text-amber-500/90" aria-label={`${r.rating} üzerinden 5`}>
+                                        {starLabel(r.rating)}
+                                        <span className="ml-1.5 text-zinc-500">{r.rating}/5</span>
+                                    </p>
+                                    {r.comment?.trim() ? (
+                                        <p className="mt-1 text-sm text-zinc-400">{r.comment}</p>
+                                    ) : null}
+                                    {r.created_at ? (
+                                        <p className="mt-1 text-xs text-zinc-600">
+                                            {new Date(r.created_at).toLocaleString('tr-TR')}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+export default function ArtistEventEdit({
+    event,
+    venues,
+    artists,
+    venueReviews,
+    eventReviews,
+}: Readonly<Props>) {
     const { data, setData, put, processing, errors, transform } = useForm({
         venue_id: String(event.venue_id),
         artist_ids: (event.artists ?? []).map((a) => a.id),
@@ -65,15 +153,74 @@ export default function ArtistEventEdit({ event, venues, artists }: Readonly<Pro
         ticket_purchase_note: form.ticket_purchase_note.trim() || null,
     }));
 
+    const lineup = event.artists ?? [];
+
     return (
         <ArtistLayout>
             <SeoHead title={`${event.title} Düzenle - Sahnebul`} description="Etkinlik bilgilerini güncelleyin." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Etkinlik Düzenle</h1>
+            <h1 className="font-display mb-6 text-2xl font-bold text-white">Etkinlik Düzenle</h1>
 
-            <form onSubmit={(e) => { e.preventDefault(); put(route('artist.events.update', event.id)); }} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
+            {lineup.length > 0 && (
+                <section className="mb-8 max-w-2xl rounded-xl border border-white/10 bg-zinc-900/40 p-5">
+                    <h2 className="text-sm font-medium text-zinc-400">Sanatçı görselleri (sıra: headliner önce)</h2>
+                    <ul className="mt-4 flex flex-wrap gap-4">
+                        {lineup.map((a, i) => {
+                            const src = storageSrc(a.display_image ?? a.avatar);
+                            const href = a.slug ? route('artists.show', a.slug) : null;
+                            const inner = (
+                                <>
+                                    {src ? (
+                                        <img src={src} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-amber-500/30" />
+                                    ) : (
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-700 text-lg text-zinc-400 ring-2 ring-white/10">
+                                            🎤
+                                        </div>
+                                    )}
+                                    <span className="mt-2 max-w-[5.5rem] truncate text-center text-xs font-medium text-zinc-200">{a.name}</span>
+                                    <span className="text-[10px] text-zinc-500">{i === 0 ? 'Headliner' : `${i + 1}. sıra`}</span>
+                                </>
+                            );
+                            return (
+                                <li key={a.id} className="flex w-24 flex-col items-center">
+                                    {href ? (
+                                        <Link href={href} className="flex flex-col items-center hover:opacity-90">
+                                            {inner}
+                                        </Link>
+                                    ) : (
+                                        <div className="flex flex-col items-center">{inner}</div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            )}
+
+            <div className="mb-10 grid max-w-4xl gap-6 lg:grid-cols-2">
+                <ReviewColumn
+                    title="Mekân değerlendirmeleri"
+                    hint="Bu etkinliğin yapıldığı mekâna yazılmış onaylı yorumlar."
+                    rows={venueReviews}
+                />
+                <ReviewColumn
+                    title="Etkinlik değerlendirmeleri"
+                    hint="Ziyaretçilerin bu etkinlik sayfası üzerinden bıraktığı değerlendirmeler."
+                    rows={eventReviews}
+                />
+            </div>
+
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    put(route('artist.events.update', event.id));
+                }}
+                className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8"
+            >
                 <div>
-                    <label htmlFor="venue_id" className="block text-sm font-medium text-zinc-400">Mekan *</label>
+                    <label htmlFor="venue_id" className="block text-sm font-medium text-zinc-400">
+                        Mekan *
+                    </label>
                     <select
                         id="venue_id"
                         value={data.venue_id}
@@ -102,26 +249,70 @@ export default function ArtistEventEdit({ event, venues, artists }: Readonly<Pro
                     <p className="text-sm text-red-400">{errors.artist_ids ?? errors['artist_ids.0']}</p>
                 )}
                 <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-zinc-400">Etkinlik Adı *</label>
-                    <input id="title" value={data.title} onChange={(e) => setData('title', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                    <label htmlFor="title" className="block text-sm font-medium text-zinc-400">
+                        Etkinlik Adı *
+                    </label>
+                    <input
+                        id="title"
+                        value={data.title}
+                        onChange={(e) => setData('title', e.target.value)}
+                        required
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    />
                 </div>
                 <div>
-                    <label htmlFor="start_date" className="block text-sm font-medium text-zinc-400">Başlangıç *</label>
-                    <input id="start_date" type="datetime-local" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                    <label htmlFor="start_date" className="block text-sm font-medium text-zinc-400">
+                        Başlangıç *
+                    </label>
+                    <input
+                        id="start_date"
+                        type="datetime-local"
+                        value={data.start_date}
+                        onChange={(e) => setData('start_date', e.target.value)}
+                        required
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    />
                 </div>
                 <div>
-                    <label htmlFor="end_date" className="block text-sm font-medium text-zinc-400">Bitiş</label>
-                    <input id="end_date" type="datetime-local" value={data.end_date} onChange={(e) => setData('end_date', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                    <label htmlFor="end_date" className="block text-sm font-medium text-zinc-400">
+                        Bitiş
+                    </label>
+                    <input
+                        id="end_date"
+                        type="datetime-local"
+                        value={data.end_date}
+                        onChange={(e) => setData('end_date', e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label htmlFor="ticket_price" className="block text-sm font-medium text-zinc-400">Genel bilet fiyatı (₺)</label>
-                        <input id="ticket_price" type="number" step="0.01" min={0} value={data.ticket_price} onChange={(e) => setData('ticket_price', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <label htmlFor="ticket_price" className="block text-sm font-medium text-zinc-400">
+                            Genel bilet fiyatı (₺)
+                        </label>
+                        <input
+                            id="ticket_price"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            value={data.ticket_price}
+                            onChange={(e) => setData('ticket_price', e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                         <p className="mt-1 text-xs text-zinc-500">Kategori yoksa bu fiyat gösterilir.</p>
                     </div>
                     <div>
-                        <label htmlFor="capacity" className="block text-sm font-medium text-zinc-400">Kapasite</label>
-                        <input id="capacity" type="number" min={1} value={data.capacity} onChange={(e) => setData('capacity', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <label htmlFor="capacity" className="block text-sm font-medium text-zinc-400">
+                            Kapasite
+                        </label>
+                        <input
+                            id="capacity"
+                            type="number"
+                            min={1}
+                            value={data.capacity}
+                            onChange={(e) => setData('capacity', e.target.value)}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                     </div>
                 </div>
                 <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
@@ -159,13 +350,24 @@ export default function ArtistEventEdit({ event, venues, artists }: Readonly<Pro
                     />
                 </div>
                 <div>
-                    <label htmlFor="status" className="block text-sm font-medium text-zinc-400">Durum</label>
-                    <select id="status" value={data.status} onChange={(e) => setData('status', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white">
+                    <label htmlFor="status" className="block text-sm font-medium text-zinc-400">
+                        Durum
+                    </label>
+                    <select
+                        id="status"
+                        value={data.status}
+                        onChange={(e) => setData('status', e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    >
                         <option value="draft">Taslak</option>
                         <option value="published">Yayında</option>
                     </select>
                 </div>
-                <button type="submit" disabled={processing} className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50">
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                >
                     Güncelle
                 </button>
             </form>

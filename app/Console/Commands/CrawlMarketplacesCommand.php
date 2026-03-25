@@ -17,7 +17,7 @@ class CrawlMarketplacesCommand extends Command
         $limit = (int) $this->option('limit');
         $sync = (bool) $this->option('sync');
 
-        foreach ($import->import($sourceOption, $limit, $sync) as $result) {
+        foreach ($import->import($sourceOption, $limit, $sync, null, null, [], []) as $result) {
             $source = $result['source'];
 
             if (! empty($result['error'])) {

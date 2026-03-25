@@ -6,9 +6,18 @@ function matchesTr(haystack: string, needle: string): boolean {
     return haystack.toLocaleLowerCase('tr-TR').includes(n.toLocaleLowerCase('tr-TR'));
 }
 
+function storageImageUrl(path: string | null | undefined): string | null {
+    const p = path?.trim();
+    if (!p) return null;
+    if (p.startsWith('http://') || p.startsWith('https://')) return p;
+    return `/storage/${p}`;
+}
+
 export interface ArtistOption {
     id: number;
     name: string;
+    /** Kapak / avatar (storage yolu veya tam URL) */
+    avatar?: string | null;
 }
 
 interface Props {
@@ -72,14 +81,23 @@ export default function AdminArtistMultiSelect({
                 ) : (
                     <ul className="flex flex-wrap gap-2">
                         {value.map((artistId, index) => {
-                            const name = idToArtist.get(artistId)?.name ?? `#${artistId}`;
+                            const opt = idToArtist.get(artistId);
+                            const name = opt?.name ?? `#${artistId}`;
+                            const av = storageImageUrl(opt?.avatar);
                             return (
                                 <li
                                     key={artistId}
-                                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 pl-3 pr-1 py-1 text-sm text-zinc-100"
+                                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 pl-1.5 pr-1 py-1 text-sm text-zinc-100"
                                 >
                                     {showOrderControls && (
                                         <span className="shrink-0 tabular-nums text-xs text-amber-500/90">{index + 1}.</span>
+                                    )}
+                                    {av ? (
+                                        <img src={av} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                                    ) : (
+                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs text-zinc-400" aria-hidden>
+                                            🎤
+                                        </span>
                                     )}
                                     <span className="min-w-0 truncate font-medium">{name}</span>
                                     {showOrderControls && value.length > 1 && (
@@ -140,17 +158,27 @@ export default function AdminArtistMultiSelect({
                         <p className="px-3 py-3 text-sm text-zinc-500">Aramanızla eşleşen sanatçı yok.</p>
                     ) : (
                         <ul className="divide-y divide-zinc-700/80">
-                            {availableFiltered.map((a) => (
-                                <li key={a.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => add(a.id)}
-                                        className="flex w-full items-center px-3 py-2.5 text-left text-sm text-zinc-100 hover:bg-zinc-700/70"
-                                    >
-                                        {a.name}
-                                    </button>
-                                </li>
-                            ))}
+                            {availableFiltered.map((a) => {
+                                const av = storageImageUrl(a.avatar);
+                                return (
+                                    <li key={a.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => add(a.id)}
+                                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-zinc-100 hover:bg-zinc-700/70"
+                                        >
+                                            {av ? (
+                                                <img src={av} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                                            ) : (
+                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs" aria-hidden>
+                                                    🎤
+                                                </span>
+                                            )}
+                                            <span className="min-w-0 truncate">{a.name}</span>
+                                        </button>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>

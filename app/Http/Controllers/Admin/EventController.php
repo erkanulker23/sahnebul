@@ -37,6 +37,19 @@ class EventController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $events->getCollection()->transform(function (Event $event) {
+            $visible = $event->status === 'published'
+                && $event->venue !== null
+                && $event->venue->status === 'approved';
+            $event->setAttribute('visible_on_site', $visible);
+            $event->setAttribute(
+                'public_event_url',
+                $visible ? route('events.show', ['event' => $event->publicUrlSegment()], absolute: true) : null,
+            );
+
+            return $event;
+        });
+
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
             'filters' => array_filter($request->only(['status', 'venue_id']), fn ($v) => $v !== null && $v !== ''),
@@ -55,6 +68,7 @@ class EventController extends Controller
             'capacity' => $request->input('capacity') ?: null,
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
+            'listing_image' => $request->input('listing_image') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -95,6 +109,8 @@ class EventController extends Controller
             'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
             'cover_image' => 'nullable|string|max:2048',
             'cover_upload' => 'nullable|image|max:10240',
+            'listing_image' => 'nullable|string|max:2048',
+            'listing_upload' => 'nullable|image|max:10240',
             'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
@@ -105,9 +121,12 @@ class EventController extends Controller
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
 
-        unset($validated['cover_upload']);
+        unset($validated['cover_upload'], $validated['listing_upload']);
         if ($request->hasFile('cover_upload')) {
             $validated['cover_image'] = $request->file('cover_upload')->store('event-covers', 'public');
+        }
+        if ($request->hasFile('listing_upload')) {
+            $validated['listing_image'] = $request->file('listing_upload')->store('event-listings', 'public');
         }
 
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''
@@ -159,6 +178,7 @@ class EventController extends Controller
             'capacity' => $request->input('capacity') ?: null,
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
+            'listing_image' => $request->input('listing_image') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -199,6 +219,8 @@ class EventController extends Controller
             'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
             'cover_image' => 'nullable|string|max:2048',
             'cover_upload' => 'nullable|image|max:10240',
+            'listing_image' => 'nullable|string|max:2048',
+            'listing_upload' => 'nullable|image|max:10240',
             'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
@@ -209,12 +231,18 @@ class EventController extends Controller
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
 
-        unset($validated['cover_upload']);
+        unset($validated['cover_upload'], $validated['listing_upload']);
         if ($request->hasFile('cover_upload')) {
             if ($event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($event->cover_image);
             }
             $validated['cover_image'] = $request->file('cover_upload')->store('event-covers', 'public');
+        }
+        if ($request->hasFile('listing_upload')) {
+            if ($event->listing_image && ! Str::startsWith($event->listing_image, ['http://', 'https://'])) {
+                Storage::disk('public')->delete($event->listing_image);
+            }
+            $validated['listing_image'] = $request->file('listing_upload')->store('event-listings', 'public');
         }
 
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''
@@ -291,8 +319,11 @@ class EventController extends Controller
 
     private function performEventDelete(Event $event): void
     {
-        if ($event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {
-            Storage::disk('public')->delete($event->cover_image);
+        foreach (['cover_image', 'listing_image'] as $field) {
+            $path = $event->{$field} ?? null;
+            if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
+                Storage::disk('public')->delete($path);
+            }
         }
         $event->delete();
     }

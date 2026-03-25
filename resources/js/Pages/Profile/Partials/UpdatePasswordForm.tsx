@@ -2,14 +2,17 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { cn } from '@/lib/cn';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 
 export default function UpdatePasswordForm({
     className = '',
+    omitSectionHeader = false,
 }: {
     className?: string;
+    omitSectionHeader?: boolean;
 }) {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
@@ -50,15 +53,16 @@ export default function UpdatePasswordForm({
 
     return (
         <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">Şifre güncelle</h2>
+            {!omitSectionHeader && (
+                <header>
+                    <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Şifre güncelle</h2>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        Güvenliğiniz için uzun ve tahmin edilmesi zor bir şifre kullanın.
+                    </p>
+                </header>
+            )}
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Güvenliğiniz için uzun ve tahmin edilmesi zor bir şifre kullanın.
-                </p>
-            </header>
-
-            <form onSubmit={updatePassword} className="mt-6 space-y-6">
+            <form onSubmit={updatePassword} className={cn(omitSectionHeader ? 'space-y-6' : 'mt-6 space-y-6')}>
                 <div>
                     <InputLabel htmlFor="current_password" value="Mevcut şifre" />
 
@@ -126,7 +130,7 @@ export default function UpdatePasswordForm({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">Kaydedildi.</p>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-400">Kaydedildi.</p>
                     </Transition>
                 </div>
             </form>

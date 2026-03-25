@@ -71,7 +71,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('subscriptions.index', ['type' => 'venue'], false));
+        $response->assertRedirect(route('artist.venues.create', absolute: false));
         $this->assertDatabaseHas('users', [
             'email' => 'venue@example.com',
             'role' => 'customer',

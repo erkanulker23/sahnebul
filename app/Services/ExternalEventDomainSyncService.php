@@ -13,6 +13,10 @@ use Illuminate\Support\Str;
 
 class ExternalEventDomainSyncService
 {
+    public function __construct(
+        private readonly CrawlRemoteImageStorage $crawlRemoteImageStorage,
+    ) {}
+
     public function syncToDomain(ExternalEvent $external): ?Event
     {
         $cityName = $this->resolveCityName($external);
@@ -38,6 +42,8 @@ class ExternalEventDomainSyncService
             return null;
         }
 
+        $coverImage = $this->normalizedCrawlImage($external->image_url);
+
         $event = Event::updateOrCreate(
             [
                 'venue_id' => $venue->id,
@@ -48,7 +54,7 @@ class ExternalEventDomainSyncService
                 'description' => trim(($external->description ?? '')."\n\nKaynak: ".($external->external_url ?? $external->source)),
                 'start_date' => $startDate,
                 'status' => 'draft',
-                'cover_image' => $external->image_url,
+                'cover_image' => $coverImage,
             ]
         );
 
@@ -78,8 +84,9 @@ class ExternalEventDomainSyncService
 
         if ($venue !== null) {
             $updates = [];
-            if (($venue->cover_image === null || $venue->cover_image === '') && $external->image_url) {
-                $updates['cover_image'] = $external->image_url;
+            $venueImg = $this->normalizedCrawlImage($external->image_url);
+            if (($venue->cover_image === null || $venue->cover_image === '') && $venueImg) {
+                $updates['cover_image'] = $venueImg;
             }
             if ($street !== '' && ($venue->address === null || $venue->address === '' || $venue->address === $venue->name.', '.$cityName)) {
                 $updates['address'] = $street;
@@ -121,9 +128,20 @@ class ExternalEventDomainSyncService
             'address' => $address,
             'latitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $latF : null,
             'longitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $lngF : null,
-            'cover_image' => $external->image_url,
+            'cover_image' => $this->normalizedCrawlImage($external->image_url),
             'status' => 'approved',
         ]);
+    }
+
+    private function normalizedCrawlImage(?string $url): ?string
+    {
+        if ($url === null || trim($url) === '') {
+            return null;
+        }
+
+        $stored = $this->crawlRemoteImageStorage->persistPublicIfRemote($url, 'external-events');
+
+        return $stored ?? $url;
     }
 
     private function attachArtistsFromExternalMeta(Event $event, ExternalEvent $external): void

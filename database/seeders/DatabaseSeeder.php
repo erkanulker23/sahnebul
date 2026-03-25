@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AppSettingSeeder::class,
             SubscriptionPlanSeeder::class,
             DemoProfileUsersSeeder::class,
+            CemAdrianDemoSeeder::class,
             BlogPostSeeder::class,
         ]);
 

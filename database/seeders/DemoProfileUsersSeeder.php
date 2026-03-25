@@ -15,11 +15,15 @@ class DemoProfileUsersSeeder extends Seeder
     /**
      * Yerel geliştirme için: profil düzenleme / sahne paneli test hesapları.
      *
-     * - Mekan sahibi: Gold + onaylı bir mekana user_id atanır
-     * - Sanatçı: Gold + bir Artist kaydına user_id atanır
+     * - Mekan sahibi: customer + Gold (venue) + onaylı mekana user_id — /giris/mekan ve /sahne uyumlu
+     * - Sanatçı: artist + bir Artist kaydına user_id atanır
      */
     public function run(): void
     {
+        if (! SubscriptionPlan::query()->where('slug', 'gold-monthly')->exists()) {
+            $this->call(SubscriptionPlanSeeder::class);
+        }
+
         $goldPlan = SubscriptionPlan::query()->where('slug', 'gold-monthly')->first();
         if (! $goldPlan) {
             return;
@@ -30,7 +34,7 @@ class DemoProfileUsersSeeder extends Seeder
             [
                 'name' => 'Demo Mekan Sahibi',
                 'password' => Hash::make('password'),
-                'role' => 'artist',
+                'role' => 'customer',
                 'email_verified_at' => now(),
                 'is_active' => true,
             ]

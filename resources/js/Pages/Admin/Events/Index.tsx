@@ -12,7 +12,9 @@ interface Event {
     status: string;
     ticket_price: number | null;
     view_count?: number;
-    venue: { name: string };
+    venue: { name: string; status?: string };
+    visible_on_site?: boolean;
+    public_event_url?: string | null;
 }
 
 interface Props {
@@ -123,6 +125,24 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                         {eventStatusTr(e.status)}
                     </span>
                 ),
+            },
+            {
+                key: 'public_site',
+                header: 'Sitede gör',
+                mobileLabel: 'Sitede gör',
+                cell: (e) =>
+                    e.visible_on_site && e.public_event_url ? (
+                        <a
+                            href={e.public_event_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex font-medium text-amber-600 hover:underline dark:text-amber-400"
+                        >
+                            Sitede gör
+                        </a>
+                    ) : (
+                        <span className="text-zinc-400 dark:text-zinc-500">—</span>
+                    ),
             },
             {
                 key: 'views',

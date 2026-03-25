@@ -55,10 +55,10 @@ class PanelAccessTest extends TestCase
         $this->get('/sahne')->assertRedirect(route('login.sanatci', absolute: false));
     }
 
-    public function test_artist_without_gold_is_redirected_from_sahne_panel(): void
+    public function test_artist_can_open_sahne_panel_without_gold(): void
     {
         $user = User::factory()->artist()->create();
 
-        $this->actingAs($user)->get('/sahne')->assertRedirect(route('subscriptions.index', absolute: false));
+        $this->actingAs($user)->get('/sahne')->assertOk();
     }
 }

@@ -74,7 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 /** Hesaba bağlı onaylı sanatçı kaydı (sahne paneli — sanatçı sayfası düzenleme) */
                 'linkedArtist' => $user !== null
-                    ? Artist::query()->where('user_id', $user->id)->first(['id', 'name', 'slug'])
+                    ? Artist::query()->where('user_id', $user->id)->first(['id', 'name', 'slug', 'avatar'])
                     : null,
                 /** Aktif Gold (aylık/yıllık mekan paketi) — /sahne rotalarına giriş */
                 'has_active_gold' => $user !== null && $user->hasActiveGoldSubscription(),
@@ -82,10 +82,21 @@ class HandleInertiaRequests extends Middleware
                  * Sanatçı + en az bir bağlı mekan: üst menüde tek hesap girişi, Rezervasyonlarım gizli.
                  * Gold yoksa buton abonelik sayfasına gider.
                  */
-                'sahne_compact_nav' => $user !== null && $user->isArtist() && ($user->venues_count ?? 0) > 0,
+                'sahne_compact_nav' => $user !== null && (
+                    ($user->venues_count ?? 0) > 0
+                    || (is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '')
+                ),
                 /** admin / super_admin: müşteri rezervasyon menüsü ve akışı kapalı */
                 'is_platform_admin' => $user !== null && $user->isAdmin(),
                 'is_super_admin' => $user !== null && $user->isSuperAdmin(),
+                /**
+                 * Saf sanatçı (rol artist, mekân yok, bekleyen mekân kaydı yok): panelde Mekanlarım / Rezervasyonlar gizlenir.
+                 */
+                'artist_panel_show_venue_nav' => $user !== null && (
+                    ! $user->isArtist()
+                    || ($user->venues_count ?? 0) > 0
+                    || (is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '')
+                ),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

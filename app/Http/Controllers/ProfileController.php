@@ -21,11 +21,12 @@ class ProfileController extends Controller
         if ($user->isAdmin()) {
             return redirect()->route('admin.profile');
         }
-        if ($user->isArtist() && $user->hasActiveGoldSubscription()) {
+        if ($user->isArtist()) {
             return redirect()->route('artist.profile');
         }
 
         $cities = City::query()->turkiyeProvinces()->get(['id', 'name', 'slug']);
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
@@ -54,7 +55,7 @@ class ProfileController extends Controller
 
         $redirect = match (true) {
             $user->isAdmin() => 'admin.profile',
-            $user->isArtist() && $user->hasActiveGoldSubscription() => 'artist.profile',
+            $user->isArtist() => 'artist.profile',
             default => 'profile.edit',
         };
 

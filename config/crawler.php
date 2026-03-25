@@ -22,4 +22,13 @@ return [
     ],
     'user_agent' => 'SahnebulBot/1.0 (+https://sahnebul.com)',
     'timeout' => 20,
+
+    /**
+     * Admin “Verileri çek” / önizleme HTTP isteği — çok sayıda harici sayfa açıldığı için
+     * PHP varsayılan 30 sn yetmez. Sunucu (nginx/php-fpm) limitlerini de gerektiğinde yükseltin.
+     */
+    'max_execution_seconds' => (int) env('CRAWLER_MAX_EXECUTION_SECONDS', 300),
+
+    /** Biletinial liste sonrası açılacak etkinlik detay URL sayısı üst sınırı (her biri ~0,1 sn + HTTP). */
+    'biletinial_max_detail_pages' => (int) env('BILETINIAL_CRAWL_MAX_DETAIL_PAGES', 55),
 ];

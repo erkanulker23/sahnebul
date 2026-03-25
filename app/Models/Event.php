@@ -12,7 +12,7 @@ class Event extends Model
 {
     protected $fillable = [
         'venue_id', 'title', 'slug', 'description', 'start_date', 'end_date',
-        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'status',
+        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'status',
         'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
     ];
 
@@ -38,6 +38,11 @@ class Event extends Model
             ->withTimestamps();
     }
 
+    public function artistReports(): HasMany
+    {
+        return $this->hasMany(EventArtistReport::class);
+    }
+
     /**
      * @param  list<int|string>  $artistIds
      */
@@ -55,6 +60,11 @@ class Event extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public function eventReviews(): HasMany
+    {
+        return $this->hasMany(EventReview::class);
     }
 
     public function ticketTiers(): HasMany

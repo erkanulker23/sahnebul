@@ -14,10 +14,18 @@ class EnsureUserIsArtist
             abort(403, 'Bu sayfaya erişim için giriş gerekli.');
         }
 
-        if (! $request->user()->isArtist() && ! $request->user()->hasActiveMembership('venue')) {
-            abort(403, 'Bu sayfaya erişim için aktif Mekan Üyeliği gerekli.');
+        $user = $request->user();
+        $pendingVenue = is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '';
+
+        if (
+            $user->isArtist()
+            || $user->hasActiveMembership('venue')
+            || $pendingVenue
+            || $user->venues()->exists()
+        ) {
+            return $next($request);
         }
 
-        return $next($request);
+        abort(403, 'Bu sayfaya erişim için sanatçı hesabı veya mekân yönetimi yetkisi gerekir.');
     }
 }

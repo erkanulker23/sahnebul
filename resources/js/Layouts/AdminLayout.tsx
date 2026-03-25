@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
 import {
+    AlertTriangle,
     Building2,
     Calendar,
     ChevronDown,
@@ -44,6 +45,7 @@ const navItems: { href: string; label: string; icon: typeof LayoutDashboard }[] 
     { href: 'admin.artist-claims.index', label: 'Sanatçı Sahiplenme', icon: Mic2 },
     { href: 'admin.reservations.index', label: 'Rezervasyonlar', icon: ClipboardList },
     { href: 'admin.reviews.index', label: 'Yorumlar', icon: MessageSquare },
+    { href: 'admin.event-artist-reports.index', label: 'Kadro raporları', icon: AlertTriangle },
     { href: 'admin.categories.index', label: 'Kategoriler', icon: Folder },
     { href: 'admin.cities.index', label: 'Şehirler', icon: MapPin },
     { href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
@@ -59,6 +61,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             pending_artists: number;
             draft_events: number;
             pending_reviews: number;
+            pending_event_artist_reports: number;
         } | null;
     };
     const isSuperAdmin = pageProps.auth?.is_super_admin === true;
@@ -89,6 +92,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             pending_artists: n?.pending_artists ?? 0,
             draft_events: n?.draft_events ?? 0,
             pending_reviews: n?.pending_reviews ?? 0,
+            pending_event_artist_reports: n?.pending_event_artist_reports ?? 0,
         };
     }, [pageProps.adminNotifications]);
 
@@ -97,7 +101,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             notificationCounts.pending_venues +
             notificationCounts.pending_artists +
             notificationCounts.draft_events +
-            notificationCounts.pending_reviews,
+            notificationCounts.pending_reviews +
+            notificationCounts.pending_event_artist_reports,
         [notificationCounts],
     );
 
@@ -290,6 +295,15 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                                     <span>Yorum onayı</span>
                                     <span className={notifBadgeClass(notificationCounts.pending_reviews)}>
                                         {notificationCounts.pending_reviews}
+                                    </span>
+                                </Dropdown.Link>
+                                <Dropdown.Link
+                                    href={route('admin.event-artist-reports.index', { status: 'pending' })}
+                                    className={notifLinkClass}
+                                >
+                                    <span>Kadro / etkinlik raporu</span>
+                                    <span className={notifBadgeClass(notificationCounts.pending_event_artist_reports)}>
+                                        {notificationCounts.pending_event_artist_reports}
                                     </span>
                                 </Dropdown.Link>
                                 <div className="mt-1 border-t border-zinc-100 pt-1 dark:border-zinc-800">

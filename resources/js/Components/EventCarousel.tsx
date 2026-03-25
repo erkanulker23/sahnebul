@@ -15,6 +15,7 @@ export interface CarouselEvent {
     };
     artists: { id: number; name: string; slug: string }[];
     cover_image?: string | null;
+    listing_image?: string | null;
 }
 
 function imageSrc(path: string | null | undefined): string | null {
@@ -121,7 +122,13 @@ export default function EventCarousel({
                     ref={scrollRef}
                     className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
-                    {events.map((event) => (
+                    {events.map((event) => {
+                        const cardImg =
+                            event.listing_image && event.listing_image.trim() !== ''
+                                ? event.listing_image
+                                : event.cover_image;
+                        const cardSrc = imageSrc(cardImg ?? null);
+                        return (
                         <Link
                             key={event.id}
                             data-carousel-card
@@ -129,9 +136,9 @@ export default function EventCarousel({
                             className={`group relative min-w-[min(100%,320px)] max-w-[320px] shrink-0 snap-start overflow-hidden rounded-2xl border bg-white/90 shadow-sm transition dark:bg-zinc-900/60 ${ring}`}
                         >
                             <div className="relative h-36 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
-                                {imageSrc(event.cover_image ?? null) ? (
+                                {cardSrc ? (
                                     <img
-                                        src={imageSrc(event.cover_image ?? null) ?? ''}
+                                        src={cardSrc}
                                         alt=""
                                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                     />
@@ -192,7 +199,8 @@ export default function EventCarousel({
                                 )}
                             </div>
                         </Link>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </section>

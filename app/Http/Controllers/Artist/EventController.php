@@ -5,43 +5,142 @@ namespace App\Http\Controllers\Artist;
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\Event;
+use App\Models\EventArtistReport;
+use App\Models\EventReview;
+use App\Models\Review;
+use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $venueIds = $request->user()->venues()->pluck('id');
-        $events = Event::whereIn('venue_id', $venueIds)
-            ->with(['venue', 'ticketTiers', 'artists:id,name'])
-            ->latest('start_date')
-            ->paginate(15);
+        $user = $request->user();
+        $artistIds = Artist::query()->where('user_id', $user->id)->pluck('id');
 
-        $events->getCollection()->transform(function (Event $e): Event {
+        $filter = $request->query('filter', 'all');
+        if (! in_array($filter, ['all', 'upcoming', 'past', 'draft'], true)) {
+            $filter = 'all';
+        }
+
+        $base = $this->eventsQueryForUser($user);
+        $stats = [
+            'total' => (clone $base)->count(),
+            'upcoming' => (clone $base)->whereNotNull('start_date')->where('start_date', '>=', now())->count(),
+            'past' => (clone $base)->whereNotNull('start_date')->where('start_date', '<', now())->count(),
+            'drafts' => (clone $base)->where('status', 'draft')->count(),
+        ];
+
+        $events = (clone $base)
+            ->with(['venue:id,name,slug,user_id', 'ticketTiers', 'artists:id,name'])
+            ->when($filter === 'upcoming', fn (Builder $q) => $q->whereNotNull('start_date')->where('start_date', '>=', now()))
+            ->when($filter === 'past', fn (Builder $q) => $q->whereNotNull('start_date')->where('start_date', '<', now()))
+            ->when($filter === 'draft', fn (Builder $q) => $q->where('status', 'draft'))
+            ->when($filter === 'upcoming', fn (Builder $q) => $q->orderBy('start_date'))
+            ->when($filter === 'past', fn (Builder $q) => $q->orderByDesc('start_date'))
+            ->when($filter === 'draft', fn (Builder $q) => $q->latest('updated_at'))
+            ->when($filter === 'all', fn (Builder $q) => $q->latest('start_date'))
+            ->paginate(15)
+            ->appends(['filter' => $filter]);
+
+        $eventIds = $events->getCollection()->pluck('id')->filter()->values();
+        $reportsByEventId = collect();
+        if ($artistIds->isNotEmpty() && $eventIds->isNotEmpty()) {
+            $reportsByEventId = EventArtistReport::query()
+                ->whereIn('event_id', $eventIds)
+                ->whereIn('artist_id', $artistIds)
+                ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [EventArtistReport::STATUS_PENDING])
+                ->orderByDesc('created_at')
+                ->get()
+                ->unique('event_id')
+                ->keyBy('event_id');
+        }
+
+        $events->getCollection()->transform(function (Event $e) use ($user, $reportsByEventId): Event {
             $e->setAttribute(
                 'public_url_segment',
                 $e->status === 'published' ? $e->publicUrlSegment() : null
+            );
+            $e->setAttribute('panel_can_edit', (int) $e->venue->user_id === (int) $user->id);
+            $min = $e->minPrice();
+            $e->setAttribute('min_price', $min !== null ? round($min, 2) : null);
+
+            $r = $reportsByEventId->get($e->id);
+            $e->setAttribute(
+                'artist_report',
+                $r !== null ? ['status' => $r->status, 'id' => $r->id] : null
             );
 
             return $e;
         });
 
-        return Inertia::render('Artist/Events/Index', ['events' => $events]);
+        $canCreateEvent = $user->venues()->where('status', 'approved')->exists()
+            || Artist::query()->where('user_id', $user->id)->where('status', 'approved')->exists();
+
+        return Inertia::render('Artist/Events/Index', [
+            'events' => $events,
+            'canCreateEvent' => $canCreateEvent,
+            'stats' => $stats,
+            'filter' => $filter,
+        ]);
+    }
+
+    private function eventsQueryForUser(User $user): Builder
+    {
+        $venueIds = $user->venues()->pluck('id');
+        $artistIds = Artist::query()->where('user_id', $user->id)->pluck('id');
+
+        return Event::query()
+            ->where(function ($q) use ($venueIds, $artistIds) {
+                if ($venueIds->isNotEmpty()) {
+                    $q->whereIn('venue_id', $venueIds);
+                }
+                if ($artistIds->isNotEmpty()) {
+                    $method = $venueIds->isNotEmpty() ? 'orWhereHas' : 'whereHas';
+                    $q->{$method}('artists', fn ($a) => $a->whereIn('artists.id', $artistIds));
+                }
+                if ($venueIds->isEmpty() && $artistIds->isEmpty()) {
+                    $q->whereRaw('0 = 1');
+                }
+            });
     }
 
     public function create(Request $request)
     {
-        $venues = $request->user()->venues()->where('status', 'approved')->get();
-        if ($venues->isEmpty()) {
-            return redirect()
-                ->route('artist.venues.create')
-                ->with('error', 'Etkinlik eklemek için önce bir mekan kaydı oluşturup onay alın. Mekanınız yoksa “Mekan ekle” ile başlayın.');
+        $user = $request->user();
+        $ownVenues = $user->venues()->where('status', 'approved')->orderBy('name')->get(['id', 'name', 'slug']);
+
+        if ($ownVenues->isNotEmpty()) {
+            $venues = $ownVenues;
+            $venuePickerMode = 'own';
+            $venueSearch = '';
+        } else {
+            $hasLinkedArtist = Artist::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->exists();
+
+            if (! $hasLinkedArtist) {
+                return redirect()
+                    ->route('artist.events.index')
+                    ->with('error', 'Etkinlik oluşturmak için onaylı bir mekânınız veya onaylı bir sanatçı profiliniz olmalıdır.');
+            }
+
+            $search = $request->string('venue_search')->trim()->toString();
+            $query = Venue::query()->approved()->with(['city:id,name']);
+            if ($search !== '') {
+                $term = '%'.addcslashes($search, '%_\\').'%';
+                $query->where('name', 'like', $term);
+            }
+            $venues = $query->orderBy('name')->limit(100)->get(['id', 'name', 'slug', 'city_id']);
+            $venuePickerMode = 'catalog';
+            $venueSearch = $search;
         }
 
         $artists = Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);
@@ -52,6 +151,8 @@ class EventController extends Controller
 
         return Inertia::render('Artist/Events/Create', [
             'venues' => $venues,
+            'venuePickerMode' => $venuePickerMode,
+            'venueSearch' => $venueSearch,
             'artists' => $artists,
             'defaultArtistId' => $defaultArtistId,
         ]);
@@ -70,7 +171,31 @@ class EventController extends Controller
             'venue_id' => [
                 'required',
                 'integer',
-                Rule::exists('venues', 'id')->where(fn ($q) => $q->where('user_id', $request->user()->id)->where('status', 'approved')),
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $id = (int) $value;
+                    if ($id <= 0) {
+                        $fail('Geçerli bir mekân seçin.');
+
+                        return;
+                    }
+                    $venue = Venue::query()->whereKey($id)->where('status', 'approved')->first();
+                    if ($venue === null) {
+                        $fail('Seçilen mekân bulunamadı veya onaylı değil.');
+
+                        return;
+                    }
+                    $user = $request->user();
+                    if ((int) $venue->user_id === (int) $user->id) {
+                        return;
+                    }
+                    $canPickForeignVenue = Artist::query()
+                        ->where('user_id', $user->id)
+                        ->where('status', 'approved')
+                        ->exists();
+                    if (! $canPickForeignVenue) {
+                        $fail('Etkinlik yalnızca kendi onaylı mekânınızda oluşturulabilir.');
+                    }
+                },
             ],
             'artist_ids' => 'nullable|array',
             'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
@@ -127,6 +252,19 @@ class EventController extends Controller
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
 
+        $linkedArtistId = Artist::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'approved')
+            ->value('id');
+
+        if ($linkedArtistId !== null) {
+            $ids = is_array($artistIds) ? array_map('intval', $artistIds) : [];
+            $ids = array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
+            $ids = array_values(array_diff($ids, [(int) $linkedArtistId]));
+            array_unshift($ids, (int) $linkedArtistId);
+            $artistIds = $ids;
+        }
+
         $event = DB::transaction(function () use ($validated, $ticketTiers, $artistIds): Event {
             $event = Event::create($validated);
             $event->syncTicketTiers($ticketTiers);
@@ -140,10 +278,20 @@ class EventController extends Controller
 
     public function edit(Request $request, Event $event)
     {
-        if ($event->venue->user_id !== $request->user()->id) {
-            abort(403);
+        if ((int) $event->venue->user_id !== (int) $request->user()->id) {
+            abort(403, 'Bu etkinliği yalnızca mekân sahibi düzenleyebilir.');
         }
-        $event->load(['venue', 'ticketTiers', 'artists:id,name']);
+        $event->load([
+            'venue',
+            'ticketTiers',
+            'artists' => fn ($q) => $q
+                ->select('artists.id', 'artists.name', 'artists.slug', 'artists.avatar')
+                ->orderByPivot('is_headliner', 'desc')
+                ->orderByPivot('order')
+                ->with(['media' => fn ($m) => $m->orderBy('order')->limit(1)]),
+        ]);
+        Artist::hydrateDisplayImages($event->artists);
+
         $venues = $request->user()->venues()
             ->where(function ($q) use ($event) {
                 $q->where('status', 'approved')
@@ -151,19 +299,63 @@ class EventController extends Controller
             })
             ->orderBy('name')
             ->get();
-        $artists = Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);
+        $artists = Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']);
+
+        $venueReviews = Review::query()
+            ->where('venue_id', $event->venue_id)
+            ->where('is_approved', true)
+            ->with('user:id,name,avatar')
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (Review $r) => [
+                'id' => $r->id,
+                'rating' => $r->rating,
+                'comment' => $r->comment,
+                'created_at' => $r->created_at?->toIso8601String(),
+                'user' => [
+                    'id' => $r->user->id,
+                    'name' => $r->user->name,
+                    'avatar' => $r->user->avatar,
+                ],
+            ])
+            ->values()
+            ->all();
+
+        $eventReviews = EventReview::query()
+            ->where('event_id', $event->id)
+            ->where('is_approved', true)
+            ->with('user:id,name,avatar')
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (EventReview $r) => [
+                'id' => $r->id,
+                'rating' => $r->rating,
+                'comment' => $r->comment,
+                'created_at' => $r->created_at?->toIso8601String(),
+                'user' => [
+                    'id' => $r->user->id,
+                    'name' => $r->user->name,
+                    'avatar' => $r->user->avatar,
+                ],
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('Artist/Events/Edit', [
             'event' => $event,
             'venues' => $venues,
             'artists' => $artists,
+            'venueReviews' => $venueReviews,
+            'eventReviews' => $eventReviews,
         ]);
     }
 
     public function update(Request $request, Event $event)
     {
-        if ($event->venue->user_id !== $request->user()->id) {
-            abort(403);
+        if ((int) $event->venue->user_id !== (int) $request->user()->id) {
+            abort(403, 'Bu etkinliği yalnızca mekân sahibi düzenleyebilir.');
         }
 
         $request->merge([

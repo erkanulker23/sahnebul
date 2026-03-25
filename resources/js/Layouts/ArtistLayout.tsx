@@ -3,20 +3,25 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { Building2, Calendar, ClipboardList, CreditCard, LayoutDashboard, Menu, Mic, Moon, Sun, User, X } from 'lucide-react';
+import { Building2, Calendar, ClipboardList, LayoutDashboard, Menu, Mic, Moon, Sun, User, X, type LucideIcon } from 'lucide-react';
 import { PropsWithChildren, useCallback, useEffect, useState } from 'react';
 
-const navItems: { routeName: string; label: string; icon: typeof LayoutDashboard }[] = [
+const coreNavItems: { routeName: string; label: string; icon: typeof LayoutDashboard }[] = [
     { routeName: 'artist.dashboard', label: 'Panel', icon: LayoutDashboard },
     { routeName: 'artist.profile', label: 'Profil', icon: User },
-    { routeName: 'artist.venues.index', label: 'Mekanlarım', icon: Building2 },
     { routeName: 'artist.events.index', label: 'Etkinlikler', icon: Calendar },
+];
+
+const venueNavItems: { routeName: string; label: string; icon: LucideIcon }[] = [
+    { routeName: 'artist.venues.index', label: 'Mekanlarım', icon: Building2 },
     { routeName: 'artist.reservations.index', label: 'Rezervasyonlar', icon: ClipboardList },
-    { routeName: 'subscriptions.index', label: 'Paketler', icon: CreditCard },
 ];
 
 export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) {
-    const { linkedArtist } = usePage<PageProps>().props.auth;
+    const auth = usePage<PageProps>().props.auth;
+    const { linkedArtist } = auth;
+    /** Eksik prop (eski önbellek): mekân sahipleri menüyü kaybetmesin. */
+    const showVenueNav = auth.artist_panel_show_venue_nav !== false;
     const { theme, toggleTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -40,10 +45,12 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
         }
     };
 
+    const navLabel = showVenueNav === true ? 'Mekan ve etkinlik yönetimi' : 'Sanatçı paneli';
+
     const NavLinks = (
         <>
-            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200/90">Mekan &amp; etkinlik yönetimi</p>
-            {navItems.map((item) => {
+            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200/90">{navLabel}</p>
+            {coreNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                     <Link
@@ -62,6 +69,26 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                     </Link>
                 );
             })}
+            {showVenueNav === true &&
+                venueNavItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <Link
+                            key={item.routeName}
+                            href={route(item.routeName)}
+                            onClick={closeSidebar}
+                            className={cn(
+                                'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
+                                isActive(item.routeName)
+                                    ? 'bg-amber-500/15 font-medium text-amber-800 dark:text-amber-400'
+                                    : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white',
+                            )}
+                        >
+                            <Icon className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
+                            {item.label}
+                        </Link>
+                    );
+                })}
             {linkedArtist && (
                 <Link
                     href={route('artist.public-profile')}

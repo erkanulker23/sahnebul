@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
+use App\Support\DailyUniqueEntityView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -87,9 +88,13 @@ class VenueController extends Controller
         $categories = Category::orderBy('order')->get();
 
         $user = auth()->user();
-        $canAddVenue = $user
-            && $user->hasActiveGoldSubscription()
-            && ($user->isArtist() || $user->hasActiveMembership('venue'));
+        $pendingVenue = $user && is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '';
+        $canAddVenue = $user && (
+            $user->isArtist()
+            || $user->hasActiveMembership('venue')
+            || $pendingVenue
+            || $user->venues()->exists()
+        );
 
         $homeHeroImageUrl = null;
         if (! $request->is('mekanlar')) {
@@ -114,14 +119,19 @@ class VenueController extends Controller
         ]);
     }
 
-    public function show(Venue $venue)
+    public function show(Request $request, Venue $venue)
     {
         if ($venue->status !== 'approved') {
             abort(404);
         }
 
         if (Schema::hasColumn('venues', 'view_count')) {
-            $venue->increment('view_count');
+            DailyUniqueEntityView::recordOncePerVisitorPerDay(
+                $request,
+                'venue',
+                (int) $venue->id,
+                fn () => $venue->increment('view_count')
+            );
             $venue->refresh();
         }
 

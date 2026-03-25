@@ -32,6 +32,7 @@ class ArtistSeeder extends Seeder
             ['name' => 'Berkay', 'genre' => 'Pop', 'bio' => 'Canlı performanslarıyla bilinen pop sanatçısı.', 'avatar' => 'https://picsum.photos/seed/sahnebul-berkay/400/400'],
             ['name' => 'Buray', 'genre' => 'Pop', 'bio' => 'Modern Türk popunun sevilen vokallerinden.'],
             ['name' => 'Candan Erçetin', 'genre' => 'Pop', 'bio' => 'Güçlü yorumuyla öne çıkan pop sanatçısı.'],
+            ['name' => 'Cem Adrian', 'genre' => 'Pop', 'bio' => 'Geniş aralıklı vokal ve akustik düzenlemeleriyle tanınan yorumcu; soul ve hafif rock esintili repertuvarıyla canlı sahnede güçlü bir dinleyici kitlesine sahip.', 'avatar' => 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop'],
             ['name' => 'Demet Akalın', 'genre' => 'Pop', 'bio' => 'Türk pop müziğinde hit şarkılarıyla bilinir.'],
             ['name' => 'Derya Uluğ', 'genre' => 'Pop', 'bio' => 'Yeni dönem pop sahnesinin güçlü ismi.'],
             ['name' => 'Ece Seçkin', 'genre' => 'Pop', 'bio' => 'Dans-pop tarzında üretim yapan sanatçı.'],

@@ -81,8 +81,9 @@ Valet ile proje `https://sahnebul-v1.test` adresinde otomatik çalışır.
 | **Süper admin** (tüm yönetim paneli) | erkanulker0@gmail.com | password |
 | **Demo mekan sahibi** | mekan-sahibi@sahnebul.test | password |
 | **Demo sanatçı** | sanatci@sahnebul.test | password |
+| **Cem Adrian (profil / sahne paneli)** | cem-adrian.demo@sahnebul.test | password |
 
-Süper admin `config/sahnebul.php` içindeki `super_admin` ile oluşturulur; `php artisan db:seed` çalıştırınca veritabanına yazılır.
+Süper admin `config/sahnebul.php` içindeki `super_admin` ile oluşturulur; `php artisan db:seed` çalıştırınca veritabanına yazılır. Cem Adrian hesabı `CemAdrianDemoSeeder` ile `cem-adrian` sanatçı kaydına bağlanır.
 
 ## Özellikler
 

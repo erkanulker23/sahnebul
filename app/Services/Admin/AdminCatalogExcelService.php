@@ -35,7 +35,7 @@ final class AdminCatalogExcelService
     /** @var list<string> */
     private const EVENT_HEADERS = [
         'id', 'venue_id', 'title', 'slug', 'description', 'event_rules', 'start_date', 'end_date',
-        'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'status',
+        'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'status',
         'sahnebul_reservation_enabled', 'ticket_acquisition_mode', 'ticket_outlets', 'ticket_purchase_note',
         'artist_ids', 'ticket_tiers', 'created_at', 'updated_at',
     ];
@@ -320,6 +320,7 @@ final class AdminCatalogExcelService
                 (string) $e->view_count,
                 $e->is_full ? '1' : '0',
                 self::scalar($e->cover_image),
+                self::scalar($e->listing_image),
                 $e->status,
                 $e->sahnebul_reservation_enabled ? '1' : '0',
                 $e->ticket_acquisition_mode,
@@ -397,6 +398,7 @@ final class AdminCatalogExcelService
                     'view_count' => self::intOrNull($row['view_count'] ?? null) ?? 0,
                     'is_full' => self::boolish($row['is_full'] ?? null),
                     'cover_image' => $row['cover_image'] ?? null,
+                    'listing_image' => $row['listing_image'] ?? null,
                     'status' => $row['status'] ?? 'draft',
                     'sahnebul_reservation_enabled' => self::boolish($row['sahnebul_reservation_enabled'] ?? null),
                     'ticket_acquisition_mode' => $row['ticket_acquisition_mode'] ?? Event::TICKET_MODE_SAHNEBUL,
@@ -418,6 +420,7 @@ final class AdminCatalogExcelService
                     'view_count' => ['integer', 'min:0'],
                     'is_full' => ['boolean'],
                     'cover_image' => ['nullable', 'string', 'max:2048'],
+                    'listing_image' => ['nullable', 'string', 'max:2048'],
                     'status' => ['required', 'in:draft,published,cancelled'],
                     'sahnebul_reservation_enabled' => ['boolean'],
                     'ticket_acquisition_mode' => ['required', 'string', 'in:external_platforms,sahnebul,phone_only'],

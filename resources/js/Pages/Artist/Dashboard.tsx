@@ -151,17 +151,12 @@ export default function ArtistDashboard({
                     </div>
                 </section>
             ) : (
-                <section className="mb-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-6">
-                    <p className="text-sm font-medium text-white">Aktif üyelik paketi yok</p>
-                    <p className="mt-1 text-sm text-zinc-500">
-                        Mekan ve etkinlik yönetimi için bir paket seçmeniz gerekir.
+                <section className="mb-8 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6">
+                    <p className="text-sm font-medium text-white">Ücretsiz panel erişimi</p>
+                    <p className="mt-1 text-sm text-zinc-400">
+                        Mekan ve etkinlik yönetimi ücretsizdir. Sol menüden mekân ekleyebilir, etkinlik oluşturabilir ve rezervasyonları
+                        takip edebilirsiniz.
                     </p>
-                    <Link
-                        href={route('subscriptions.index', { type: 'venue' })}
-                        className="mt-4 inline-flex rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
-                    >
-                        Paketleri incele
-                    </Link>
                 </section>
             )}
 

@@ -408,7 +408,7 @@ class MarketplaceCrawlerService
         $paths = array_values(array_unique($paths));
         $base = 'https://biletinial.com';
         $normalized = [];
-        $maxDetailPages = 90;
+        $maxDetailPages = max(10, min(120, (int) config('crawler.biletinial_max_detail_pages', 55)));
 
         foreach (array_slice($paths, 0, $maxDetailPages) as $i => $path) {
             if ($i > 0) {
@@ -442,10 +442,15 @@ class MarketplaceCrawlerService
     private function extractBiletinialMuzikPathsFromListingHtml(string $html): array
     {
         $paths = [];
-        if (preg_match_all('#href=["\'](/tr-tr/muzik/[a-z0-9][a-z0-9-]{1,200}[a-z0-9])["\']#iu', $html, $m)) {
+        // Etkinlik slug'ları rakam/tire içerir; yalnızca dil kökü "/tr-tr/muzik" hariç tutulur. (# ayırıcı kullanma — sınıf içinde kırılır.)
+        if (preg_match_all('~href=["\'](/tr-tr/muzik/[^"\'?>\s]+)["\']~iu', $html, $m)) {
             foreach ($m[1] as $p) {
                 $p = html_entity_decode($p, ENT_QUOTES | ENT_HTML5);
-                if (substr_count($p, '/') !== 3) {
+                $p = rtrim($p, '/');
+                if ($p === '' || preg_match('#^/tr-tr/muzik/?$#u', $p)) {
+                    continue;
+                }
+                if (substr_count($p, '/') < 3) {
                     continue;
                 }
                 $paths[$p] = true;

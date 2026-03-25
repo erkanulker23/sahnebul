@@ -3,6 +3,7 @@ import { GlobalSearch } from '@/Components/GlobalSearch';
 import { useTheme } from '@/contexts/ThemeContext';
 import { iconClass } from '@/lib/icons';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import { Calendar, ChevronDown, LogIn, MapPin, Menu, Mic2, Moon, Sun, User, UserPlus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
@@ -90,7 +91,6 @@ export function AppHeader() {
     const pageProps = usePage().props as {
         auth: {
             user: { name: string; email: string; role?: string } | null;
-            has_active_gold?: boolean;
             sahne_compact_nav?: boolean;
             is_platform_admin?: boolean;
         };
@@ -98,10 +98,9 @@ export function AppHeader() {
     const auth = pageProps.auth;
     const user = auth?.user;
     const sahneCompactNav = auth?.sahne_compact_nav === true;
-    const hasActiveGold = auth?.has_active_gold === true;
     const hideCustomerReservations = auth?.is_platform_admin === true;
-    const mekanSahibiPanelHref = hasActiveGold ? route('artist.dashboard') : route('subscriptions.index', { type: 'venue' });
-    const mekanSahibiPanelLabel = hasActiveGold ? `Panel · ${user?.name ?? ''}` : `Gold · ${user?.name ?? ''}`;
+    const mekanSahibiPanelHref = route('artist.dashboard');
+    const mekanSahibiPanelLabel = `Panel · ${user?.name ?? ''}`;
     const profileHref = auth?.is_platform_admin === true ? route('admin.profile') : route('profile.edit');
 
     const { theme, toggleTheme } = useTheme();
@@ -239,7 +238,7 @@ export function AppHeader() {
                                     Kullanıcı girişi
                                 </Link>
                                 <Link
-                                    href={route('register.kullanici')}
+                                    href={safeRoute('register.kullanici')}
                                     className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
                                 >
                                     Kullanıcı kaydı
@@ -407,7 +406,7 @@ export function AppHeader() {
                                         Kullanıcı girişi
                                     </Link>
                                     <Link
-                                        href={route('register.kullanici')}
+                                        href={safeRoute('register.kullanici')}
                                         className="rounded-lg bg-amber-500 px-3 py-2.5 text-center font-semibold text-zinc-950"
                                         onClick={closeDrawer}
                                     >

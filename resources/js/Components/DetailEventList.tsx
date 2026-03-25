@@ -10,6 +10,7 @@ export type DetailEventListItem = {
     title: string;
     start_date: string;
     cover_image?: string | null;
+    listing_image?: string | null;
     status?: string | null;
     is_full?: boolean | null;
     ticket_acquisition_mode?: string | null;
@@ -98,6 +99,10 @@ function groupVenueEventsByMonth(events: DetailEventListItem[]): { upcoming: Mon
 }
 
 function thumbUrl(ev: DetailEventListItem, context: 'artist' | 'venue', imageSrc: (p: string | null | undefined) => string | null): string | null {
+    const listing = ev.listing_image?.trim();
+    if (listing) {
+        return listing.startsWith('http://') || listing.startsWith('https://') ? listing : imageSrc(listing);
+    }
     const cover = ev.cover_image?.trim();
     if (cover) {
         return cover.startsWith('http://') || cover.startsWith('https://') ? cover : imageSrc(cover);

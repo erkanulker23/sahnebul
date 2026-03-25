@@ -39,13 +39,15 @@ export default function AdminEventCreate({
         ticket_tiers: [] as TierRow[],
         cover_image: '',
         cover_upload: null as File | null,
+        listing_image: '',
+        listing_upload: null as File | null,
         ticket_acquisition_mode: 'sahnebul' as TicketAcquisitionMode,
         ticket_outlets: [emptyTicketOutletRow()],
         ticket_purchase_note: '',
     });
 
     transform((d) => {
-        const { ticket_tiers: tiers, cover_upload, ticket_outlets, ...rest } = d;
+        const { ticket_tiers: tiers, cover_upload, listing_upload, ticket_outlets, ...rest } = d;
         return {
             ...rest,
             description: rest.description || null,
@@ -54,18 +56,23 @@ export default function AdminEventCreate({
             ticket_price: rest.ticket_price || null,
             capacity: rest.capacity || null,
             cover_image: rest.cover_image || null,
+            listing_image: rest.listing_image || null,
             ticket_tiers: tiersToPayload(tiers),
             ticket_outlets: ticket_outlets.filter((o) => o.label.trim() && o.url.trim()),
             ticket_purchase_note: rest.ticket_purchase_note.trim() || null,
             cover_upload,
+            listing_upload,
         };
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('admin.events.store'), {
-            forceFormData: Boolean(data.cover_upload),
-            onSuccess: () => setData('cover_upload', null),
+            forceFormData: Boolean(data.cover_upload || data.listing_upload),
+            onSuccess: () => {
+                setData('cover_upload', null);
+                setData('listing_upload', null);
+            },
         });
     };
 
@@ -231,7 +238,8 @@ export default function AdminEventCreate({
                         errors={errors as Partial<Record<string, string>>}
                     />
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak (URL)</label>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak — etkinlik detay sayfası (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">Sayfa üstü büyük görsel.</p>
                         <input
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
@@ -239,7 +247,7 @@ export default function AdminEventCreate({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak — detay (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
@@ -249,6 +257,26 @@ export default function AdminEventCreate({
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
                         )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                            Kartlarda ve listelerde kullanılır. Boş bırakılırsa kapak görseli kullanılır.
+                        </p>
+                        <input
+                            value={data.listing_image}
+                            onChange={(e) => setData('listing_image', e.target.value)}
+                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (dosya)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setData('listing_upload', e.target.files?.[0] ?? null)}
+                            className="mt-1 w-full text-sm text-zinc-300"
+                        />
                     </div>
                     <button
                         type="submit"

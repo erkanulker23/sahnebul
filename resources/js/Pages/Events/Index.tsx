@@ -58,6 +58,7 @@ interface EventItem {
     start_date: string;
     description: string | null;
     cover_image?: string | null;
+    listing_image?: string | null;
     venue: { name: string; slug: string; cover_image?: string | null; category?: { name: string; slug?: string } | null };
     artists: { id: number; name: string; slug: string; avatar: string | null; genre?: string | null }[];
 }
@@ -93,11 +94,20 @@ function imageSrc(path: string | null | undefined): string | null {
     return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
 }
 
+/** Kart / liste görseli: önce listing_image, yoksa kapak. */
+function eventCardImageSrc(listing: string | null | undefined, cover: string | null | undefined): string | null {
+    const list = listing?.trim();
+    if (list) {
+        return imageSrc(list);
+    }
+    return imageSrc(cover ?? null);
+}
+
 function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
     const headliner = event.artists[0];
     const displayName = headliner?.name ?? event.title;
     const bg =
-        imageSrc(event.cover_image) ??
+        eventCardImageSrc(event.listing_image, event.cover_image) ??
         imageSrc(headliner?.avatar) ??
         imageSrc(event.venue.cover_image);
 

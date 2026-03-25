@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 
@@ -56,26 +57,26 @@ export default function LoginPortal({
     const registerHref = useMemo(() => {
         if (portal === 'kullanici') {
             if (claimVenueSlug) {
-                return route('register', { claim_venue: claimVenueSlug });
+                return safeRoute('register', { claim_venue: claimVenueSlug });
             }
             if (claimArtistSlug) {
-                return route('register', { claim_artist: claimArtistSlug });
+                return safeRoute('register', { claim_artist: claimArtistSlug });
             }
-            return route('register.kullanici');
+            return safeRoute('register.kullanici');
         }
         if (portal === 'sanatci') {
             if (claimArtistSlug) {
-                return route('register', { claim_artist: claimArtistSlug });
+                return safeRoute('register', { claim_artist: claimArtistSlug });
             }
-            return route('register', { uyelik: 'sanatci' });
+            return safeRoute('register', { uyelik: 'sanatci' });
         }
         if (portal === 'mekan') {
             if (claimVenueSlug) {
-                return route('register', { claim_venue: claimVenueSlug });
+                return safeRoute('register', { claim_venue: claimVenueSlug });
             }
-            return route('register', { uyelik: 'mekan' });
+            return safeRoute('register', { uyelik: 'mekan' });
         }
-        return route('register.kullanici');
+        return safeRoute('register.kullanici');
     }, [portal, claimVenueSlug, claimArtistSlug]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -86,7 +87,7 @@ export default function LoginPortal({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('login.store', { portal }), { onFinish: () => reset('password') });
+        post(safeRoute('login.store', { portal }), { onFinish: () => reset('password') });
     };
 
     return (
@@ -102,7 +103,7 @@ export default function LoginPortal({
             {portal === 'kullanici' && (
                 <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
                     Yönetici hesabıyla giriş için{' '}
-                    <Link href={route('login.admin')} className="font-medium text-amber-400 hover:text-amber-300">
+                    <Link href={safeRoute('login.admin')} className="font-medium text-amber-400 hover:text-amber-300">
                         yönetim paneli girişi
                     </Link>{' '}
                     kullanın; bu sayfa yalnızca standart kullanıcı içindir.
@@ -150,7 +151,7 @@ export default function LoginPortal({
                         <span className="ms-2 text-sm text-zinc-400">Beni hatırla</span>
                     </label>
                     {canResetPassword && (
-                        <Link href={route('password.request')} className="text-sm text-amber-400 hover:text-amber-300">
+                        <Link href={safeRoute('password.request')} className="text-sm text-amber-400 hover:text-amber-300">
                             Şifremi unuttum
                         </Link>
                     )}
@@ -164,16 +165,16 @@ export default function LoginPortal({
             <div className="mt-6 space-y-3 border-t border-white/10 pt-6 text-center text-sm text-zinc-500">
                 <p>Diğer girişler:</p>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                    <Link href={route('login')} className="text-amber-400 hover:text-amber-300">
+                    <Link href={safeRoute('login')} className="text-amber-400 hover:text-amber-300">
                         Kullanıcı
                     </Link>
-                    <Link href={route('login.sanatci')} className="text-amber-400 hover:text-amber-300">
+                    <Link href={safeRoute('login.sanatci')} className="text-amber-400 hover:text-amber-300">
                         Sanatçı
                     </Link>
-                    <Link href={route('login.mekan')} className="text-amber-400 hover:text-amber-300">
+                    <Link href={safeRoute('login.mekan')} className="text-amber-400 hover:text-amber-300">
                         Mekan
                     </Link>
-                    <Link href={route('login.admin')} className="text-amber-400 hover:text-amber-300">
+                    <Link href={safeRoute('login.admin')} className="text-amber-400 hover:text-amber-300">
                         Yönetim
                     </Link>
                 </div>

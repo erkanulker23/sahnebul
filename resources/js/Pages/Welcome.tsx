@@ -1,4 +1,5 @@
 import SeoHead from '@/Components/SeoHead';
+import { safeRoute } from '@/lib/safeRoute';
 import { PageProps } from '@/types';
 import { Link } from '@inertiajs/react';
 
@@ -60,7 +61,7 @@ export default function Welcome({
                                             Kullanıcı girişi
                                         </Link>
                                         <Link
-                                            href={route('register.kullanici')}
+                                            href={safeRoute('register.kullanici')}
                                             className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                                         >
                                             Kullanıcı kaydı

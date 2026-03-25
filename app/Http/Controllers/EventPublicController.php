@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Artist;
 use App\Models\Event;
+use App\Models\EventReview;
+use App\Support\DailyUniqueEntityView;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -57,7 +61,12 @@ class EventPublicController extends Controller
         }
 
         if (Schema::hasColumn('events', 'view_count')) {
-            $event->increment('view_count');
+            DailyUniqueEntityView::recordOncePerVisitorPerDay(
+                $request,
+                'event',
+                (int) $event->id,
+                fn () => $event->increment('view_count')
+            );
             $event->refresh();
         }
 
@@ -73,21 +82,47 @@ class EventPublicController extends Controller
             'ticketTiers',
         ]);
 
-        $event->artists->each(function ($artist): void {
-            $fallback = $artist->media->first();
-            $path = $artist->avatar ?? $fallback?->path ?? $fallback?->thumbnail;
-            $artist->setAttribute('display_image', $path);
-        });
+        Artist::hydrateDisplayImages($event->artists);
 
-        $relatedEvents = Event::query()
+        $eventReviews = EventReview::query()
+            ->where('event_id', $event->id)
+            ->where('is_approved', true)
+            ->with('user:id,name,avatar')
+            ->latest()
+            ->limit(40)
+            ->get();
+
+        $artistIds = $event->artists->pluck('id')->all();
+
+        $upcomingColumns = ['id', 'slug', 'title', 'start_date', 'ticket_price', 'venue_id', 'is_full', 'cover_image', 'listing_image'];
+
+        $venueUpcomingEvents = Event::query()
             ->published()
+            ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
             ->where('venue_id', $event->venue_id)
             ->where('id', '!=', $event->id)
-            ->where('start_date', '>=', now()->subDays(30))
+            ->whereNotNull('start_date')
+            ->where('start_date', '>=', now())
             ->orderBy('start_date')
-            ->limit(6)
+            ->limit(12)
             ->with('ticketTiers')
-            ->get(['id', 'slug', 'title', 'start_date', 'ticket_price', 'venue_id', 'is_full', 'cover_image']);
+            ->get($upcomingColumns);
+
+        $artistUpcomingEvents = new EloquentCollection;
+        if ($artistIds !== []) {
+            $artistUpcomingEvents = Event::query()
+                ->published()
+                ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+                ->where('venue_id', '!=', $event->venue_id)
+                ->where('id', '!=', $event->id)
+                ->whereNotNull('start_date')
+                ->where('start_date', '>=', now())
+                ->whereHas('artists', fn ($q) => $q->whereIn('artists.id', $artistIds))
+                ->orderBy('start_date')
+                ->limit(8)
+                ->with(['ticketTiers', 'venue:id,name,slug'])
+                ->get($upcomingColumns);
+        }
 
         $u = $request->user();
         $hasEventReminder = $u !== null
@@ -97,7 +132,9 @@ class EventPublicController extends Controller
 
         return Inertia::render('Events/Show', [
             'event' => $event,
-            'relatedEvents' => $relatedEvents,
+            'venueUpcomingEvents' => $venueUpcomingEvents,
+            'artistUpcomingEvents' => $artistUpcomingEvents,
+            'eventReviews' => $eventReviews,
             'eventCustomerActions' => [
                 'canToggle' => $u !== null && $u->isCustomer() && $u->email_verified_at !== null
                     && $event->start_date !== null

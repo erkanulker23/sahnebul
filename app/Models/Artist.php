@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
@@ -122,5 +123,32 @@ class Artist extends Model
         }
 
         return true;
+    }
+
+    /**
+     * @param  iterable<int, self>  $artists
+     */
+    public static function hydrateDisplayImages(iterable $artists): void
+    {
+        if ($artists instanceof \Illuminate\Database\Eloquent\Collection) {
+            $models = $artists;
+        } elseif ($artists instanceof Collection) {
+            $models = new \Illuminate\Database\Eloquent\Collection($artists->all());
+        } else {
+            $models = new \Illuminate\Database\Eloquent\Collection(
+                is_array($artists) ? $artists : iterator_to_array($artists)
+            );
+        }
+
+        if ($models->isEmpty()) {
+            return;
+        }
+
+        $models->loadMissing(['media' => fn ($m) => $m->orderBy('order')->limit(1)]);
+        foreach ($models as $artist) {
+            $fallback = $artist->media->first();
+            $path = $artist->avatar ?? $fallback?->path ?? $fallback?->thumbnail;
+            $artist->setAttribute('display_image', $path);
+        }
     }
 }

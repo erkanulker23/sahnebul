@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelContro
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\EventArtistReportController as AdminEventArtistReportController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
 use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueClaimController as AdminVenueClaimController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
 use App\Http\Controllers\Artist\DashboardController as ArtistDashboardController;
+use App\Http\Controllers\Artist\EventArtistReportController as ArtistEventArtistReportController;
 use App\Http\Controllers\Artist\EventController as ArtistEventController;
 use App\Http\Controllers\Artist\ProfileController as ArtistProfileController;
 use App\Http\Controllers\Artist\PublicArtistProfileController;
@@ -33,6 +35,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventPublicController;
+use App\Http\Controllers\EventReviewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
@@ -109,6 +112,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/mekanlar/{venue:slug}/yorum', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/sahneler/{venue:slug}/yorum', [ReviewController::class, 'store']);
+    Route::post('/etkinlikler/{event}/yorum', [EventReviewController::class, 'store'])
+        ->whereNumber('event')
+        ->name('event-reviews.store');
     Route::post('/yorumlar/{review}/begeni', [ReviewController::class, 'like'])->name('reviews.like');
 
     Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
@@ -131,7 +137,7 @@ Route::middleware(['auth', 'verified', 'customer'])->group(function () {
         ->name('user.events.ics');
 });
 
-Route::middleware(['auth', 'verified', 'artist', 'gold'])->prefix('sahne')->name('artist.')->group(function () {
+Route::middleware(['auth', 'verified', 'artist'])->prefix('sahne')->name('artist.')->group(function () {
     Route::redirect('sahnelerim', '/sahne/mekanlarim', 301);
     Route::redirect('sahnelerim/ekle', '/sahne/mekanlarim/ekle', 301);
     Route::get('sahnelerim/{venue}/duzenle', function (Venue $venue) {
@@ -158,6 +164,9 @@ Route::middleware(['auth', 'verified', 'artist', 'gold'])->prefix('sahne')->name
     Route::post('/etkinlikler', [ArtistEventController::class, 'store'])->name('events.store');
     Route::get('/etkinlikler/{event}/duzenle', [ArtistEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [ArtistEventController::class, 'update'])->name('events.update');
+    Route::post('/etkinlikler/{event}/rapor', [ArtistEventArtistReportController::class, 'store'])
+        ->middleware('throttle:12,1')
+        ->name('events.report');
     Route::get('/rezervasyonlar', [ArtistReservationController::class, 'index'])->name('reservations.index');
     Route::patch('/rezervasyonlar/{reservation}/durum', [ArtistReservationController::class, 'updateStatus'])->name('reservations.updateStatus');
 });
@@ -203,6 +212,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/dis-kaynak-etkinlikler/veri-cek', [AdminExternalEventController::class, 'crawl'])
         ->middleware('throttle:6,1')
         ->name('external-events.crawl');
+    Route::post('/dis-kaynak-etkinlikler/onizle', [AdminExternalEventController::class, 'crawlPreview'])
+        ->middleware('throttle:10,1')
+        ->name('external-events.crawl-preview');
     Route::post('/dis-kaynak-etkinlikler/toplu-islem', [AdminExternalEventController::class, 'bulk'])->name('external-events.bulk');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/aktar', [AdminExternalEventController::class, 'sync'])->name('external-events.sync');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');
@@ -228,6 +240,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/yorumlar', [AdminReviewController::class, 'index'])->name('reviews.index');
     Route::post('/yorumlar/{review}/onayla', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::delete('/yorumlar/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+
+    Route::get('/sanatci-etkinlik-raporlari', [AdminEventArtistReportController::class, 'index'])->name('event-artist-reports.index');
+    Route::patch('/sanatci-etkinlik-raporlari/{report}', [AdminEventArtistReportController::class, 'update'])->name('event-artist-reports.update');
 
     Route::get('/kategoriler', [AdminCategoryController::class, 'index'])->name('categories.index');
     Route::get('/kategoriler/excel', [AdminCatalogExcelController::class, 'exportCategories'])->name('categories.excel-export');

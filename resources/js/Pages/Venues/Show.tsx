@@ -4,6 +4,7 @@ import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import VenuePhotoGallery from '@/Components/VenuePhotoGallery';
 import SeoHead, { metaDescriptionFromContent, type SharedSeo } from '@/Components/SeoHead';
 import { toAbsoluteUrl, truncateMetaDescription } from '@/utils/seo';
+import { safeRoute } from '@/lib/safeRoute';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
@@ -436,7 +437,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                             </Link>
                                             {' veya '}
                                             <Link
-                                                href={route('register.kullanici')}
+                                                href={safeRoute('register.kullanici')}
                                                 className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                                             >
                                                 üye olun

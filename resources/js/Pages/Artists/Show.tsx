@@ -615,10 +615,10 @@ export default function ArtistShow({
                                                     Giriş Yap
                                                 </Link>
                                                 <Link
-                                                    href={route('subscriptions.index', { type: 'artist' })}
+                                                    href={route('register', { uyelik: 'sanatci' })}
                                                     className="rounded-lg border border-amber-400 px-3 py-2 text-sm text-amber-700 dark:text-amber-300"
                                                 >
-                                                    Sanatçı Üyeliği
+                                                    Sanatçı kaydı
                                                 </Link>
                                             </div>
                                         )}

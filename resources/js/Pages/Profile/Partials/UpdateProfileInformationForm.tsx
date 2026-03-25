@@ -3,8 +3,24 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
+import { PageProps } from '@/types';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useMemo, useState } from 'react';
+
+function resolveStorageOrAbsoluteUrl(path: string | null | undefined): string | null {
+    if (!path || typeof path !== 'string') {
+        return null;
+    }
+    const t = path.trim();
+    if (t === '') {
+        return null;
+    }
+    if (/^https?:\/\//i.test(t)) {
+        return t;
+    }
+
+    return `/storage/${t.replace(/^\//, '')}`;
+}
 
 interface City {
     id: number;
@@ -17,23 +33,51 @@ export default function UpdateProfileInformation({
     status,
     cities = [],
     className = '',
-}: {
+    omitSectionHeader = false,
+    omitCityField = false,
+}: Readonly<{
     mustVerifyEmail: boolean;
     status?: string;
     cities?: City[];
     className?: string;
-}) {
-    const user = usePage().props.auth.user as { name: string; email: string; city?: string; interests?: string[]; avatar?: string | null; email_verified_at?: string | null };
+    /** Üst başlık dışarıda (ör. admin profil kartı) verildiğinde true. */
+    omitSectionHeader?: boolean;
+    /** Sahne paneli sanatçı profili: şehir seçimi gösterilmez. */
+    omitCityField?: boolean;
+}>) {
+    const { auth } = usePage<PageProps>().props;
+    const user = auth.user as {
+        name: string;
+        email: string;
+        city?: string;
+        interests?: string[];
+        avatar?: string | null;
+        email_verified_at?: string | null;
+    };
+    const linkedArtist = auth.linkedArtist;
     const [interestInput, setInterestInput] = useState('');
+
+    const initialName = useMemo(() => {
+        if (omitCityField && linkedArtist?.name) {
+            return linkedArtist.name;
+        }
+
+        return user.name;
+    }, [omitCityField, linkedArtist?.name, user.name]);
+
+    const artistPhotoUrl = useMemo(() => resolveStorageOrAbsoluteUrl(linkedArtist?.avatar), [linkedArtist?.avatar]);
+    const userPhotoUrl = useMemo(() => resolveStorageOrAbsoluteUrl(user.avatar), [user.avatar]);
 
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
-            name: user.name,
+            name: initialName,
             email: user.email,
             city: user.city ?? '',
             interests: (user.interests as string[]) ?? [],
             avatar: null as File | null,
         });
+
+    const storedOrArtistPhotoUrl = userPhotoUrl ?? artistPhotoUrl ?? null;
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -56,18 +100,20 @@ export default function UpdateProfileInformation({
 
     return (
         <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-white">Profil Bilgileri</h2>
-                <p className="mt-1 text-sm text-zinc-500">Hesap bilgilerinizi güncelleyin.</p>
-            </header>
+            {!omitSectionHeader && (
+                <header>
+                    <h2 className="text-lg font-medium text-white">Profil Bilgileri</h2>
+                    <p className="mt-1 text-sm text-zinc-500">Hesap bilgilerinizi güncelleyin.</p>
+                </header>
+            )}
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
+            <form onSubmit={submit} className={omitSectionHeader ? 'space-y-6' : 'mt-6 space-y-6'}>
                 <div className="flex items-center gap-6">
                     <div className="shrink-0">
                         {data.avatar ? (
                             <img src={URL.createObjectURL(data.avatar)} alt="" className="h-24 w-24 rounded-full object-cover" />
-                        ) : user.avatar ? (
-                            <img src={`/storage/${user.avatar}`} alt="" className="h-24 w-24 rounded-full object-cover" />
+                        ) : storedOrArtistPhotoUrl ? (
+                            <img src={storedOrArtistPhotoUrl} alt="" className="h-24 w-24 rounded-full object-cover" />
                         ) : (
                             <div className="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-800 text-3xl text-zinc-500">👤</div>
                         )}
@@ -81,6 +127,11 @@ export default function UpdateProfileInformation({
                             className="mt-2 block w-full text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500/20 file:px-4 file:py-2 file:text-amber-400"
                             onChange={(e) => setData('avatar', e.target.files?.[0] ?? null)}
                         />
+                        {omitCityField && artistPhotoUrl && !userPhotoUrl ? (
+                            <p className="mt-2 max-w-md text-xs text-zinc-500">
+                                Şu an sanatçı sayfanızdaki fotoğraf gösteriliyor. Buradan yüklediğiniz görsel hesap profilinize kaydedilir.
+                            </p>
+                        ) : null}
                     </div>
                 </div>
 
@@ -112,20 +163,22 @@ export default function UpdateProfileInformation({
                     <InputError className="mt-2" message={errors.email} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="city" value="Şehir" />
-                    <select
-                        id="city"
-                        value={data.city}
-                        onChange={(e) => setData('city', e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-white"
-                    >
-                        <option value="">Seçin</option>
-                        {cities.map((c) => (
-                            <option key={c.id} value={c.slug}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
+                {!omitCityField && (
+                    <div>
+                        <InputLabel htmlFor="city" value="Şehir" />
+                        <select
+                            id="city"
+                            value={data.city}
+                            onChange={(e) => setData('city', e.target.value)}
+                            className="mt-1 block w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-white"
+                        >
+                            <option value="">Seçin</option>
+                            {cities.map((c) => (
+                                <option key={c.id} value={c.slug}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 <div>
                     <InputLabel value="İlgi alanları" />

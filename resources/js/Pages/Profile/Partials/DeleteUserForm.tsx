@@ -4,13 +4,16 @@ import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import { cn } from '@/lib/cn';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
 
 export default function DeleteUserForm({
     className = '',
+    omitSectionHeader = false,
 }: {
     className?: string;
+    omitSectionHeader?: boolean;
 }) {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
     const passwordInput = useRef<HTMLInputElement>(null);
@@ -50,22 +53,23 @@ export default function DeleteUserForm({
     };
 
     return (
-        <section className={`space-y-6 ${className}`}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">Hesabı sil</h2>
-
-                <p className="mt-1 text-sm text-gray-600">
-                    Hesabınız silindiğinde tüm verileriniz kalıcı olarak kaldırılır. Silmeden önce saklamak istediğiniz bilgileri indirin.
-                </p>
-            </header>
+        <section className={cn(omitSectionHeader ? 'flex flex-col gap-4' : 'space-y-6', className)}>
+            {!omitSectionHeader && (
+                <header>
+                    <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Hesabı sil</h2>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        Hesabınız silindiğinde tüm verileriniz kalıcı olarak kaldırılır. Silmeden önce saklamak istediğiniz bilgileri indirin.
+                    </p>
+                </header>
+            )}
 
             <DangerButton onClick={confirmUserDeletion}>Hesabı sil</DangerButton>
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900">Hesabınızı silmek istediğinize emin misiniz?</h2>
+                    <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Hesabınızı silmek istediğinize emin misiniz?</h2>
 
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Bu işlem geri alınamaz. Onaylamak için şifrenizi girin.
                     </p>
 

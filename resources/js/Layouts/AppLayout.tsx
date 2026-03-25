@@ -147,19 +147,6 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                                 </Link>
                             </div>
                         </div>
-                        {!isSuperAdmin && (
-                            <div className="min-w-0">
-                                <p className="text-sm font-semibold text-zinc-900 dark:text-white">Üyelik</p>
-                                <div className="mt-3 flex flex-col gap-2">
-                                    <Link href={route('subscriptions.index', { type: 'venue' })} className="text-sm text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400">
-                                        Mekan üyeliği
-                                    </Link>
-                                    <Link href={route('subscriptions.index', { type: 'artist' })} className="text-sm text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400">
-                                        Sanatçı üyeliği
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
                     </div>
                     <div className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-500 dark:border-zinc-800">
                         {footer.copyright || `© ${new Date().getFullYear()} Sahnebul. Tüm hakları saklıdır.`}

@@ -4,11 +4,13 @@ import TicketSalesEditor, { emptyTicketOutletRow, type TicketAcquisitionMode } f
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import { FormEvent, useEffect, useState } from 'react';
 
 interface Venue {
     id: number;
     name: string;
+    city?: { name: string } | null;
 }
 
 interface CatalogArtist {
@@ -18,11 +20,25 @@ interface CatalogArtist {
 
 interface Props {
     venues: Venue[];
+    venuePickerMode?: 'own' | 'catalog';
+    venueSearch?: string;
     artists: CatalogArtist[];
     defaultArtistId?: number | null;
 }
 
-export default function ArtistEventCreate({ venues, artists, defaultArtistId = null }: Readonly<Props>) {
+export default function ArtistEventCreate({
+    venues,
+    venuePickerMode = 'own',
+    venueSearch = '',
+    artists,
+    defaultArtistId = null,
+}: Readonly<Props>) {
+    const [searchDraft, setSearchDraft] = useState(venueSearch);
+
+    useEffect(() => {
+        setSearchDraft(venueSearch);
+    }, [venueSearch]);
+
     const { data, setData, post, processing, errors, transform } = useForm({
         venue_id: venues.length ? String(venues[0].id) : '',
         artist_ids: defaultArtistId ? [defaultArtistId] : ([] as number[]),
@@ -38,6 +54,25 @@ export default function ArtistEventCreate({ venues, artists, defaultArtistId = n
         ticket_outlets: [emptyTicketOutletRow()],
         ticket_purchase_note: '',
     });
+
+    useEffect(() => {
+        if (venues.length === 0) {
+            return;
+        }
+        const ok = venues.some((v) => String(v.id) === data.venue_id);
+        if (!ok) {
+            setData('venue_id', String(venues[0].id));
+        }
+    }, [venues, data.venue_id, setData]);
+
+    const runVenueSearch = (e?: FormEvent) => {
+        e?.preventDefault();
+        router.get(
+            route('artist.events.create'),
+            { venue_search: searchDraft.trim() || undefined },
+            { preserveState: true, preserveScroll: true, only: ['venues', 'venuePickerMode', 'venueSearch'] },
+        );
+    };
 
     transform((form) => ({
         ...form,
@@ -55,10 +90,62 @@ export default function ArtistEventCreate({ venues, artists, defaultArtistId = n
             <form onSubmit={(e) => { e.preventDefault(); post(route('artist.events.store')); }} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>
                     <label htmlFor="venue_id" className="block text-sm font-medium text-zinc-400">Mekan *</label>
-                    <select id="venue_id" value={data.venue_id} onChange={(e) => setData('venue_id', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white">
-                        {venues.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                    </select>
-                    <p className="mt-1 text-xs text-zinc-500">Mekân, onaylı mekan listenizden seçilir; listeniz boşsa önce mekan ekleyin.</p>
+                    {venuePickerMode === 'catalog' ? (
+                        <div className="mt-2 space-y-2">
+                            <form onSubmit={runVenueSearch} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <input
+                                    type="search"
+                                    value={searchDraft}
+                                    onChange={(e) => setSearchDraft(e.target.value)}
+                                    placeholder="Mekân adı ile ara…"
+                                    className="w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-2.5 text-white placeholder:text-zinc-600 sm:flex-1"
+                                />
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-600"
+                                >
+                                    Ara
+                                </button>
+                            </form>
+                            <select
+                                id="venue_id"
+                                value={data.venue_id}
+                                onChange={(e) => setData('venue_id', e.target.value)}
+                                required
+                                className="w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            >
+                                {venues.length === 0 ? (
+                                    <option value="">— Liste boş —</option>
+                                ) : null}
+                                {venues.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.city?.name ? `${v.name} (${v.city.name})` : v.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-zinc-500">
+                                Onaylı mekânınız yok; etkinlik taslak olarak seçtiğiniz mekâna bağlanır. Yayın ve düzenleme yetkisi mekân sahibindedir.
+                                {venues.length >= 100 ? ' Çok sonuç varsa arama ile daraltın.' : null}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <select
+                                id="venue_id"
+                                value={data.venue_id}
+                                onChange={(e) => setData('venue_id', e.target.value)}
+                                required
+                                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            >
+                                {venues.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-1 text-xs text-zinc-500">Mekân, onaylı mekân listenizden seçilir.</p>
+                        </>
+                    )}
                 </div>
                 <AdminArtistMultiSelect
                     label="Sanatçılar *"
@@ -128,7 +215,11 @@ export default function ArtistEventCreate({ venues, artists, defaultArtistId = n
                         className="mt-2"
                     />
                 </div>
-                <button type="submit" disabled={processing} className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50">
+                <button
+                    type="submit"
+                    disabled={processing || venues.length === 0}
+                    className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                >
                     Oluştur
                 </button>
             </form>

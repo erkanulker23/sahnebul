@@ -30,6 +30,7 @@ interface EventModel {
     status: string;
     venue_id: number;
     cover_image: string | null;
+    listing_image?: string | null;
     venue: { id: number; name: string };
     artists: { id: number; name: string }[];
     ticket_tiers: Tier[];
@@ -87,13 +88,15 @@ export default function AdminEventEdit({
         ticket_tiers: toTierRows(event.ticket_tiers),
         cover_image: event.cover_image ?? '',
         cover_upload: null as File | null,
+        listing_image: event.listing_image ?? '',
+        listing_upload: null as File | null,
         ticket_acquisition_mode: inferTicketAcquisitionMode(event),
         ticket_outlets: outletsFromServer(event.ticket_outlets),
         ticket_purchase_note: event.ticket_purchase_note ?? '',
     });
 
     transform((d) => {
-        const { ticket_tiers: tiers, cover_upload, ticket_outlets, ...rest } = d;
+        const { ticket_tiers: tiers, cover_upload, listing_upload, ticket_outlets, ...rest } = d;
         return {
             ...rest,
             description: rest.description || null,
@@ -102,19 +105,24 @@ export default function AdminEventEdit({
             ticket_price: rest.ticket_price || null,
             capacity: rest.capacity || null,
             cover_image: rest.cover_image || null,
+            listing_image: rest.listing_image || null,
             ticket_tiers: tiersToPayload(tiers),
             ticket_outlets: ticket_outlets.filter((o) => o.label.trim() && o.url.trim()),
             ticket_purchase_note: rest.ticket_purchase_note.trim() || null,
             cover_upload,
+            listing_upload,
         };
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('admin.events.update', event.id), {
-            forceFormData: Boolean(data.cover_upload),
+            forceFormData: Boolean(data.cover_upload || data.listing_upload),
             preserveScroll: true,
-            onSuccess: () => setData('cover_upload', null),
+            onSuccess: () => {
+                setData('cover_upload', null);
+                setData('listing_upload', null);
+            },
         });
     };
 
@@ -311,7 +319,8 @@ export default function AdminEventEdit({
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli (URL)</label>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli — detay sayfası (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">Etkinlik sayfası üst görseli.</p>
                         <input
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
@@ -322,7 +331,7 @@ export default function AdminEventEdit({
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli — detay (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
@@ -332,6 +341,29 @@ export default function AdminEventEdit({
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
                         )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">
+                            /etkinlikler ve kartlarda. Boşsa kapak görseli kullanılır.
+                        </p>
+                        <input
+                            value={data.listing_image}
+                            onChange={(e) => setData('listing_image', e.target.value)}
+                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                        />
+                        {storageUrl(data.listing_image) && (
+                            <img src={storageUrl(data.listing_image) ?? ''} alt="" className="mt-2 h-24 max-w-xs rounded-lg object-cover" />
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (dosya)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setData('listing_upload', e.target.files?.[0] ?? null)}
+                            className="mt-1 w-full text-sm text-zinc-300"
+                        />
                     </div>
 
                     <div className="flex flex-wrap gap-3">
