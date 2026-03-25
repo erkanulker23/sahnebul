@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Artist;
+use App\Support\SeededArtistImageUrls;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -136,10 +137,13 @@ class ArtistSeeder extends Seeder
         $slugs = collect($artists)->map(fn ($a) => Str::slug($a['name']))->all();
         Artist::whereNotIn('slug', $slugs)->whereNull('spotify_id')->delete();
 
+        $knownAvatars = SeededArtistImageUrls::bySlug();
+
         foreach ($artists as $a) {
             $slug = Str::slug($a['name']);
             $explicitAvatar = isset($a['avatar']) ? trim((string) $a['avatar']) : '';
-            // Yerel storage yolu sunucuda olmayacağı için: tam URL kullan veya picsum (slug ile deterministik).
+            // Tam URL veya bilinen Wikimedia; aksi halde picsum (push tek başına DB/storage taşımaz).
+            $fallbackAvatar = $knownAvatars[$slug] ?? 'https://picsum.photos/seed/sahnebul-artist-'.$slug.'/400/400';
             $data = [
                 'name' => $a['name'],
                 'genre' => $a['genre'],
@@ -148,7 +152,7 @@ class ArtistSeeder extends Seeder
                 'country_code' => 'TR',
                 'avatar' => $explicitAvatar !== ''
                     ? $a['avatar']
-                    : 'https://picsum.photos/seed/sahnebul-artist-'.$slug.'/400/400',
+                    : $fallbackAvatar,
             ];
             if (array_key_exists('spotify_id', $a)) {
                 $rawSid = $a['spotify_id'];
