@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Services\AppSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +22,8 @@ class EventController extends Controller
         return Inertia::render('Admin/Events/Create', [
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name']),
             'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']),
+            'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 
@@ -116,6 +120,8 @@ class EventController extends Controller
             'event' => $event,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name']),
             'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']),
+            'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 

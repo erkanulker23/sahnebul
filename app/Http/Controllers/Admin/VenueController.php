@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class VenueController extends Controller
@@ -64,6 +65,33 @@ class VenueController extends Controller
 
     public function store(Request $request)
     {
+        $venue = $this->persistNewVenueFromRequest($request);
+
+        return redirect()->route('admin.venues.edit', $venue)->with('success', 'Mekan eklendi. Detayları düzenleyebilirsiniz.');
+    }
+
+    /**
+     * Etkinlik formu modalından mekan ekler; kayıt onaylı olur (etkinlik oluşturma kuralları ile uyumlu).
+     */
+    public function storeForEventPicker(Request $request)
+    {
+        $request->merge([
+            'status' => 'approved',
+            'is_featured' => false,
+        ]);
+
+        $venue = $this->persistNewVenueFromRequest($request);
+
+        return response()->json([
+            'venue' => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ],
+        ], 201);
+    }
+
+    private function persistNewVenueFromRequest(Request $request): Venue
+    {
         $request->merge([
             'description' => $request->input('description') ?: null,
             'latitude' => $request->input('latitude') ?: null,
@@ -109,12 +137,20 @@ class VenueController extends Controller
 
         $validated['is_featured'] = $request->boolean('is_featured');
 
+        $normalizedName = mb_strtolower(trim($validated['name']));
+        if ($normalizedName !== '' && Venue::query()
+            ->where('city_id', $validated['city_id'])
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'name' => 'Bu şehirde aynı isimde bir mekan zaten kayıtlı.',
+            ]);
+        }
+
         $slugBase = Str::slug($validated['name']);
         $validated['slug'] = $slugBase.'-'.Str::lower(Str::random(4));
 
-        $venue = Venue::create($validated);
-
-        return redirect()->route('admin.venues.edit', $venue)->with('success', 'Mekan eklendi. Detayları düzenleyebilirsiniz.');
+        return Venue::create($validated);
     }
 
     public function edit(Venue $venue)
@@ -189,6 +225,17 @@ class VenueController extends Controller
 
         $validated['is_featured'] = $request->boolean('is_featured');
         $validated['slug'] = Str::slug($validated['slug']);
+
+        $normalizedName = mb_strtolower(trim($validated['name']));
+        if ($normalizedName !== '' && Venue::query()
+            ->where('id', '!=', $venue->id)
+            ->where('city_id', $validated['city_id'])
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'name' => 'Bu şehirde bu isimde başka bir mekan zaten kayıtlı.',
+            ]);
+        }
 
         $venue->update($validated);
 

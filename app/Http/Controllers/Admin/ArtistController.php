@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ArtistController extends Controller
@@ -96,6 +97,13 @@ class ArtistController extends Controller
 
         self::syncSpotifyMetaFromSocialLinks($validated);
 
+        $normalizedName = mb_strtolower(trim($validated['name']));
+        if ($normalizedName !== '' && Artist::query()->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])->exists()) {
+            throw ValidationException::withMessages([
+                'name' => 'Bu isimde bir sanatçı zaten kayıtlı.',
+            ]);
+        }
+
         $artist = Artist::create([
             ...$validated,
             'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(4)),
@@ -160,6 +168,16 @@ class ArtistController extends Controller
         $validated['genre'] = $mg === [] ? null : implode(', ', $mg);
 
         self::syncSpotifyMetaFromSocialLinks($validated);
+
+        $normalizedName = mb_strtolower(trim($validated['name']));
+        if ($normalizedName !== '' && Artist::query()
+            ->where('id', '!=', $artist->id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'name' => 'Bu isimde başka bir sanatçı zaten kayıtlı.',
+            ]);
+        }
 
         $artist->update($validated);
 

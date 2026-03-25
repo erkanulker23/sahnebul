@@ -162,6 +162,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/mekanlar/excel-ice-aktar', [AdminCatalogExcelController::class, 'importVenues'])->name('venues.excel-import');
     Route::get('/mekanlar/ekle', [AdminVenueController::class, 'create'])->name('venues.create');
     Route::permanentRedirect('sahneler', 'mekanlar');
+    Route::post('/mekanlar/etkinlik-secici', [AdminVenueController::class, 'storeForEventPicker'])->name('venues.store-for-event');
     Route::post('/mekanlar', [AdminVenueController::class, 'store'])->name('venues.store');
     Route::post('/mekanlar/toplu-sil', [AdminVenueController::class, 'bulkDestroy'])->name('venues.bulk-destroy');
     Route::get('/mekanlar/{venue}/duzenle', [AdminVenueController::class, 'edit'])->name('venues.edit');

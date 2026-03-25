@@ -1,17 +1,30 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
+import AdminEventVenueField from '@/Components/AdminEventVenueField';
 import TicketSalesEditor, { emptyTicketOutletRow, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import TicketTiersEditor, { emptyTierRow, tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { Link, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 interface Props {
     venues: { id: number; name: string }[];
     artists: { id: number; name: string }[];
+    venuePickerCategories: { id: number; name: string }[];
+    googleMapsBrowserKey?: string | null;
 }
 
-export default function AdminEventCreate({ venues, artists }: Readonly<Props>) {
+export default function AdminEventCreate({
+    venues,
+    artists,
+    venuePickerCategories,
+    googleMapsBrowserKey = null,
+}: Readonly<Props>) {
+    const [venueOptions, setVenueOptions] = useState(venues);
+    useEffect(() => {
+        setVenueOptions(venues);
+    }, [venues]);
     const { data, setData, post, processing, errors, progress, transform } = useForm({
         venue_id: venues[0]?.id?.toString() ?? '',
         title: '',
@@ -66,21 +79,21 @@ export default function AdminEventCreate({ venues, artists }: Readonly<Props>) {
                 <h1 className="mb-6 text-2xl font-bold dark:text-white">Yeni Etkinlik Ekle</h1>
                 <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Mekan *</label>
-                            <select
-                                value={data.venue_id}
-                                onChange={(e) => setData('venue_id', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
-                            >
-                                {venues.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.venue_id && <p className="mt-1 text-sm text-red-400">{errors.venue_id}</p>}
-                        </div>
+                        <AdminEventVenueField
+                            venues={venueOptions}
+                            value={data.venue_id}
+                            onChange={(id) => setData('venue_id', id)}
+                            onVenueCreated={(v) => {
+                                setVenueOptions((prev) =>
+                                    [...prev.filter((p) => p.id !== v.id), v].sort((a, b) =>
+                                        a.name.localeCompare(b.name, 'tr'),
+                                    ),
+                                );
+                            }}
+                            categories={venuePickerCategories}
+                            googleMapsBrowserKey={googleMapsBrowserKey}
+                            error={errors.venue_id}
+                        />
                         <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-zinc-400">Başlık *</label>
                             <input

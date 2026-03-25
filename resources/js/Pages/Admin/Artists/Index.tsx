@@ -10,10 +10,17 @@ interface Artist {
     id: number;
     name: string;
     slug: string;
+    avatar?: string | null;
     genre: string | null;
     status: string;
     view_count?: number;
     events_count?: number;
+}
+
+function artistListAvatarUrl(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `/storage/${path}`;
 }
 
 type PaginationLink = { url: string | null; label: string; active: boolean };
@@ -64,7 +71,21 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                 key: 'name',
                 header: 'Sanatçı',
                 mobileLabel: 'Sanatçı',
-                cell: (a) => <span className="font-medium text-zinc-900 dark:text-white">{a.name}</span>,
+                cell: (a) => {
+                    const src = artistListAvatarUrl(a.avatar);
+                    return (
+                        <div className="flex min-w-0 max-w-[min(100%,20rem)] items-center gap-3">
+                            {src ? (
+                                <img
+                                    src={src}
+                                    alt=""
+                                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-600"
+                                />
+                            ) : null}
+                            <span className="min-w-0 truncate font-medium text-zinc-900 dark:text-white">{a.name}</span>
+                        </div>
+                    );
+                },
             },
             {
                 key: 'genre',
