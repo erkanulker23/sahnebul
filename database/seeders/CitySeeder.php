@@ -26,12 +26,15 @@ class CitySeeder extends Seeder
         ];
 
         foreach ($cities as $city) {
-            City::create([
-                'name' => $city['name'],
-                'slug' => Str::slug($city['name']),
-                'latitude' => $city['latitude'],
-                'longitude' => $city['longitude'],
-            ]);
+            $slug = Str::slug($city['name']);
+            City::query()->updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $city['name'],
+                    'latitude' => $city['latitude'],
+                    'longitude' => $city['longitude'],
+                ],
+            );
         }
     }
 }
