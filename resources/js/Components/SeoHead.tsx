@@ -8,6 +8,11 @@ export type SharedSeo = {
     defaultDescription: string;
     defaultImage: string | null;
     locale: string;
+    logoUrl?: string | null;
+    faviconUrl?: string | null;
+    keywords?: string | null;
+    twitterHandle?: string | null;
+    googleSiteVerification?: string | null;
 };
 
 type Props = {
@@ -59,6 +64,10 @@ export default function SeoHead({
     const canonical = (canonicalUrl ?? `${appUrl.replace(/\/$/, '')}${pathNormalized}`).replace(/([^:]\/)\/+/g, '$1');
 
     const absImage = toAbsoluteUrl(image ?? seo.defaultImage, appUrl);
+    const faviconHref = seo.faviconUrl?.trim() || null;
+    const keywords = seo.keywords?.trim() || null;
+    const twSite = seo.twitterHandle?.trim() || null;
+    const gVerify = seo.googleSiteVerification?.trim() || null;
     const robots = noindex
         ? 'noindex, nofollow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
@@ -67,7 +76,10 @@ export default function SeoHead({
 
     return (
         <Head title={title}>
+            {faviconHref ? <link head-key="favicon" rel="icon" href={faviconHref} /> : null}
             <meta head-key="description" name="description" content={desc} />
+            {keywords ? <meta head-key="keywords" name="keywords" content={keywords} /> : null}
+            {gVerify ? <meta head-key="google-verify" name="google-site-verification" content={gVerify} /> : null}
             <meta head-key="robots" name="robots" content={robots} />
             <link head-key="canonical" rel="canonical" href={canonical} />
             <link head-key="hreflang-tr" rel="alternate" hrefLang="tr" href={canonical} />
@@ -92,6 +104,7 @@ export default function SeoHead({
             <meta head-key="tw-title" name="twitter:title" content={fullTitle} />
             <meta head-key="tw-desc" name="twitter:description" content={desc} />
             {absImage ? <meta head-key="tw-image" name="twitter:image" content={absImage} /> : null}
+            {twSite ? <meta head-key="tw-site" name="twitter:site" content={twSite} /> : null}
 
             {jsonLd != null ? (
                 <script head-key="jsonld" type="application/ld+json">

@@ -73,6 +73,7 @@ return [
 
     /**
      * Google: Maps (tarayıcı) + Custom Search JSON API (sunucu, görsel arama).
+     * maps_browser_key: Admin → Ayarlar’da kayıtlı değer varsa AppSettingsService onu kullanır; yoksa .env.
      * Dikkat: 'google' anahtarı yalnızca bir kez tanımlanmalı (sonraki tanım öncekini ezer).
      */
     'google' => [
@@ -92,6 +93,7 @@ return [
 
     /**
      * OpenStreetMap Nominatim — ters jeodezik (konum → ilçe). Kullanım politikası: anlamlı User-Agent zorunlu.
+     *
      * @see https://operations.osmfoundation.org/policies/nominatim/
      */
     'nominatim' => [

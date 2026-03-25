@@ -631,8 +631,8 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
                 <div className="space-y-3">
                     {!googleMapsBrowserKey ? (
                         <p className="text-xs text-zinc-500">
-                            Arama için <code className="rounded bg-zinc-800 px-1 text-zinc-300">GOOGLE_MAPS_API_KEY</code> tanımlayın
-                            (Maps JavaScript API + Places).
+                            Arama için Google Maps API anahtarı gerekir: Admin → Ayarlar → Site kimliği bölümünde (süper yönetici) veya sunucuda{' '}
+                            <code className="rounded bg-zinc-800 px-1 text-zinc-300">GOOGLE_MAPS_API_KEY</code> (Maps JavaScript API + Places).
                         </p>
                     ) : (
                         <>

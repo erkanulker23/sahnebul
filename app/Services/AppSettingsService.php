@@ -3,16 +3,17 @@
 namespace App\Services;
 
 use App\Models\AppSetting;
-use App\Support\AdPlacementCatalog;
 use App\Models\Artist;
 use App\Models\Event;
 use App\Models\Review;
 use App\Models\Venue;
+use App\Support\AdPlacementCatalog;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class AppSettingsService
 {
@@ -23,7 +24,7 @@ class AppSettingsService
     private const ADMIN_COUNTS_KEY = 'admin.notification_counts';
 
     /** @var list<string> */
-    private const SETTING_KEYS = ['footer', 'ads', 'legal_pages', 'smtp'];
+    private const SETTING_KEYS = ['footer', 'ads', 'legal_pages', 'smtp', 'site', 'google_maps_browser_key'];
 
     public function getRaw(string $key): ?string
     {
@@ -91,6 +92,87 @@ class AppSettingsService
         }
 
         return array_replace_recursive($defaults, $fromDb);
+    }
+
+    /**
+     * Site geneli (logo, favicon, SEO, iletişim) — DB + config varsayılanları.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSitePublicSettings(): array
+    {
+        /** @var array<string, mixed> $defaults */
+        $defaults = config('sahnebul.default_site_public', []);
+        $fromDb = $this->getJsonCached('site');
+        if (! is_array($fromDb) || $fromDb === []) {
+            return $defaults;
+        }
+
+        return array_replace_recursive($defaults, $fromDb);
+    }
+
+    /**
+     * Footer + site ayarları: marka ve iletişim alanları panelden gelen site satırı ile güncellenir.
+     *
+     * @return array<string, mixed>
+     */
+    public function getFooterSettingsForPublic(): array
+    {
+        $footer = $this->getFooterSettings();
+        $site = $this->getSitePublicSettings();
+
+        $name = isset($site['site_name']) ? trim((string) $site['site_name']) : '';
+        if ($name !== '') {
+            $footer['brand'] = $name;
+        }
+
+        $contact = is_array($footer['contact'] ?? null) ? $footer['contact'] : [];
+        $map = [
+            'contact_email' => 'email',
+            'phone' => 'phone',
+            'address' => 'address',
+        ];
+        foreach ($map as $siteKey => $contactKey) {
+            $v = isset($site[$siteKey]) ? trim((string) $site[$siteKey]) : '';
+            if ($v !== '') {
+                $contact[$contactKey] = $v;
+            }
+        }
+        $footer['contact'] = $contact;
+
+        $support = isset($site['support_email']) ? trim((string) $site['support_email']) : '';
+        if ($support !== '') {
+            $footer['support_email'] = $support;
+        }
+
+        return $footer;
+    }
+
+    public function publicStorageUrl(?string $path): ?string
+    {
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
+    }
+
+    /**
+     * Mekan formlarında Places / Maps JS. Veritabanı (admin ayarları) doluysa önceliklidir; yoksa GOOGLE_MAPS_API_KEY (.env).
+     */
+    public function getGoogleMapsBrowserKey(): ?string
+    {
+        $fromDb = $this->getRawCached('google_maps_browser_key');
+        if (is_string($fromDb) && trim($fromDb) !== '') {
+            return trim($fromDb);
+        }
+
+        $fromEnv = config('services.google.maps_browser_key');
+        if (is_string($fromEnv) && trim($fromEnv) !== '') {
+            return trim($fromEnv);
+        }
+
+        return null;
     }
 
     /**

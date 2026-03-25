@@ -53,6 +53,7 @@ const navItems: { href: string; label: string; icon: typeof LayoutDashboard }[] 
 
 export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
     const pageProps = usePage().props as {
+        auth?: { is_super_admin?: boolean };
         adminNotifications?: {
             pending_venues: number;
             pending_artists: number;
@@ -60,6 +61,12 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             pending_reviews: number;
         } | null;
     };
+    const isSuperAdmin = pageProps.auth?.is_super_admin === true;
+
+    const visibleNavItems = useMemo(
+        () => (isSuperAdmin ? navItems : navItems.filter((i) => i.href !== 'admin.smtp.index')),
+        [isSuperAdmin],
+    );
     const { theme, toggleTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -122,10 +129,19 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
 
     const NavLinks = (
         <>
-            <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
-                Süper Admin Kontrol Merkezi
+            <div
+                className={cn(
+                    'mb-3 rounded-lg border p-3 text-xs',
+                    isSuperAdmin
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                        : 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400',
+                )}
+            >
+                {isSuperAdmin
+                    ? 'Süper yönetici — SMTP ve site kimliği ayarlarını düzenleyebilirsiniz.'
+                    : 'Yönetim menüsü — SMTP ve site kimliği yalnızca süper yöneticidedir.'}
             </div>
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                     <Link

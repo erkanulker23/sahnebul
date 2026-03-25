@@ -32,14 +32,41 @@ class HandleInertiaRequests extends Middleware
 
         $appUrl = rtrim((string) config('app.url'), '/');
 
+        $sitePublic = $appSettings->getSitePublicSettings();
+        $seoBlock = is_array($sitePublic['seo'] ?? null) ? $sitePublic['seo'] : [];
+        $siteNameFromDb = isset($sitePublic['site_name']) ? trim((string) $sitePublic['site_name']) : '';
+        $siteName = $siteNameFromDb !== '' ? $siteNameFromDb : (string) config('app.name', 'Sahnebul');
+        $defaultDescFromDb = isset($seoBlock['default_description']) ? trim((string) $seoBlock['default_description']) : '';
+        $defaultDescription = $defaultDescFromDb !== ''
+            ? $defaultDescFromDb
+            : 'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.';
+        $ogPath = isset($seoBlock['default_og_image_path']) ? trim((string) $seoBlock['default_og_image_path']) : '';
+        $defaultImage = $ogPath !== ''
+            ? $appSettings->publicStorageUrl($ogPath)
+            : config('sahnebul.default_og_image');
+        $logoUrl = $appSettings->publicStorageUrl(
+            isset($sitePublic['logo_path']) && is_string($sitePublic['logo_path']) ? trim($sitePublic['logo_path']) : null
+        );
+        $faviconUrl = $appSettings->publicStorageUrl(
+            isset($sitePublic['favicon_path']) && is_string($sitePublic['favicon_path']) ? trim($sitePublic['favicon_path']) : null
+        );
+        $keywords = isset($seoBlock['keywords']) ? trim((string) $seoBlock['keywords']) : '';
+        $twitterHandle = isset($seoBlock['twitter_handle']) ? trim((string) $seoBlock['twitter_handle']) : '';
+        $googleSiteVerification = isset($seoBlock['google_site_verification']) ? trim((string) $seoBlock['google_site_verification']) : '';
+
         return [
             ...parent::share($request),
             'seo' => [
-                'siteName' => (string) config('app.name'),
+                'siteName' => $siteName,
                 'appUrl' => $appUrl,
-                'defaultDescription' => 'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; rezervasyon ve Gold üyelik seçeneklerine göz atın.',
-                'defaultImage' => config('sahnebul.default_og_image'),
+                'defaultDescription' => $defaultDescription,
+                'defaultImage' => $defaultImage,
                 'locale' => 'tr_TR',
+                'logoUrl' => $logoUrl,
+                'faviconUrl' => $faviconUrl,
+                'keywords' => $keywords !== '' ? $keywords : null,
+                'twitterHandle' => $twitterHandle !== '' ? $twitterHandle : null,
+                'googleSiteVerification' => $googleSiteVerification !== '' ? $googleSiteVerification : null,
             ],
             'auth' => [
                 'user' => $user,
@@ -63,7 +90,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'settings' => [
-                'footer' => fn () => $appSettings->getFooterSettings(),
+                'footer' => fn () => $appSettings->getFooterSettingsForPublic(),
                 'ads' => fn () => $appSettings->getNormalizedAdsConfig(),
             ],
             'adminNotifications' => function () use ($request, $appSettings) {

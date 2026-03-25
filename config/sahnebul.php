@@ -43,4 +43,27 @@ return [
      * Üretimde 1200×630 PNG/JPEG önerilir; SVG bazı ağlarda sınırlı desteklenir.
      */
     'default_og_image' => env('SAHNE_DEFAULT_OG_IMAGE', '/images/sahnebul-og.svg'),
+
+    /**
+     * app_settings.site yokken veya alan boşken ön yüz / SEO varsayılanları.
+     * Süper yönetici panelden (Ayarlar → Site & SEO) doldurur.
+     *
+     * @var array<string, mixed>
+     */
+    'default_site_public' => [
+        'site_name' => null,
+        'logo_path' => null,
+        'favicon_path' => null,
+        'seo' => [
+            'default_description' => null,
+            'default_og_image_path' => null,
+            'keywords' => null,
+            'twitter_handle' => null,
+            'google_site_verification' => null,
+        ],
+        'contact_email' => null,
+        'support_email' => null,
+        'phone' => null,
+        'address' => null,
+    ],
 ];

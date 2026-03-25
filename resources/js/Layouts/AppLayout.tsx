@@ -10,17 +10,20 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
             user: { name: string; email: string; role?: string } | null;
             is_super_admin?: boolean;
         };
+        seo?: { logoUrl?: string | null };
         settings?: {
             footer?: {
                 brand?: string;
                 description?: string;
                 contact?: { email?: string; phone?: string; address?: string };
+                support_email?: string;
                 links?: { label: string; route: string }[];
                 social?: { label: string; url: string }[];
                 copyright?: string;
             } | null;
         };
     };
+    const footerLogoUrl = pageProps.seo?.logoUrl?.trim() || null;
     const isSuperAdmin = pageProps.auth?.is_super_admin === true;
     /** Sunucu her zaman doldurur; tip güvenliği için yedek */
     const footer = pageProps.settings?.footer ?? {
@@ -72,13 +75,24 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 <footer className="border-t border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950/80">
                     <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-10 px-2.5 py-12 sm:px-5 lg:grid-cols-6 lg:gap-8 lg:px-8">
                         <div className="min-w-0 lg:col-span-2">
-                            <div className="flex items-start gap-3">
-                                <MicrophoneMark className="mt-0.5 h-11 w-11 shrink-0" />
+                            <div className="flex flex-wrap items-center gap-3">
+                                {footerLogoUrl ? (
+                                    <img
+                                        src={footerLogoUrl}
+                                        alt=""
+                                        className="h-11 w-auto max-w-[220px] object-contain object-left dark:brightness-110"
+                                    />
+                                ) : (
+                                    <MicrophoneMark className="mt-0.5 h-11 w-11 shrink-0" />
+                                )}
                                 <p className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{footer.brand ?? 'SAHNEBUL'}</p>
                             </div>
                             <p className="mt-3 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">{footer.description}</p>
                             <div className="mt-4 space-y-1 text-sm text-zinc-600 dark:text-zinc-500">
                                 {footer.contact?.email && <p>{footer.contact.email}</p>}
+                                {footer.support_email && footer.support_email !== footer.contact?.email && (
+                                    <p>Destek: {footer.support_email}</p>
+                                )}
                                 {footer.contact?.phone && <p>{footer.contact.phone}</p>}
                                 {footer.contact?.address && <p>{footer.contact.address}</p>}
                             </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueMedia;
+use App\Services\AppSettingsService;
 use App\Support\ArtistProfileInputs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -39,9 +40,10 @@ class VenueController extends Controller
     public function create()
     {
         $categories = Category::orderBy('order')->get();
+
         return Inertia::render('Artist/Venues/Create', [
             'categories' => $categories,
-            'googleMapsBrowserKey' => config('services.google.maps_browser_key') ?: null,
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 
@@ -71,10 +73,11 @@ class VenueController extends Controller
         ]);
 
         $validated['user_id'] = $request->user()->id;
-        $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(4);
+        $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(4);
         $validated['status'] = 'pending';
 
         Venue::create($validated);
+
         return redirect()->route('artist.venues.index')->with('success', 'Mekan eklendi. Admin onayı bekleniyor.');
     }
 
@@ -85,10 +88,11 @@ class VenueController extends Controller
         }
         $venue->load(['city', 'district', 'neighborhood', 'category', 'media']);
         $categories = Category::orderBy('order')->get();
+
         return Inertia::render('Artist/Venues/Edit', [
             'venue' => $venue,
             'categories' => $categories,
-            'googleMapsBrowserKey' => config('services.google.maps_browser_key') ?: null,
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 
@@ -121,6 +125,7 @@ class VenueController extends Controller
         ]);
 
         $venue->update($validated);
+
         return back()->with('success', 'Mekan güncellendi.');
     }
 

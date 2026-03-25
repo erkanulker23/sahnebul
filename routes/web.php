@@ -232,9 +232,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/reklam-alanlari', [AdminAdPlacementController::class, 'index'])->name('ad-slots.index');
     Route::post('/reklam-alanlari', [AdminAdPlacementController::class, 'update'])->name('ad-slots.update');
 
-    Route::get('/smtp', [AdminSmtpSettingsController::class, 'index'])->name('smtp.index');
-    Route::post('/smtp', [AdminSmtpSettingsController::class, 'update'])->name('smtp.update');
-    Route::post('/smtp/test-mail', [AdminSmtpSettingsController::class, 'sendTestMail'])->name('smtp.test-mail');
+    Route::middleware('super_admin')->group(function () {
+        Route::get('/smtp', [AdminSmtpSettingsController::class, 'index'])->name('smtp.index');
+        Route::post('/smtp', [AdminSmtpSettingsController::class, 'update'])->name('smtp.update');
+        Route::post('/smtp/test-mail', [AdminSmtpSettingsController::class, 'sendTestMail'])->name('smtp.test-mail');
+
+        Route::post('/ayarlar/site', [AdminSettingsController::class, 'updateSite'])->name('settings.site');
+    });
 
     Route::get('/ayarlar', [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::post('/ayarlar', [AdminSettingsController::class, 'update'])->name('settings.update');

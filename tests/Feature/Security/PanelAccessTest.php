@@ -36,6 +36,20 @@ class PanelAccessTest extends TestCase
         $this->actingAs($user)->get('/admin')->assertOk();
     }
 
+    public function test_admin_cannot_open_smtp_settings(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $this->actingAs($user)->get('/admin/smtp')->assertForbidden();
+    }
+
+    public function test_super_admin_can_open_smtp_settings(): void
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($user)->get('/admin/smtp')->assertOk();
+    }
+
     public function test_guest_cannot_access_artist_panel(): void
     {
         $this->get('/sahne')->assertRedirect(route('login', absolute: false));

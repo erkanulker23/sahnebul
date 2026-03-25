@@ -9,7 +9,17 @@
             $inertiaDocumentMeta = isset($page) && is_array($page)
                 ? \App\Support\InertiaDocumentMeta::fromInertiaPage($page)
                 : null;
+            $inertiaFavicon = null;
+            if (isset($page) && is_array($page) && isset($page['props']) && is_array($page['props'])) {
+                $seo = $page['props']['seo'] ?? null;
+                if (is_array($seo) && ! empty($seo['faviconUrl']) && is_string($seo['faviconUrl'])) {
+                    $inertiaFavicon = $seo['faviconUrl'];
+                }
+            }
         @endphp
+        @if (is_string($inertiaFavicon) && $inertiaFavicon !== '')
+            <link rel="icon" href="{{ $inertiaFavicon }}">
+        @endif
         @if ($inertiaDocumentMeta !== null)
             @include('partials.inertia-document-meta', ['doc' => $inertiaDocumentMeta])
         @else

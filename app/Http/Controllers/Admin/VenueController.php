@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueMedia;
+use App\Services\AppSettingsService;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class VenueController extends Controller
     {
         return Inertia::render('Admin/Venues/Create', [
             'categories' => Category::orderBy('order')->get(['id', 'name']),
-            'googleMapsBrowserKey' => config('services.google.maps_browser_key') ?: null,
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 
@@ -124,7 +125,7 @@ class VenueController extends Controller
         return Inertia::render('Admin/Venues/Edit', [
             'venue' => $venue,
             'categories' => Category::orderBy('order')->get(['id', 'name']),
-            'googleMapsBrowserKey' => config('services.google.maps_browser_key') ?: null,
+            'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
     }
 

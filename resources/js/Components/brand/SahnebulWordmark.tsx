@@ -1,6 +1,7 @@
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
+import type { SharedSeo } from '@/Components/SeoHead';
 import { cn } from '@/lib/cn';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 const sizeMap = {
     sm: { icon: 'h-7 w-7', text: 'text-base sm:text-lg' },
@@ -10,6 +11,13 @@ const sizeMap = {
 } as const;
 
 type Size = keyof typeof sizeMap;
+
+const logoMaxH: Record<Size, string> = {
+    sm: 'max-h-7',
+    md: 'max-h-8',
+    lg: 'max-h-9',
+    xl: 'max-h-[4.5rem]',
+};
 
 export function SahnebulWordmark({
     size = 'md',
@@ -24,12 +32,37 @@ export function SahnebulWordmark({
     href?: string;
     onClick?: () => void;
 }>) {
+    const page = usePage();
+    const seo = (page.props as { seo?: SharedSeo }).seo;
+    const logoUrl = seo?.logoUrl?.trim() || null;
+    const siteName = seo?.siteName?.trim() || 'Sahnebul';
+
     const to = href ?? route('home');
     const s = sizeMap[size];
     const textClass = cn(
         'font-display font-bold tracking-tight bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent dark:from-amber-400 dark:to-amber-500',
         s.text,
     );
+
+    if (logoUrl) {
+        return (
+            <Link
+                href={to}
+                onClick={onClick}
+                className={cn(
+                    'group inline-flex shrink-0 items-center gap-2 transition-opacity hover:opacity-90',
+                    layout === 'vertical' && 'flex-col gap-4 text-center',
+                    className,
+                )}
+            >
+                <img
+                    src={logoUrl}
+                    alt={siteName}
+                    className={cn('h-auto w-auto max-w-[min(100%,14rem)] object-contain object-left', logoMaxH[size])}
+                />
+            </Link>
+        );
+    }
 
     return (
         <Link
