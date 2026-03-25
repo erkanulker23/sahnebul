@@ -18,7 +18,7 @@
             }
         @endphp
         @if (is_string($inertiaFavicon) && $inertiaFavicon !== '')
-            <link rel="icon" href="{{ $inertiaFavicon }}">
+            <link rel="icon" href="{{ $inertiaFavicon }}" @if (str_ends_with(strtolower(parse_url($inertiaFavicon, PHP_URL_PATH) ?: ''), '.svg')) type="image/svg+xml" @endif>
         @endif
         @if ($inertiaDocumentMeta !== null)
             @include('partials.inertia-document-meta', ['doc' => $inertiaDocumentMeta])

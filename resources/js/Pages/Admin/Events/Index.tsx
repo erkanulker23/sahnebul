@@ -79,6 +79,21 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
         router.post(route('admin.events.bulk-destroy'), { ids });
     }, [selectedRows]);
 
+    const bulkPublishSelected = useCallback(() => {
+        const ids = Object.keys(selectedRows).map(Number);
+        if (ids.length === 0) {
+            return;
+        }
+        if (
+            !confirm(
+                `Seçili ${ids.length} kayıttan yayın şartlarını sağlayan taslaklar yayınlansın mı? (Yayında olanlar ve eksik şartlı taslaklar atlanır.)`,
+            )
+        ) {
+            return;
+        }
+        router.post(route('admin.events.bulk-publish'), { ids }, { preserveScroll: true });
+    }, [selectedRows]);
+
     const columns: AdminColumn<Event>[] = useMemo(
         () => [
             {
@@ -190,13 +205,22 @@ export default function AdminEventsIndex({ events, filters }: Readonly<Props>) {
                         Yayında
                     </Link>
                     {selectedCount > 0 && (
-                        <button
-                            type="button"
-                            onClick={bulkDeleteSelected}
-                            className="ml-auto inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/70"
-                        >
-                            Seçilenleri sil ({selectedCount})
-                        </button>
+                        <div className="ml-auto flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={bulkPublishSelected}
+                                className="inline-flex items-center justify-center rounded-lg border border-emerald-400/80 bg-emerald-500/15 px-3 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-500/25 dark:border-emerald-600/60 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-950/80"
+                            >
+                                Seçilenleri yayınla ({selectedCount})
+                            </button>
+                            <button
+                                type="button"
+                                onClick={bulkDeleteSelected}
+                                className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/70"
+                            >
+                                Seçilenleri sil ({selectedCount})
+                            </button>
+                        </div>
                     )}
                 </div>
 

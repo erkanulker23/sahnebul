@@ -51,6 +51,10 @@ class HandleInertiaRequests extends Middleware
         $faviconUrl = $appSettings->publicStorageUrl(
             isset($sitePublic['favicon_path']) && is_string($sitePublic['favicon_path']) ? trim($sitePublic['favicon_path']) : null
         );
+        if ($faviconUrl === null || trim((string) $faviconUrl) === '') {
+            // Relative path: Valet hostname may differ from APP_URL.
+            $faviconUrl = '/favicon.svg';
+        }
         $keywords = isset($seoBlock['keywords']) ? trim((string) $seoBlock['keywords']) : '';
         $twitterHandle = isset($seoBlock['twitter_handle']) ? trim((string) $seoBlock['twitter_handle']) : '';
         $googleSiteVerification = isset($seoBlock['google_site_verification']) ? trim((string) $seoBlock['google_site_verification']) : '';

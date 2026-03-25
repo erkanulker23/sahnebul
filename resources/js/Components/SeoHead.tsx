@@ -76,7 +76,14 @@ export default function SeoHead({
 
     return (
         <Head title={title}>
-            {faviconHref ? <link head-key="favicon" rel="icon" href={faviconHref} /> : null}
+            {faviconHref ? (
+                <link
+                    head-key="favicon"
+                    rel="icon"
+                    href={faviconHref}
+                    type={faviconHref.split('?')[0].toLowerCase().endsWith('.svg') ? 'image/svg+xml' : undefined}
+                />
+            ) : null}
             <meta head-key="description" name="description" content={desc} />
             {keywords ? <meta head-key="keywords" name="keywords" content={keywords} /> : null}
             {gVerify ? <meta head-key="google-verify" name="google-site-verification" content={gVerify} /> : null}

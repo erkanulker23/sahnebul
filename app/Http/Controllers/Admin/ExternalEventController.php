@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ImportExternalMarketplaceEventsJob;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\ExternalEvent;
@@ -276,43 +277,26 @@ class ExternalEventController extends Controller
             return back()->with('error', 'external_events tablosu bulunamadı. Önce migration çalıştırın.');
         }
 
-        $this->relaxCrawlerExecutionTimeLimit();
-
         $validated = $this->validateCrawlRequest($request);
         [$cityNames, $categoryNames] = $this->resolveCityAndCategoryNames($validated);
 
-        $results = $this->marketplaceImport->import(
+        $configured = array_keys(config('crawler.sources', []));
+        if ($configured === []) {
+            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
+        }
+
+        ImportExternalMarketplaceEventsJob::dispatch(
             $validated['source'],
             $validated['limit'],
-            false,
             $validated['date_from'],
             $validated['date_to'],
             $cityNames,
             $categoryNames,
         );
 
-        if ($results === []) {
-            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
-        }
-
-        $lines = [];
-        $allFailed = true;
-
-        foreach ($results as $r) {
-            if (! empty($r['error'])) {
-                $lines[] = "{$r['source']}: {$r['error']}";
-            } else {
-                $allFailed = false;
-                $lines[] = "{$r['source']}: {$r['processed']} kayıt alındı veya güncellendi.";
-            }
-        }
-
-        $message = implode(' ', $lines);
-
-        if ($allFailed && $lines !== []) {
-            return back()->with('error', $message);
-        }
-
-        return back()->with('success', $message);
+        return back()->with(
+            'success',
+            'Veri çekme arka planda kuyruğa alındı. Bir süre sonra sayfayı yenileyin.',
+        );
     }
 }

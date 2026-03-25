@@ -270,19 +270,76 @@ class EventController extends Controller
 
     public function approve(Event $event)
     {
-        if ($event->artists()->count() === 0) {
-            return back()->with('error', 'Yayınlamak için etkinliğe en az bir onaylı sanatçı bağlanmalıdır.');
-        }
-        if ($event->ticket_acquisition_mode === Event::TICKET_MODE_EXTERNAL
-            && count(Event::normalizeTicketOutletsInput($event->ticket_outlets)) === 0) {
-            return back()->with(
-                'error',
-                'Harici platform modunda yayınlamak için en az bir geçerli bilet bağlantısı (https) ekleyin veya bilet satış modunu “Sahnebul” / “Telefon” olarak değiştirin.',
-            );
+        $block = $this->publishBlockReason($event);
+        if ($block !== null) {
+            return back()->with('error', $block);
         }
         $event->update(['status' => 'published']);
 
         return back()->with('success', 'Etkinlik yayınlandı.');
+    }
+
+    public function bulkPublish(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer', 'exists:events,id'],
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $published = 0;
+        $skipped = 0;
+
+        foreach ($ids as $id) {
+            $event = Event::query()->find($id);
+            if (! $event || $event->status !== 'draft') {
+                $skipped++;
+
+                continue;
+            }
+            if ($this->publishBlockReason($event) !== null) {
+                $skipped++;
+
+                continue;
+            }
+            $event->update(['status' => 'published']);
+            $published++;
+        }
+
+        $query = $request->only(['status', 'venue_id']);
+
+        if ($published === 0 && $skipped === 0) {
+            return redirect()->route('admin.events.index', $query)->with('error', 'Seçili kayıt bulunamadı.');
+        }
+
+        if ($published === 0) {
+            return redirect()->route('admin.events.index', $query)->with(
+                'error',
+                'Hiçbir etkinlik yayınlanamadı. Seçilenler taslak değil veya yayın şartlarını (sanatçı, bilet bağlantısı vb.) sağlamıyor.',
+            );
+        }
+
+        $suffix = $skipped > 0 ? " {$skipped} kayıt taslak değil veya şartları sağlamadığı için atlandı." : '';
+
+        return redirect()->route('admin.events.index', $query)->with(
+            'success',
+            "{$published} etkinlik yayınlandı.".$suffix,
+        );
+    }
+
+    /** Tekil / toplu yayın için aynı kurallar. */
+    private function publishBlockReason(Event $event): ?string
+    {
+        if ($event->artists()->count() === 0) {
+            return 'Yayınlamak için etkinliğe en az bir onaylı sanatçı bağlanmalıdır.';
+        }
+        if ($event->ticket_acquisition_mode === Event::TICKET_MODE_EXTERNAL
+            && count(Event::normalizeTicketOutletsInput($event->ticket_outlets)) === 0) {
+            return 'Harici platform modunda yayınlamak için en az bir geçerli bilet bağlantısı (https) ekleyin veya bilet satış modunu “Sahnebul” / “Telefon” olarak değiştirin.';
+        }
+
+        return null;
     }
 
     public function destroy(Event $event)
