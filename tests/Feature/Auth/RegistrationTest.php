@@ -16,6 +16,31 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_customer_registration_screen_can_be_rendered(): void
+    {
+        $response = $this->get('/kayit/kullanici');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_new_customer_can_register(): void
+    {
+        $response = $this->post('/kayit/kullanici', [
+            'name' => 'Test Customer',
+            'email' => 'customer@example.com',
+            'password' => 'SecureP@ssw0rd',
+            'password_confirmation' => 'SecureP@ssw0rd',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertDatabaseHas('users', [
+            'email' => 'customer@example.com',
+            'role' => 'customer',
+            'pending_venue_name' => null,
+        ]);
+    }
+
     public function test_new_users_can_register_as_artist(): void
     {
         $response = $this->post('/register', [

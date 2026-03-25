@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\City;
 use App\Support\SehirSecCityDistricts;
 use App\Support\SehirSecMetaInference;
 use DOMElement;
@@ -29,6 +30,10 @@ class MarketplaceCrawlerService
             return $this->crawlBubiletSehirSecPage($sourceConfig);
         }
 
+        if ($source === 'biletinial') {
+            return $this->crawlBiletinialListing($sourceConfig);
+        }
+
         $html = Http::timeout((int) config('crawler.timeout', 20))
             ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
             ->get((string) $sourceConfig['url'])
@@ -39,7 +44,7 @@ class MarketplaceCrawlerService
         if (empty($events)) {
             $events = $source === 'biletix'
                 ? $this->extractBiletixEvents($html)
-                : $this->extractBiletinialEvents($html);
+                : [];
         }
         $normalized = [];
 
@@ -121,9 +126,9 @@ class MarketplaceCrawlerService
             ->throw()
             ->body();
 
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
-        $dom->loadHTML('<?xml encoding="UTF-8">' . $html);
+        $dom->loadHTML('<?xml encoding="UTF-8">'.$html);
         libxml_clear_errors();
 
         $xpath = new DOMXPath($dom);
@@ -384,28 +389,347 @@ class MarketplaceCrawlerService
         return $items;
     }
 
-    private function extractBiletinialEvents(string $html): array
+    /**
+     * Biletinial müzik listesi → etkinlik detay URL'leri → her detaydaki schema.org Event mikro verisi (tarih / mekan / sanatçı).
+     *
+     * @param  array<string, mixed>  $sourceConfig
+     * @return list<array<string, mixed>>
+     */
+    private function crawlBiletinialListing(array $sourceConfig): array
     {
-        $items = [];
-        preg_match_all('/<a[^>]+href="([^"]*\/tr-tr\/[^"]+)"[^>]*>(.*?)<\/a>/is', $html, $links, PREG_SET_ORDER);
+        $listingUrl = (string) $sourceConfig['url'];
+        $html = Http::timeout((int) config('crawler.timeout', 25))
+            ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+            ->get($listingUrl)
+            ->throw()
+            ->body();
 
-        foreach ($links as $link) {
-            $title = trim(strip_tags(html_entity_decode($link[2], ENT_QUOTES | ENT_HTML5)));
-            if (mb_strlen($title, 'UTF-8') < 4) {
+        $paths = $this->extractBiletinialMuzikPathsFromListingHtml($html);
+        $paths = array_values(array_unique($paths));
+        $base = 'https://biletinial.com';
+        $normalized = [];
+        $maxDetailPages = 90;
+
+        foreach (array_slice($paths, 0, $maxDetailPages) as $i => $path) {
+            if ($i > 0) {
+                usleep(120000);
+            }
+            $url = $this->normalizeUrl($path, $base);
+            try {
+                $detailHtml = Http::timeout((int) config('crawler.timeout', 25))
+                    ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                    ->get($url)
+                    ->throw()
+                    ->body();
+            } catch (\Throwable) {
                 continue;
             }
 
-            $items[] = [
-                'name' => $title,
-                'url' => $this->normalizeUrl($link[1], 'https://biletinial.com'),
-                'location' => [
-                    'name' => 'Çeşitli Mekanlar',
-                    'address' => ['addressLocality' => 'İstanbul'],
+            foreach ($this->parseBiletinialDetailHtmlToSchemaEvents($detailHtml, $url) as $event) {
+                $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
+                if ($row !== null) {
+                    $normalized[] = $row;
+                }
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractBiletinialMuzikPathsFromListingHtml(string $html): array
+    {
+        $paths = [];
+        if (preg_match_all('#href=["\'](/tr-tr/muzik/[a-z0-9][a-z0-9-]{1,200}[a-z0-9])["\']#iu', $html, $m)) {
+            foreach ($m[1] as $p) {
+                $p = html_entity_decode($p, ENT_QUOTES | ENT_HTML5);
+                if (substr_count($p, '/') !== 3) {
+                    continue;
+                }
+                $paths[$p] = true;
+            }
+        }
+
+        return array_keys($paths);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function parseBiletinialDetailHtmlToSchemaEvents(string $html, string $pageUrl): array
+    {
+        $pageTitle = $this->biletinialPageDisplayTitle($html);
+        if ($pageTitle === '') {
+            return [];
+        }
+
+        $wrapped = '<?xml encoding="UTF-8">'.$html;
+        $prev = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument;
+        $dom->loadHTML($wrapped, LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+
+        $xpath = new DOMXPath($dom);
+        $nodes = $xpath->query("//*[contains(@itemtype, 'schema.org/Event')]");
+        if ($nodes === false || $nodes->length === 0) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($nodes as $eventEl) {
+            if (! $eventEl instanceof DOMElement) {
+                continue;
+            }
+
+            $startRaw = $this->biletinialMicrodataStartDate($eventEl);
+            if ($startRaw === null || trim($startRaw) === '') {
+                continue;
+            }
+
+            $placeEl = $this->biletinialFirstDescendantItempropElement($eventEl, 'location');
+            if (! $placeEl instanceof DOMElement) {
+                continue;
+            }
+
+            $venueName = $this->biletinialVenueNameFromPlace($placeEl);
+            if ($venueName === '') {
+                continue;
+            }
+
+            $street = $this->biletinialMetaContentInSubtree($placeEl, 'streetAddress')
+                ?? $this->biletinialMetaContentInSubtree($placeEl, 'address');
+            $localityRaw = $this->biletinialMetaContentInSubtree($placeEl, 'addressLocality');
+            $lat = $this->biletinialMetaContentInSubtree($placeEl, 'latitude');
+            $lng = $this->biletinialMetaContentInSubtree($placeEl, 'longitude');
+            $mekanHref = $placeEl->getAttribute('href');
+            if ($mekanHref === '') {
+                $a = $placeEl->getElementsByTagName('a')->item(0);
+                $mekanHref = $a instanceof DOMElement ? $a->getAttribute('href') : '';
+            }
+
+            $performer = $this->biletinialMetaContentInSubtree($eventEl, 'performer');
+            $image = $this->biletinialMetaContentInSubtree($eventEl, 'image');
+            $description = $this->biletinialMetaContentInSubtree($eventEl, 'description');
+
+            $inferredCity = $this->inferTurkishCityFromBiletinialAddress($localityRaw ?? '', $street ?? '', $venueName);
+
+            $geo = [];
+            if ($lat !== null && $lng !== null && is_numeric($lat) && is_numeric($lng) && (float) $lat !== 0.0 && (float) $lng !== 0.0) {
+                $geo = [
+                    '@type' => 'GeoCoordinates',
+                    'latitude' => (float) $lat,
+                    'longitude' => (float) $lng,
+                ];
+            }
+
+            $location = [
+                'name' => $venueName,
+                'address' => [
+                    'addressLocality' => $inferredCity,
+                    'streetAddress' => $street ?: ($localityRaw ?? ''),
                 ],
+            ];
+            if ($geo !== []) {
+                $location['geo'] = $geo;
+            }
+
+            $out[] = [
+                '@type' => 'Event',
+                'name' => $pageTitle,
+                'startDate' => $startRaw,
+                'url' => $pageUrl,
+                'description' => $description ?? '',
+                'image' => $image ?? '',
+                'performer' => $performer,
+                'location' => $location,
+                'keywords' => 'Müzik',
+                'biletinial_venue_path' => $mekanHref !== '' ? $this->normalizeUrl($mekanHref, 'https://biletinial.com') : null,
             ];
         }
 
-        return $items;
+        return $out;
+    }
+
+    private function biletinialPageDisplayTitle(string $html): string
+    {
+        if (preg_match('/<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']/iu', $html, $m)) {
+            $t = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5));
+
+            return trim(preg_replace('/\s*Biletleri?\s*$/iu', '', $t) ?? $t);
+        }
+
+        if (preg_match('/<h1[^>]*>([^<]+)<\/h1>/iu', $html, $m)) {
+            $t = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5));
+            if (mb_stripos($t, 'önerdiklerimiz') !== false) {
+                return '';
+            }
+
+            return $t;
+        }
+
+        return '';
+    }
+
+    private function biletinialMicrodataStartDate(DOMElement $eventEl): ?string
+    {
+        foreach ($eventEl->getElementsByTagName('time') as $time) {
+            if ($time->getAttribute('itemprop') !== 'startDate') {
+                continue;
+            }
+            $v = $time->getAttribute('datetime');
+            if ($v !== '') {
+                return $v;
+            }
+            $v = $time->getAttribute('content');
+            if ($v !== '') {
+                return $v;
+            }
+        }
+
+        foreach ($eventEl->getElementsByTagName('meta') as $meta) {
+            if ($meta->getAttribute('itemprop') === 'startDate') {
+                $v = $meta->getAttribute('content');
+
+                return $v !== '' ? $v : null;
+            }
+        }
+
+        return null;
+    }
+
+    private function biletinialFirstDescendantItempropElement(DOMElement $root, string $prop): ?DOMElement
+    {
+        foreach ($root->getElementsByTagName('*') as $el) {
+            if (! $el instanceof DOMElement) {
+                continue;
+            }
+            if ($el->getAttribute('itemprop') === $prop) {
+                return $el;
+            }
+        }
+
+        return null;
+    }
+
+    private function biletinialVenueNameFromPlace(DOMElement $placeEl): string
+    {
+        foreach ($placeEl->getElementsByTagName('address') as $addr) {
+            if ($addr->getAttribute('itemprop') === 'name') {
+                $text = trim(preg_replace('/\s+/u', ' ', strip_tags($addr->textContent)) ?? '');
+
+                return $text;
+            }
+        }
+
+        return '';
+    }
+
+    private function biletinialMetaContentInSubtree(DOMElement $root, string $prop): ?string
+    {
+        foreach ($root->getElementsByTagName('meta') as $meta) {
+            if ($meta->getAttribute('itemprop') === $prop) {
+                $v = trim(html_entity_decode($meta->getAttribute('content'), ENT_QUOTES | ENT_HTML5));
+
+                return $v !== '' ? $v : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Biletinial adres satırlarından şehir adı (City model / eşleştirme için).
+     */
+    private function inferTurkishCityFromBiletinialAddress(string $localityRaw, string $streetRaw, string $venueName): string
+    {
+        $blob = $localityRaw.' '.$streetRaw.' '.$venueName;
+        if (preg_match_all('/\b(\d{5})\b/u', $blob, $pcodes)) {
+            foreach ($pcodes[1] as $five) {
+                $plate = (int) substr($five, 0, 2);
+                $cityFromPlate = $this->turkishProvincePlateToCityName($plate);
+                if ($cityFromPlate !== null) {
+                    return $cityFromPlate;
+                }
+            }
+        }
+
+        $haystack = mb_strtolower($localityRaw.' '.$streetRaw.' '.$venueName, 'UTF-8');
+        foreach ($this->turkishCityNamesLongestFirst() as $city) {
+            $c = mb_strtolower($city, 'UTF-8');
+            if ($c !== '' && str_contains($haystack, $c)) {
+                return $city;
+            }
+        }
+
+        if (preg_match('#/([A-Za-zÇçĞğİıÖöŞşÜü\s]+)\s*$#u', $localityRaw, $m)) {
+            $candidate = trim($m[1]);
+            if (mb_strlen($candidate) >= 2 && mb_strlen($candidate) <= 40) {
+                return Str::title($candidate);
+            }
+        }
+        if (preg_match('#/([A-Za-zÇçĞğİıÖöŞşÜü\s]+)\s*$#u', $streetRaw, $m)) {
+            $candidate = trim($m[1]);
+            if (mb_strlen($candidate) >= 2 && mb_strlen($candidate) <= 40) {
+                return Str::title($candidate);
+            }
+        }
+
+        return 'İstanbul';
+    }
+
+    private function turkishProvincePlateToCityName(int $plate): ?string
+    {
+        static $map = [
+            1 => 'Adana', 2 => 'Adıyaman', 3 => 'Afyonkarahisar', 4 => 'Ağrı', 5 => 'Amasya', 6 => 'Ankara', 7 => 'Antalya',
+            8 => 'Artvin', 9 => 'Aydın', 10 => 'Balıkesir', 11 => 'Bilecik', 12 => 'Bingöl', 13 => 'Bitlis', 14 => 'Bolu',
+            15 => 'Burdur', 16 => 'Bursa', 17 => 'Çanakkale', 18 => 'Çankırı', 19 => 'Çorum', 20 => 'Denizli',
+            21 => 'Diyarbakır', 22 => 'Edirne', 23 => 'Elazığ', 24 => 'Erzincan', 25 => 'Erzurum', 26 => 'Eskişehir',
+            27 => 'Gaziantep', 28 => 'Giresun', 29 => 'Gümüşhane', 30 => 'Hakkâri', 31 => 'Hatay', 32 => 'Isparta',
+            33 => 'Mersin', 34 => 'İstanbul', 35 => 'İzmir', 36 => 'Kars', 37 => 'Kastamonu', 38 => 'Kayseri',
+            39 => 'Kırklareli', 40 => 'Kırşehir', 41 => 'Kocaeli', 42 => 'Konya', 43 => 'Kütahya', 44 => 'Malatya',
+            45 => 'Manisa', 46 => 'Kahramanmaraş', 47 => 'Mardin', 48 => 'Muğla', 49 => 'Muş', 50 => 'Nevşehir',
+            51 => 'Niğde', 52 => 'Ordu', 53 => 'Rize', 54 => 'Sakarya', 55 => 'Samsun', 56 => 'Siirt', 57 => 'Sinop',
+            58 => 'Sivas', 59 => 'Tekirdağ', 60 => 'Tokat', 61 => 'Trabzon', 62 => 'Tunceli', 63 => 'Şanlıurfa',
+            64 => 'Uşak', 65 => 'Van', 66 => 'Yozgat', 67 => 'Zonguldak', 68 => 'Aksaray', 69 => 'Bayburt',
+            70 => 'Karaman', 71 => 'Kırıkkale', 72 => 'Batman', 73 => 'Şırnak', 74 => 'Bartın', 75 => 'Ardahan',
+            76 => 'Iğdır', 77 => 'Yalova', 78 => 'Karabük', 79 => 'Kilis', 80 => 'Osmaniye', 81 => 'Düzce',
+        ];
+
+        return $map[$plate] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function turkishCityNamesLongestFirst(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $fromDb = City::query()->orderByRaw('CHAR_LENGTH(name) DESC')->pluck('name')->all();
+            if ($fromDb !== []) {
+                $cached = array_values(array_unique(array_map('strval', $fromDb)));
+
+                return $cached;
+            }
+        } catch (\Throwable) {
+        }
+
+        $cached = [
+            'Kahramanmaraş', 'Şanlıurfa', 'Gaziantep', 'Kocaeli', 'Balıkesir', 'Tekirdağ', 'Yalova', 'Karabük',
+            'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Bursa', 'Adana', 'Konya', 'Eskişehir', 'Mersin', 'Kayseri',
+            'Trabzon', 'Samsun', 'Denizli', 'Malatya', 'Erzurum', 'Van', 'Diyarbakır', 'Sakarya', 'Muğla', 'Aydın',
+            'Manisa', 'Hatay', 'Kütahya', 'Çanakkale', 'Edirne', 'Bolu', 'Zonguldak', 'Nevşehir', 'Elazığ', 'Ordu',
+        ];
+        usort($cached, fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+
+        return $cached;
     }
 
     private function extractJsonLdEvents(string $html): array
@@ -468,6 +792,7 @@ class MarketplaceCrawlerService
     private function normalizeCategoryName(string $raw): string
     {
         $lower = mb_strtolower($raw, 'UTF-8');
+
         return match (true) {
             str_contains($lower, 'tiyatro') => 'Tiyatro',
             str_contains($lower, 'spor') => 'Spor',
@@ -483,6 +808,6 @@ class MarketplaceCrawlerService
             return $pathOrUrl;
         }
 
-        return rtrim($base, '/') . '/' . ltrim($pathOrUrl, '/');
+        return rtrim($base, '/').'/'.ltrim($pathOrUrl, '/');
     }
 }

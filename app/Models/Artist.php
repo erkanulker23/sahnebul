@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 class Artist extends Model
 {
@@ -62,6 +63,12 @@ class Artist extends Model
             ->withTimestamps();
     }
 
+    /** Kullanıcı favorilerinde bu sanatçıyı ekleyenler */
+    public function favoritedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_favorite_artists')->withTimestamps();
+    }
+
     public function media(): HasMany
     {
         return $this->hasMany(ArtistMedia::class)->orderBy('order');
@@ -85,7 +92,7 @@ class Artist extends Model
      * MusicBrainz / Spotify meta etiketleri (ör. "Added For Google Code In 2016", "2010s") tür filtresinde gösterilmez.
      */
     /** Kamuya açık etkinlik formlarında: yalnızca onaylı, INT içe aktarma olmayan sanatçılar. */
-    public static function ruleExistsInPublicCatalog(): \Illuminate\Validation\Rules\Exists
+    public static function ruleExistsInPublicCatalog(): Exists
     {
         return Rule::exists('artists', 'id')->where(function ($q) {
             $q->where('status', 'approved')

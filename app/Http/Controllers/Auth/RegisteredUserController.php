@@ -42,10 +42,53 @@ class RegisteredUserController extends Controller
             }
         }
 
+        $membership = 'venue';
+        if ($claimArtist !== null) {
+            $membership = 'artist';
+        } elseif ($claimVenue !== null) {
+            $membership = 'venue';
+        } else {
+            $uyelik = $request->query('uyelik');
+            if ($uyelik === 'sanatci') {
+                $membership = 'artist';
+            } elseif ($uyelik === 'mekan') {
+                $membership = 'venue';
+            }
+        }
+
         return Inertia::render('Auth/Register', [
             'claimVenue' => $claimVenue,
             'claimArtist' => $claimArtist,
+            'initialMembership' => $membership,
         ]);
+    }
+
+    public function createKullanici(): Response
+    {
+        return Inertia::render('Auth/RegisterKullanici');
+    }
+
+    public function storeKullanici(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'pending_venue_name' => null,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'customer',
+        ]);
+
+        event(new Registered($user));
+
+        Auth::login($user);
+
+        return redirect(route('dashboard', absolute: false));
     }
 
     /**

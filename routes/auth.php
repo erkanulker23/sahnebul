@@ -31,6 +31,13 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:auth-login')
         ->name('login.store');
 
+    Route::get('/kayit/kullanici', [RegisteredUserController::class, 'createKullanici'])
+        ->name('register.kullanici');
+
+    Route::post('/kayit/kullanici', [RegisteredUserController::class, 'storeKullanici'])
+        ->middleware('throttle:auth-register')
+        ->name('register.kullanici.store');
+
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 

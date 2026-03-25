@@ -54,16 +54,28 @@ export default function LoginPortal({
     const meta = portalMeta[portal] ?? portalMeta.kullanici;
 
     const registerHref = useMemo(() => {
-        if (portal !== 'kullanici') {
-            return route('register');
+        if (portal === 'kullanici') {
+            if (claimVenueSlug) {
+                return route('register', { claim_venue: claimVenueSlug });
+            }
+            if (claimArtistSlug) {
+                return route('register', { claim_artist: claimArtistSlug });
+            }
+            return route('register.kullanici');
         }
-        if (claimVenueSlug) {
-            return route('register', { claim_venue: claimVenueSlug });
+        if (portal === 'sanatci') {
+            if (claimArtistSlug) {
+                return route('register', { claim_artist: claimArtistSlug });
+            }
+            return route('register', { uyelik: 'sanatci' });
         }
-        if (claimArtistSlug) {
-            return route('register', { claim_artist: claimArtistSlug });
+        if (portal === 'mekan') {
+            if (claimVenueSlug) {
+                return route('register', { claim_venue: claimVenueSlug });
+            }
+            return route('register', { uyelik: 'mekan' });
         }
-        return route('register');
+        return route('register.kullanici');
     }, [portal, claimVenueSlug, claimArtistSlug]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -87,6 +99,15 @@ export default function LoginPortal({
 
             <h2 className="font-display text-2xl font-bold text-white">{meta.headline}</h2>
             <p className="mt-2 text-sm text-zinc-500">{meta.sub}</p>
+            {portal === 'kullanici' && (
+                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
+                    Yönetici hesabıyla giriş için{' '}
+                    <Link href={route('login.admin')} className="font-medium text-amber-400 hover:text-amber-300">
+                        yönetim paneli girişi
+                    </Link>{' '}
+                    kullanın; bu sayfa yalnızca standart kullanıcı içindir.
+                </p>
+            )}
 
             <form onSubmit={submit} className="mt-8 space-y-6">
                 <div>
@@ -161,9 +182,25 @@ export default function LoginPortal({
             {portal === 'kullanici' && (
                 <p className="mt-4 text-center text-sm text-zinc-500">
                     Hesabınız yok mu?{' '}
-                    <Link href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
-                        Kayıt olun
-                    </Link>
+                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                        Kullanıcı kaydı
+                    </a>
+                </p>
+            )}
+            {portal === 'sanatci' && (
+                <p className="mt-4 text-center text-sm text-zinc-500">
+                    Hesabınız yok mu?{' '}
+                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                        Sanatçı kaydı
+                    </a>
+                </p>
+            )}
+            {portal === 'mekan' && (
+                <p className="mt-4 text-center text-sm text-zinc-500">
+                    Hesabınız yok mu?{' '}
+                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                        Mekan kaydı
+                    </a>
                 </p>
             )}
         </GuestLayout>

@@ -5,7 +5,7 @@ import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { cn } from '@/lib/cn';
-import { Link, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { FormEventHandler, KeyboardEvent, useMemo, useRef, useState } from 'react';
 
@@ -104,16 +104,18 @@ type ClaimProfile = { slug: string; name: string };
 export default function Register({
     claimVenue = null,
     claimArtist = null,
+    initialMembership: initialMembershipProp,
 }: Readonly<{
     claimVenue?: ClaimProfile | null;
     claimArtist?: ClaimProfile | null;
+    initialMembership: 'artist' | 'venue';
 }>) {
     const venueTabRef = useRef<HTMLButtonElement>(null);
     const artistTabRef = useRef<HTMLButtonElement>(null);
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
-    const initialMembership: 'artist' | 'venue' = claimVenue ? 'venue' : claimArtist ? 'artist' : 'venue';
+    const initialMembership: 'artist' | 'venue' = initialMembershipProp;
 
     const { data, setData, post, processing, errors, reset, transform } = useForm({
         venue_name: claimVenue?.name ?? '',
@@ -136,19 +138,19 @@ export default function Register({
 
     const loginHref = useMemo(() => {
         if (claimVenue) {
-            return route('login', {
+            return route('login.mekan', {
                 redirect: `/mekanlar/${claimVenue.slug}`,
                 claim_venue: claimVenue.slug,
             });
         }
         if (claimArtist) {
-            return route('login', {
+            return route('login.sanatci', {
                 redirect: `/sanatcilar/${claimArtist.slug}`,
                 claim_artist: claimArtist.slug,
             });
         }
-        return route('login');
-    }, [claimVenue, claimArtist]);
+        return data.membership_type === 'venue' ? route('login.mekan') : route('login.sanatci');
+    }, [claimVenue, claimArtist, data.membership_type]);
 
     const pwdRules = passwordRuleStatus(data.password);
 
@@ -340,9 +342,9 @@ export default function Register({
 
             <p className="mt-6 text-center text-sm text-zinc-500">
                 Zaten hesabınız var mı?{' '}
-                <Link href={loginHref} className="font-medium text-amber-400 hover:text-amber-300">
+                <a href={loginHref} className="font-medium text-amber-400 hover:text-amber-300">
                     Giriş yapın
-                </Link>
+                </a>
             </p>
         </GuestLayout>
     );

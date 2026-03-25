@@ -26,9 +26,20 @@ interface ArtistPayload {
     } | null;
 }
 
+interface ProfileAnalytics {
+    profile_views: number;
+    favorites_count: number;
+    published_events_listed: number;
+}
+
 interface Props {
     artist: ArtistPayload | null;
+    profileAnalytics: ProfileAnalytics | null;
     musicGenreOptions?: string[];
+}
+
+function formatInt(n: number): string {
+    return n.toLocaleString('tr-TR');
 }
 
 const emptySocial = {
@@ -49,7 +60,7 @@ const socialLabels: Record<string, string> = {
     facebook: 'Facebook',
 };
 
-export default function PublicArtistProfileEdit({ artist, musicGenreOptions = [] }: Readonly<Props>) {
+export default function PublicArtistProfileEdit({ artist, profileAnalytics, musicGenreOptions = [] }: Readonly<Props>) {
     const sl = artist?.social_links ?? {};
     const mgr = artist?.manager_info ?? {};
     const pub = artist?.public_contact ?? {};
@@ -140,6 +151,33 @@ export default function PublicArtistProfileEdit({ artist, musicGenreOptions = []
                     Sayfayı sitede aç →
                 </Link>
             </div>
+
+            {profileAnalytics ? (
+                <section className="mb-8 max-w-3xl rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-zinc-900/50 to-zinc-900/60 p-6">
+                    <h2 className="font-display text-lg font-semibold text-white">Profil performansı</h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                        Görüntülenme, kamu sanatçı sayfanız her açıldığında artar. Favori sayısı kullanıcı hesaplarından gelir; yayındaki
+                        etkinlik sayısı sizin adınızın listelendiği yayınlanmış etkinlikleri kapsar.
+                    </p>
+                    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Sayfa görüntülenmesi</p>
+                            <p className="mt-1 font-display text-2xl font-bold text-amber-300">{formatInt(profileAnalytics.profile_views)}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Favorilere ekleyen</p>
+                            <p className="mt-1 font-display text-2xl font-bold text-white">{formatInt(profileAnalytics.favorites_count)}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Yayında, sizin adınızla</p>
+                            <p className="mt-1 font-display text-2xl font-bold text-emerald-400/90">
+                                {formatInt(profileAnalytics.published_events_listed)}
+                            </p>
+                            <p className="mt-1 text-xs text-zinc-500">etkinlik</p>
+                        </div>
+                    </div>
+                </section>
+            ) : null}
 
             <form onSubmit={submit} className="max-w-3xl space-y-10">
                 <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">

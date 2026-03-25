@@ -23,6 +23,15 @@ class EventController extends Controller
             ->latest('start_date')
             ->paginate(15);
 
+        $events->getCollection()->transform(function (Event $e): Event {
+            $e->setAttribute(
+                'public_url_segment',
+                $e->status === 'published' ? $e->publicUrlSegment() : null
+            );
+
+            return $e;
+        });
+
         return Inertia::render('Artist/Events/Index', ['events' => $events]);
     }
 

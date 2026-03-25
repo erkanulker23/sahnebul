@@ -33,44 +33,97 @@ class ExternalEventDomainSyncService
             ['name' => $categoryName]
         );
 
-        $venueName = $external->venue_name ?: 'Çeşitli Mekanlar';
-        $venue = Venue::firstOrCreate(
-            ['slug' => Str::slug($venueName)],
-            [
-                'name' => $venueName,
-                'category_id' => $category->id,
-                'city_id' => $city->id,
-                'address' => $venueName . ', ' . $city->name,
-                'cover_image' => $external->image_url,
-                /** Otomatik içe aktarılan mekanlar; anasayfa /etkinlikler yalnızca approved mekan + published etkinlik gösterir. */
-                'status' => 'approved',
-            ]
-        );
-
-        if ($venue->user_id === null && $venue->status !== 'approved') {
-            $venue->update([
-                'status' => 'approved',
-                'cover_image' => $venue->cover_image ?: $external->image_url,
-            ]);
+        $venue = $this->resolveOrCreateVenueForExternal($external, $category, $city, $cityName);
+        if ($venue === null) {
+            return null;
         }
 
         $event = Event::updateOrCreate(
             [
                 'venue_id' => $venue->id,
-                'slug' => Str::slug($external->title) . '-' . substr($external->fingerprint, 0, 6),
+                'slug' => Str::slug($external->title).'-'.substr($external->fingerprint, 0, 6),
             ],
             [
                 'title' => $external->title,
-                'description' => trim(($external->description ?? '') . "\n\nKaynak: " . ($external->external_url ?? $external->source)),
+                'description' => trim(($external->description ?? '')."\n\nKaynak: ".($external->external_url ?? $external->source)),
                 'start_date' => $startDate,
-                'status' => 'published',
+                'status' => 'draft',
                 'cover_image' => $external->image_url,
             ]
         );
 
+        $event->artists()->detach();
         $this->attachArtistsFromExternalMeta($event, $external);
 
         return $event;
+    }
+
+    private function resolveOrCreateVenueForExternal(ExternalEvent $external, Category $category, City $city, string $cityName): ?Venue
+    {
+        $venueName = trim((string) ($external->venue_name ?? ''));
+        if ($venueName === '') {
+            $venueName = 'Çeşitli Mekanlar';
+        }
+
+        $venue = Venue::query()
+            ->where('city_id', $city->id)
+            ->whereRaw('lower(trim(name)) = lower(trim(?))', [$venueName])
+            ->first();
+
+        $street = (string) data_get($external->meta, 'raw.location.address.streetAddress', '');
+        $lat = data_get($external->meta, 'raw.location.geo.latitude');
+        $lng = data_get($external->meta, 'raw.location.geo.longitude');
+        $latF = is_numeric($lat) ? (float) $lat : null;
+        $lngF = is_numeric($lng) ? (float) $lng : null;
+
+        if ($venue !== null) {
+            $updates = [];
+            if (($venue->cover_image === null || $venue->cover_image === '') && $external->image_url) {
+                $updates['cover_image'] = $external->image_url;
+            }
+            if ($street !== '' && ($venue->address === null || $venue->address === '' || $venue->address === $venue->name.', '.$cityName)) {
+                $updates['address'] = $street;
+            }
+            if ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) {
+                if ($venue->latitude === null || $venue->longitude === null) {
+                    $updates['latitude'] = $latF;
+                    $updates['longitude'] = $lngF;
+                }
+            }
+            if ($venue->status !== 'approved' && $venue->user_id === null) {
+                $updates['status'] = 'approved';
+            }
+            if ($updates !== []) {
+                $venue->update($updates);
+            }
+
+            return $venue;
+        }
+
+        $baseSlug = Str::slug($venueName.' '.$cityName);
+        if ($baseSlug === '') {
+            $baseSlug = 'mekan';
+        }
+        $slug = $baseSlug;
+        $n = 0;
+        while (Venue::query()->where('slug', $slug)->exists()) {
+            $n++;
+            $slug = $baseSlug.'-'.$n;
+        }
+
+        $address = $street !== '' ? $street : $venueName.', '.$city->name;
+
+        return Venue::create([
+            'name' => $venueName,
+            'slug' => $slug,
+            'category_id' => $category->id,
+            'city_id' => $city->id,
+            'address' => $address,
+            'latitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $latF : null,
+            'longitude' => ($latF !== null && $lngF !== null && $latF !== 0.0 && $lngF !== 0.0) ? $lngF : null,
+            'cover_image' => $external->image_url,
+            'status' => 'approved',
+        ]);
     }
 
     private function attachArtistsFromExternalMeta(Event $event, ExternalEvent $external): void
@@ -84,7 +137,7 @@ class ExternalEventDomainSyncService
         }
 
         foreach ($names as $name) {
-            $trimmed = trim($name);
+            $trimmed = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
             if ($trimmed === '') {
                 continue;
             }
@@ -105,8 +158,9 @@ class ExternalEventDomainSyncService
 
     private function findOrCreateArtistByName(string $name): Artist
     {
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
         $existing = Artist::query()
-            ->whereRaw('lower(name) = lower(?)', [$name])
+            ->whereRaw('lower(trim(name)) = lower(trim(?))', [$name])
             ->first();
         if ($existing) {
             return $existing;
@@ -120,13 +174,12 @@ class ExternalEventDomainSyncService
         $n = 0;
         while (Artist::query()->where('slug', $slug)->exists()) {
             $n++;
-            $slug = $base . '-' . $n;
+            $slug = $base.'-'.$n;
         }
 
         return Artist::create([
             'name' => $name,
             'slug' => $slug,
-            /** Dış kaynak içe aktarımı; liste ve sanatçı sayfası approved bekler. */
             'status' => 'approved',
         ]);
     }
@@ -186,7 +239,7 @@ class ExternalEventDomainSyncService
     private function resolveCityName(ExternalEvent $external): ?string
     {
         if (! empty($external->city_name)) {
-            return $external->city_name;
+            return trim((string) $external->city_name);
         }
 
         $rawCity = data_get($external->meta, 'raw.location.address.addressLocality');

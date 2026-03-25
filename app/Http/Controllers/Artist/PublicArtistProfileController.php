@@ -19,8 +19,21 @@ class PublicArtistProfileController extends Controller
             ->where('user_id', $request->user()->id)
             ->first();
 
+        $profileAnalytics = null;
+        if ($artist !== null) {
+            $favoritesCount = $artist->favoritedByUsers()->count();
+            $publishedOnListings = $artist->events()->where('events.status', 'published')->count();
+
+            $profileAnalytics = [
+                'profile_views' => (int) $artist->view_count,
+                'favorites_count' => $favoritesCount,
+                'published_events_listed' => $publishedOnListings,
+            ];
+        }
+
         return Inertia::render('Artist/PublicProfile/Edit', [
             'artist' => $artist,
+            'profileAnalytics' => $profileAnalytics,
             'musicGenreOptions' => MusicGenre::optionNamesOrdered(),
         ]);
     }

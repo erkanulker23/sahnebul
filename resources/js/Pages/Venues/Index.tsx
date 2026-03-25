@@ -443,13 +443,13 @@ export default function VenuesIndex({
                                     {!isLoggedIn && (
                                         <>
                                             <Link
-                                                href={route('register')}
+                                                href={route('register', { uyelik: 'mekan' })}
                                                 className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
                                             >
                                                 Üye ol, mekan üyeliği al
                                             </Link>
                                             <Link
-                                                href={route('login')}
+                                                href={route('login.mekan')}
                                                 className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 py-3 text-center text-sm font-medium text-zinc-800 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/15 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
                                             >
                                                 Zaten üye misiniz? Giriş

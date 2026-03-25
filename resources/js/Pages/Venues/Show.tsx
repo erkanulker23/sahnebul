@@ -436,7 +436,7 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
                                             </Link>
                                             {' veya '}
                                             <Link
-                                                href={route('register')}
+                                                href={route('register.kullanici')}
                                                 className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                                             >
                                                 üye olun

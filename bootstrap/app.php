@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureUserIsArtist;
 use App\Http\Middleware\EnsureUserIsCustomer;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Support\AuthPortalUrls;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -49,16 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'json.same-site' => EnsureJsonApiNotCrossSite::class,
         ]);
 
-        $middleware->redirectGuestsTo(function (Request $request) {
-            if ($request->is('admin') || $request->is('admin/*')) {
-                return route('login.admin', absolute: false);
-            }
-            if ($request->is('sahne') || $request->is('sahne/*')) {
-                return route('login.sanatci', absolute: false);
-            }
-
-            return route('login', absolute: false);
-        });
+        $middleware->redirectGuestsTo(fn (Request $request) => AuthPortalUrls::guestRedirectPath($request));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Üretimde: LOG_LEVEL, günlük kanalı ve harici APM (Sentry vb.) .env üzerinden yapılandırılır.

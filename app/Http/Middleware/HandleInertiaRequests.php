@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Artist;
 use App\Services\AppSettingsService;
+use App\Support\AuthPortalUrls;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -68,12 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'twitterHandle' => $twitterHandle !== '' ? $twitterHandle : null,
                 'googleSiteVerification' => $googleSiteVerification !== '' ? $googleSiteVerification : null,
             ],
-            'authPortalLogins' => [
-                'customer' => route('login', absolute: false),
-                'artist' => route('login.sanatci', absolute: false),
-                'venue' => route('login.mekan', absolute: false),
-                'admin' => route('login.admin', absolute: false),
-            ],
+            'authPortalLogins' => AuthPortalUrls::forInertiaShare(),
             'auth' => [
                 'user' => $user,
                 /** Hesaba bağlı onaylı sanatçı kaydı (sahne paneli — sanatçı sayfası düzenleme) */

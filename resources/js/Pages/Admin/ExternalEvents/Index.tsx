@@ -104,7 +104,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources }: Re
             <div className="space-y-6">
                 <AdminPageHeader
                     title="Crawl aday etkinlikler"
-                    description="Biletinial/Biletix kaynaklarından gelen kayıtları inceleyip sisteme taslak olarak aktarın."
+                    description="Biletinial müzik listesi ve diğer kaynaklardan gelen adayları inceleyin; aktarınca etkinlik taslak, mekan ve sanatçılar otomatik eşleştirilir veya oluşturulur."
                     actions={
                         <>
                             <button

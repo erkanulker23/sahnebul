@@ -2,8 +2,9 @@
 
 return [
     'sources' => [
+        /** Konser listesi — kartlar detay sayfasına gider; crawler her detaydaki tüm tarih/mekan satırlarını okur. */
         'biletinial' => [
-            'url' => 'https://biletinial.com/',
+            'url' => 'https://biletinial.com/tr-tr/muzik',
             'city' => 'İstanbul',
         ],
         'biletix' => [

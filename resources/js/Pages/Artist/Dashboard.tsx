@@ -1,7 +1,7 @@
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
-import { reservationStatusTr, venueArtistStatusTr } from '@/lib/statusLabels';
+import { eventStatusTr, reservationStatusTr, venueArtistStatusTr } from '@/lib/statusLabels';
 import { Link } from '@inertiajs/react';
 
 interface Venue {
@@ -33,11 +33,33 @@ interface ActiveSubscription {
     };
 }
 
+interface TopEventRow {
+    id: number;
+    title: string;
+    view_count: number;
+    start_date: string | null;
+    status: string;
+    venue_name?: string | null;
+    public_url_segment: string | null;
+}
+
+interface EventPerformance {
+    total_views: number;
+    events_total: number;
+    published_total: number;
+    top_events: TopEventRow[];
+}
+
 interface Props {
     stats: { venues_count: number; pending_reservations: number; total_revenue: number };
+    eventPerformance: EventPerformance;
     venues: Venue[];
     recentReservations: Reservation[];
     activeSubscription?: ActiveSubscription | null;
+}
+
+function formatInt(n: number | undefined): string {
+    return (n ?? 0).toLocaleString('tr-TR');
 }
 
 function membershipTypeLabel(t: ActiveSubscription['plan']['membership_type']): string {
@@ -63,7 +85,13 @@ function defaultCapabilities(type: ActiveSubscription['plan']['membership_type']
     ];
 }
 
-export default function ArtistDashboard({ stats, venues, recentReservations, activeSubscription = null }: Readonly<Props>) {
+export default function ArtistDashboard({
+    stats,
+    eventPerformance,
+    venues,
+    recentReservations,
+    activeSubscription = null,
+}: Readonly<Props>) {
     const featuresRaw = activeSubscription?.plan.features?.trim() ?? '';
 
     return (
@@ -151,6 +179,80 @@ export default function ArtistDashboard({ stats, venues, recentReservations, act
                     <p className="mt-1 text-2xl font-bold text-green-400">₺{Number(stats.total_revenue).toLocaleString('tr-TR')}</p>
                 </div>
             </div>
+
+            <section className="mb-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h2 className="font-display text-lg font-semibold text-white">Etkinlik performansı</h2>
+                        <p className="mt-1 max-w-2xl text-sm text-zinc-500">
+                            Her etkinlik için sayaç, yalnızca yayındayken açılan kamu detay sayfası ziyaretlerinden artar. Taslak
+                            etkinlikler listelenmez; görüntülenme birikmez.
+                        </p>
+                    </div>
+                    <Link
+                        href={route('artist.events.index')}
+                        className="shrink-0 text-sm font-medium text-amber-400 hover:text-amber-300"
+                    >
+                        Tüm etkinlikler →
+                    </Link>
+                </div>
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">Toplam görüntülenme</p>
+                        <p className="mt-1 font-display text-2xl font-bold text-amber-300">{formatInt(eventPerformance.total_views)}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Etkinlik kaydı</p>
+                        <p className="mt-1 font-display text-2xl font-bold text-white">{formatInt(eventPerformance.events_total)}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Yayında</p>
+                        <p className="mt-1 font-display text-2xl font-bold text-emerald-400/90">
+                            {formatInt(eventPerformance.published_total)}
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 border-t border-white/10 pt-6">
+                    <h3 className="text-sm font-semibold text-white">En çok görüntülenen etkinlikler</h3>
+                    {eventPerformance.top_events.length === 0 ? (
+                        <p className="mt-3 text-sm text-zinc-500">Henüz etkinlik yok.</p>
+                    ) : (
+                        <ul className="mt-3 divide-y divide-white/10 rounded-xl border border-white/10">
+                            {eventPerformance.top_events.map((ev) => (
+                                <li key={ev.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-white">{ev.title}</p>
+                                        <p className="mt-0.5 text-xs text-zinc-500">
+                                            {ev.venue_name ?? '—'} ·{' '}
+                                            {ev.start_date
+                                                ? new Date(ev.start_date).toLocaleString('tr-TR', {
+                                                      dateStyle: 'medium',
+                                                      timeStyle: 'short',
+                                                  })
+                                                : 'Tarih yok'}
+                                            {' · '}
+                                            <span className="text-zinc-400">{eventStatusTr(ev.status)}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-4">
+                                        <span className="text-sm tabular-nums text-amber-300">{formatInt(ev.view_count)} görüntülenme</span>
+                                        {ev.public_url_segment ? (
+                                            <Link
+                                                href={route('events.show', { event: ev.public_url_segment })}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-amber-400 hover:text-amber-300"
+                                            >
+                                                Sayfayı aç
+                                            </Link>
+                                        ) : null}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </section>
 
             <div className="grid gap-8 lg:grid-cols-2">
                 <div className="rounded-xl border border-white/5 bg-zinc-900/50">
