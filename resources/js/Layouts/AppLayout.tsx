@@ -116,7 +116,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                             <div className="mt-3 flex flex-col gap-2">
                                 {(footer.social ?? []).map((social) => (
                                     <a
-                                        key={social.label}
+                                        key={social.url}
                                         href={social.url}
                                         target="_blank"
                                         rel="noopener noreferrer"

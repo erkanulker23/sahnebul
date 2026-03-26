@@ -146,7 +146,49 @@ class AppSettingsService
             $footer['support_email'] = $support;
         }
 
+        $socialFromSite = $this->socialLinksForFooterFromSite($site);
+        if ($socialFromSite !== []) {
+            $footer['social'] = $socialFromSite;
+        }
+
         return $footer;
+    }
+
+    /**
+     * Site ayarlarındaki sosyal bağlantılar — doluysa footer’daki varsayılan / footer JSON sosyal listesinin yerine geçer.
+     *
+     * @param  array<string, mixed>  $site
+     * @return list<array{label: string, url: string}>
+     */
+    public function socialLinksForFooterFromSite(array $site): array
+    {
+        $raw = $site['social_links'] ?? null;
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $map = [
+            'instagram' => 'Instagram',
+            'facebook' => 'Facebook',
+            'twitter' => 'X (Twitter)',
+            'youtube' => 'YouTube',
+            'linkedin' => 'LinkedIn',
+            'tiktok' => 'TikTok',
+        ];
+
+        $out = [];
+        foreach ($map as $key => $label) {
+            $url = isset($raw[$key]) ? trim((string) $raw[$key]) : '';
+            if ($url === '') {
+                continue;
+            }
+            if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+                continue;
+            }
+            $out[] = ['label' => $label, 'url' => $url];
+        }
+
+        return $out;
     }
 
     public function publicStorageUrl(?string $path): ?string

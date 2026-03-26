@@ -67,5 +67,14 @@ return [
         'support_email' => null,
         'phone' => null,
         'address' => null,
+        /** Tam URL; admin panelden doldurulur — footer ve iletişim sayfasında listelenir. */
+        'social_links' => [
+            'instagram' => null,
+            'facebook' => null,
+            'twitter' => null,
+            'youtube' => null,
+            'linkedin' => null,
+            'tiktok' => null,
+        ],
     ],
 ];

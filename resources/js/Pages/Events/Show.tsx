@@ -1,9 +1,9 @@
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
+import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
-import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -67,22 +67,10 @@ interface EventReviewRow {
     user: { id: number; name: string; avatar?: string | null };
 }
 
-interface UpcomingEventCard {
-    id: number;
-    slug: string;
-    title: string;
-    start_date: string;
-    ticket_price: number | null;
-    cover_image?: string | null;
-    listing_image?: string | null;
-    ticket_tiers?: TicketTier[];
-    venue?: { name: string; slug: string };
-}
-
 interface Props {
     event: Event;
-    venueUpcomingEvents?: UpcomingEventCard[];
-    artistUpcomingEvents?: UpcomingEventCard[];
+    venueUpcomingEvents?: PublicEventTicketCardEvent[];
+    artistUpcomingEvents?: PublicEventTicketCardEvent[];
     eventReviews?: EventReviewRow[];
     eventCustomerActions?: { canToggle: boolean; hasReminder: boolean };
 }
@@ -95,15 +83,6 @@ function isWhatsappUrl(url: string): boolean {
     return /wa\.me|api\.whatsapp\.com|whatsapp\.com/i.test(url);
 }
 
-function minPriceFromEvent(ev: { ticket_price: number | null; ticket_tiers?: TicketTier[] }): number | null {
-    const tiers = ev.ticket_tiers ?? [];
-    if (tiers.length > 0) {
-        const nums = tiers.map((t) => parseFloat(t.price));
-        return Math.min(...nums);
-    }
-    return ev.ticket_price;
-}
-
 type SharedSeo = { appUrl: string };
 
 function eventReviewStars(rating: number): string {
@@ -111,21 +90,14 @@ function eventReviewStars(rating: number): string {
     return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
 }
 
-function upcomingCardImageSrc(path: string | null | undefined): string | null {
-    if (!path?.trim()) return null;
-    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
-}
-
 function UpcomingEventsSection({
     title,
     description,
     items,
-    showVenue,
 }: Readonly<{
     title: string;
     description?: string;
-    items: UpcomingEventCard[];
-    showVenue?: boolean;
+    items: PublicEventTicketCardEvent[];
 }>) {
     if (items.length === 0) return null;
     return (
@@ -134,62 +106,12 @@ function UpcomingEventsSection({
             {description ? (
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{description}</p>
             ) : null}
-            <ul className="mt-6 grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {items.map((ev) => {
-                    const p = minPriceFromEvent(ev);
-                    const { src: relatedCover, objectFit } = resolveEventCardVisual({
-                        listing_image: ev.listing_image,
-                        cover_image: ev.cover_image,
-                        imageSrc: upcomingCardImageSrc,
-                    });
-                    const fitCls =
-                        objectFit === 'contain' ? 'object-contain object-center' : 'object-cover';
-                    return (
-                        <li
-                            key={ev.id}
-                            className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-colors hover:border-amber-400/60 dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-amber-500/35"
-                        >
-                            <Link
-                                href={route('events.show', eventShowParam(ev))}
-                                className="group flex flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950"
-                            >
-                                {relatedCover ? (
-                                    <div className="relative aspect-[5/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                                        <img
-                                            src={relatedCover}
-                                            alt=""
-                                            className={`h-full w-full ${fitCls} transition duration-300 group-hover:opacity-90`}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="flex aspect-[5/3] w-full items-center justify-center bg-zinc-100 text-4xl dark:bg-zinc-800">
-                                        🎭
-                                    </div>
-                                )}
-                                <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
-                                    <p className="text-base font-semibold leading-snug text-zinc-900 dark:text-white">{ev.title}</p>
-                                    <div className="space-y-1.5 text-sm">
-                                        <p className="text-zinc-600 dark:text-zinc-400">{formatTurkishDateTime(ev.start_date)}</p>
-                                        {p != null ? (
-                                            <p className="font-semibold text-amber-600 dark:text-amber-400">{formatTry(p)}</p>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            </Link>
-                            {showVenue && ev.venue ? (
-                                <Link
-                                    href={route('venues.show', ev.venue.slug)}
-                                    className="border-t border-zinc-100 px-4 py-3.5 text-sm font-medium leading-snug text-amber-700 transition hover:bg-zinc-50 dark:border-white/10 dark:text-amber-400 dark:hover:bg-white/5 sm:px-5"
-                                >
-                                    <span className="block text-xs font-normal uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                                        Mekân
-                                    </span>
-                                    <span className="mt-1 block line-clamp-2">{ev.venue.name}</span>
-                                </Link>
-                            ) : null}
-                        </li>
-                    );
-                })}
+            <ul className="mt-5 grid list-none grid-cols-2 gap-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                {items.map((ev) => (
+                    <li key={ev.id} className="h-full">
+                        <PublicEventTicketCard event={ev} />
+                    </li>
+                ))}
             </ul>
         </section>
     );
@@ -311,7 +233,7 @@ export default function EventShow({
                             : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
                     }
                 />
-                <div className="relative mx-auto w-full max-w-6xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
+                <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
                     <Link href={route('venues.show', event.venue.slug)} className="text-sm text-amber-300 hover:text-amber-200">← Mekana dön</Link>
                     <div className="mt-6 max-w-4xl">
                         <p className="text-sm">
@@ -891,7 +813,6 @@ export default function EventShow({
                             title="Sanatçıların diğer yaklaşan etkinlikleri"
                             description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
                             items={artistUpcomingEvents}
-                            showVenue
                         />
                     </div>
                 </div>

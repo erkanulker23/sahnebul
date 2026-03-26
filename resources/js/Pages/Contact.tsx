@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/cn';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { ExternalLink, Mail, MapPin, Phone } from 'lucide-react';
 
 const fieldClass = cn(
     'mt-1.5 w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900',
@@ -21,6 +21,7 @@ export default function Contact() {
             settings?: {
                 footer?: {
                     contact?: { email?: string; phone?: string; address?: string };
+                    social?: { label: string; url: string }[];
                 } | null;
             };
         };
@@ -28,6 +29,7 @@ export default function Contact() {
     const user = page.props.auth?.user;
     const flash = page.props.flash;
     const contact = page.props.settings?.footer?.contact;
+    const socialLinks = page.props.settings?.footer?.social ?? [];
 
     const { data, setData, post, processing, errors, reset } = useForm({
         name: user?.name ?? '',
@@ -99,6 +101,28 @@ export default function Contact() {
                                     <li className="text-zinc-500 dark:text-zinc-500">İletişim bilgileri ayarlardan eklenebilir.</li>
                                 )}
                             </ul>
+                            {socialLinks.length > 0 && (
+                                <>
+                                    <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                        Sosyal medya
+                                    </p>
+                                    <ul className="mt-3 space-y-2">
+                                        {socialLinks.map((s) => (
+                                            <li key={s.url}>
+                                                <a
+                                                    href={s.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-sm text-zinc-700 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-400"
+                                                >
+                                                    <ExternalLink className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                                                    {s.label}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </>
+                            )}
                             <p className="mt-6 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
                                 Kişisel verileriniz{' '}
                                 <Link href={route('pages.show', 'gizlilik-politikasi')} className="text-amber-700 underline hover:no-underline dark:text-amber-400">

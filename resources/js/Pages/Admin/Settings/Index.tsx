@@ -6,12 +6,22 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 type PageErrors = Record<string, string>;
 
+interface SiteSocialLinks {
+    instagram: string;
+    facebook: string;
+    twitter: string;
+    youtube: string;
+    linkedin: string;
+    tiktok: string;
+}
+
 interface SitePublicProps {
     site_name: string;
     contact_email: string;
     support_email: string;
     phone: string;
     address: string;
+    social_links: SiteSocialLinks;
     seo_default_description: string;
     seo_keywords: string;
     seo_twitter_handle: string;
@@ -107,6 +117,12 @@ export default function AdminSettingsIndex({
     const [supportEmail, setSupportEmail] = useState(sp?.support_email ?? '');
     const [phone, setPhone] = useState(sp?.phone ?? '');
     const [address, setAddress] = useState(sp?.address ?? '');
+    const [socialInstagram, setSocialInstagram] = useState(sp?.social_links?.instagram ?? '');
+    const [socialFacebook, setSocialFacebook] = useState(sp?.social_links?.facebook ?? '');
+    const [socialTwitter, setSocialTwitter] = useState(sp?.social_links?.twitter ?? '');
+    const [socialYoutube, setSocialYoutube] = useState(sp?.social_links?.youtube ?? '');
+    const [socialLinkedin, setSocialLinkedin] = useState(sp?.social_links?.linkedin ?? '');
+    const [socialTiktok, setSocialTiktok] = useState(sp?.social_links?.tiktok ?? '');
     const [seoDesc, setSeoDesc] = useState(sp?.seo_default_description ?? '');
     const [seoKeywords, setSeoKeywords] = useState(sp?.seo_keywords ?? '');
     const [seoTwitter, setSeoTwitter] = useState(sp?.seo_twitter_handle ?? '');
@@ -136,6 +152,12 @@ export default function AdminSettingsIndex({
         setSupportEmail(sp.support_email ?? '');
         setPhone(sp.phone ?? '');
         setAddress(sp.address ?? '');
+        setSocialInstagram(sp.social_links?.instagram ?? '');
+        setSocialFacebook(sp.social_links?.facebook ?? '');
+        setSocialTwitter(sp.social_links?.twitter ?? '');
+        setSocialYoutube(sp.social_links?.youtube ?? '');
+        setSocialLinkedin(sp.social_links?.linkedin ?? '');
+        setSocialTiktok(sp.social_links?.tiktok ?? '');
         setSeoDesc(sp.seo_default_description ?? '');
         setSeoKeywords(sp.seo_keywords ?? '');
         setSeoTwitter(sp.seo_twitter_handle ?? '');
@@ -154,6 +176,12 @@ export default function AdminSettingsIndex({
         sp?.support_email,
         sp?.phone,
         sp?.address,
+        sp?.social_links?.instagram,
+        sp?.social_links?.facebook,
+        sp?.social_links?.twitter,
+        sp?.social_links?.youtube,
+        sp?.social_links?.linkedin,
+        sp?.social_links?.tiktok,
         sp?.seo_default_description,
         sp?.seo_keywords,
         sp?.seo_twitter_handle,
@@ -197,6 +225,12 @@ export default function AdminSettingsIndex({
         fd.append('support_email', supportEmail);
         fd.append('phone', phone);
         fd.append('address', address);
+        fd.append('social_instagram', socialInstagram);
+        fd.append('social_facebook', socialFacebook);
+        fd.append('social_twitter', socialTwitter);
+        fd.append('social_youtube', socialYoutube);
+        fd.append('social_linkedin', socialLinkedin);
+        fd.append('social_tiktok', socialTiktok);
         fd.append('seo_default_description', seoDesc);
         fd.append('seo_keywords', seoKeywords);
         fd.append('seo_twitter_handle', seoTwitter);
@@ -240,6 +274,12 @@ export default function AdminSettingsIndex({
             'home_hero',
             'google_maps_api_key',
             'remove_google_maps_api_key',
+            'social_instagram',
+            'social_facebook',
+            'social_twitter',
+            'social_youtube',
+            'social_linkedin',
+            'social_tiktok',
         ];
         return keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
     }, [errors]);
@@ -521,6 +561,94 @@ export default function AdminSettingsIndex({
                                         Adres
                                     </label>
                                     <textarea id="c-addr" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} className={inputClass} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-zinc-800 pt-5">
+                            <h3 className="text-sm font-semibold text-zinc-300">Sosyal medya hesapları</h3>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                Tam adres girin (örn. <code className="rounded bg-zinc-800 px-1">https://instagram.com/sahnebul</code>). Footer’daki “Sosyal” sütunu ve{' '}
+                                <span className="text-zinc-400">İletişim</span> sayfasında listelenir. Boş bırakılan ağlar gösterilmez.
+                            </p>
+                            <div className="mt-4 grid gap-4 sm:max-w-xl">
+                                <div>
+                                    <label htmlFor="soc-ig" className={labelClass}>
+                                        Instagram
+                                    </label>
+                                    <input
+                                        id="soc-ig"
+                                        type="url"
+                                        value={socialInstagram}
+                                        onChange={(e) => setSocialInstagram(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://instagram.com/…"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="soc-fb" className={labelClass}>
+                                        Facebook
+                                    </label>
+                                    <input
+                                        id="soc-fb"
+                                        type="url"
+                                        value={socialFacebook}
+                                        onChange={(e) => setSocialFacebook(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://facebook.com/…"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="soc-x" className={labelClass}>
+                                        X (Twitter)
+                                    </label>
+                                    <input
+                                        id="soc-x"
+                                        type="url"
+                                        value={socialTwitter}
+                                        onChange={(e) => setSocialTwitter(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://x.com/…"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="soc-yt" className={labelClass}>
+                                        YouTube
+                                    </label>
+                                    <input
+                                        id="soc-yt"
+                                        type="url"
+                                        value={socialYoutube}
+                                        onChange={(e) => setSocialYoutube(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://youtube.com/…"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="soc-li" className={labelClass}>
+                                        LinkedIn
+                                    </label>
+                                    <input
+                                        id="soc-li"
+                                        type="url"
+                                        value={socialLinkedin}
+                                        onChange={(e) => setSocialLinkedin(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://linkedin.com/…"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="soc-tt" className={labelClass}>
+                                        TikTok
+                                    </label>
+                                    <input
+                                        id="soc-tt"
+                                        type="url"
+                                        value={socialTiktok}
+                                        onChange={(e) => setSocialTiktok(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="https://tiktok.com/@…"
+                                    />
                                 </div>
                             </div>
                         </div>

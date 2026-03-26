@@ -116,7 +116,15 @@ class EventController extends Controller
             ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->select('events.*')
             ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
-            ->with(['venue:id,name,slug,latitude,longitude', 'artists:id,name,slug'])
+            ->with([
+                'venue' => fn ($q) => $q
+                    ->select('venues.id', 'venues.name', 'venues.slug', 'venues.city_id', 'venues.category_id', 'venues.cover_image', 'venues.latitude', 'venues.longitude')
+                    ->with(['city:id,name', 'category:id,name']),
+                'artists' => fn ($q) => $q
+                    ->select('artists.id', 'artists.name', 'artists.slug', 'artists.avatar')
+                    ->orderByPivot('is_headliner', 'desc')
+                    ->orderByPivot('order'),
+            ])
             ->orderBy('distance_km')
             ->orderBy('start_date')
             ->limit($limit)

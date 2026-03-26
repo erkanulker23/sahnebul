@@ -1,13 +1,13 @@
 import { AdSlot } from '@/Components/AdSlot';
-import { eventShowParam } from '@/lib/eventShowUrl';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import EventCarousel from '@/Components/EventCarousel';
+import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import SeoHead from '@/Components/SeoHead';
 import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { MapPin } from 'lucide-react';
 
 interface Artist {
     id: number;
@@ -24,11 +24,19 @@ interface HomeEvent {
     title: string;
     start_date: string;
     cover_image?: string | null;
-    venue: { id: number; name: string; slug: string; category?: { name: string } | null };
-    artists: { id: number; name: string; slug: string }[];
+    listing_image?: string | null;
+    venue: {
+        id: number;
+        name: string;
+        slug: string;
+        cover_image?: string | null;
+        category?: { name: string } | null;
+        city?: { name: string } | null;
+    };
+    artists: { id: number; name: string; slug: string; avatar?: string | null }[];
 }
 
-interface NearbyEvent extends HomeEvent {
+interface NearbyEvent extends PublicEventTicketCardEvent {
     distance_km?: number;
 }
 
@@ -509,30 +517,32 @@ export default function VenuesIndex({
             )}
 
             {locationChecked && nearbyEvents.length > 0 && (
-                <section className="mx-auto max-w-7xl px-0 py-4 sm:px-4 lg:px-8">
-                    <div className="mb-5">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500/80">Size Yakın</p>
-                        <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white">Konumunuza En Yakın Etkinlikler</h2>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                        {nearbyEvents.map((event) => (
-                            <Link
-                                key={event.id}
-                                href={route('events.show', eventShowParam(event))}
-                                className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 transition hover:border-emerald-300 dark:border-emerald-500/20 dark:bg-emerald-500/10"
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <p className="font-semibold text-zinc-900 dark:text-white">{event.title}</p>
-                                    <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white">
-                                        {(event.distance_km ?? 0).toFixed(1)} km
-                                    </span>
-                                </div>
-                                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{event.venue.name}</p>
-                                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                    {formatTurkishDateTime(event.start_date)}
+                <section className="mx-auto max-w-7xl px-0 pb-10 pt-6 sm:px-4 lg:px-8">
+                    <div className="rounded-2xl border border-zinc-200/90 bg-gradient-to-b from-white via-zinc-50/80 to-zinc-100/40 p-4 shadow-sm ring-1 ring-zinc-200/60 dark:border-white/[0.08] dark:from-zinc-900/90 dark:via-zinc-950/80 dark:to-zinc-950 dark:ring-white/[0.06] sm:p-6 lg:p-8">
+                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                                <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                    <MapPin className="h-3.5 w-3.5" aria-hidden />
+                                    Size yakın
                                 </p>
-                            </Link>
-                        ))}
+                                <h2 className="font-display mt-2 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+                                    Konumunuza en yakın etkinlikler
+                                </h2>
+                                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                    Yaklaşan yayınlar; mesafe, mekân koordinatlarına göre hesaplanır. Kartlardaki yeşil rozet yaklaşık km bilgisidir.
+                                </p>
+                            </div>
+                        </div>
+                        <ul className="grid list-none grid-cols-2 gap-2 sm:gap-5 lg:grid-cols-4">
+                            {nearbyEvents.map((ev) => {
+                                const { distance_km: distanceKm, ...cardEvent } = ev;
+                                return (
+                                    <li key={ev.id} className="h-full min-w-0">
+                                        <PublicEventTicketCard event={cardEvent} distanceKm={distanceKm} />
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     </div>
                 </section>
             )}

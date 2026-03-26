@@ -96,6 +96,16 @@ class EventPublicController extends Controller
 
         $upcomingColumns = ['id', 'slug', 'title', 'start_date', 'ticket_price', 'venue_id', 'is_full', 'cover_image', 'listing_image'];
 
+        $upcomingRelations = [
+            'venue' => fn ($q) => $q
+                ->select('id', 'name', 'slug', 'city_id', 'category_id', 'cover_image')
+                ->with(['city:id,name', 'category:id,name']),
+            'artists' => fn ($q) => $q
+                ->select('artists.id', 'artists.name', 'artists.slug', 'artists.avatar')
+                ->orderByPivot('is_headliner', 'desc')
+                ->orderByPivot('order'),
+        ];
+
         $venueUpcomingEvents = Event::query()
             ->published()
             ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
@@ -105,7 +115,7 @@ class EventPublicController extends Controller
             ->where('start_date', '>=', now())
             ->orderBy('start_date')
             ->limit(12)
-            ->with('ticketTiers')
+            ->with($upcomingRelations)
             ->get($upcomingColumns);
 
         $artistUpcomingEvents = new EloquentCollection;
@@ -120,7 +130,7 @@ class EventPublicController extends Controller
                 ->whereHas('artists', fn ($q) => $q->whereIn('artists.id', $artistIds))
                 ->orderBy('start_date')
                 ->limit(8)
-                ->with(['ticketTiers', 'venue:id,name,slug'])
+                ->with($upcomingRelations)
                 ->get($upcomingColumns);
         }
 

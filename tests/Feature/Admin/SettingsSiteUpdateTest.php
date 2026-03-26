@@ -20,6 +20,7 @@ class SettingsSiteUpdateTest extends TestCase
             'seo_default_description' => 'Kısa açıklama',
             'seo_keywords' => 'konser, etkinlik',
             'contact_email' => 'iletisim@example.com',
+            'social_instagram' => 'https://instagram.com/sahnebul_test',
             'google_maps_api_key' => 'AIza_fake_browser_key_for_test',
         ])->assertRedirect();
 
@@ -27,6 +28,7 @@ class SettingsSiteUpdateTest extends TestCase
         $this->assertIsString($site);
         $this->assertStringContainsString('Sahnebul Test', $site);
         $this->assertStringContainsString('Kısa açıklama', $site);
+        $this->assertStringContainsString('sahnebul_test', $site);
 
         $maps = AppSetting::query()->where('key', 'google_maps_browser_key')->value('value');
         $this->assertSame('AIza_fake_browser_key_for_test', $maps);

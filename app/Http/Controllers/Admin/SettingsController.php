@@ -38,6 +38,16 @@ class SettingsController extends Controller
         $ogPath = isset($seo['default_og_image_path']) && is_string($seo['default_og_image_path']) ? trim($seo['default_og_image_path']) : '';
         $homeHeroPath = isset($site['home_hero_image_path']) && is_string($site['home_hero_image_path']) ? trim($site['home_hero_image_path']) : '';
 
+        $socialRaw = is_array($site['social_links'] ?? null) ? $site['social_links'] : [];
+        $socialLinks = [
+            'instagram' => isset($socialRaw['instagram']) && is_string($socialRaw['instagram']) ? trim($socialRaw['instagram']) : '',
+            'facebook' => isset($socialRaw['facebook']) && is_string($socialRaw['facebook']) ? trim($socialRaw['facebook']) : '',
+            'twitter' => isset($socialRaw['twitter']) && is_string($socialRaw['twitter']) ? trim($socialRaw['twitter']) : '',
+            'youtube' => isset($socialRaw['youtube']) && is_string($socialRaw['youtube']) ? trim($socialRaw['youtube']) : '',
+            'linkedin' => isset($socialRaw['linkedin']) && is_string($socialRaw['linkedin']) ? trim($socialRaw['linkedin']) : '',
+            'tiktok' => isset($socialRaw['tiktok']) && is_string($socialRaw['tiktok']) ? trim($socialRaw['tiktok']) : '',
+        ];
+
         $mapsRaw = $this->appSettings->getRaw('google_maps_browser_key');
         $mapsKeyInDb = is_string($mapsRaw) && trim($mapsRaw) !== '';
         $envKey = config('services.google.maps_browser_key');
@@ -63,6 +73,7 @@ class SettingsController extends Controller
                 'favicon_url' => $faviconPath !== '' ? $this->appSettings->publicStorageUrl($faviconPath) : null,
                 'seo_og_image_url' => $ogPath !== '' ? $this->appSettings->publicStorageUrl($ogPath) : null,
                 'home_hero_url' => $homeHeroPath !== '' ? $this->appSettings->publicStorageUrl($homeHeroPath) : null,
+                'social_links' => $socialLinks,
             ],
             'canManageSiteIdentity' => $request->user()?->isSuperAdmin() ?? false,
             'mapsApi' => [
@@ -89,6 +100,21 @@ class SettingsController extends Controller
 
     public function updateSite(Request $request)
     {
+        foreach (
+            [
+                'social_instagram',
+                'social_facebook',
+                'social_twitter',
+                'social_youtube',
+                'social_linkedin',
+                'social_tiktok',
+            ] as $socialKey
+        ) {
+            if ($request->input($socialKey) === '') {
+                $request->merge([$socialKey => null]);
+            }
+        }
+
         $validated = $request->validate([
             'site_name' => 'nullable|string|max:120',
             'contact_email' => 'nullable|email|max:255',
@@ -109,6 +135,12 @@ class SettingsController extends Controller
             'remove_home_hero' => 'sometimes|boolean',
             'google_maps_api_key' => 'nullable|string|max:512',
             'remove_google_maps_api_key' => 'sometimes|boolean',
+            'social_instagram' => 'nullable|url|max:500',
+            'social_facebook' => 'nullable|url|max:500',
+            'social_twitter' => 'nullable|url|max:500',
+            'social_youtube' => 'nullable|url|max:500',
+            'social_linkedin' => 'nullable|url|max:500',
+            'social_tiktok' => 'nullable|url|max:500',
         ]);
 
         $current = $this->appSettings->getSitePublicSettings();
@@ -164,6 +196,14 @@ class SettingsController extends Controller
             'support_email' => $this->nullableTrim($validated['support_email'] ?? null),
             'phone' => $this->nullableTrim($validated['phone'] ?? null),
             'address' => $this->nullableTrim($validated['address'] ?? null),
+            'social_links' => [
+                'instagram' => $this->nullableTrim($validated['social_instagram'] ?? null),
+                'facebook' => $this->nullableTrim($validated['social_facebook'] ?? null),
+                'twitter' => $this->nullableTrim($validated['social_twitter'] ?? null),
+                'youtube' => $this->nullableTrim($validated['social_youtube'] ?? null),
+                'linkedin' => $this->nullableTrim($validated['social_linkedin'] ?? null),
+                'tiktok' => $this->nullableTrim($validated['social_tiktok'] ?? null),
+            ],
             'seo' => [
                 'default_description' => $this->nullableTrim($validated['seo_default_description'] ?? null),
                 'default_og_image_path' => $ogPath !== '' ? $ogPath : null,
