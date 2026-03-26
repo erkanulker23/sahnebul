@@ -1,3 +1,4 @@
+import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
@@ -163,10 +164,8 @@ export default function EventCarousel({
                             imageSrc(headliner?.avatar ?? null) ??
                             null;
                         const whenLabel = formatTurkishDateTime(event.start_date);
-                        const districtName = event.venue.district?.name?.trim() ?? '';
-                        const cityName = event.venue.city?.name?.trim() ?? '';
-                        const showLocationOverlay = districtName !== '' || cityName !== '';
-                        const locationTitle = [districtName, cityName].filter(Boolean).join(', ');
+                        const locationLine = formatVenueLocationLine(event.venue.city?.name, event.venue.district?.name);
+                        const showLocationOverlay = locationLine !== '';
 
                         return (
                             <Link
@@ -193,27 +192,12 @@ export default function EventCarousel({
                                     {showLocationOverlay ? (
                                         <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
                                             <span
-                                                className="inline-flex max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
-                                                title={locationTitle}
+                                                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
+                                                title={locationLine}
                                             >
-                                                <IconMapPin className="mt-0.5 h-3 w-3 shrink-0 opacity-95 sm:mt-1 sm:h-3.5 sm:w-3.5" />
-                                                <span className="min-w-0 flex-1 text-left">
-                                                    {districtName !== '' ? (
-                                                        <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
-                                                            {districtName}
-                                                        </span>
-                                                    ) : null}
-                                                    {cityName !== '' ? (
-                                                        <span
-                                                            className={`block text-pretty break-words font-bold leading-snug ${
-                                                                districtName !== ''
-                                                                    ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
-                                                                    : 'text-[9px] sm:text-[10px]'
-                                                            }`}
-                                                        >
-                                                            {cityName}
-                                                        </span>
-                                                    ) : null}
+                                                <IconMapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" />
+                                                <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
+                                                    {locationLine}
                                                 </span>
                                             </span>
                                         </div>

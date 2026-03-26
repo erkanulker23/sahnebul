@@ -71,6 +71,8 @@ interface EventReviewRow {
 
 interface Props {
     event: Event;
+    /** Sunucu: Organization + MusicEvent + BreadcrumbList (@graph) */
+    documentStructuredData?: Record<string, unknown> | null;
     venueUpcomingEvents?: PublicEventTicketCardEvent[];
     artistUpcomingEvents?: PublicEventTicketCardEvent[];
     eventReviews?: EventReviewRow[];
@@ -200,6 +202,7 @@ function UpcomingEventsSection({
 
 export default function EventShow({
     event,
+    documentStructuredData = null,
     venueUpcomingEvents = [],
     artistUpcomingEvents = [],
     eventReviews = [],
@@ -288,6 +291,7 @@ export default function EventShow({
                 image={ogImage}
                 type="article"
                 canonicalUrl={canonicalUrl}
+                jsonLd={documentStructuredData ?? undefined}
             />
             <section
                 className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${heroBackdrop ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'}`}

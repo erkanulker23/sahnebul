@@ -10,6 +10,8 @@ use App\Models\Venue;
 use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
 use App\Support\DailyUniqueEntityView;
+use App\Support\VenuePageSeo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
@@ -23,7 +25,7 @@ class VenueController extends Controller
     public function index(Request $request)
     {
         $query = Venue::query()
-            ->with(['category', 'city', 'media'])
+            ->with(['category', 'city', 'district', 'media'])
             ->withCount([
                 'events as weekly_events_count' => fn ($q) => $q
                     ->published()
@@ -166,11 +168,51 @@ class VenueController extends Controller
             });
         }
 
+        $appUrl = rtrim((string) config('app.url'), '/');
+
         return Inertia::render('Venues/Show', [
             'venue' => $venue,
+            'venuePageSeo' => VenuePageSeo::forLoadedVenue($venue, $appUrl),
             'claimStatus' => auth()->check()
                 ? VenueClaimRequest::where('venue_id', $venue->id)->where('user_id', auth()->id())->value('status')
                 : null,
+        ]);
+    }
+
+    /**
+     * Onaylı mekânlar; koordinatı olanlar mesafeye göre (haversine, km).
+     */
+    public function nearby(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        $lat = (float) $validated['lat'];
+        $lng = (float) $validated['lng'];
+        $limit = (int) ($validated['limit'] ?? 16);
+
+        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(venues.latitude)) * cos(radians(venues.longitude) - radians(?)) + sin(radians(?)) * sin(radians(venues.latitude))))';
+
+        $venues = Venue::query()
+            ->approved()
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->select('venues.*')
+            ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
+            ->with([
+                'category:id,name',
+                'city:id,name',
+                'district:id,name',
+            ])
+            ->orderBy('distance_km')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'venues' => $venues,
         ]);
     }
 }

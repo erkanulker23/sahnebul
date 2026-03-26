@@ -102,16 +102,33 @@ class SehirSecCityController extends Controller
             $ilce = null;
         }
 
+        $nearLatRaw = $request->query('near_lat');
+        $nearLngRaw = $request->query('near_lng');
+        $nearLat = null;
+        $nearLng = null;
+        if (is_numeric($nearLatRaw) && is_numeric($nearLngRaw)) {
+            $la = (float) $nearLatRaw;
+            $ln = (float) $nearLngRaw;
+            if ($la >= -90 && $la <= 90 && $ln >= -180 && $ln <= 180) {
+                $nearLat = $la;
+                $nearLng = $ln;
+            }
+        }
+
         $sanatTuru = $request->query('sanat_turu');
         $sanatTuru = is_string($sanatTuru) && $sanatTuru !== '' ? $sanatTuru : null;
         if ($sanatTuru !== null && ! in_array($sanatTuru, $genreSlugSet, true)) {
             $sanatTuru = null;
         }
 
+        $nearLatQueryOk = $nearLat !== null && $nearLng !== null;
+
         if (
             ($request->filled('kategori') && $activeCategorySlug === null)
             || ($request->filled('ilce') && $ilce === null)
             || ($request->filled('sanat_turu') && $sanatTuru === null)
+            || ($request->filled('near_lat') && ! $nearLatQueryOk)
+            || ($request->filled('near_lng') && ! $nearLatQueryOk)
         ) {
             $page = max(1, (int) $request->input('page', 1));
 
@@ -124,6 +141,8 @@ class SehirSecCityController extends Controller
                             'kategori' => $activeCategorySlug,
                             'ilce' => $ilce,
                             'sanat_turu' => $sanatTuru,
+                            'near_lat' => $nearLatQueryOk ? (string) $nearLat : null,
+                            'near_lng' => $nearLatQueryOk ? (string) $nearLng : null,
                             'page' => $page > 1 ? (string) $page : null,
                         ],
                         fn ($v) => $v !== null && $v !== ''
@@ -169,7 +188,11 @@ class SehirSecCityController extends Controller
             'ticketTiers:id,event_id,price',
         ]);
 
-        EventListingQuery::applyDefaultOrder($listQuery);
+        if ($nearLatQueryOk) {
+            EventListingQuery::applyProximityOrderFirst($listQuery, $nearLat, $nearLng);
+        } else {
+            EventListingQuery::applyDefaultOrder($listQuery);
+        }
 
         /** @var LengthAwarePaginator<int, Event> $paginator */
         $paginator = $listQuery->paginate(24)->withQueryString();
@@ -185,6 +208,8 @@ class SehirSecCityController extends Controller
             'activeDistrictSlug' => $ilce,
             'genres' => $genres,
             'activeGenreSlug' => $sanatTuru,
+            'nearLat' => $nearLatQueryOk ? $nearLat : null,
+            'nearLng' => $nearLatQueryOk ? $nearLng : null,
             'events' => $paginator,
         ]);
     }
@@ -206,6 +231,8 @@ class SehirSecCityController extends Controller
             'activeDistrictSlug' => null,
             'genres' => [],
             'activeGenreSlug' => null,
+            'nearLat' => null,
+            'nearLng' => null,
             'events' => $emptyPaginator,
         ]);
     }

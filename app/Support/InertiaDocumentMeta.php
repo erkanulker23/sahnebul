@@ -9,6 +9,24 @@ namespace App\Support;
 final class InertiaDocumentMeta
 {
     /**
+     * @param  array<string, mixed>  $props  Inertia sayfa props (ör. ['events' => $paginator->toArray()])
+     * @return array<string, mixed>|null
+     */
+    public static function structuredDataForEventsIndexPage(array $props, string $appUrl): ?array
+    {
+        return self::eventsIndexItemList($props, $appUrl);
+    }
+
+    /**
+     * @param  array<string, mixed>  $props  Inertia sayfa props (ör. ['artists' => $paginator->toArray()])
+     * @return array<string, mixed>|null
+     */
+    public static function structuredDataForArtistsIndexPage(array $props, string $appUrl): ?array
+    {
+        return self::artistsIndexItemList($props, $appUrl);
+    }
+
+    /**
      * @param  array<string, mixed>|null  $page
      * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}> , jsonLd?: array<string, mixed>|list<array<string, mixed>>}|null
      */
@@ -20,7 +38,7 @@ final class InertiaDocumentMeta
 
         $component = (string) $page['component'];
         $props = $page['props'];
-        $pathUrl = isset($page['url']) ? (string) $page['url'] : '/';
+        $pathUrl = self::inertiaPagePathUrl($page['url'] ?? null);
 
         $seo = is_array($props['seo'] ?? null) ? $props['seo'] : [];
         $siteName = (string) ($seo['siteName'] ?? config('app.name', 'Sahnebul'));
@@ -37,11 +55,11 @@ final class InertiaDocumentMeta
 
         return match ($component) {
             'Artists/Show' => self::artistShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
-            'Artists/Index' => self::artistsIndex($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'Artists/Index' => self::artistsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Venues/Show' => self::venueShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Venues/Index' => self::venuesIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Events/Show' => self::eventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
-            'Events/Index' => self::eventsIndex($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'Events/Index' => self::eventsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Blog/Show' => self::blogShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Blog/Index' => self::blogIndex($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Contact' => self::contact($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
@@ -51,6 +69,52 @@ final class InertiaDocumentMeta
             'SehirSec/ExternalEventShow' => self::externalEventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             default => null,
         };
+    }
+
+    /**
+     * Inertia sayfa yükünde `url` bazen tam string path, bazen dizi (path / href vb.) olabiliyor.
+     */
+    private static function inertiaPagePathUrl(mixed $url): string
+    {
+        if ($url === null || $url === '') {
+            return self::inertiaFallbackRequestPath();
+        }
+        if (is_string($url)) {
+            $t = trim($url);
+            if ($t === '' || strcasecmp($t, 'Array') === 0) {
+                return self::inertiaFallbackRequestPath();
+            }
+
+            return $t;
+        }
+        if (is_array($url)) {
+            foreach (['url', 'href', 'path', 'pathname'] as $key) {
+                if (! isset($url[$key]) || ! is_string($url[$key])) {
+                    continue;
+                }
+                $t = trim($url[$key]);
+                if ($t !== '') {
+                    return $t;
+                }
+            }
+
+            return self::inertiaFallbackRequestPath();
+        }
+
+        return self::inertiaFallbackRequestPath();
+    }
+
+    private static function inertiaFallbackRequestPath(): string
+    {
+        if (app()->runningInConsole() || ! app()->bound('request')) {
+            return '/';
+        }
+        $uri = request()->getRequestUri();
+        if (is_string($uri) && $uri !== '') {
+            return $uri;
+        }
+
+        return '/';
     }
 
     /**
@@ -85,6 +149,29 @@ final class InertiaDocumentMeta
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
         $ogImage = SeoFormatting::absoluteMediaUrl($avatar, $appUrl) ?? $defaultOgAbs;
 
+        $docGraph = $props['documentStructuredData'] ?? null;
+        $jsonLd = is_array($docGraph)
+            ? $docGraph
+            : self::fallbackArtistJsonLd($name, $canonical, $desc, $ogImage, $artist);
+
+        return [
+            'title' => $fullTitle,
+            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'website'),
+            'jsonLd' => $jsonLd,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $artist
+     * @return array<string, mixed>
+     */
+    private static function fallbackArtistJsonLd(
+        string $name,
+        string $canonical,
+        string $desc,
+        ?string $ogImage,
+        array $artist,
+    ): array {
         $sameAs = self::collectHttpUrls(is_array($artist['social_links'] ?? null) ? $artist['social_links'] : []);
         $jsonLd = [
             '@context' => 'https://schema.org',
@@ -100,17 +187,15 @@ final class InertiaDocumentMeta
             $jsonLd['sameAs'] = $sameAs;
         }
 
-        return [
-            'title' => $fullTitle,
-            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'website'),
-            'jsonLd' => $jsonLd,
-        ];
+        return $jsonLd;
     }
 
     /**
+     * @param  array<string, mixed>  $props
      * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
      */
     private static function artistsIndex(
+        array $props,
         string $pathUrl,
         string $siteName,
         string $appUrl,
@@ -123,9 +208,107 @@ final class InertiaDocumentMeta
         $desc = 'Türkiye’deki konser ve etkinlik sanatçılarını keşfedin; konser takvimleri ve mekan bilgileri Sahnebul’da.';
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
-        return [
+        $out = [
             'title' => $fullTitle,
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
+        ];
+
+        $itemList = self::artistsIndexItemList($props, $appUrl);
+        if ($itemList !== null) {
+            $out['jsonLd'] = $itemList;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>|null
+     */
+    private static function eventsIndexItemList(array $props, string $appUrl): ?array
+    {
+        $paginator = is_array($props['events'] ?? null) ? $props['events'] : [];
+        $data = is_array($paginator['data'] ?? null) ? $paginator['data'] : [];
+        $elements = [];
+        $pos = 1;
+        foreach ($data as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $slug = trim((string) ($row['slug'] ?? ''));
+            $id = (int) ($row['id'] ?? 0);
+            if ($slug === '' || $id <= 0) {
+                continue;
+            }
+            $url = SeoFormatting::normalizeCanonical($appUrl, '/etkinlikler/'.$slug.'-'.$id);
+            $name = trim((string) ($row['title'] ?? ''));
+            $elements[] = [
+                '@type' => 'ListItem',
+                'position' => $pos,
+                'item' => $url,
+                'name' => $name !== '' ? $name : $slug,
+            ];
+            $pos++;
+            if ($pos > 24) {
+                break;
+            }
+        }
+
+        if ($elements === []) {
+            return null;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'ItemList',
+            'name' => 'Etkinlikler',
+            'numberOfItems' => count($elements),
+            'itemListElement' => $elements,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>|null
+     */
+    private static function artistsIndexItemList(array $props, string $appUrl): ?array
+    {
+        $paginator = is_array($props['artists'] ?? null) ? $props['artists'] : [];
+        $data = is_array($paginator['data'] ?? null) ? $paginator['data'] : [];
+        $elements = [];
+        $pos = 1;
+        foreach ($data as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $slug = trim((string) ($row['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+            $url = SeoFormatting::normalizeCanonical($appUrl, '/sanatcilar/'.$slug);
+            $name = trim((string) ($row['name'] ?? ''));
+            $elements[] = [
+                '@type' => 'ListItem',
+                'position' => $pos,
+                'item' => $url,
+                'name' => $name !== '' ? $name : $slug,
+            ];
+            $pos++;
+            if ($pos > 24) {
+                break;
+            }
+        }
+
+        if ($elements === []) {
+            return null;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'ItemList',
+            'name' => 'Sanatçılar',
+            'numberOfItems' => count($elements),
+            'itemListElement' => $elements,
         ];
     }
 
@@ -150,15 +333,32 @@ final class InertiaDocumentMeta
         $category = is_array($venue['category'] ?? null) ? (string) ($venue['category']['name'] ?? '') : '';
         $address = (string) ($venue['address'] ?? '');
 
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
+        $ogImage = SeoFormatting::absoluteMediaUrl($cover, $appUrl) ?? $defaultOgAbs;
+
+        $pkg = is_array($props['venuePageSeo'] ?? null) ? $props['venuePageSeo'] : null;
+        if ($pkg !== null
+            && isset($pkg['headTitleSegment'], $pkg['metaDescription'], $pkg['structuredData'])
+            && is_string($pkg['headTitleSegment'])
+            && is_string($pkg['metaDescription'])
+            && is_array($pkg['structuredData'])) {
+            $segment = trim($pkg['headTitleSegment']) !== '' ? trim($pkg['headTitleSegment']) : $name.' — Mekan';
+            $fullTitle = SeoFormatting::buildDocumentTitle($segment, $siteName);
+            $desc = SeoFormatting::truncateMetaDescription($pkg['metaDescription']);
+
+            return [
+                'title' => $fullTitle,
+                'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'website'),
+                'jsonLd' => $pkg['structuredData'],
+            ];
+        }
+
         $pageTitle = $name.' - Sahnebul';
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $plainDesc = SeoFormatting::stripHtmlToText($description);
         $desc = SeoFormatting::truncateMetaDescription(
             $plainDesc !== '' ? $plainDesc : $name.' — '.$city.'. '.($category !== '' ? $category.'. ' : '').'Yorumlar, takvim ve rezervasyon Sahnebul’da.',
         );
-
-        $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
-        $ogImage = SeoFormatting::absoluteMediaUrl($cover, $appUrl) ?? $defaultOgAbs;
 
         $jsonLd = [
             '@context' => 'https://schema.org',
@@ -175,6 +375,16 @@ final class InertiaDocumentMeta
         ];
         if ($ogImage !== null) {
             $jsonLd['image'] = [$ogImage];
+        }
+
+        $lat = $venue['latitude'] ?? null;
+        $lng = $venue['longitude'] ?? null;
+        if (is_numeric($lat) && is_numeric($lng)) {
+            $jsonLd['geo'] = [
+                '@type' => 'GeoCoordinates',
+                'latitude' => (float) $lat,
+                'longitude' => (float) $lng,
+            ];
         }
 
         return [
@@ -314,6 +524,49 @@ final class InertiaDocumentMeta
             $performer[] = ['@type' => 'MusicGroup', 'name' => $n];
         }
 
+        $docGraph = $props['documentStructuredData'] ?? null;
+        $jsonLd = is_array($docGraph)
+            ? $docGraph
+            : self::fallbackEventJsonLd(
+                $title,
+                $canonical,
+                $desc,
+                $ogImage,
+                $venueName,
+                $venueAddress,
+                $cityName,
+                $startIso,
+                $performer,
+                (string) ($event['status'] ?? 'published'),
+            );
+
+        return [
+            'title' => $fullTitle,
+            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'article'),
+            'jsonLd' => $jsonLd,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $performer
+     * @return array<string, mixed>
+     */
+    private static function fallbackEventJsonLd(
+        string $title,
+        string $canonical,
+        string $desc,
+        ?string $ogImage,
+        string $venueName,
+        string $venueAddress,
+        string $cityName,
+        string $startIso,
+        array $performer,
+        string $status,
+    ): array {
+        $eventStatusUri = $status === 'cancelled'
+            ? 'https://schema.org/EventCancelled'
+            : 'https://schema.org/EventScheduled';
+
         $jsonLd = [
             '@context' => 'https://schema.org',
             '@type' => 'MusicEvent',
@@ -321,7 +574,7 @@ final class InertiaDocumentMeta
             'url' => $canonical,
             'description' => $desc,
             'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
-            'eventStatus' => 'https://schema.org/EventScheduled',
+            'eventStatus' => $eventStatusUri,
             'location' => [
                 '@type' => 'Place',
                 'name' => $venueName,
@@ -343,17 +596,15 @@ final class InertiaDocumentMeta
             $jsonLd['performer'] = count($performer) === 1 ? $performer[0] : $performer;
         }
 
-        return [
-            'title' => $fullTitle,
-            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'article'),
-            'jsonLd' => $jsonLd,
-        ];
+        return $jsonLd;
     }
 
     /**
+     * @param  array<string, mixed>  $props
      * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
      */
     private static function eventsIndex(
+        array $props,
         string $pathUrl,
         string $siteName,
         string $appUrl,
@@ -366,10 +617,17 @@ final class InertiaDocumentMeta
         $desc = 'Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri.';
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
-        return [
+        $out = [
             'title' => $fullTitle,
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
         ];
+
+        $itemList = self::eventsIndexItemList($props, $appUrl);
+        if ($itemList !== null) {
+            $out['jsonLd'] = $itemList;
+        }
+
+        return $out;
     }
 
     /**

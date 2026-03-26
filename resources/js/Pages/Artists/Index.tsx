@@ -29,6 +29,7 @@ interface Props {
         from?: number | null;
         to?: number | null;
     };
+    listingStructuredData?: Record<string, unknown> | null;
     genres: string[];
     letters: string[];
     /** Türkçe A–Z (Ç, Ğ, İ, Ö, Ş, Ü dahil) — tüm harfler filtrede */
@@ -49,6 +50,7 @@ interface Props {
 
 export default function ArtistsIndex({
     artists,
+    listingStructuredData = null,
     genres,
     letters,
     alphabetLetters,
@@ -117,6 +119,7 @@ export default function ArtistsIndex({
             <SeoHead
                 title="Sanatçılar - Sahnebul"
                 description="Konser ve etkinlik sanatçılarını keşfedin; tür, şehir ve yaklaşan gösteriler. Profiller ve takvim Sahnebul’da."
+                jsonLd={listingStructuredData ?? undefined}
             />
 
             {/* Hero — tam genişlik */}

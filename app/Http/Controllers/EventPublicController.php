@@ -6,6 +6,7 @@ use App\Models\Artist;
 use App\Models\Event;
 use App\Models\EventReview;
 use App\Support\DailyUniqueEntityView;
+use App\Support\PublicStructuredData;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,7 +72,7 @@ class EventPublicController extends Controller
         }
 
         $event->load([
-            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links,cover_image',
+            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links,cover_image,latitude,longitude',
             'venue.city:id,name',
             'venue.category:id,name',
             'artists' => fn ($q) => $q
@@ -142,6 +143,7 @@ class EventPublicController extends Controller
 
         return Inertia::render('Events/Show', [
             'event' => $event,
+            'documentStructuredData' => PublicStructuredData::eventShowGraph($event),
             'venueUpcomingEvents' => $venueUpcomingEvents,
             'artistUpcomingEvents' => $artistUpcomingEvents,
             'eventReviews' => $eventReviews,

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Admin\SeoToolsController as AdminSeoToolsController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Admin\SmtpSettingsController as AdminSmtpSettingsController;
 use App\Http\Controllers\Admin\SubscriptionPlanController as AdminSubscriptionPlanController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SehirSecCityController;
 use App\Http\Controllers\SehirSecController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\User\EventIcsController;
 use App\Http\Controllers\User\EventReminderController;
@@ -54,6 +56,15 @@ use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+
+Route::get('/robots.txt', function () {
+    $base = rtrim((string) config('app.url'), '/');
+    $body = "User-agent: *\nDisallow:\n\nSitemap: {$base}/sitemap.xml\n";
+
+    return response($body, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('robots');
 
 Route::middleware(['throttle:search-quick', 'json.same-site'])->group(function () {
     Route::get('/search/quick', [SearchController::class, 'quick'])->name('search.quick');
@@ -65,6 +76,9 @@ Route::middleware(['throttle:reverse-geocode', 'json.same-site'])->group(functio
 
 Route::get('/', [VenueController::class, 'index'])->name('home');
 Route::get('/mekanlar', [VenueController::class, 'index'])->name('venues.index');
+Route::middleware(['throttle:venues-nearby', 'json.same-site'])->group(function () {
+    Route::get('/mekanlar/yakinindakiler', [VenueController::class, 'nearby'])->name('venues.nearby');
+});
 Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
 Route::redirect('/sahneler', '/mekanlar', 301);
 Route::get('/sahneler/{venue:slug}', function (Venue $venue) {
@@ -283,6 +297,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('/ayarlar', [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::post('/ayarlar', [AdminSettingsController::class, 'update'])->name('settings.update');
+    Route::get('/seo-site-haritasi', [AdminSeoToolsController::class, 'index'])->name('seo-tools.index');
     Route::get('/blog', [AdminBlogPostController::class, 'index'])->name('blog.index');
     Route::get('/blog/ekle', [AdminBlogPostController::class, 'create'])->name('blog.create');
     Route::get('/blog/{post}/duzenle', [AdminBlogPostController::class, 'edit'])->name('blog.edit');

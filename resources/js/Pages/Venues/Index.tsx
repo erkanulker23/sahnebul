@@ -1,4 +1,5 @@
 import { AdSlot } from '@/Components/AdSlot';
+import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import EventCarousel from '@/Components/EventCarousel';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import SeoHead from '@/Components/SeoHead';
@@ -40,6 +41,19 @@ interface NearbyEvent extends PublicEventTicketCardEvent {
     distance_km?: number;
 }
 
+/** /mekanlar/yakinindakiler yanıtı */
+interface NearbyVenue {
+    id: number;
+    name: string;
+    slug: string;
+    cover_image: string | null;
+    address: string;
+    distance_km?: number;
+    city?: { name: string } | null;
+    district?: { name: string } | null;
+    category?: { name: string } | null;
+}
+
 interface VenueListItem {
     id: number;
     name: string;
@@ -51,6 +65,7 @@ interface VenueListItem {
     weekly_events_count?: number;
     monthly_events_count?: number;
     city?: { name: string } | null;
+    district?: { name: string } | null;
     category?: { name: string } | null;
 }
 
@@ -103,7 +118,9 @@ export default function VenuesIndex({
     };
     const isLoggedIn = Boolean(auth?.user);
     const [nearbyEvents, setNearbyEvents] = useState<NearbyEvent[]>([]);
+    const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([]);
     const [locationChecked, setLocationChecked] = useState(false);
+    const [geoDenied, setGeoDenied] = useState(false);
     const [search, setSearch] = useState(filters.search ?? '');
     const [citySlug, setCitySlug] = useState(filters.city ?? '');
     const [categorySlug, setCategorySlug] = useState(filters.category ?? '');
@@ -116,30 +133,50 @@ export default function VenuesIndex({
     useEffect(() => {
         if (!navigator.geolocation) {
             setLocationChecked(true);
+            setGeoDenied(true);
+            setNearbyEvents([]);
+            setNearbyVenues([]);
             return;
         }
 
+        setLocationChecked(false);
+        setGeoDenied(false);
+
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
                 try {
-                    const res = await axios.get(route('events.nearby'), {
-                        params: {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
-                            limit: 8,
-                        },
-                    });
-                    setNearbyEvents(res.data?.events ?? []);
+                    if (isVenuesPage) {
+                        const res = await axios.get(route('venues.nearby'), {
+                            params: { lat, lng, limit: 16 },
+                        });
+                        setNearbyVenues(Array.isArray(res.data?.venues) ? res.data.venues : []);
+                        setNearbyEvents([]);
+                    } else {
+                        const res = await axios.get(route('events.nearby'), {
+                            params: { lat, lng, limit: 8 },
+                        });
+                        setNearbyEvents(Array.isArray(res.data?.events) ? res.data.events : []);
+                        setNearbyVenues([]);
+                    }
+                    setGeoDenied(false);
                 } catch {
                     setNearbyEvents([]);
+                    setNearbyVenues([]);
                 } finally {
                     setLocationChecked(true);
                 }
             },
-            () => setLocationChecked(true),
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }
+            () => {
+                setNearbyEvents([]);
+                setNearbyVenues([]);
+                setGeoDenied(true);
+                setLocationChecked(true);
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 120000 }
         );
-    }, []);
+    }, [isVenuesPage]);
 
     useEffect(() => {
         setCitySlug(filters.city ?? '');
@@ -349,6 +386,115 @@ export default function VenuesIndex({
                         </form>
                     </section>
 
+                    <section className="mx-auto max-w-7xl px-0 pt-6 sm:px-4 lg:px-8" aria-live="polite">
+                        {!locationChecked ? (
+                            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300/50 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/25 dark:text-amber-50">
+                                <span
+                                    className="inline-flex h-5 w-5 shrink-0 animate-pulse rounded-full bg-amber-500"
+                                    aria-hidden
+                                />
+                                <span>
+                                    Konumunuza göre yakın mekânlar hazırlanıyor. Tarayıcı konum izni isteyebilir; izin verirseniz
+                                    size en yakın mekânları burada gösteririz.
+                                </span>
+                            </div>
+                        ) : null}
+                        {locationChecked && geoDenied ? (
+                            <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-400">
+                                Konum paylaşılmadı. Yakınınızdaki mekânları görmek için sayfayı yenileyip konum iznini
+                                açabilirsiniz; aşağıda tüm mekânlar listelenmeye devam eder.
+                            </p>
+                        ) : null}
+                        {locationChecked && !geoDenied && nearbyVenues.length === 0 ? (
+                            <p className="rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-600 dark:border-white/[0.08] dark:bg-zinc-900/30 dark:text-zinc-400">
+                                Konumunuza yakın, haritada koordinatı kayıtlı mekân bulunamadı. Mekân sahipleri konum ekledikçe bu
+                                bölüm dolacaktır.
+                            </p>
+                        ) : null}
+                        {locationChecked && nearbyVenues.length > 0 ? (
+                            <div className="rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/90 via-white to-zinc-50/90 p-4 shadow-sm ring-1 ring-amber-100/80 dark:border-amber-500/20 dark:from-amber-950/40 dark:via-zinc-900/80 dark:to-zinc-950 dark:ring-amber-500/10 sm:p-6 lg:p-8">
+                                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="min-w-0">
+                                        <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                            Konumunuza göre
+                                        </p>
+                                        <h2 className="font-display mt-1 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+                                            Yakınınızdaki mekânlar
+                                        </h2>
+                                        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                            Mesafe, mekânın kayıtlı koordinatlarına göre hesaplanır. Yeşil rozet yaklaşık km
+                                            bilgisidir.
+                                        </p>
+                                    </div>
+                                </div>
+                                <ul className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+                                    {nearbyVenues.map((venue) => {
+                                        const locLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
+                                        const dist =
+                                            venue.distance_km != null && Number.isFinite(Number(venue.distance_km))
+                                                ? Number(venue.distance_km)
+                                                : null;
+                                        return (
+                                            <li key={venue.id} className="min-w-0">
+                                                <Link
+                                                    href={route('venues.show', venue.slug)}
+                                                    className="block overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60 dark:hover:border-amber-500/40"
+                                                >
+                                                    <div className="relative h-40 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+                                                        {venue.cover_image ? (
+                                                            <img
+                                                                src={imageSrc(venue.cover_image) ?? ''}
+                                                                alt=""
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                                                                🎭
+                                                            </div>
+                                                        )}
+                                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                                        {locLine !== '' ? (
+                                                            <div className="pointer-events-none absolute left-2 top-2 z-[2] max-w-[calc(100%-4.5rem)] sm:left-3 sm:top-3">
+                                                                <span
+                                                                    className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20"
+                                                                    title={locLine}
+                                                                >
+                                                                    <MapPin className="h-3 w-3 shrink-0 text-white/95" aria-hidden />
+                                                                    <span className="min-w-0 truncate text-left text-[9px] font-semibold text-white sm:text-[10px]">
+                                                                        {locLine}
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        ) : null}
+                                                        {dist != null ? (
+                                                            <div className="pointer-events-none absolute bottom-2 right-2 z-[2]">
+                                                                <span className="inline-flex rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-bold tabular-nums text-white shadow-lg ring-1 ring-white/25 sm:text-[10px]">
+                                                                    {dist.toFixed(1)} km
+                                                                </span>
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                        {venue.category?.name ? (
+                                                            <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                                                                {venue.category.name}
+                                                            </p>
+                                                        ) : null}
+                                                        <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">
+                                                            {venue.address}
+                                                        </p>
+                                                    </div>
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        ) : null}
+                    </section>
+
                     <section className="mx-auto max-w-7xl px-0 py-10 sm:px-4 sm:py-12 lg:px-8">
                         <AdSlot slotKey="venues_list_top" />
                         <div className="mb-6">
@@ -373,7 +519,10 @@ export default function VenuesIndex({
                                     </p>
                                 ) : null}
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-                                    {(venues?.data ?? []).map((venue) => (
+                                    {(venues?.data ?? []).map((venue) => {
+                                        const venueLocationLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
+                                        const showVenueLocation = venueLocationLine !== '';
+                                        return (
                                         <Link
                                             key={venue.id}
                                             href={route('venues.show', venue.slug)}
@@ -386,6 +535,19 @@ export default function VenuesIndex({
                                                     <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
                                                 )}
                                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/20" />
+                                                {showVenueLocation ? (
+                                                    <div className="pointer-events-none absolute right-2 top-2 z-[12] max-w-[calc(100%-5.5rem)] sm:right-3 sm:top-3">
+                                                        <span
+                                                            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
+                                                            title={venueLocationLine}
+                                                        >
+                                                            <MapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" aria-hidden />
+                                                            <span className="min-w-0 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
+                                                                {venueLocationLine}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                ) : null}
                                                 <ThisWeekEventsBadge
                                                     weekCount={venue.weekly_events_count ?? 0}
                                                     monthCount={venue.monthly_events_count ?? 0}
@@ -407,7 +569,8 @@ export default function VenuesIndex({
                                                 <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">{venue.address}</p>
                                             </div>
                                         </Link>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 {(venues?.links?.length ?? 0) > 3 && (
                                     <div className="mt-10 flex flex-wrap gap-2">

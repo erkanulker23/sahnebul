@@ -23,6 +23,7 @@ import {
     MessageSquare,
     Mic,
     Mic2,
+    Search,
     Settings,
     Tags,
     User,
@@ -52,6 +53,7 @@ const navItems: { href: string; label: string; icon: typeof LayoutDashboard }[] 
     { href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
     { href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
     { href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
+    { href: 'admin.seo-tools.index', label: 'SEO / Site haritası', icon: Search },
 ];
 
 export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {

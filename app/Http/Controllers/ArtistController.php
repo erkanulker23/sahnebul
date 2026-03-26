@@ -9,6 +9,8 @@ use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
 use App\Support\DailyUniqueEntityView;
+use App\Support\InertiaDocumentMeta;
+use App\Support\PublicStructuredData;
 use App\Support\TurkishAlphabet;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
@@ -82,8 +84,14 @@ class ArtistController extends Controller
             ->sort()
             ->values();
 
+        $appUrl = rtrim((string) config('app.url'), '/');
+
         return Inertia::render('Artists/Index', [
             'artists' => $artists,
+            'listingStructuredData' => InertiaDocumentMeta::structuredDataForArtistsIndexPage(
+                ['artists' => $artists->toArray()],
+                $appUrl,
+            ),
             'artistsThisWeek' => $artistsThisWeek,
             'weekRange' => [
                 'start' => $weekStart->toIso8601String(),
@@ -266,6 +274,7 @@ class ArtistController extends Controller
 
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
+            'documentStructuredData' => PublicStructuredData::artistShowGraph($artist),
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,
             'stats' => $stats,

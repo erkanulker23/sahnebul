@@ -62,8 +62,15 @@ interface Venue {
     reviews?: Review[];
 }
 
+interface VenuePageSeo {
+    headTitleSegment: string;
+    metaDescription: string;
+    structuredData: Record<string, unknown>;
+}
+
 interface Props {
     venue: Venue;
+    venuePageSeo?: VenuePageSeo | null;
     claimStatus?: string | null;
 }
 
@@ -162,12 +169,18 @@ function buildVenueJsonLd(params: {
                     {
                         '@type': 'ListItem',
                         position: 1,
+                        name: 'Ana sayfa',
+                        item: `${appUrl.replace(/\/$/, '')}/`,
+                    },
+                    {
+                        '@type': 'ListItem',
+                        position: 2,
                         name: 'Mekanlar',
                         item: `${appUrl.replace(/\/$/, '')}/mekanlar`,
                     },
                     {
                         '@type': 'ListItem',
-                        position: 2,
+                        position: 3,
                         name: venue.name,
                         item: canonicalUrl,
                     },
@@ -178,7 +191,7 @@ function buildVenueJsonLd(params: {
     };
 }
 
-export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
+export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: Readonly<Props>) {
     const page = usePage();
     const auth = page.props.auth as { user: { id: number; role?: string } | null; is_platform_admin?: boolean };
     const seo = (page.props as { seo?: SharedSeo }).seo;
@@ -264,8 +277,8 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
     const pathNorm = pathRaw.startsWith('/') ? pathRaw : `/${pathRaw}`;
     const canonicalUrl = appUrl ? `${appUrl}${pathNorm}`.replace(/([^:]\/)\/+/g, '$1') : '';
     const imageAbsolute = toAbsoluteUrl(cover, appUrl ? `${appUrl}/` : '');
-    const venueJsonLd =
-        canonicalUrl && appUrl
+    const venueJsonLdFallback =
+        !venuePageSeo && canonicalUrl && appUrl
             ? buildVenueJsonLd({
                   venue,
                   canonicalUrl,
@@ -275,14 +288,19 @@ export default function VenueShow({ venue, claimStatus }: Readonly<Props>) {
               })
             : null;
 
+    const seoTitle =
+        venuePageSeo?.headTitleSegment?.trim() ||
+        `${venue.name} — ${venue.city?.name ? `${venue.city.name} ` : ''}konser ve etkinlik mekanı`;
+    const seoDescription = venuePageSeo?.metaDescription?.trim() || venueDesc;
+
     return (
         <AppLayout>
             <SeoHead
-                title={`${venue.name} - Sahnebul`}
-                description={venueDesc}
+                title={seoTitle}
+                description={seoDescription}
                 image={cover}
                 canonicalUrl={canonicalUrl || undefined}
-                jsonLd={venueJsonLd}
+                jsonLd={venuePageSeo?.structuredData ?? venueJsonLdFallback}
             />
 
             <div className="min-h-screen">

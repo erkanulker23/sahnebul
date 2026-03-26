@@ -90,6 +90,12 @@ class AppServiceProvider extends ServiceProvider
             )->by($request->ip());
         });
 
+        RateLimiter::for('venues-nearby', function (Request $request) {
+            return Limit::perMinute(
+                (int) config('services.rate_limits.venues_nearby_per_minute', 45)
+            )->by($request->ip());
+        });
+
         RateLimiter::for('api-locations', function (Request $request) {
             return Limit::perMinute(
                 (int) config('services.rate_limits.api_locations_per_minute', 90)

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Services\TurkeyProvincesSync;
 use App\Support\EventListingQuery;
+use App\Support\InertiaDocumentMeta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -86,8 +87,14 @@ class EventController extends Controller
 
         $provinces = app(TurkeyProvincesSync::class)->forSelect();
 
+        $appUrl = rtrim((string) config('app.url'), '/');
+
         return Inertia::render('Events/Index', [
             'events' => $events,
+            'listingStructuredData' => InertiaDocumentMeta::structuredDataForEventsIndexPage(
+                ['events' => $events->toArray()],
+                $appUrl,
+            ),
             'categories' => $categories,
             'genres' => $genres,
             'provinces' => $provinces,

@@ -1,4 +1,5 @@
 import SeoHead from '@/Components/SeoHead';
+import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { externalDisKaynakSegment } from '@/lib/eventShowUrl';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import AppLayout from '@/Layouts/AppLayout';
@@ -56,14 +57,22 @@ interface Props {
     activeDistrictSlug: string | null;
     genres: GenreOption[];
     activeGenreSlug: string | null;
+    /** Konuma göre sıralama (ilçe filtresi değil) */
+    nearLat?: number | null;
+    nearLng?: number | null;
     events: { data: BubiletEvent[]; links: PaginatorLink[] };
 }
 
 function cityListHref(
     citySlug: string,
-    filters: { kategori?: string | null; ilce?: string | null; sanat_turu?: string | null },
+    filters: {
+        kategori?: string | null;
+        ilce?: string | null;
+        sanat_turu?: string | null;
+        near_lat?: number | null;
+        near_lng?: number | null;
+    },
 ): string {
-    // sanat_turu = sanatçı türü (genre) slug; /etkinlikler?genre= ile aynı veri kümesi
     const params: Record<string, string> = { city: citySlug };
     if (filters.kategori) {
         params.kategori = filters.kategori;
@@ -73,6 +82,10 @@ function cityListHref(
     }
     if (filters.sanat_turu) {
         params.sanat_turu = filters.sanat_turu;
+    }
+    if (filters.near_lat != null && filters.near_lng != null && Number.isFinite(filters.near_lat) && Number.isFinite(filters.near_lng)) {
+        params.near_lat = String(filters.near_lat);
+        params.near_lng = String(filters.near_lng);
     }
     return route('sehir-sec.city', params);
 }
@@ -86,6 +99,8 @@ export default function SehirSecCityEvents({
     activeDistrictSlug,
     genres,
     activeGenreSlug,
+    nearLat = null,
+    nearLng = null,
     events,
 }: Readonly<Props>) {
     const desc = `${cityName} etkinlikleri — /etkinlikler ile aynı platform kaydı. İlçe, tür ve kategoriye göre süzebilirsiniz.`;
@@ -93,16 +108,26 @@ export default function SehirSecCityEvents({
     const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
     const geoStarted = useRef(false);
 
+    const nearPair =
+        nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng)
+            ? { near_lat: nearLat, near_lng: nearLng }
+            : {};
+
     useEffect(() => {
         geoStarted.current = false;
         setDetectedLocation(null);
     }, [citySlug]);
 
+    /** Konum yalnızca near_lat/near_lng ile sunucuda sıralamada kullanılır; ilçe URL’ye yazılmaz. */
     useEffect(() => {
         if (geoStarted.current) {
             return;
         }
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            return;
+        }
+        if (nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng)) {
+            geoStarted.current = true;
             return;
         }
         geoStarted.current = true;
@@ -111,11 +136,13 @@ export default function SehirSecCityEvents({
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
                 setGeoHint('Konumunuz haritada çözümleniyor…');
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
                 try {
                     const res = await fetch(
                         route('api.reverse-geocode', {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude,
+                            lat,
+                            lng,
                             city: citySlug,
                         }),
                         {
@@ -127,7 +154,6 @@ export default function SehirSecCityEvents({
                         },
                     );
                     const data = (await res.json()) as {
-                        district_slug?: string | null;
                         district_label?: string | null;
                         map_label?: string | null;
                     };
@@ -137,22 +163,19 @@ export default function SehirSecCityEvents({
                     if (human) {
                         setDetectedLocation(human);
                     }
-                    const slug = data.district_slug;
-                    if (slug && !activeDistrictSlug) {
-                        router.get(
-                            cityListHref(citySlug, {
-                                ilce: slug,
-                                kategori: activeCategorySlug,
-                                sanat_turu: activeGenreSlug,
-                            }),
-                            {},
-                            { replace: true, preserveScroll: true },
-                        );
-                    }
                 } catch {
                     /* ignore */
                 } finally {
                     setGeoHint(null);
+                }
+
+                try {
+                    const u = new URL(globalThis.location.href);
+                    u.searchParams.set('near_lat', String(lat));
+                    u.searchParams.set('near_lng', String(lng));
+                    router.visit(u.pathname + u.search, { replace: true, preserveScroll: true, preserveState: true });
+                } catch {
+                    /* ignore */
                 }
             },
             () => {
@@ -160,7 +183,7 @@ export default function SehirSecCityEvents({
             },
             { enableHighAccuracy: false, timeout: 12_000, maximumAge: 300_000 },
         );
-    }, [citySlug, activeDistrictSlug, activeCategorySlug, activeGenreSlug]);
+    }, [citySlug, nearLat, nearLng]);
 
     return (
         <AppLayout>
@@ -198,6 +221,28 @@ export default function SehirSecCityEvents({
                             </p>
                         )}
 
+                        {Object.keys(nearPair).length > 0 && !geoHint ? (
+                            <p className="mt-4 max-w-2xl text-xs leading-relaxed text-zinc-400">
+                                Liste, mekâna göre yakınlık sırasına göre sıralanır; ilçe seçimi ayrı bir filtre olarak kalır.{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        router.visit(
+                                            cityListHref(citySlug, {
+                                                kategori: activeCategorySlug,
+                                                ilce: activeDistrictSlug,
+                                                sanat_turu: activeGenreSlug,
+                                            }),
+                                            { preserveScroll: true },
+                                        );
+                                    }}
+                                    className="font-medium text-emerald-400 underline-offset-2 hover:underline"
+                                >
+                                    Yakınlık sıralamasını kaldır
+                                </button>
+                            </p>
+                        ) : null}
+
                         {detectedLocation && !geoHint ? (
                             <p className="mt-4 max-w-2xl rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm leading-snug text-zinc-200">
                                 <span className="mr-2 inline-flex items-center gap-1.5 font-semibold text-emerald-400">
@@ -224,6 +269,7 @@ export default function SehirSecCityEvents({
                                                 ilce: v || null,
                                                 kategori: activeCategorySlug,
                                                 sanat_turu: activeGenreSlug,
+                                                ...nearPair,
                                             }),
                                             {},
                                             { preserveScroll: true },
@@ -239,7 +285,7 @@ export default function SehirSecCityEvents({
                                     ))}
                                 </select>
                                 <p className="mt-1.5 text-[11px] text-zinc-500">
-                                    Konum izni verirseniz uygun ilçe otomatik seçilir; mekânın kayıtlı ilçesi bu ada eşleşiyorsa listelenir.
+                                    Konum izni verirseniz liste yakın mekânlara göre sıralanır. İlçe seçmek isterseniz listeyi daraltır; &quot;Tüm ilçeler&quot; ile sıralama korunur.
                                 </p>
                             </div>
                         )}
@@ -253,6 +299,7 @@ export default function SehirSecCityEvents({
                                             kategori: activeCategorySlug,
                                             ilce: activeDistrictSlug,
                                             sanat_turu: null,
+                                            ...nearPair,
                                         })}
                                         preserveScroll
                                         className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
@@ -270,6 +317,7 @@ export default function SehirSecCityEvents({
                                                 kategori: activeCategorySlug,
                                                 ilce: activeDistrictSlug,
                                                 sanat_turu: t.slug,
+                                                ...nearPair,
                                             })}
                                             preserveScroll
                                             className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
@@ -294,6 +342,7 @@ export default function SehirSecCityEvents({
                                             ilce: activeDistrictSlug,
                                             sanat_turu: activeGenreSlug,
                                             kategori: null,
+                                            ...nearPair,
                                         })}
                                         preserveScroll
                                         className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
@@ -311,6 +360,7 @@ export default function SehirSecCityEvents({
                                                 kategori: c.slug,
                                                 ilce: activeDistrictSlug,
                                                 sanat_turu: activeGenreSlug,
+                                                ...nearPair,
                                             })}
                                             preserveScroll
                                             className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
@@ -390,10 +440,10 @@ function bubiletEventDetailHref(ev: BubiletEvent): string {
 }
 
 function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
-    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
     const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
-    const showLocationTop = districtTop !== '' || cityTop !== '';
-    const locationTitle = [districtTop, cityTop].filter(Boolean).join(', ');
+    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
+    const locationLine = formatVenueLocationLine(cityTop, districtTop);
+    const showLocationTop = locationLine !== '';
 
     return (
         <Link
@@ -423,27 +473,12 @@ function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
                 {showLocationTop ? (
                     <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] sm:left-3 sm:right-3 sm:top-3">
                         <span
-                            className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/30 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
-                            title={locationTitle}
+                            className="inline-flex w-full max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/40 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
+                            title={locationLine}
                         >
-                            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-white/95 sm:mt-1 sm:h-3.5 sm:w-3.5" aria-hidden />
-                            <span className="min-w-0 flex-1 text-left">
-                                {districtTop !== '' ? (
-                                    <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
-                                        {districtTop}
-                                    </span>
-                                ) : null}
-                                {cityTop !== '' ? (
-                                    <span
-                                        className={`block text-pretty break-words font-bold leading-snug ${
-                                            districtTop !== ''
-                                                ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
-                                                : 'text-[9px] sm:text-[10px]'
-                                        }`}
-                                    >
-                                        {cityTop}
-                                    </span>
-                                ) : null}
+                            <MapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" aria-hidden />
+                            <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
+                                {locationLine}
                             </span>
                         </span>
                     </div>

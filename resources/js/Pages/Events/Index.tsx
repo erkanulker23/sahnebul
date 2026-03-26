@@ -48,6 +48,7 @@ export type LocationOption = { id: number; name: string };
 
 interface Props {
     events: { data: EventItem[]; links: PaginatorLink[]; total?: number; from?: number | null; to?: number | null };
+    listingStructuredData?: Record<string, unknown> | null;
     categories: { id: number; name: string; slug: string }[];
     genres: string[];
     provinces: LocationOption[];
@@ -75,6 +76,7 @@ const FILTER_SELECT_CLASS =
 
 export default function EventsIndex({
     events,
+    listingStructuredData = null,
     categories,
     genres,
     provinces: provincesFromServer,
@@ -307,6 +309,7 @@ export default function EventsIndex({
             <SeoHead
                 title="Etkinlikler & Konserler & Performanslar - Sahnebul"
                 description="Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri."
+                jsonLd={listingStructuredData ?? undefined}
             />
 
             <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">

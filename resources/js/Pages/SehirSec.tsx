@@ -1,4 +1,5 @@
 import SeoHead from '@/Components/SeoHead';
+import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { externalDisKaynakSegment } from '@/lib/eventShowUrl';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
@@ -190,8 +191,8 @@ function bubiletEventDetailHref(ev: BubiletEvent): string {
 function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
     const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
     const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
-    const showLocationTop = districtTop !== '' || cityTop !== '';
-    const locationTitle = [districtTop, cityTop].filter(Boolean).join(', ');
+    const locationLine = formatVenueLocationLine(cityTop, districtTop);
+    const showLocationTop = locationLine !== '';
 
     return (
         <Link
@@ -217,25 +218,12 @@ function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
                 {showLocationTop ? (
                     <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] md:left-3 md:right-3 md:top-3">
                         <span
-                            className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/30 ring-1 ring-white/25"
-                            title={locationTitle}
+                            className="inline-flex w-full max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/40 ring-1 ring-white/20 md:gap-2 md:px-3 md:py-1.5"
+                            title={locationLine}
                         >
-                            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-white/95" aria-hidden />
-                            <span className="min-w-0 flex-1 text-left">
-                                {districtTop !== '' ? (
-                                    <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95">
-                                        {districtTop}
-                                    </span>
-                                ) : null}
-                                {cityTop !== '' ? (
-                                    <span
-                                        className={`block text-pretty break-words font-bold leading-snug ${
-                                            districtTop !== '' ? 'mt-0.5 text-[9px] text-white' : 'text-[9px]'
-                                        }`}
-                                    >
-                                        {cityTop}
-                                    </span>
-                                ) : null}
+                            <MapPin className="h-3 w-3 shrink-0 text-white/95" aria-hidden />
+                            <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white md:text-[11px]">
+                                {locationLine}
                             </span>
                         </span>
                     </div>

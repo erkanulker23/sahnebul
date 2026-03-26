@@ -200,6 +200,8 @@ interface Artist {
 
 interface Props {
     artist: Artist;
+    /** Sunucu: Organization + MusicGroup + BreadcrumbList (@graph) */
+    documentStructuredData?: Record<string, unknown> | null;
     upcomingEvents: Event[];
     pastEvents: Event[];
     latestTracks?: {
@@ -294,6 +296,7 @@ function SpotifyTrackPreview({
 
 export default function ArtistShow({
     artist,
+    documentStructuredData = null,
     upcomingEvents,
     pastEvents,
     latestTracks = [],
@@ -302,8 +305,13 @@ export default function ArtistShow({
     claimStatus,
     artistFavorite = { canToggle: false, isFavorited: false },
 }: Readonly<Props>) {
-    const page = usePage().props as { auth?: { user?: { id: number } | null } };
+    const page = usePage().props as {
+        auth?: { user?: { id: number } | null };
+        seo?: { appUrl?: string };
+    };
     const user = page.auth?.user;
+    const appUrl = (page.seo?.appUrl ?? '').replace(/\/$/, '');
+    const canonicalUrl = appUrl ? `${appUrl}/sanatcilar/${artist.slug}` : undefined;
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -408,6 +416,8 @@ export default function ArtistShow({
                 title={`${artist.name} Konserleri, Performansları ve Etkinlikleri`}
                 description={artistDesc}
                 image={avatarUrl}
+                canonicalUrl={canonicalUrl}
+                jsonLd={documentStructuredData ?? undefined}
             />
 
             <div className="min-h-screen">

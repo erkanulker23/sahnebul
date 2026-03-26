@@ -109,6 +109,7 @@ return [
         'reverse_geocode_per_minute' => (int) env('RATE_LIMIT_REVERSE_GEOCODE', 24),
         'search_quick_per_minute' => (int) env('RATE_LIMIT_SEARCH_QUICK', 60),
         'events_nearby_per_minute' => (int) env('RATE_LIMIT_EVENTS_NEARBY', 45),
+        'venues_nearby_per_minute' => (int) env('RATE_LIMIT_VENUES_NEARBY', 45),
         'api_locations_per_minute' => (int) env('RATE_LIMIT_API_LOCATIONS', 90),
     ],
 

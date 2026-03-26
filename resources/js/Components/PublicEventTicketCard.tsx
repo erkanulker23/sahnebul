@@ -1,3 +1,4 @@
+import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
@@ -100,10 +101,8 @@ export default function PublicEventTicketCard({
         imageSrc(event.venue.cover_image);
 
     const whenLabel = formatTurkishDateTime(event.start_date);
-    const districtName = event.venue.district?.name?.trim() ?? '';
-    const cityName = event.venue.city?.name?.trim() ?? '';
-    const showLocationOverlay = districtName !== '' || cityName !== '';
-    const locationTitle = [districtName, cityName].filter(Boolean).join(', ');
+    const locationLine = formatVenueLocationLine(event.venue.city?.name, event.venue.district?.name);
+    const showLocationOverlay = locationLine !== '';
 
     return (
         <div className="group h-full">
@@ -125,41 +124,23 @@ export default function PublicEventTicketCard({
                             </span>
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                    {/** Dikey istifleme: dar ızgara sütunlarında konum / tarih taşmaz; mobil ve masaüstü aynı blok */}
-                    <div className="pointer-events-none absolute left-1.5 right-1.5 top-1.5 z-[2] flex flex-col gap-1.5 sm:left-3 sm:right-3 sm:top-3">
-                        {showLocationOverlay ? (
-                            <div className="min-w-0 w-full">
-                                <span
-                                    className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
-                                    title={locationTitle}
+                    {/** Hafif üstten gölge — afiş yüzü açık kalsın; meta bilgi altta şeritte */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 opacity-90 transition group-hover:opacity-100" />
+                    {/** sm altı: poster temiz; konum/tarih kart metninde. sm ve üstü: görsel alt şerit. */}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] hidden bg-gradient-to-t from-black/85 from-[18%] via-black/45 via-[55%] to-transparent px-2 pb-2 pt-10 sm:block sm:px-3 sm:pb-2.5 sm:pt-12">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            {showLocationOverlay ? (
+                                <p
+                                    className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight tracking-tight text-white/95 drop-shadow-sm sm:gap-1.5 sm:text-[11px]"
+                                    title={locationLine}
                                 >
-                                    <IconMapPin className="mt-0.5 h-3 w-3 shrink-0 opacity-95 sm:mt-1 sm:h-3.5 sm:w-3.5" />
-                                    <span className="min-w-0 flex-1 text-left">
-                                        {districtName !== '' ? (
-                                            <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
-                                                {districtName}
-                                            </span>
-                                        ) : null}
-                                        {cityName !== '' ? (
-                                            <span
-                                                className={`block text-pretty break-words font-bold leading-snug ${
-                                                    districtName !== ''
-                                                        ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
-                                                        : 'text-[9px] sm:text-[10px]'
-                                                }`}
-                                            >
-                                                {cityName}
-                                            </span>
-                                        ) : null}
-                                    </span>
-                                </span>
-                            </div>
-                        ) : null}
-                        <div className="w-full min-w-0 rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1.5 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:rounded-xl sm:px-2.5 sm:py-1.5">
-                            <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-snug text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
-                                <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
-                                <span className="min-w-0 flex-1 text-pretty break-words">{whenLabel}</span>
+                                    <IconMapPin className="h-3 w-3 shrink-0 text-amber-300/95 sm:h-3.5 sm:w-3.5" />
+                                    <span className="min-w-0 truncate">{locationLine}</span>
+                                </p>
+                            ) : null}
+                            <p className="flex min-w-0 items-start gap-1 text-[10px] font-semibold leading-snug text-white drop-shadow-sm sm:gap-1.5 sm:text-[11px] sm:leading-snug">
+                                <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-300/95 sm:h-3.5 sm:w-3.5" />
+                                <span className="min-w-0 line-clamp-2 text-pretty text-white/95">{whenLabel}</span>
                             </p>
                         </div>
                     </div>
@@ -175,6 +156,18 @@ export default function PublicEventTicketCard({
                     ) : null}
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
+                    <div className="mb-1.5 flex flex-col gap-0.5 sm:hidden">
+                        {showLocationOverlay ? (
+                            <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-400" title={locationLine}>
+                                <IconMapPin className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500" />
+                                <span className="min-w-0 truncate">{locationLine}</span>
+                            </p>
+                        ) : null}
+                        <p className="flex min-w-0 items-start gap-1 text-[10px] font-semibold leading-snug text-zinc-700 dark:text-zinc-300">
+                            <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500" />
+                            <span className="min-w-0 line-clamp-2 text-pretty">{whenLabel}</span>
+                        </p>
+                    </div>
                     <h2 className="font-display text-xs font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
                         <span className="line-clamp-2">{displayName}</span>
                     </h2>
