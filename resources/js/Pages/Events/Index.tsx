@@ -1,7 +1,6 @@
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
-import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import { AdSlot } from '@/Components/AdSlot';
 import AppLayout from '@/Layouts/AppLayout';
 import SeoHead from '@/Components/SeoHead';
@@ -102,21 +101,45 @@ function imageSrc(path: string | null | undefined): string | null {
     return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
 }
 
+/** Kart görseli: önce listing_image, yoksa kapak. */
+function eventCardImageSrc(listing: string | null | undefined, cover: string | null | undefined): string | null {
+    const list = listing?.trim();
+    if (list) {
+        return imageSrc(list);
+    }
+    return imageSrc(cover ?? null);
+}
+
+function IconMapPin({ className }: Readonly<{ className?: string }>) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
+            />
+        </svg>
+    );
+}
+
+function IconCalendar({ className }: Readonly<{ className?: string }>) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 012.25 2.25v7.5" />
+        </svg>
+    );
+}
+
 function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
     const headliner = event.artists[0];
     const displayName = headliner?.name ?? event.title;
-    const { src: bg, objectFit } = resolveEventCardVisual({
-        listing_image: event.listing_image,
-        cover_image: event.cover_image,
-        imageSrc,
-        fallbacks: [headliner?.avatar, event.venue.cover_image],
-    });
+    const bg =
+        eventCardImageSrc(event.listing_image, event.cover_image) ??
+        imageSrc(headliner?.avatar) ??
+        imageSrc(event.venue.cover_image);
 
     const whenLabel = formatTurkishDateTime(event.start_date);
-    const imgFitClass =
-        objectFit === 'contain'
-            ? 'object-contain object-center transition duration-500 group-hover:scale-[1.02]'
-            : 'object-cover transition duration-500 group-hover:scale-[1.04]';
 
     return (
         <div className="group h-full">
@@ -129,7 +152,7 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                         <EventCardImage
                             src={bg}
                             alt={displayName}
-                            className={`h-full w-full ${imgFitClass}`}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                         />
                     ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-amber-100/40 text-5xl dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950">
@@ -142,15 +165,19 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                     {event.venue.city?.name ? (
                         <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
                             <span
-                                className="inline-block max-w-full truncate rounded-md bg-sky-600 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-md ring-1 ring-sky-400/40 sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-[10px]"
+                                className="inline-flex max-w-full items-center gap-1 truncate rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-[10px]"
                                 title={event.venue.city.name}
                             >
-                                {event.venue.city.name}
+                                <IconMapPin className="h-3 w-3 shrink-0 opacity-95 sm:h-3.5 sm:w-3.5" />
+                                <span className="min-w-0 truncate">{event.venue.city.name}</span>
                             </span>
                         </div>
                     ) : null}
-                    <div className="absolute right-1.5 top-1.5 z-[2] max-w-[min(100%,11.5rem)] rounded-lg bg-white/95 px-1.5 py-1 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10 sm:right-3 sm:top-3 sm:rounded-xl sm:px-3 sm:py-2">
-                        <p className="text-[9px] font-semibold leading-tight text-zinc-900 dark:text-white sm:text-[11px] sm:leading-snug">{whenLabel}</p>
+                    <div className="absolute right-1.5 top-1.5 z-[2] max-w-[min(100%,11.5rem)] rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:right-3 sm:top-3 sm:rounded-xl sm:px-2.5 sm:py-1.5">
+                        <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-tight text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
+                            <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
+                            <span className="min-w-0">{whenLabel}</span>
+                        </p>
                     </div>
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
