@@ -7,7 +7,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Tier {
     id: number;
@@ -48,10 +48,15 @@ interface Props {
     googleMapsBrowserKey?: string | null;
 }
 
-function storageUrl(path: string | null): string | null {
-    if (!path) return null;
+function storageUrl(path: string | null | undefined): string | null {
+    if (!path || path.trim() === '') return null;
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     return `/storage/${path}`;
+}
+
+/** Sitede kart / liste: önce liste görseli, yoksa kapak. */
+function listingPreviewUrl(listing: string, cover: string): string | null {
+    return storageUrl(listing.trim() || cover.trim() || null);
 }
 
 function toTierRows(tiers: Tier[] | undefined): TierRow[] {
@@ -71,6 +76,8 @@ export default function AdminEventEdit({
     googleMapsBrowserKey = null,
 }: Readonly<Props>) {
     const [venueOptions, setVenueOptions] = useState(venues);
+    const coverFileInputRef = useRef<HTMLInputElement>(null);
+    const listingFileInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         setVenueOptions(venues);
     }, [venues]);
@@ -130,6 +137,25 @@ export default function AdminEventEdit({
         if (!confirm('Etkinliği silmek istediğinize emin misiniz?')) return;
         router.delete(route('admin.events.destroy', event.id));
     };
+
+    const clearCoverImage = () => {
+        setData('cover_image', '');
+        setData('cover_upload', null);
+        if (coverFileInputRef.current) {
+            coverFileInputRef.current.value = '';
+        }
+    };
+
+    const clearListingImage = () => {
+        setData('listing_image', '');
+        setData('listing_upload', null);
+        if (listingFileInputRef.current) {
+            listingFileInputRef.current.value = '';
+        }
+    };
+
+    const hasCoverToRemove = Boolean(data.cover_image?.trim() || data.cover_upload);
+    const hasListingToRemove = Boolean(data.listing_image?.trim() || data.listing_upload);
 
     const validationSummary = useMemo(() => {
         const e = errors as Record<string, string | string[] | undefined>;
@@ -319,20 +345,41 @@ export default function AdminEventEdit({
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli — detay sayfası (URL)</label>
-                        <p className="mt-0.5 text-xs text-zinc-500">Etkinlik sayfası üst görseli.</p>
+                        <label htmlFor="admin-event-cover-url" className="block text-sm font-medium text-zinc-400">
+                            Kapak görseli — etkinlik detayı (URL)
+                        </label>
+                        <p className="mt-0.5 text-xs text-zinc-500">Yalnızca detay sayfası üst alanı; liste / kartlarda kullanılmaz.</p>
                         <input
+                            id="admin-event-cover-url"
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
                             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                         />
                         {storageUrl(data.cover_image) && (
-                            <img src={storageUrl(data.cover_image) ?? ''} alt="" className="mt-2 h-32 max-w-md rounded-lg object-cover" />
+                            <img
+                                src={storageUrl(data.cover_image) ?? ''}
+                                alt=""
+                                className="mt-2 h-32 max-w-md rounded-lg object-cover"
+                            />
                         )}
+                        {hasCoverToRemove ? (
+                            <button
+                                type="button"
+                                onClick={clearCoverImage}
+                                className="mt-2 text-sm font-medium text-red-400 hover:text-red-300"
+                            >
+                                Kapak görselini kaldır
+                            </button>
+                        ) : null}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli — detay (dosya)</label>
+                        <label htmlFor="admin-event-cover-file" className="block text-sm font-medium text-zinc-400">
+                            Kapak görseli — detay (dosya)
+                        </label>
                         <input
+                            id="admin-event-cover-file"
+                            ref={coverFileInputRef}
+                            name="cover_upload"
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('cover_upload', e.target.files?.[0] ?? null)}
@@ -343,22 +390,53 @@ export default function AdminEventEdit({
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (URL)</label>
+                        <label htmlFor="admin-event-listing-url" className="block text-sm font-medium text-zinc-400">
+                            Liste / kart görseli (URL)
+                        </label>
                         <p className="mt-0.5 text-xs text-zinc-500">
-                            /etkinlikler ve kartlarda. Boşsa kapak görseli kullanılır.
+                            /etkinlikler ve kartlarda. Boş bırakırsanız sitede kapak görseli bu rol için kullanılır.
                         </p>
                         <input
+                            id="admin-event-listing-url"
                             value={data.listing_image}
                             onChange={(e) => setData('listing_image', e.target.value)}
                             className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                         />
-                        {storageUrl(data.listing_image) && (
-                            <img src={storageUrl(data.listing_image) ?? ''} alt="" className="mt-2 h-24 max-w-xs rounded-lg object-cover" />
+                        {listingPreviewUrl(data.listing_image, data.cover_image) && (
+                            <div className="mt-2">
+                                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                                    Sitede kart / listede böyle görünür
+                                </p>
+                                <img
+                                    src={listingPreviewUrl(data.listing_image, data.cover_image) ?? ''}
+                                    alt=""
+                                    className="h-24 max-w-xs rounded-lg object-cover ring-1 ring-zinc-600"
+                                />
+                                {!data.listing_image?.trim() && data.cover_image?.trim() ? (
+                                    <p className="mt-1 text-xs text-amber-500/90">
+                                        Şu an ayrı liste görseli yok; önizleme kapak görselidir.
+                                    </p>
+                                ) : null}
+                            </div>
                         )}
+                        {hasListingToRemove ? (
+                            <button
+                                type="button"
+                                onClick={clearListingImage}
+                                className="mt-2 text-sm font-medium text-red-400 hover:text-red-300"
+                            >
+                                Liste görselini kaldır
+                            </button>
+                        ) : null}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (dosya)</label>
+                        <label htmlFor="admin-event-listing-file" className="block text-sm font-medium text-zinc-400">
+                            Liste / kart görseli (dosya)
+                        </label>
                         <input
+                            id="admin-event-listing-file"
+                            ref={listingFileInputRef}
+                            name="listing_upload"
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('listing_upload', e.target.files?.[0] ?? null)}

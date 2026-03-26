@@ -55,7 +55,39 @@ function monthHeading(year: number, monthIndex: number): string {
     return s.length > 0 ? s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1) : s;
 }
 
-type MonthGroup = { key: string; heading: string; events: DetailEventListItem[] };
+export type MonthGroup = { key: string; heading: string; events: DetailEventListItem[] };
+
+/** Sanatçı / ortak: takvim ayına göre gruplar (başlık tr-TR, ay adı büyük harfle başlar). */
+export function groupDetailEventsByMonthForDisplay(
+    events: DetailEventListItem[],
+    order: 'asc' | 'desc',
+): MonthGroup[] {
+    const sorted = [...events].sort((a, b) => {
+        const ta = new Date(a.start_date).getTime();
+        const tb = new Date(b.start_date).getTime();
+        if (Number.isNaN(ta) || Number.isNaN(tb)) {
+            return 0;
+        }
+        return order === 'asc' ? ta - tb : tb - ta;
+    });
+    const map = new Map<string, DetailEventListItem[]>();
+    for (const ev of sorted) {
+        const sd = new Date(ev.start_date);
+        if (Number.isNaN(sd.getTime())) {
+            continue;
+        }
+        const key = monthKeyFromDate(sd);
+        const cur = map.get(key) ?? [];
+        cur.push(ev);
+        map.set(key, cur);
+    }
+    const keys = [...map.keys()].sort((a, b) => (order === 'asc' ? a.localeCompare(b) : b.localeCompare(a)));
+    return keys.map((key) => {
+        const [y, m] = key.split('-').map(Number);
+        const heading = monthHeading(y, m - 1);
+        return { key, heading, events: map.get(key) ?? [] };
+    });
+}
 
 function groupVenueEventsByMonth(events: DetailEventListItem[]): { upcoming: MonthGroup[]; past: MonthGroup[] } {
     const sorted = [...events].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
@@ -185,7 +217,36 @@ export default function DetailEventList({
         [context, events],
     );
 
+    const artistMonthGroups = useMemo(
+        () => (context === 'artist' ? groupDetailEventsByMonthForDisplay(events, 'asc') : null),
+        [context, events],
+    );
+
     if (events.length === 0) return null;
+
+    if (context === 'artist' && artistMonthGroups) {
+        return (
+            <section className={className}>
+                {showHeading ? (
+                    <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white sm:text-xl">Etkinlikleri Listele</h2>
+                ) : null}
+                <div className={showHeading ? 'mt-4 space-y-8' : 'space-y-8'}>
+                    {artistMonthGroups.map((group) => (
+                        <div key={group.key}>
+                            <h3 className="border-b border-zinc-200 pb-2 font-display text-base font-semibold text-zinc-800 dark:border-white/10 dark:text-zinc-100">
+                                {group.heading}
+                            </h3>
+                            <ul className="mt-3 space-y-3">
+                                {group.events.map((ev) => (
+                                    <EventListRow key={ev.id} ev={ev} context={context} imageSrc={imageSrc} />
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
+    }
 
     if (context === 'venue' && venueMonthGroups) {
         const { upcoming, past } = venueMonthGroups;

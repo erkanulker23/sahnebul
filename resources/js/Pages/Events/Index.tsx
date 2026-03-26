@@ -135,21 +135,21 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                         </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                    <div className="absolute right-3 top-3 max-w-[min(100%,11.5rem)] rounded-xl bg-white/95 px-3 py-2 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10">
-                        <p className="text-[10px] font-semibold leading-snug text-zinc-900 dark:text-white sm:text-[11px]">{whenLabel}</p>
+                    <div className="absolute right-1.5 top-1.5 max-w-[min(100%,11.5rem)] rounded-lg bg-white/95 px-1.5 py-1 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10 sm:right-3 sm:top-3 sm:rounded-xl sm:px-3 sm:py-2">
+                        <p className="text-[9px] font-semibold leading-tight text-zinc-900 dark:text-white sm:text-[11px] sm:leading-snug">{whenLabel}</p>
                     </div>
                 </div>
-                <div className="flex min-h-0 flex-1 flex-col p-4 pt-3.5">
-                    <h2 className="font-display text-base font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
+                <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
+                    <h2 className="font-display text-xs font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
                         <span className="line-clamp-2">{displayName}</span>
                     </h2>
-                    <p className="mt-2 line-clamp-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">{event.venue.name}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:mt-2 sm:text-sm">{event.venue.name}</p>
                     {event.venue.category?.name && (
-                        <p className="mt-1 text-xs font-medium text-amber-700/90 dark:text-amber-400/90">{event.venue.category.name}</p>
+                        <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">{event.venue.category.name}</p>
                     )}
-                    <span className="mt-auto inline-flex items-center gap-1.5 pt-4 text-sm font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400">
+                    <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400 sm:gap-1.5 sm:pt-4 sm:text-sm">
                         Detaylar
-                        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                        <svg className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                         </svg>
                     </span>
@@ -423,7 +423,7 @@ export default function EventsIndex({
                     )}
                 </div>
 
-                <div className="mx-auto max-w-7xl px-0 pb-10 pt-5 sm:px-4 sm:pb-14 sm:pt-8 lg:px-8 lg:pb-16">
+                <div className="mx-auto max-w-7xl px-2 pb-10 pt-5 sm:px-4 sm:pb-14 sm:pt-8 lg:px-8 lg:pb-16">
                     <AdSlot slotKey="events_index_top" className="pb-3 pt-1" />
                     <form onSubmit={handleFilterSubmit} className="flex flex-col gap-8">
                         <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-zinc-900/40 sm:p-6 lg:p-8">
@@ -614,7 +614,7 @@ export default function EventsIndex({
                                     </p>
                                 )}
                             </div>
-                            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                            <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                                 {events.data.map((event) => (
                                     <EventTicketCard key={event.id} event={event} />
                                 ))}

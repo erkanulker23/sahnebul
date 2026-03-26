@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Event extends Model
@@ -170,6 +171,45 @@ class Event extends Model
     public function publicUrlSegment(): string
     {
         return $this->slug.'-'.$this->id;
+    }
+
+    /**
+     * Liste / kart görseli yolu: önce listeleme, yoksa kapak (frontend ile aynı kural).
+     */
+    public function listingThumbnailPath(): ?string
+    {
+        foreach ([$this->listing_image, $this->cover_image] as $p) {
+            if (is_string($p) && trim($p) !== '') {
+                return trim($p);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Kapak dosyası event-listings’a, liste dosyası event-covers’a yazılmışsa sütunları düzeltir.
+     */
+    public function repairSwappedStorageFoldersIfNeeded(): bool
+    {
+        $cover = $this->cover_image;
+        $listing = $this->listing_image;
+        if (! is_string($cover) || trim($cover) === '' || ! is_string($listing) || trim($listing) === '') {
+            return false;
+        }
+        $c = Str::lower($cover);
+        $l = Str::lower($listing);
+        $coverLooksListing = str_contains($c, 'event-listings');
+        $listingLooksCover = str_contains($l, 'event-covers');
+        if (! $coverLooksListing || ! $listingLooksCover) {
+            return false;
+        }
+        $this->forceFill([
+            'cover_image' => trim($listing),
+            'listing_image' => trim($cover),
+        ])->saveQuietly();
+
+        return true;
     }
 
     /**

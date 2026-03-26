@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Http\Controllers\SehirSecController;
 use App\Models\Event;
-use App\Support\EventListingQuery;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -94,7 +93,7 @@ final class SehirSecPlatformEvents
     public static function serializeCard(Event $event, string $citySlug): array
     {
         $venue = $event->venue;
-        $image = self::publicImageUrl($event->cover_image) ?? self::publicImageUrl($venue?->cover_image);
+        $image = self::publicImageUrl($event->listingThumbnailPath()) ?? self::publicImageUrl($venue?->cover_image);
 
         $price = $event->minPrice();
         $priceLabel = $price !== null ? number_format($price, 2, ',', '.').' ₺' : null;

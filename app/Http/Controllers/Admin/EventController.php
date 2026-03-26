@@ -174,6 +174,8 @@ class EventController extends Controller
     public function edit(Event $event)
     {
         $event->load(['venue', 'artists', 'ticketTiers']);
+        $event->repairSwappedStorageFoldersIfNeeded();
+        $event->refresh();
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
@@ -250,6 +252,14 @@ class EventController extends Controller
         unset($validated['ticket_tiers']);
 
         unset($validated['cover_upload'], $validated['listing_upload']);
+
+        $validated['cover_image'] = isset($validated['cover_image']) && trim((string) $validated['cover_image']) !== ''
+            ? trim((string) $validated['cover_image'])
+            : null;
+        $validated['listing_image'] = isset($validated['listing_image']) && trim((string) $validated['listing_image']) !== ''
+            ? trim((string) $validated['listing_image'])
+            : null;
+
         if ($request->hasFile('cover_upload')) {
             if ($event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($event->cover_image);
@@ -261,6 +271,13 @@ class EventController extends Controller
                 Storage::disk('public')->delete($event->listing_image);
             }
             $validated['listing_image'] = $request->file('listing_upload')->store('event-listings', 'public');
+        }
+
+        if (($validated['cover_image'] ?? null) === null && $event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($event->cover_image);
+        }
+        if (($validated['listing_image'] ?? null) === null && $event->listing_image && ! Str::startsWith($event->listing_image, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($event->listing_image);
         }
 
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''

@@ -50,8 +50,9 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
     const scrollByDir = useCallback((dir: -1 | 1) => {
         const el = scrollerRef.current;
         if (!el) return;
-        const delta = Math.round(el.clientWidth * 0.85) * dir;
-        el.scrollBy({ left: delta, behavior: 'smooth' });
+        const firstCard = el.querySelector<HTMLElement>('a');
+        const step = firstCard ? firstCard.offsetWidth + 12 : Math.round(el.clientWidth * 0.5);
+        el.scrollBy({ left: step * dir, behavior: 'smooth' });
     }, []);
 
     if (artists.length === 0) {
@@ -94,7 +95,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                 <div className="relative">
                     <div
                         ref={scrollerRef}
-                        className="-mx-2.5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2.5 pb-2 pt-1 scroll-smooth sm:mx-0 sm:gap-4 sm:px-0"
+                        className="-mx-2.5 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-2.5 pb-2 pt-1 [scroll-padding-inline:0.625rem] sm:mx-0 sm:gap-4 sm:px-0 sm:[scroll-padding-inline:0]"
                         style={{ scrollbarGutter: 'stable' }}
                     >
                         {artists.map((artist) => {
@@ -103,7 +104,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                 <Link
                                     key={artist.id}
                                     href={route('artists.show', artist.slug)}
-                                    className="group relative w-[min(100%,260px)] shrink-0 snap-start overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg dark:border-white/[0.08] dark:bg-zinc-900/80 dark:hover:border-amber-500/30"
+                                    className="group relative min-w-0 shrink-0 snap-start overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-md transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg dark:border-white/[0.08] dark:bg-zinc-900/80 dark:hover:border-amber-500/30 sm:w-[min(100%,260px)] sm:rounded-2xl max-sm:flex-[0_0_calc(50%-0.375rem)]"
                                 >
                                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
                                         {artist.avatar ? (
@@ -135,9 +136,9 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                             </div>
                                         )}
                                     </div>
-                                    <div className="p-4">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="font-display text-base font-bold text-zinc-900 group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400">
+                                    <div className="p-2.5 sm:p-4">
+                                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                            <h3 className="font-display text-sm font-bold leading-tight text-zinc-900 group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400 sm:text-base">
                                                 {artist.name}
                                             </h3>
                                             {artist.is_verified_profile && <VerifiedArtistProfileBadge />}

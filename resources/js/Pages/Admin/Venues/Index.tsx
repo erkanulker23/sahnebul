@@ -34,11 +34,13 @@ function statusBadgeClass(status: string): string {
     return 'bg-red-500/15 text-red-700 dark:text-red-400';
 }
 
-type RowSelectionMeta = Record<number, { events_count: number }>;
+type RowSelectionMeta = Record<number, { events_count: number; name: string }>;
 
 export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [selectedRows, setSelectedRows] = useState<RowSelectionMeta>({});
+    const [mergeModalOpen, setMergeModalOpen] = useState(false);
+    const [mergeKeepId, setMergeKeepId] = useState<number | null>(null);
 
     useEffect(() => {
         setSearch(filters?.search ?? '');
@@ -62,7 +64,7 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
         setSelectedRows((prev) => {
             const next = { ...prev };
             if (checked) {
-                next[venue.id] = { events_count: venue.events_count ?? 0 };
+                next[venue.id] = { events_count: venue.events_count ?? 0, name: venue.name };
             } else {
                 delete next[venue.id];
             }
@@ -76,7 +78,7 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                 const next = { ...prev };
                 for (const v of venues.data) {
                     if (checked) {
-                        next[v.id] = { events_count: v.events_count ?? 0 };
+                        next[v.id] = { events_count: v.events_count ?? 0, name: v.name };
                     } else {
                         delete next[v.id];
                     }
@@ -103,6 +105,44 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
         }
         router.post(route('admin.venues.bulk-destroy'), { ids });
     }, [selectedRows]);
+
+    const mergeSelectedIds = useMemo(() => Object.keys(selectedRows).map(Number).sort((a, b) => a - b), [selectedRows]);
+
+    const openMergeModal = useCallback(() => {
+        if (mergeSelectedIds.length !== 2) {
+            return;
+        }
+        setMergeKeepId(mergeSelectedIds[0] ?? null);
+        setMergeModalOpen(true);
+    }, [mergeSelectedIds]);
+
+    const submitMerge = useCallback(() => {
+        if (mergeSelectedIds.length !== 2 || mergeKeepId === null) {
+            return;
+        }
+        const otherId = mergeSelectedIds.find((id) => id !== mergeKeepId);
+        if (otherId === undefined) {
+            return;
+        }
+        if (
+            !confirm(
+                'Diğer mekan silinecek; etkinlikler, rezervasyonlar, yorumlar ve galeri seçtiğiniz ana mekana taşınır. Bu işlem geri alınamaz. Onaylıyor musunuz?',
+            )
+        ) {
+            return;
+        }
+        router.post(
+            route('admin.venues.merge'),
+            { keep_venue_id: mergeKeepId, merge_venue_id: otherId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setMergeModalOpen(false);
+                    setSelectedRows({});
+                },
+            },
+        );
+    }, [mergeKeepId, mergeSelectedIds]);
 
     const columns: AdminColumn<Venue>[] = useMemo(
         () => [
@@ -230,6 +270,15 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                             >
                                 Seçimi temizle
                             </button>
+                            {selectedCount === 2 && (
+                                <button
+                                    type="button"
+                                    onClick={openMergeModal}
+                                    className="rounded-lg border border-violet-400/80 bg-violet-500/15 px-3 py-2 text-sm font-semibold text-violet-900 hover:bg-violet-500/25 dark:border-violet-600/60 dark:bg-violet-950/50 dark:text-violet-200 dark:hover:bg-violet-950/80"
+                                >
+                                    Mekanları birleştir
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={bulkDeleteSelected}
@@ -237,6 +286,67 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                             >
                                 Seçilenleri sil
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {mergeModalOpen && mergeSelectedIds.length === 2 && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                        role="presentation"
+                        onClick={() => setMergeModalOpen(false)}
+                    >
+                        <div
+                            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="merge-venues-title"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h2 id="merge-venues-title" className="text-lg font-semibold text-zinc-900 dark:text-white">
+                                Mekanları birleştir
+                            </h2>
+                            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                                Hangi kayıt <span className="font-medium text-zinc-800 dark:text-zinc-200">ana mekan</span> olarak kalsın?
+                                Diğer mekan silinir; etkinlikler ve ilişkili veriler ana mekana aktarılır.
+                            </p>
+                            <div className="mt-4 space-y-3">
+                                {mergeSelectedIds.map((id) => (
+                                    <label
+                                        key={id}
+                                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 p-3 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10 dark:border-zinc-600 dark:has-[:checked]:border-amber-500/70 dark:has-[:checked]:bg-amber-500/10"
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="merge-keep"
+                                            className="mt-1"
+                                            checked={mergeKeepId === id}
+                                            onChange={() => setMergeKeepId(id)}
+                                        />
+                                        <span className="text-sm text-zinc-800 dark:text-zinc-200">
+                                            <span className="font-medium">{selectedRows[id]?.name ?? `Mekan #${id}`}</span>
+                                            <span className="ml-2 tabular-nums text-zinc-500 dark:text-zinc-400">(id: {id})</span>
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="mt-6 flex flex-wrap justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setMergeModalOpen(false)}
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                >
+                                    Vazgeç
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={submitMerge}
+                                    disabled={mergeKeepId === null}
+                                    className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Birleştir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

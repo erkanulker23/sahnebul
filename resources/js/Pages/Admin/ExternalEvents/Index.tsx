@@ -1,7 +1,8 @@
 import { AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
 import { Eye, X } from 'lucide-react';
@@ -44,8 +45,18 @@ interface PreviewPayload {
     errors: string[];
 }
 
+type PaginationLink = { url: string | null; label: string; active: boolean };
+
 interface Props {
-    items: { data: ExternalEventItem[] };
+    items: {
+        data: ExternalEventItem[];
+        links?: PaginationLink[];
+        current_page?: number;
+        last_page?: number;
+        from?: number | null;
+        to?: number | null;
+        total?: number;
+    };
     filters: { source: string; status: 'all' | 'pending' | 'synced' | 'rejected'; search: string; artist: string };
     sources: string[];
     crawlLookups?: { cities: CrawlLookupItem[]; categories: CrawlLookupItem[] };
@@ -612,6 +623,31 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                     </button>
                 </form>
 
+                {typeof items.total === 'number' && (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        Toplam{' '}
+                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
+                            {items.total.toLocaleString('tr-TR')}
+                        </span>{' '}
+                        kayıt
+                        {items.from != null && items.to != null && items.total > 0 && (
+                            <>
+                                {' '}
+                                · bu sayfada{' '}
+                                <span className="tabular-nums">
+                                    {items.from.toLocaleString('tr-TR')}–{items.to.toLocaleString('tr-TR')}
+                                </span>
+                            </>
+                        )}
+                        {typeof items.last_page === 'number' && items.last_page > 1 && (
+                            <>
+                                {' '}
+                                · sayfa {items.current_page ?? '—'} / {items.last_page}
+                            </>
+                        )}
+                    </p>
+                )}
+
                 <div className="hidden md:block">
                     <div className="overflow-x-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-800">
                         <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
@@ -720,6 +756,41 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                         );
                     })}
                 </ul>
+
+                {Array.isArray(items.links) && items.links.length > 0 && (items.last_page ?? 0) > 1 && (
+                    <div className="flex flex-wrap gap-2">
+                        {items.links.map((link, idx) => {
+                            const label = link.label
+                                .replace('&laquo; Previous', 'Önceki')
+                                .replace('Next &raquo;', 'Sonraki');
+                            if (!link.url) {
+                                return (
+                                    <span
+                                        key={`${label}-${idx}`}
+                                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-600"
+                                    >
+                                        <span dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(label) }} />
+                                    </span>
+                                );
+                            }
+
+                            return (
+                                <Link
+                                    key={`${label}-${idx}`}
+                                    href={link.url}
+                                    preserveState
+                                    preserveScroll
+                                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                                        link.active
+                                            ? 'border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-300'
+                                            : 'border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-zinc-600 dark:bg-transparent dark:text-zinc-300 dark:hover:border-amber-500/30'
+                                    }`}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(label) }}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </AdminLayout>
     );

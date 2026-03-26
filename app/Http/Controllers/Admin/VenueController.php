@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueMedia;
+use App\Services\Admin\VenueMergeService;
 use App\Services\AppSettingsService;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
@@ -24,6 +25,7 @@ class VenueController extends Controller
 {
     public function __construct(
         private readonly VenueRemoteCoverImporter $remoteCoverImporter,
+        private readonly VenueMergeService $venueMergeService,
     ) {}
 
     public function create()
@@ -418,6 +420,20 @@ class VenueController extends Controller
         });
 
         return redirect()->route('admin.venues.index')->with('success', "{$count} mekan silindi.");
+    }
+
+    public function merge(Request $request)
+    {
+        $data = $request->validate([
+            'keep_venue_id' => ['required', 'integer', 'exists:venues,id'],
+            'merge_venue_id' => ['required', 'integer', 'exists:venues,id', 'different:keep_venue_id'],
+        ]);
+
+        $this->venueMergeService->merge((int) $data['keep_venue_id'], (int) $data['merge_venue_id']);
+
+        return redirect()
+            ->route('admin.venues.index', $request->only(['search', 'status']))
+            ->with('success', 'Mekanlar birleştirildi. Kalan kayıt seçtiğiniz ana mekan; diğeri silindi ve veriler taşındı.');
     }
 
     private function performVenueDelete(Venue $venue): void

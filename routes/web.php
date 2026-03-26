@@ -189,6 +189,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/mekanlar/etkinlik-secici', [AdminVenueController::class, 'storeForEventPicker'])->name('venues.store-for-event');
     Route::post('/mekanlar', [AdminVenueController::class, 'store'])->name('venues.store');
     Route::post('/mekanlar/toplu-sil', [AdminVenueController::class, 'bulkDestroy'])->name('venues.bulk-destroy');
+    Route::post('/mekanlar/birlestir', [AdminVenueController::class, 'merge'])->name('venues.merge');
     Route::get('/mekanlar/{venue}/duzenle', [AdminVenueController::class, 'edit'])->name('venues.edit');
     Route::post('/mekanlar/{venue}/kapak-url', [AdminVenueController::class, 'importRemoteCover'])->name('venues.cover-import');
     Route::post('/mekanlar/{venue}/galeri', [AdminVenueController::class, 'storeMedia'])->name('venues.media.store');

@@ -304,7 +304,7 @@ export default function EventShow({
                             : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
                     }
                 />
-                <div className="relative mx-auto max-w-6xl px-2.5 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
+                <div className="relative mx-auto w-full max-w-6xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
                     <Link href={route('venues.show', event.venue.slug)} className="text-sm text-amber-300 hover:text-amber-200">← Mekana dön</Link>
                     <div className="mt-6 max-w-4xl">
                         <p className="text-sm">
@@ -375,10 +375,10 @@ export default function EventShow({
                 </div>
             </section>
 
-            <div className="mx-auto max-w-6xl px-2.5 py-8 sm:px-5 sm:py-10 lg:px-8">
+            <div className="mx-auto w-full max-w-6xl -mx-2.5 px-3 py-8 sm:mx-auto sm:px-5 sm:py-10 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-10">
                     <div className="space-y-8 lg:col-span-2">
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
                             {event.description?.trim() && (
                                 <RichOrPlainContent
                                     content={event.description}
@@ -389,7 +389,7 @@ export default function EventShow({
                         </div>
 
                         {hasTiers && (
-                            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
+                            <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                                 <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Bilet fiyatları</h2>
                                 <p className="mt-1 text-sm text-zinc-500">Kategoriye göre farklı fiyatlar geçerlidir.</p>
                                 <div className="mt-4 overflow-x-auto">
@@ -425,7 +425,7 @@ export default function EventShow({
 
                         <div
                             id="bilet-kanallari"
-                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6"
+                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6"
                         >
                             <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Biletleri nereden alabilirsiniz?</h2>
                             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{ticketSectionIntro}</p>

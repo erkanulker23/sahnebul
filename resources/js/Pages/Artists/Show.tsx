@@ -1,4 +1,4 @@
-import DetailEventList from '@/Components/DetailEventList';
+import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -326,8 +326,9 @@ export default function ArtistShow({
     const [selectedCity, setSelectedCity] = useState('Tümü');
     const filteredUpcoming = useMemo(
         () => upcomingEvents.filter((ev) => selectedCity === 'Tümü' || ev.venue?.city?.name === selectedCity),
-        [upcomingEvents, selectedCity]
+        [upcomingEvents, selectedCity],
     );
+    const pastEventsByMonth = useMemo(() => groupDetailEventsByMonthForDisplay(pastEvents, 'desc'), [pastEvents]);
     const showCityFilter = cityOptions.length > 1;
     const imageSrc = (path: string | null | undefined) => {
         if (!path) return null;
@@ -712,6 +713,110 @@ export default function ArtistShow({
                                 </div>
                             )}
 
+                            <div className="mt-10 space-y-12">
+                                {upcomingEvents.length > 0 && (
+                                    <div>
+                                        <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+                                            <div className="min-w-0">
+                                                <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white sm:text-xl">
+                                                    Etkinlikleri Listele
+                                                </h2>
+                                                <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{artist.name} — yaklaşan etkinlikler (ay ay)</p>
+                                            </div>
+                                            {showCityFilter && (
+                                                <div className="flex items-center gap-2">
+                                                    <label
+                                                        htmlFor="artist-upcoming-city"
+                                                        className="shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                                                    >
+                                                        Şehir
+                                                    </label>
+                                                    <select
+                                                        id="artist-upcoming-city"
+                                                        value={selectedCity}
+                                                        onChange={(e) => setSelectedCity(e.target.value)}
+                                                        className="max-w-[min(100vw-6rem,14rem)] rounded-md border border-zinc-300 bg-white py-1.5 pr-8 pl-2.5 text-sm text-zinc-900 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100"
+                                                    >
+                                                        {cityOptions.map((city) => (
+                                                            <option key={city} value={city}>
+                                                                {city}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {filteredUpcoming.length > 0 ? (
+                                            <DetailEventList
+                                                events={filteredUpcoming}
+                                                imageSrc={imageSrc}
+                                                context="artist"
+                                                showHeading={false}
+                                            />
+                                        ) : (
+                                            <p className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center text-sm text-zinc-600 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-400">
+                                                Seçilen şehir için yaklaşan etkinlik yok. Farklı bir şehir seçin veya &quot;Tümü&quot;ne dönün.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {pastEvents.length > 0 && (
+                                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-8 dark:border-white/[0.06] dark:bg-zinc-900/30">
+                                        <h2 className="font-display mb-2 text-xl font-bold text-zinc-900 dark:text-white">
+                                            Geçmiş Etkinlikler
+                                        </h2>
+                                        <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-500">
+                                            {pastEvents.length} geçmiş performans
+                                        </p>
+                                        <div className="space-y-8">
+                                            {pastEventsByMonth.map(({ key, heading, events: monthPast }) => (
+                                                <div key={key}>
+                                                    <h3 className="border-b border-zinc-300 pb-2 font-display text-sm font-semibold text-zinc-700 dark:border-white/10 dark:text-zinc-300">
+                                                        {heading}
+                                                    </h3>
+                                                    <div className="mt-4 space-y-4">
+                                                        {monthPast.map((event) => (
+                                                            <Link
+                                                                key={event.id}
+                                                                href={route('events.show', eventShowParam(event))}
+                                                                className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-amber-300/80 hover:bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.04] dark:bg-zinc-800/30 dark:hover:border-white/10 dark:hover:bg-zinc-800/50"
+                                                            >
+                                                                <div>
+                                                                    <p className="font-medium text-zinc-900 dark:text-zinc-200">{event.title}</p>
+                                                                    <p className="text-sm text-zinc-600 dark:text-zinc-500">{event.venue?.name ?? ''}</p>
+                                                                </div>
+                                                                <span className="text-sm text-zinc-500 dark:text-zinc-500">
+                                                                    {formatTurkishDateTime(event.start_date)}
+                                                                </span>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!hasEvents && (
+                                    <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-16 text-center dark:border-white/10 dark:bg-zinc-900/30">
+                                        <span className="mb-4 block text-6xl opacity-40">🎭</span>
+                                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-300">
+                                            Henüz etkinlik bilgisi yok
+                                        </h3>
+                                        <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-500">
+                                            {artist.name} için yaklaşan veya geçmiş etkinlik bulunmuyor.
+                                        </p>
+                                        <Link
+                                            href={route('artists.index')}
+                                            className="mt-6 inline-block rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
+                                        >
+                                            Diğer sanatçıları keşfet
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
                             {artist.bio?.trim() && (
                                 <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 dark:border-white/[0.06] dark:bg-zinc-900/50">
                                     <h2 className="font-display mb-4 text-xl font-bold text-zinc-900 dark:text-white">Hakkında</h2>
@@ -954,101 +1059,6 @@ export default function ArtistShow({
                                         Spotify&apos;da aç →
                                     </a>
                                 </div>
-                            </div>
-
-                            <div className="mt-10 space-y-12">
-                                {upcomingEvents.length > 0 && (
-                                    <div>
-                                        <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-                                            <div className="min-w-0">
-                                                <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white sm:text-xl">
-                                                    Etkinlikleri Listele
-                                                </h2>
-                                                <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{artist.name} — yaklaşan etkinlikler</p>
-                                            </div>
-                                            {showCityFilter && (
-                                                <div className="flex items-center gap-2">
-                                                    <label
-                                                        htmlFor="artist-upcoming-city"
-                                                        className="shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400"
-                                                    >
-                                                        Şehir
-                                                    </label>
-                                                    <select
-                                                        id="artist-upcoming-city"
-                                                        value={selectedCity}
-                                                        onChange={(e) => setSelectedCity(e.target.value)}
-                                                        className="max-w-[min(100vw-6rem,14rem)] rounded-md border border-zinc-300 bg-white py-1.5 pr-8 pl-2.5 text-sm text-zinc-900 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100"
-                                                    >
-                                                        {cityOptions.map((city) => (
-                                                            <option key={city} value={city}>
-                                                                {city}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {filteredUpcoming.length > 0 ? (
-                                            <DetailEventList
-                                                events={filteredUpcoming}
-                                                imageSrc={imageSrc}
-                                                context="artist"
-                                                showHeading={false}
-                                            />
-                                        ) : (
-                                            <p className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center text-sm text-zinc-600 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-400">
-                                                Seçilen şehir için yaklaşan etkinlik yok. Farklı bir şehir seçin veya &quot;Tümü&quot;ne dönün.
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {pastEvents.length > 0 && (
-                                    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-8 dark:border-white/[0.06] dark:bg-zinc-900/30">
-                                        <h2 className="font-display mb-2 text-xl font-bold text-zinc-900 dark:text-white">
-                                            Geçmiş Etkinlikler
-                                        </h2>
-                                        <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-500">
-                                            {pastEvents.length} geçmiş performans
-                                        </p>
-                                        <div className="space-y-4">
-                                            {pastEvents.map((event) => (
-                                                <Link
-                                                    key={event.id}
-                                                    href={route('events.show', eventShowParam(event))}
-                                                    className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-amber-300/80 hover:bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.04] dark:bg-zinc-800/30 dark:hover:border-white/10 dark:hover:bg-zinc-800/50"
-                                                >
-                                                    <div>
-                                                        <p className="font-medium text-zinc-900 dark:text-zinc-200">{event.title}</p>
-                                                        <p className="text-sm text-zinc-600 dark:text-zinc-500">{event.venue.name}</p>
-                                                    </div>
-                                                    <span className="text-sm text-zinc-500 dark:text-zinc-500">
-                                                        {formatTurkishDateTime(event.start_date)}
-                                                    </span>
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!hasEvents && (
-                                    <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-16 text-center dark:border-white/10 dark:bg-zinc-900/30">
-                                        <span className="mb-4 block text-6xl opacity-40">🎭</span>
-                                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-300">
-                                            Henüz etkinlik bilgisi yok
-                                        </h3>
-                                        <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-500">
-                                            {artist.name} için yaklaşan veya geçmiş etkinlik bulunmuyor.
-                                        </p>
-                                        <Link
-                                            href={route('artists.index')}
-                                            className="mt-6 inline-block rounded-xl bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
-                                        >
-                                            Diğer sanatçıları keşfet
-                                        </Link>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
