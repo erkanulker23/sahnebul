@@ -141,27 +141,29 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                                        {n > 0 ? (
-                                            <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
-                                                <span
-                                                    className="inline-flex max-w-full items-center gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-[10px]"
-                                                    aria-label={`Bu hafta ${n} etkinlik`}
-                                                >
-                                                    <IconTicket className="h-3 w-3 shrink-0 opacity-95 sm:h-3.5 sm:w-3.5" />
-                                                    <span className="min-w-0 truncate">
-                                                        {n} etkinlik
+                                        {(n > 0 || showLine) && (
+                                            <div className="pointer-events-none absolute left-1.5 right-1.5 top-1.5 z-[2] flex flex-col gap-1.5 sm:left-3 sm:right-3 sm:top-3">
+                                                {n > 0 ? (
+                                                    <span
+                                                        className="inline-flex w-full max-w-full items-center gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-[9px] font-bold leading-snug text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-[10px]"
+                                                        aria-label={`Bu hafta ${n} etkinlik`}
+                                                    >
+                                                        <IconTicket className="h-3 w-3 shrink-0 opacity-95 sm:h-3.5 sm:w-3.5" />
+                                                        <span className="min-w-0 flex-1 text-pretty break-words">
+                                                            {n} etkinlik
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                ) : null}
+                                                {showLine ? (
+                                                    <div className="w-full min-w-0 rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1.5 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:rounded-xl sm:px-2.5 sm:py-1.5">
+                                                        <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-snug text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
+                                                            <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
+                                                            <span className="min-w-0 flex-1 text-pretty break-words">{showLine}</span>
+                                                        </p>
+                                                    </div>
+                                                ) : null}
                                             </div>
-                                        ) : null}
-                                        {showLine ? (
-                                            <div className="absolute right-1.5 top-1.5 z-[2] max-w-[min(100%,11.5rem)] rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:right-3 sm:top-3 sm:rounded-xl sm:px-2.5 sm:py-1.5">
-                                                <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-tight text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
-                                                    <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
-                                                    <span className="min-w-0">{showLine}</span>
-                                                </p>
-                                            </div>
-                                        ) : null}
+                                        )}
                                     </div>
                                     <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
                                         <div className="flex flex-wrap items-center gap-1.5">

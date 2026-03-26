@@ -17,6 +17,7 @@ export type PublicEventTicketCardEvent = {
         cover_image?: string | null;
         category?: { name: string; slug?: string } | null;
         city?: { name: string } | null;
+        district?: { name: string } | null;
     };
     artists: { id: number; name: string; slug: string; avatar: string | null; genre?: string | null }[];
 };
@@ -99,6 +100,10 @@ export default function PublicEventTicketCard({
         imageSrc(event.venue.cover_image);
 
     const whenLabel = formatTurkishDateTime(event.start_date);
+    const districtName = event.venue.district?.name?.trim() ?? '';
+    const cityName = event.venue.city?.name?.trim() ?? '';
+    const showLocationOverlay = districtName !== '' || cityName !== '';
+    const locationTitle = [districtName, cityName].filter(Boolean).join(', ');
 
     return (
         <div className="group h-full">
@@ -121,26 +126,40 @@ export default function PublicEventTicketCard({
                         </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                    <div
-                        className={`pointer-events-none absolute left-1.5 right-1.5 top-1.5 z-[2] flex flex-col gap-1.5 sm:left-3 sm:right-3 sm:top-3 sm:flex-row sm:items-start sm:gap-2 ${
-                            event.venue.city?.name ? 'sm:justify-between' : 'sm:justify-end'
-                        }`}
-                    >
-                        {event.venue.city?.name ? (
-                            <div className="min-w-0 max-w-full sm:max-w-[calc(100%-9.5rem)]">
+                    {/** Dikey istifleme: dar ızgara sütunlarında konum / tarih taşmaz; mobil ve masaüstü aynı blok */}
+                    <div className="pointer-events-none absolute left-1.5 right-1.5 top-1.5 z-[2] flex flex-col gap-1.5 sm:left-3 sm:right-3 sm:top-3">
+                        {showLocationOverlay ? (
+                            <div className="min-w-0 w-full">
                                 <span
-                                    className="inline-flex max-w-full items-center gap-1 truncate rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-[10px]"
-                                    title={event.venue.city.name}
+                                    className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
+                                    title={locationTitle}
                                 >
-                                    <IconMapPin className="h-3 w-3 shrink-0 opacity-95 sm:h-3.5 sm:w-3.5" />
-                                    <span className="min-w-0 truncate">{event.venue.city.name}</span>
+                                    <IconMapPin className="mt-0.5 h-3 w-3 shrink-0 opacity-95 sm:mt-1 sm:h-3.5 sm:w-3.5" />
+                                    <span className="min-w-0 flex-1 text-left">
+                                        {districtName !== '' ? (
+                                            <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
+                                                {districtName}
+                                            </span>
+                                        ) : null}
+                                        {cityName !== '' ? (
+                                            <span
+                                                className={`block text-pretty break-words font-bold leading-snug ${
+                                                    districtName !== ''
+                                                        ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
+                                                        : 'text-[9px] sm:text-[10px]'
+                                                }`}
+                                            >
+                                                {cityName}
+                                            </span>
+                                        ) : null}
+                                    </span>
                                 </span>
                             </div>
                         ) : null}
-                        <div className="w-full min-w-0 rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:w-auto sm:max-w-[min(100%,12rem)] sm:shrink-0 sm:rounded-xl sm:px-2.5 sm:py-1.5">
-                            <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-tight text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
+                        <div className="w-full min-w-0 rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1.5 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:rounded-xl sm:px-2.5 sm:py-1.5">
+                            <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-snug text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
                                 <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
-                                <span className="min-w-0 text-pretty break-words">{whenLabel}</span>
+                                <span className="min-w-0 flex-1 text-pretty break-words">{whenLabel}</span>
                             </p>
                         </div>
                     </div>

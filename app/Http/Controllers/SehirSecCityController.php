@@ -162,7 +162,9 @@ class SehirSecCityController extends Controller
         }
 
         $listQuery->with([
-            'venue:id,name,city_id,category_id,cover_image',
+            'venue:id,name,city_id,district_id,category_id,cover_image',
+            'venue.city:id,name',
+            'venue.district:id,name',
             'venue.category:id,name',
             'ticketTiers:id,event_id,price',
         ]);

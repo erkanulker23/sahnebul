@@ -14,6 +14,7 @@ export interface CarouselEvent {
         slug: string;
         category?: { name: string } | null;
         city?: { name: string } | null;
+        district?: { name: string } | null;
     };
     artists: { id: number; name: string; slug: string; avatar?: string | null }[];
     cover_image?: string | null;
@@ -162,6 +163,10 @@ export default function EventCarousel({
                             imageSrc(headliner?.avatar ?? null) ??
                             null;
                         const whenLabel = formatTurkishDateTime(event.start_date);
+                        const districtName = event.venue.district?.name?.trim() ?? '';
+                        const cityName = event.venue.city?.name?.trim() ?? '';
+                        const showLocationOverlay = districtName !== '' || cityName !== '';
+                        const locationTitle = [districtName, cityName].filter(Boolean).join(', ');
 
                         return (
                             <Link
@@ -185,14 +190,31 @@ export default function EventCarousel({
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                                    {event.venue.city?.name ? (
+                                    {showLocationOverlay ? (
                                         <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
                                             <span
-                                                className="inline-flex max-w-full items-center gap-1 truncate rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5 sm:text-[10px]"
-                                                title={event.venue.city.name}
+                                                className="inline-flex max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1 text-white shadow-lg shadow-fuchsia-900/25 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
+                                                title={locationTitle}
                                             >
-                                                <IconMapPin className="h-3 w-3 shrink-0 opacity-95 sm:h-3.5 sm:w-3.5" />
-                                                <span className="min-w-0 truncate">{event.venue.city.name}</span>
+                                                <IconMapPin className="mt-0.5 h-3 w-3 shrink-0 opacity-95 sm:mt-1 sm:h-3.5 sm:w-3.5" />
+                                                <span className="min-w-0 flex-1 text-left">
+                                                    {districtName !== '' ? (
+                                                        <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
+                                                            {districtName}
+                                                        </span>
+                                                    ) : null}
+                                                    {cityName !== '' ? (
+                                                        <span
+                                                            className={`block text-pretty break-words font-bold leading-snug ${
+                                                                districtName !== ''
+                                                                    ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
+                                                                    : 'text-[9px] sm:text-[10px]'
+                                                            }`}
+                                                        >
+                                                            {cityName}
+                                                        </span>
+                                                    ) : null}
+                                                </span>
                                             </span>
                                         </div>
                                     ) : null}

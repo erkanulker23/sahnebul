@@ -19,6 +19,8 @@ interface BubiletEvent {
     city_slug: string | null;
     category_name: string | null;
     district_label: string | null;
+    /** Mekân ili (kart görseli üstü) */
+    city_label: string | null;
     artist_type_label: string | null;
     /** Platformda yayınlanmış eşleşme varsa /etkinlikler/{slug}-{id} */
     internal_event_segment: string | null;
@@ -88,23 +90,27 @@ export default function SehirSecCityEvents({
 }: Readonly<Props>) {
     const desc = `${cityName} etkinlikleri — /etkinlikler ile aynı platform kaydı. İlçe, tür ve kategoriye göre süzebilirsiniz.`;
     const [geoHint, setGeoHint] = useState<string | null>(null);
+    const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
     const geoStarted = useRef(false);
 
     useEffect(() => {
+        geoStarted.current = false;
+        setDetectedLocation(null);
+    }, [citySlug]);
+
+    useEffect(() => {
         if (geoStarted.current) {
-            return;
-        }
-        if (activeDistrictSlug) {
             return;
         }
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
             return;
         }
         geoStarted.current = true;
-        setGeoHint('Konumunuza göre yakın ilçe aranıyor…');
+        setGeoHint('Konumunuz alınıyor…');
 
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
+                setGeoHint('Konumunuz haritada çözümleniyor…');
                 try {
                     const res = await fetch(
                         route('api.reverse-geocode', {
@@ -120,9 +126,19 @@ export default function SehirSecCityEvents({
                             },
                         },
                     );
-                    const data = (await res.json()) as { district_slug?: string | null };
+                    const data = (await res.json()) as {
+                        district_slug?: string | null;
+                        district_label?: string | null;
+                        map_label?: string | null;
+                    };
+                    const districtLabel = typeof data.district_label === 'string' ? data.district_label.trim() : '';
+                    const mapLabel = typeof data.map_label === 'string' ? data.map_label.trim() : '';
+                    const human = districtLabel || mapLabel || null;
+                    if (human) {
+                        setDetectedLocation(human);
+                    }
                     const slug = data.district_slug;
-                    if (slug) {
+                    if (slug && !activeDistrictSlug) {
                         router.get(
                             cityListHref(citySlug, {
                                 ilce: slug,
@@ -150,7 +166,7 @@ export default function SehirSecCityEvents({
         <AppLayout>
             <SeoHead title={`${cityName} — Popüler etkinlikler`} description={desc} />
 
-            <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8">
+            <div className="-mx-4 -mt-5 sm:-mx-6 sm:-mt-6 lg:-mx-8">
                 <section className="relative overflow-hidden border-b border-zinc-200 bg-zinc-950 px-4 py-10 dark:border-zinc-800 sm:px-6 lg:px-8">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-950 to-zinc-950" />
                     <div className="relative z-10 mx-auto max-w-7xl">
@@ -177,10 +193,20 @@ export default function SehirSecCityEvents({
 
                         {geoHint && (
                             <p className="mt-4 inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
-                                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                <MapPin className="h-3.5 w-3.5 shrink-0 animate-pulse" aria-hidden />
                                 {geoHint}
                             </p>
                         )}
+
+                        {detectedLocation && !geoHint ? (
+                            <p className="mt-4 max-w-2xl rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm leading-snug text-zinc-200">
+                                <span className="mr-2 inline-flex items-center gap-1.5 font-semibold text-emerald-400">
+                                    <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                    Konumunuz (yaklaşık)
+                                </span>
+                                <span className="text-zinc-300">{detectedLocation}</span>
+                            </p>
+                        ) : null}
 
                         {districts.length > 0 && (
                             <div className="mt-6 max-w-md">
@@ -364,6 +390,11 @@ function bubiletEventDetailHref(ev: BubiletEvent): string {
 }
 
 function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
+    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
+    const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
+    const showLocationTop = districtTop !== '' || cityTop !== '';
+    const locationTitle = [districtTop, cityTop].filter(Boolean).join(', ');
+
     return (
         <Link
             href={bubiletEventDetailHref(ev)}
@@ -388,8 +419,36 @@ function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/45 to-transparent" />
-                <div className="relative z-[5] flex flex-wrap gap-1 p-2 sm:p-3">
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 from-40% via-55% to-transparent" />
+                {showLocationTop ? (
+                    <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] sm:left-3 sm:right-3 sm:top-3">
+                        <span
+                            className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/30 ring-1 ring-white/25 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:py-1.5"
+                            title={locationTitle}
+                        >
+                            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-white/95 sm:mt-1 sm:h-3.5 sm:w-3.5" aria-hidden />
+                            <span className="min-w-0 flex-1 text-left">
+                                {districtTop !== '' ? (
+                                    <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95 sm:text-[9px]">
+                                        {districtTop}
+                                    </span>
+                                ) : null}
+                                {cityTop !== '' ? (
+                                    <span
+                                        className={`block text-pretty break-words font-bold leading-snug ${
+                                            districtTop !== ''
+                                                ? 'mt-0.5 text-[9px] text-white sm:text-[10px]'
+                                                : 'text-[9px] sm:text-[10px]'
+                                        }`}
+                                    >
+                                        {cityTop}
+                                    </span>
+                                ) : null}
+                            </span>
+                        </span>
+                    </div>
+                ) : null}
+                <div className="relative z-[5] flex flex-wrap gap-1.5 p-2 sm:p-3">
                     {ev.artist_type_label && (
                         <span className="inline-block max-w-full truncate rounded-full bg-violet-950/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200 backdrop-blur-sm">
                             {ev.artist_type_label}
@@ -400,17 +459,35 @@ function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
                             {ev.category_name}
                         </span>
                     )}
-                    {ev.district_label && (
-                        <span className="inline-block max-w-full truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200/95 backdrop-blur-sm">
-                            {ev.district_label}
-                        </span>
-                    )}
                 </div>
-                <div className="relative z-[5] mt-auto flex flex-col justify-end p-2.5 text-white sm:p-3 md:p-4">
-                    <h2 className="line-clamp-2 text-sm font-semibold leading-snug sm:text-base">{ev.title}</h2>
-                    {ev.dates_line && <p className="mt-1 line-clamp-2 text-[11px] text-slate-200 sm:text-xs">{ev.dates_line}</p>}
-                    {ev.venue_name && <p className="line-clamp-2 text-[11px] text-slate-300 sm:text-xs">{ev.venue_name}</p>}
-                    {ev.price_label && <p className="mt-2 text-sm font-bold text-emerald-400 sm:text-base">{ev.price_label}</p>}
+                <div className="relative z-[5] mt-auto flex flex-col justify-end rounded-t-2xl bg-gradient-to-t from-black/95 via-black/75 to-transparent p-2.5 pt-8 text-white ring-1 ring-black/20 backdrop-blur-[2px] sm:p-3 sm:pt-10 md:p-4">
+                    <h2
+                        className="line-clamp-2 text-sm font-semibold leading-snug sm:text-base"
+                        style={{ textShadow: '0 2px 12px rgb(0 0 0 / 0.85), 0 1px 2px rgb(0 0 0 / 0.9)' }}
+                    >
+                        {ev.title}
+                    </h2>
+                    {ev.dates_line && (
+                        <p
+                            className="mt-1 line-clamp-2 text-[11px] font-medium text-white sm:text-xs"
+                            style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.9)' }}
+                        >
+                            {ev.dates_line}
+                        </p>
+                    )}
+                    {ev.venue_name && (
+                        <p
+                            className="mt-1 line-clamp-2 text-[11px] text-zinc-200 sm:text-xs"
+                            style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.85)' }}
+                        >
+                            {ev.venue_name}
+                        </p>
+                    )}
+                    {ev.price_label && (
+                        <p className="mt-2 text-sm font-bold text-emerald-400 sm:text-base" style={{ textShadow: '0 1px 6px rgb(0 0 0 / 0.8)' }}>
+                            {ev.price_label}
+                        </p>
+                    )}
                 </div>
             </div>
         </Link>

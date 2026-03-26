@@ -208,6 +208,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/etkinlikler/toplu-yayinla', [AdminEventController::class, 'bulkPublish'])->name('events.bulk-publish');
     Route::get('/etkinlikler/{event}/duzenle', [AdminEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [AdminEventController::class, 'update'])->name('events.update');
+    Route::post('/etkinlikler/{event}/adresten-medya', [AdminEventController::class, 'importMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('events.import-media');
+    Route::post('/etkinlikler/{event}/tanitim-medya-temizle', [AdminEventController::class, 'clearPromoMedia'])
+        ->name('events.clear-promo-media');
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');

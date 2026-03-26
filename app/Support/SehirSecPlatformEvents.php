@@ -37,7 +37,9 @@ final class SehirSecPlatformEvents
 
         $events = EventListingQuery::applyDefaultOrder(
             $q->with([
-                'venue:id,name,city_id,category_id,cover_image',
+                'venue:id,name,city_id,district_id,category_id,cover_image',
+                'venue.city:id,name',
+                'venue.district:id,name',
                 'venue.category:id,name',
                 'ticketTiers:id,event_id,price',
             ])
@@ -66,8 +68,9 @@ final class SehirSecPlatformEvents
             EventListingQuery::base()
                 ->whereHas('venue.city', fn ($q) => $q->whereIn('slug', $slugs))
                 ->with([
-                    'venue:id,name,city_id,category_id,cover_image',
-                    'venue.city:id,slug',
+                    'venue:id,name,city_id,district_id,category_id,cover_image',
+                    'venue.city:id,name,slug',
+                    'venue.district:id,name',
                     'venue.category:id,name',
                     'ticketTiers:id,event_id,price',
                 ])
@@ -110,7 +113,8 @@ final class SehirSecPlatformEvents
             'rank' => null,
             'city_slug' => $citySlug,
             'category_name' => $venue?->category?->name,
-            'district_label' => null,
+            'district_label' => $venue?->district?->name,
+            'city_label' => $venue?->city?->name,
             'artist_type_label' => null,
             'internal_event_segment' => $event->publicUrlSegment(),
         ];

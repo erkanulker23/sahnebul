@@ -16,9 +16,10 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = EventListingQuery::base()->with([
-            'venue:id,name,slug,cover_image,category_id,city_id',
+            'venue:id,name,slug,cover_image,category_id,city_id,district_id',
             'venue.category:id,name,slug',
             'venue.city:id,name',
+            'venue.district:id,name',
             'artists:id,name,slug,avatar,genre',
         ]);
 
@@ -30,7 +31,8 @@ class EventController extends Controller
         }
 
         if ($request->filled('period')) {
-            $period = $request->string('period');
+            // $request->string() returns Stringable; strict === against 'tomorrow' etc. never matches.
+            $period = (string) $request->string('period');
             if ($period === 'today') {
                 $query->whereDate('start_date', today());
             } elseif ($period === 'tomorrow') {
@@ -118,8 +120,8 @@ class EventController extends Controller
             ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
             ->with([
                 'venue' => fn ($q) => $q
-                    ->select('venues.id', 'venues.name', 'venues.slug', 'venues.city_id', 'venues.category_id', 'venues.cover_image', 'venues.latitude', 'venues.longitude')
-                    ->with(['city:id,name', 'category:id,name']),
+                    ->select('venues.id', 'venues.name', 'venues.slug', 'venues.city_id', 'venues.district_id', 'venues.category_id', 'venues.cover_image', 'venues.latitude', 'venues.longitude')
+                    ->with(['city:id,name', 'district:id,name', 'category:id,name']),
                 'artists' => fn ($q) => $q
                     ->select('artists.id', 'artists.name', 'artists.slug', 'artists.avatar')
                     ->orderByPivot('is_headliner', 'desc')

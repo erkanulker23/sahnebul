@@ -16,7 +16,12 @@ export type DetailEventListItem = {
     is_full?: boolean | null;
     ticket_acquisition_mode?: string | null;
     sahnebul_reservation_enabled?: boolean | null;
-    venue?: { name: string; slug?: string; city?: { name: string } | null };
+    venue?: {
+        name: string;
+        slug?: string;
+        city?: { name: string } | null;
+        district?: { name: string } | null;
+    };
     artists?: { id: number; name: string; slug: string; avatar?: string | null }[];
 };
 
@@ -34,8 +39,10 @@ function subtitleForEvent(ev: DetailEventListItem, context: 'artist' | 'venue'):
     if (context === 'artist') {
         const v = ev.venue;
         if (!v) return '';
-        const city = v.city?.name;
-        return [v.name, city].filter(Boolean).join(' — ');
+        const district = v.district?.name?.trim();
+        const city = v.city?.name?.trim();
+        const loc = [district, city].filter(Boolean).join(', ');
+        return [v.name, loc].filter(Boolean).join(' — ');
     }
     const names = ev.artists?.map((a) => a.name).filter(Boolean) ?? [];
     return names.length > 0 ? names.join(', ') : ev.title;

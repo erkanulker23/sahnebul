@@ -190,14 +190,14 @@ class ArtistController extends Controller
 
         $upcomingEvents = $baseArtistEvents()
             ->where('start_date', '>', now())
-            ->with('venue.city')
+            ->with(['venue.city', 'venue.district'])
             ->orderBy('start_date')
             ->limit(120)
             ->get();
 
         $pastEvents = $baseArtistEvents()
             ->where('start_date', '<', now())
-            ->with('venue.city')
+            ->with(['venue.city', 'venue.district'])
             ->orderByDesc('start_date')
             ->limit(24)
             ->get();

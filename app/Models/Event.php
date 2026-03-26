@@ -13,7 +13,7 @@ class Event extends Model
 {
     protected $fillable = [
         'venue_id', 'title', 'slug', 'description', 'start_date', 'end_date',
-        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'status',
+        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'status',
         'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
     ];
 

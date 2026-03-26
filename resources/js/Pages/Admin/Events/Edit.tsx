@@ -6,7 +6,7 @@ import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/Ti
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Tier {
@@ -38,6 +38,8 @@ interface EventModel {
     ticket_acquisition_mode?: string | null;
     ticket_outlets?: { label: string; url: string }[];
     ticket_purchase_note?: string | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
 }
 
 interface Props {
@@ -68,6 +70,8 @@ function toTierRows(tiers: Tier[] | undefined): TierRow[] {
     }));
 }
 
+type FlashProps = { success?: string | null; error?: string | null };
+
 export default function AdminEventEdit({
     event,
     venues,
@@ -75,6 +79,11 @@ export default function AdminEventEdit({
     venuePickerCategories,
     googleMapsBrowserKey = null,
 }: Readonly<Props>) {
+    const page = usePage();
+    const flash = (page.props as { flash?: FlashProps }).flash;
+    const [mediaImportUrl, setMediaImportUrl] = useState('');
+    const [mediaImportMode, setMediaImportMode] = useState<'image_cover' | 'image_listing' | 'promo_video'>('image_listing');
+    const [mediaImporting, setMediaImporting] = useState(false);
     const [venueOptions, setVenueOptions] = useState(venues);
     const coverFileInputRef = useRef<HTMLInputElement>(null);
     const listingFileInputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +166,26 @@ export default function AdminEventEdit({
     const hasCoverToRemove = Boolean(data.cover_image?.trim() || data.cover_upload);
     const hasListingToRemove = Boolean(data.listing_image?.trim() || data.listing_upload);
 
+    const submitMediaImport = () => {
+        const url = mediaImportUrl.trim();
+        if (!url) return;
+        setMediaImporting(true);
+        router.post(
+            route('admin.events.import-media', event.id),
+            { url, mode: mediaImportMode },
+            {
+                preserveScroll: true,
+                onFinish: () => setMediaImporting(false),
+                onSuccess: () => setMediaImportUrl(''),
+            },
+        );
+    };
+
+    const clearPromoFromServer = () => {
+        if (!confirm('Tanıtım videosu ve Instagram gömülü bağlantısı kaldırılsın mı?')) return;
+        router.post(route('admin.events.clear-promo-media', event.id), {}, { preserveScroll: true });
+    };
+
     const validationSummary = useMemo(() => {
         const e = errors as Record<string, string | string[] | undefined>;
         const msgs: string[] = [];
@@ -205,6 +234,19 @@ export default function AdminEventEdit({
                 </div>
 
                 <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                    {flash?.success ? (
+                        <div
+                            className="rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-100"
+                            role="status"
+                        >
+                            {flash.success}
+                        </div>
+                    ) : null}
+                    {flash?.error ? (
+                        <div className="rounded-lg border border-red-500/50 bg-red-950/50 px-4 py-3 text-sm text-red-100" role="alert">
+                            {flash.error}
+                        </div>
+                    ) : null}
                     {validationSummary.length > 0 && (
                         <div
                             className="rounded-lg border border-red-500/50 bg-red-950/50 px-4 py-3 text-sm text-red-100"
@@ -442,6 +484,80 @@ export default function AdminEventEdit({
                             onChange={(e) => setData('listing_upload', e.target.files?.[0] ?? null)}
                             className="mt-1 w-full text-sm text-zinc-300"
                         />
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-700/80 bg-zinc-950/40 p-4">
+                        <h2 className="text-sm font-semibold text-zinc-200">Bağlantıdan içe aktar</h2>
+                        <p className="mt-1 text-xs text-zinc-500">
+                            Instagram veya etkinlik sayfası bağlantısı yapıştırın. Kapak / liste için sayfadaki önizleme görseli (og:image)
+                            indirilir; tanıtım modunda mümkünse video kaydedilir — Instagram çoğu zaman yalnızca gömülü oynatıcı bağlantısı
+                            verir.
+                        </p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                            <div className="sm:col-span-2">
+                                <label htmlFor="admin-event-import-url" className="block text-xs font-medium text-zinc-400">
+                                    Sayfa URL (https)
+                                </label>
+                                <input
+                                    id="admin-event-import-url"
+                                    type="url"
+                                    value={mediaImportUrl}
+                                    onChange={(e) => setMediaImportUrl(e.target.value)}
+                                    placeholder="https://www.instagram.com/reel/…"
+                                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="admin-event-import-mode" className="block text-xs font-medium text-zinc-400">
+                                    Ne indirilsin?
+                                </label>
+                                <select
+                                    id="admin-event-import-mode"
+                                    value={mediaImportMode}
+                                    onChange={(e) =>
+                                        setMediaImportMode(e.target.value as 'image_cover' | 'image_listing' | 'promo_video')
+                                    }
+                                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white sm:w-56"
+                                >
+                                    <option value="image_cover">Kapak görseli (detay)</option>
+                                    <option value="image_listing">Liste / kart görseli</option>
+                                    <option value="promo_video">Tanıtım videosu (+ mümkünse liste görseli)</option>
+                                </select>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={mediaImporting || !mediaImportUrl.trim()}
+                                onClick={submitMediaImport}
+                                className="rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600 disabled:opacity-50"
+                            >
+                                {mediaImporting ? 'İndiriliyor…' : 'İçe aktar'}
+                            </button>
+                        </div>
+                        {(event.promo_video_path?.trim() || event.promo_embed_url?.trim()) && (
+                            <div className="mt-4 border-t border-zinc-700/60 pt-4">
+                                <p className="text-xs text-zinc-500">Kayıtlı tanıtım</p>
+                                {storageUrl(event.promo_video_path) ? (
+                                    <video
+                                        src={storageUrl(event.promo_video_path) ?? ''}
+                                        controls
+                                        playsInline
+                                        className="mt-2 h-40 max-w-md rounded-lg bg-black"
+                                    />
+                                ) : null}
+                                {event.promo_embed_url?.trim() ? (
+                                    <p className="mt-2 truncate text-xs text-amber-400/90" title={event.promo_embed_url}>
+                                        Gömülü: {event.promo_embed_url}
+                                    </p>
+                                ) : null}
+                                <button
+                                    type="button"
+                                    onClick={clearPromoFromServer}
+                                    className="mt-2 text-sm font-medium text-red-400 hover:text-red-300"
+                                >
+                                    Tanıtımı kaldır
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-wrap gap-3">

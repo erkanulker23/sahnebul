@@ -2,7 +2,7 @@ import SeoHead from '@/Components/SeoHead';
 import { externalDisKaynakSegment } from '@/lib/eventShowUrl';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
-import { Ticket } from 'lucide-react';
+import { MapPin, Ticket } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface BubiletEvent {
@@ -17,6 +17,8 @@ interface BubiletEvent {
     rank: number | null;
     city_slug: string | null;
     category_name: string | null;
+    district_label: string | null;
+    city_label: string | null;
     internal_event_segment: string | null;
 }
 
@@ -157,7 +159,7 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                                     </div>
                                 ) : (
                                     <div className="relative">
-                                        <div className="flex gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                        <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                             {section.events.map((ev) => (
                                                 <BubiletEventCard
                                                     key={ev.item_key ?? `${section.slug}-${ev.id}`}
@@ -186,6 +188,11 @@ function bubiletEventDetailHref(ev: BubiletEvent): string {
 }
 
 function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
+    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
+    const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
+    const showLocationTop = districtTop !== '' || cityTop !== '';
+    const locationTitle = [districtTop, cityTop].filter(Boolean).join(', ');
+
     return (
         <Link
             href={bubiletEventDetailHref(ev)}
@@ -207,6 +214,32 @@ function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/45 to-transparent" />
+                {showLocationTop ? (
+                    <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] md:left-3 md:right-3 md:top-3">
+                        <span
+                            className="inline-flex w-full max-w-full items-start gap-1 rounded-lg bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 px-2 py-1.5 text-white shadow-lg shadow-fuchsia-900/30 ring-1 ring-white/25"
+                            title={locationTitle}
+                        >
+                            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-white/95" aria-hidden />
+                            <span className="min-w-0 flex-1 text-left">
+                                {districtTop !== '' ? (
+                                    <span className="block text-pretty break-words text-[8px] font-bold leading-snug text-white/95">
+                                        {districtTop}
+                                    </span>
+                                ) : null}
+                                {cityTop !== '' ? (
+                                    <span
+                                        className={`block text-pretty break-words font-bold leading-snug ${
+                                            districtTop !== '' ? 'mt-0.5 text-[9px] text-white' : 'text-[9px]'
+                                        }`}
+                                    >
+                                        {cityTop}
+                                    </span>
+                                ) : null}
+                            </span>
+                        </span>
+                    </div>
+                ) : null}
                 {ev.category_name && (
                     <div className="relative z-[5] p-3 pb-0 md:p-4 md:pb-0">
                         <span className="inline-block max-w-[90%] truncate rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300 backdrop-blur-sm">

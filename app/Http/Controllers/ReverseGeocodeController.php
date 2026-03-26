@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\SehirSecController;
 use App\Support\SehirSecCityDistricts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class ReverseGeocodeController extends Controller
 {
@@ -43,6 +43,7 @@ class ReverseGeocodeController extends Controller
             return response()->json([
                 'district_slug' => null,
                 'district_label' => null,
+                'map_label' => null,
                 'error' => 'geocode_failed',
             ]);
         }
@@ -50,10 +51,14 @@ class ReverseGeocodeController extends Controller
         $address = is_array($response['address'] ?? null) ? $response['address'] : [];
         $slug = SehirSecCityDistricts::matchSlugFromAddressParts($city, $address);
         $label = $slug !== null ? SehirSecCityDistricts::labelForSlug($city, $slug) : null;
+        $mapLabel = isset($response['display_name']) && is_string($response['display_name'])
+            ? Str::limit(trim($response['display_name']), 140)
+            : null;
 
         return response()->json([
             'district_slug' => $slug,
             'district_label' => $label,
+            'map_label' => $mapLabel,
         ]);
     }
 }

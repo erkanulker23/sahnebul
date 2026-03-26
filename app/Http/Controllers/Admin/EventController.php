@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use App\Services\EventMediaImportFromUrlService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -409,9 +410,38 @@ class EventController extends Controller
         return redirect()->route('admin.events.index', $request->only(['status', 'venue_id', 'search']))->with('success', "{$count} etkinlik silindi.");
     }
 
+    public function importMediaFromUrl(Request $request, Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $validated = $request->validate([
+            'url' => ['required', 'string', 'max:2048'],
+            'mode' => ['required', 'string', 'in:image_cover,image_listing,promo_video'],
+        ]);
+
+        $result = $importer->import($event->fresh(), $validated['url'], $validated['mode']);
+
+        if (! $result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        return back()->with('success', $result['message']);
+    }
+
+    public function clearPromoMedia(Event $event)
+    {
+        if (is_string($event->promo_video_path) && $event->promo_video_path !== '' && ! Str::startsWith($event->promo_video_path, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($event->promo_video_path);
+        }
+        $event->update([
+            'promo_video_path' => null,
+            'promo_embed_url' => null,
+        ]);
+
+        return back()->with('success', 'Tanıtım videosu ve gömülü bağlantı kaldırıldı.');
+    }
+
     private function performEventDelete(Event $event): void
     {
-        foreach (['cover_image', 'listing_image'] as $field) {
+        foreach (['cover_image', 'listing_image', 'promo_video_path'] as $field) {
             $path = $event->{$field} ?? null;
             if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($path);

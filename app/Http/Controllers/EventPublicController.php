@@ -98,8 +98,8 @@ class EventPublicController extends Controller
 
         $upcomingRelations = [
             'venue' => fn ($q) => $q
-                ->select('id', 'name', 'slug', 'city_id', 'category_id', 'cover_image')
-                ->with(['city:id,name', 'category:id,name']),
+                ->select('id', 'name', 'slug', 'city_id', 'district_id', 'category_id', 'cover_image')
+                ->with(['city:id,name', 'district:id,name', 'category:id,name']),
             'artists' => fn ($q) => $q
                 ->select('artists.id', 'artists.name', 'artists.slug', 'artists.avatar')
                 ->orderByPivot('is_headliner', 'desc')

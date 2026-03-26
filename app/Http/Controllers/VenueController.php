@@ -71,9 +71,10 @@ class VenueController extends Controller
             ->whereHas('venue', fn ($q) => $q->approved())
             ->whereBetween('start_date', [$todayStart, $todayEnd])
             ->with([
-                'venue:id,name,slug,category_id,city_id',
+                'venue:id,name,slug,category_id,city_id,district_id',
                 'venue.category:id,name',
                 'venue.city:id,name',
+                'venue.district:id,name',
                 'artists:id,name,slug,avatar',
             ])
             ->orderBy('start_date')
@@ -86,9 +87,10 @@ class VenueController extends Controller
             ->where('start_date', '>', $todayEnd)
             ->where('start_date', '<=', now()->copy()->addDays(7)->endOfDay())
             ->with([
-                'venue:id,name,slug,category_id,city_id',
+                'venue:id,name,slug,category_id,city_id,district_id',
                 'venue.category:id,name',
                 'venue.city:id,name',
+                'venue.district:id,name',
                 'artists:id,name,slug,avatar',
             ])
             ->orderBy('start_date')
