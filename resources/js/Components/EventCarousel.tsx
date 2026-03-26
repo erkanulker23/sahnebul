@@ -1,5 +1,6 @@
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import { Link } from '@inertiajs/react';
 import { useCallback, useRef } from 'react';
 
@@ -124,11 +125,15 @@ export default function EventCarousel({
                     className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
                     {events.map((event) => {
-                        const cardImg =
-                            event.listing_image && event.listing_image.trim() !== ''
-                                ? event.listing_image
-                                : event.cover_image;
-                        const cardSrc = imageSrc(cardImg ?? null);
+                        const { src: cardSrc, objectFit } = resolveEventCardVisual({
+                            listing_image: event.listing_image,
+                            cover_image: event.cover_image,
+                            imageSrc,
+                        });
+                        const fitClass =
+                            objectFit === 'contain'
+                                ? 'object-contain object-center group-hover:scale-[1.02]'
+                                : 'object-cover group-hover:scale-105';
                         return (
                         <Link
                             key={event.id}
@@ -141,7 +146,7 @@ export default function EventCarousel({
                                     <img
                                         src={cardSrc}
                                         alt=""
-                                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                        className={`h-full w-full transition duration-500 ${fitClass}`}
                                     />
                                 ) : (
                                     <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950 text-5xl opacity-90">

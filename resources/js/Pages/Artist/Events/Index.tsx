@@ -2,6 +2,7 @@ import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import { eventStatusTr } from '@/lib/statusLabels';
 import { Link, router } from '@inertiajs/react';
 import { Building2, CalendarDays, Eye, MapPin, Ticket, Users } from 'lucide-react';
@@ -213,9 +214,12 @@ export default function ArtistEventsIndex({
             ) : (
                 <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                     {events.data.map((ev) => {
-                        const cover = imageSrc(
-                            (ev.listing_image && ev.listing_image.trim() !== '' ? ev.listing_image : ev.cover_image) ?? null,
-                        );
+                        const { src: cover, objectFit } = resolveEventCardVisual({
+                            listing_image: ev.listing_image,
+                            cover_image: ev.cover_image,
+                            imageSrc,
+                        });
+                        const coverFit = objectFit === 'contain' ? 'object-contain object-center' : 'object-cover';
                         const priceLabel = displayPrice(ev);
                         const lineup = lineupLabel(ev.artists);
                         const when = ev.start_date ? formatTurkishDateTime(ev.start_date) : 'Tarih atanmadı';
@@ -227,7 +231,11 @@ export default function ArtistEventsIndex({
                             >
                                 <div className="relative aspect-[16/10] overflow-hidden bg-zinc-800">
                                     {cover ? (
-                                        <img src={cover} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
+                                        <img
+                                            src={cover}
+                                            alt=""
+                                            className={`h-full w-full ${coverFit} transition duration-300 group-hover:scale-[1.02]`}
+                                        />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
                                             <Ticket className="h-14 w-14 text-zinc-700" strokeWidth={1} aria-hidden />

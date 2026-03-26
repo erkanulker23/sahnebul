@@ -1,6 +1,7 @@
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import { AdSlot } from '@/Components/AdSlot';
 import AppLayout from '@/Layouts/AppLayout';
 import SeoHead from '@/Components/SeoHead';
@@ -60,7 +61,13 @@ interface EventItem {
     description: string | null;
     cover_image?: string | null;
     listing_image?: string | null;
-    venue: { name: string; slug: string; cover_image?: string | null; category?: { name: string; slug?: string } | null };
+    venue: {
+        name: string;
+        slug: string;
+        cover_image?: string | null;
+        category?: { name: string; slug?: string } | null;
+        city?: { name: string } | null;
+    };
     artists: { id: number; name: string; slug: string; avatar: string | null; genre?: string | null }[];
 }
 
@@ -95,24 +102,21 @@ function imageSrc(path: string | null | undefined): string | null {
     return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
 }
 
-/** Kart / liste görseli: önce listing_image, yoksa kapak. */
-function eventCardImageSrc(listing: string | null | undefined, cover: string | null | undefined): string | null {
-    const list = listing?.trim();
-    if (list) {
-        return imageSrc(list);
-    }
-    return imageSrc(cover ?? null);
-}
-
 function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
     const headliner = event.artists[0];
     const displayName = headliner?.name ?? event.title;
-    const bg =
-        eventCardImageSrc(event.listing_image, event.cover_image) ??
-        imageSrc(headliner?.avatar) ??
-        imageSrc(event.venue.cover_image);
+    const { src: bg, objectFit } = resolveEventCardVisual({
+        listing_image: event.listing_image,
+        cover_image: event.cover_image,
+        imageSrc,
+        fallbacks: [headliner?.avatar, event.venue.cover_image],
+    });
 
     const whenLabel = formatTurkishDateTime(event.start_date);
+    const imgFitClass =
+        objectFit === 'contain'
+            ? 'object-contain object-center transition duration-500 group-hover:scale-[1.02]'
+            : 'object-cover transition duration-500 group-hover:scale-[1.04]';
 
     return (
         <div className="group h-full">
@@ -125,7 +129,7 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                         <EventCardImage
                             src={bg}
                             alt={displayName}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                            className={`h-full w-full ${imgFitClass}`}
                         />
                     ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-amber-100/40 text-5xl dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950">
@@ -135,7 +139,17 @@ function EventTicketCard({ event }: Readonly<{ event: EventItem }>) {
                         </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                    <div className="absolute right-1.5 top-1.5 max-w-[min(100%,11.5rem)] rounded-lg bg-white/95 px-1.5 py-1 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10 sm:right-3 sm:top-3 sm:rounded-xl sm:px-3 sm:py-2">
+                    {event.venue.city?.name ? (
+                        <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
+                            <span
+                                className="inline-block max-w-full truncate rounded-md bg-sky-600 px-2 py-1 text-[9px] font-bold leading-tight text-white shadow-md ring-1 ring-sky-400/40 sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-[10px]"
+                                title={event.venue.city.name}
+                            >
+                                {event.venue.city.name}
+                            </span>
+                        </div>
+                    ) : null}
+                    <div className="absolute right-1.5 top-1.5 z-[2] max-w-[min(100%,11.5rem)] rounded-lg bg-white/95 px-1.5 py-1 text-right shadow-md ring-1 ring-black/5 backdrop-blur-sm dark:bg-zinc-950/90 dark:ring-white/10 sm:right-3 sm:top-3 sm:rounded-xl sm:px-3 sm:py-2">
                         <p className="text-[9px] font-semibold leading-tight text-zinc-900 dark:text-white sm:text-[11px] sm:leading-snug">{whenLabel}</p>
                     </div>
                 </div>

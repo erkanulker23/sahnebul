@@ -18,6 +18,7 @@ class EventController extends Controller
         $query = EventListingQuery::base()->with([
             'venue:id,name,slug,cover_image,category_id,city_id',
             'venue.category:id,name,slug',
+            'venue.city:id,name',
             'artists:id,name,slug,avatar,genre',
         ]);
 

@@ -32,7 +32,7 @@ interface EventModel {
     cover_image: string | null;
     listing_image?: string | null;
     venue: { id: number; name: string };
-    artists: { id: number; name: string }[];
+    artists: { id: number; name: string; avatar?: string | null }[];
     ticket_tiers: Tier[];
     sahnebul_reservation_enabled?: boolean;
     ticket_acquisition_mode?: string | null;
@@ -43,7 +43,7 @@ interface EventModel {
 interface Props {
     event: EventModel;
     venues: { id: number; name: string }[];
-    artists: { id: number; name: string }[];
+    artists: { id: number; name: string; avatar?: string | null }[];
     venuePickerCategories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
 }

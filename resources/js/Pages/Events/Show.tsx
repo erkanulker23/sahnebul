@@ -3,6 +3,7 @@ import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Compon
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { resolveEventCardVisual } from '@/lib/eventListingVisual';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -136,9 +137,13 @@ function UpcomingEventsSection({
             <ul className="mt-6 grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {items.map((ev) => {
                     const p = minPriceFromEvent(ev);
-                    const relatedCover = upcomingCardImageSrc(
-                        (ev.listing_image && ev.listing_image.trim() !== '' ? ev.listing_image : ev.cover_image) ?? null,
-                    );
+                    const { src: relatedCover, objectFit } = resolveEventCardVisual({
+                        listing_image: ev.listing_image,
+                        cover_image: ev.cover_image,
+                        imageSrc: upcomingCardImageSrc,
+                    });
+                    const fitCls =
+                        objectFit === 'contain' ? 'object-contain object-center' : 'object-cover';
                     return (
                         <li
                             key={ev.id}
@@ -149,11 +154,13 @@ function UpcomingEventsSection({
                                 className="group flex flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-950"
                             >
                                 {relatedCover ? (
-                                    <img
-                                        src={relatedCover}
-                                        alt=""
-                                        className="aspect-[5/3] w-full object-cover transition duration-300 group-hover:opacity-90"
-                                    />
+                                    <div className="relative aspect-[5/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                        <img
+                                            src={relatedCover}
+                                            alt=""
+                                            className={`h-full w-full ${fitCls} transition duration-300 group-hover:opacity-90`}
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="flex aspect-[5/3] w-full items-center justify-center bg-zinc-100 text-4xl dark:bg-zinc-800">
                                         🎭

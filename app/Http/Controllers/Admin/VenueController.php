@@ -257,10 +257,10 @@ class VenueController extends Controller
 
         if (! $this->remoteCoverImporter->isMirrorableUrl($url)) {
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Bu kaynaktan otomatik kapak indirme desteklenmiyor.'], 422);
+                return response()->json(['message' => 'Bu görsel adresi kullanılamıyor (geçersiz veya güvenlik nedeniyle engelli).'], 422);
             }
 
-            return back()->withErrors(['url' => 'Bu kaynaktan otomatik kapak indirme desteklenmiyor.']);
+            return back()->withErrors(['url' => 'Bu görsel adresi kullanılamıyor (geçersiz veya güvenlik nedeniyle engelli).']);
         }
 
         $path = $this->remoteCoverImporter->importToPublicDisk($url);
@@ -293,9 +293,11 @@ class VenueController extends Controller
      */
     private function mirrorRemoteVenueCoverIfNeeded(?string $incoming, ?string $previousCover = null): ?string
     {
-        if ($incoming === null || $incoming === '') {
+        if ($incoming === null || trim($incoming) === '') {
             return null;
         }
+
+        $incoming = trim($incoming);
 
         if (! Str::startsWith($incoming, ['http://', 'https://'])) {
             return $incoming;

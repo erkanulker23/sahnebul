@@ -131,20 +131,27 @@ function groupVenueEventsByMonth(events: DetailEventListItem[]): { upcoming: Mon
     };
 }
 
-function thumbUrl(ev: DetailEventListItem, context: 'artist' | 'venue', imageSrc: (p: string | null | undefined) => string | null): string | null {
+function thumbVisual(
+    ev: DetailEventListItem,
+    context: 'artist' | 'venue',
+    imageSrcFn: (p: string | null | undefined) => string | null,
+): { url: string | null; objectFit: 'contain' | 'cover' } {
     const listing = ev.listing_image?.trim();
     if (listing) {
-        return listing.startsWith('http://') || listing.startsWith('https://') ? listing : imageSrc(listing);
+        const url = listing.startsWith('http://') || listing.startsWith('https://') ? listing : imageSrcFn(listing);
+        return { url, objectFit: 'contain' };
     }
     const cover = ev.cover_image?.trim();
     if (cover) {
-        return cover.startsWith('http://') || cover.startsWith('https://') ? cover : imageSrc(cover);
+        const url = cover.startsWith('http://') || cover.startsWith('https://') ? cover : imageSrcFn(cover);
+        return { url, objectFit: 'contain' };
     }
     if (context === 'venue') {
         const av = ev.artists?.find((a) => a.avatar)?.avatar ?? ev.artists?.[0]?.avatar;
-        return av ? imageSrc(av) : null;
+        const url = av ? imageSrcFn(av) : null;
+        return { url, objectFit: 'cover' };
     }
-    return null;
+    return { url: null, objectFit: 'cover' };
 }
 
 function EventListRow({
@@ -160,7 +167,7 @@ function EventListRow({
     const whenLabel = formatTurkishDateTime(ev.start_date);
     const badge = eventTicketBadge(ev);
     const sub = subtitleForEvent(ev, context);
-    const thumb = thumbUrl(ev, context, imageSrc);
+    const thumb = thumbVisual(ev, context, imageSrc);
     const ended = start.getTime() < Date.now();
 
     return (
@@ -192,9 +199,14 @@ function EventListRow({
                         <p className="mt-1 truncate text-sm font-bold text-zinc-900 dark:text-white sm:text-base">{sub}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                        {thumb ? (
-                            <span className="hidden h-14 w-14 overflow-hidden rounded-lg border border-zinc-100 sm:block dark:border-white/10">
-                                <img src={thumb} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        {thumb.url ? (
+                            <span className="hidden h-14 w-14 overflow-hidden rounded-lg border border-zinc-100 bg-zinc-100 sm:block dark:border-white/10 dark:bg-zinc-900/60">
+                                <img
+                                    src={thumb.url}
+                                    alt=""
+                                    className={`h-full w-full ${thumb.objectFit === 'contain' ? 'object-contain object-center' : 'object-cover'}`}
+                                    loading="lazy"
+                                />
                             </span>
                         ) : null}
                         <ChevronRight className="h-5 w-5 shrink-0 text-sky-600 dark:text-sky-400" strokeWidth={2.25} aria-hidden />

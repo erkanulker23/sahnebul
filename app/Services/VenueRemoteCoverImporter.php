@@ -8,12 +8,17 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Google Places / Maps gibi kaynaklardan gelen kapak URL'lerini public diske indirir (harici hotlink yerine).
+ * Harici kapak URL'lerini public diske indirir (Google Places ve genel https/http görsel bağlantıları).
  */
 class VenueRemoteCoverImporter
 {
     public function isMirrorableUrl(string $url): bool
     {
+        $url = trim($url);
+        if ($url === '') {
+            return false;
+        }
+
         if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
             return false;
         }
@@ -23,19 +28,23 @@ class VenueRemoteCoverImporter
             return false;
         }
 
-        if (str_ends_with($host, '.googleusercontent.com') || $host === 'googleusercontent.com') {
+        return ! $this->isBlockedMirrorHost($host);
+    }
+
+    /**
+     * SSRF riskini azaltmak: loopback, link-local ve özel ağ IP'leri ile bariz iç host adları.
+     */
+    private function isBlockedMirrorHost(string $host): bool
+    {
+        if ($host === 'localhost' || $host === '0.0.0.0' || str_ends_with($host, '.localhost')) {
             return true;
         }
 
-        if (str_ends_with($host, '.ggpht.com') || $host === 'ggpht.com') {
-            return true;
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return ! filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
         }
 
-        if (str_ends_with($host, '.googleapis.com')) {
-            return true;
-        }
-
-        return str_ends_with($host, '.gstatic.com') || $host === 'gstatic.com';
+        return false;
     }
 
     /**
@@ -43,6 +52,7 @@ class VenueRemoteCoverImporter
      */
     public function importToPublicDisk(string $url): ?string
     {
+        $url = trim($url);
         if (! $this->isMirrorableUrl($url)) {
             return null;
         }
@@ -67,17 +77,21 @@ class VenueRemoteCoverImporter
             return null;
         }
 
-        $rawType = (string) $response->header('Content-Type');
-        $contentType = strtolower(trim(explode(';', $rawType, 2)[0] ?? ''));
-
-        if ($contentType === '' || ! str_starts_with($contentType, 'image/')) {
-            Log::warning('Venue cover import not image', ['url' => $url, 'content_type' => $contentType]);
-
+        $body = $response->body();
+        if (strlen($body) > 10 * 1024 * 1024) {
             return null;
         }
 
-        $body = $response->body();
-        if (strlen($body) > 10 * 1024 * 1024) {
+        $rawType = (string) $response->header('Content-Type');
+        $contentType = strtolower(trim(explode(';', $rawType, 2)[0] ?? ''));
+
+        if ($contentType === '' || $contentType === 'application/octet-stream' || ! str_starts_with($contentType, 'image/')) {
+            $contentType = $this->sniffImageContentType($body) ?? '';
+        }
+
+        if ($contentType === '' || ! str_starts_with($contentType, 'image/')) {
+            Log::warning('Venue cover import not image', ['url' => $url, 'content_type' => $rawType]);
+
             return null;
         }
 
@@ -94,5 +108,27 @@ class VenueRemoteCoverImporter
         Storage::disk('public')->put($path, $body);
 
         return $path;
+    }
+
+    private function sniffImageContentType(string $body): ?string
+    {
+        if ($body === '') {
+            return null;
+        }
+        $head = substr($body, 0, 16);
+        if (str_starts_with($head, "\xFF\xD8\xFF")) {
+            return 'image/jpeg';
+        }
+        if (str_starts_with($head, "\x89PNG\r\n\x1a\n")) {
+            return 'image/png';
+        }
+        if (str_starts_with($head, 'GIF87a') || str_starts_with($head, 'GIF89a')) {
+            return 'image/gif';
+        }
+        if (str_starts_with($head, 'RIFF') && substr($head, 8, 4) === 'WEBP') {
+            return 'image/webp';
+        }
+
+        return null;
     }
 }

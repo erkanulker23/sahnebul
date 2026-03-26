@@ -22,7 +22,7 @@ class EventController extends Controller
     {
         return Inertia::render('Admin/Events/Create', [
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name']),
-            'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']),
+            'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']),
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);
@@ -180,7 +180,7 @@ class EventController extends Controller
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name']),
-            'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']),
+            'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']),
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
         ]);

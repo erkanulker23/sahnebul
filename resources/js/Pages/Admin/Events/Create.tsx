@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 interface Props {
     venues: { id: number; name: string }[];
-    artists: { id: number; name: string }[];
+    artists: { id: number; name: string; avatar?: string | null }[];
     venuePickerCategories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
 }
