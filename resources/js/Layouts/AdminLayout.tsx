@@ -155,7 +155,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                     <Link
                         key={item.href}
                         href={
-                            item.href === 'admin.event-artist-reports.index'
+                            item.href === 'admin.event-artist-reports.index' || item.href === 'admin.seo-tools.index'
                                 ? safeRoute(item.href)
                                 : route(item.href)
                         }

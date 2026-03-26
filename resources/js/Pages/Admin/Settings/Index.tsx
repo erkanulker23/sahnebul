@@ -2,6 +2,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     BarChart3,
@@ -327,7 +328,7 @@ export default function AdminSettingsIndex({
                         </p>
                     </div>
                     <Link
-                        href={route('admin.seo-tools.index')}
+                        href={safeRoute('admin.seo-tools.index')}
                         className="inline-flex items-center gap-2 self-start rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 transition hover:border-amber-500/40 hover:text-white"
                     >
                         <Search className="h-4 w-4 text-amber-400" />
@@ -414,7 +415,7 @@ export default function AdminSettingsIndex({
                             <span className="mt-1 block text-xs text-zinc-500">Banner ve yerleşimler</span>
                         </Link>
                         <Link
-                            href={route('admin.seo-tools.index')}
+                            href={safeRoute('admin.seo-tools.index')}
                             className="rounded-lg border border-zinc-700 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/30 hover:text-white"
                         >
                             <span className="font-medium text-amber-400">SEO / site haritası</span>

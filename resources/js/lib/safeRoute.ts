@@ -54,6 +54,8 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/admin/sanatci-etkinlik-raporlari';
         }
+        case 'admin.seo-tools.index':
+            return '/admin/seo-site-haritasi';
         default:
             return '/';
     }
