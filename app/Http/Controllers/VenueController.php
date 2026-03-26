@@ -180,7 +180,8 @@ class VenueController extends Controller
     }
 
     /**
-     * Onaylı mekânlar; koordinatı olanlar mesafeye göre (haversine, km).
+     * Onaylı mekânlar; şehir seç / etkinlik listesiyle uyumlu: koordinatlılar mesafeye göre önce,
+     * lat/lng eksik olanlar aynı planda sonda (distance_km yüksek sentinel).
      */
     public function nearby(Request $request): JsonResponse
     {
@@ -194,12 +195,13 @@ class VenueController extends Controller
         $lng = (float) $validated['lng'];
         $limit = (int) ($validated['limit'] ?? 16);
 
-        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(venues.latitude)) * cos(radians(venues.longitude) - radians(?)) + sin(radians(?)) * sin(radians(venues.latitude))))';
+        $distanceSql = '(CASE WHEN venues.latitude IS NOT NULL AND venues.longitude IS NOT NULL '
+            .'THEN (6371 * acos(LEAST(1, GREATEST(-1, cos(radians(?)) * cos(radians(venues.latitude)) '
+            .'* cos(radians(venues.longitude) - radians(?)) + sin(radians(?)) * sin(radians(venues.latitude)))))) '
+            .'ELSE 999999 END)';
 
         $venues = Venue::query()
             ->approved()
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
             ->select('venues.*')
             ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
             ->with([
@@ -208,6 +210,7 @@ class VenueController extends Controller
                 'district:id,name',
             ])
             ->orderBy('distance_km')
+            ->orderBy('venues.name')
             ->limit($limit)
             ->get();
 

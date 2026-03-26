@@ -407,8 +407,7 @@ export default function VenuesIndex({
                         ) : null}
                         {locationChecked && !geoDenied && nearbyVenues.length === 0 ? (
                             <p className="rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-4 py-3 text-sm text-zinc-600 dark:border-white/[0.08] dark:bg-zinc-900/30 dark:text-zinc-400">
-                                Konumunuza yakın, haritada koordinatı kayıtlı mekân bulunamadı. Mekân sahipleri konum ekledikçe bu
-                                bölüm dolacaktır.
+                                Yakın mekân önerisi şu an boş. Aşağıdaki tam listeden aramaya devam edebilirsiniz.
                             </p>
                         ) : null}
                         {locationChecked && nearbyVenues.length > 0 ? (
@@ -423,18 +422,21 @@ export default function VenuesIndex({
                                             Yakınınızdaki mekânlar
                                         </h2>
                                         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                                            Mesafe, mekânın kayıtlı koordinatlarına göre hesaplanır. Yeşil rozet yaklaşık km
-                                            bilgisidir.
+                                            Önce haritada koordinatı kayıtlı mekânlar yakınlığa göre sıralanır; koordinatı olmayanlar
+                                            sonda yer alır (şehir seç etkinlik sıralamasıyla aynı mantık). Yeşil rozet yalnızca mesafe
+                                            hesaplanabildiğinde gösterilir.
                                         </p>
                                     </div>
                                 </div>
                                 <ul className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
                                     {nearbyVenues.map((venue) => {
                                         const locLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
-                                        const dist =
+                                        const rawDist =
                                             venue.distance_km != null && Number.isFinite(Number(venue.distance_km))
                                                 ? Number(venue.distance_km)
                                                 : null;
+                                        /** Sunucu: koordinatsız mekânlar için sentinel (~999999 km) */
+                                        const dist = rawDist != null && rawDist < 900_000 ? rawDist : null;
                                         return (
                                             <li key={venue.id} className="min-w-0">
                                                 <Link
