@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueMedia;
 use App\Services\Admin\VenueMergeService;
@@ -84,6 +85,7 @@ class VenueController extends Controller
         $request->merge([
             'status' => 'approved',
             'is_featured' => false,
+            'is_active' => true,
         ]);
 
         $venue = $this->persistNewVenueFromRequest($request);
@@ -134,6 +136,7 @@ class VenueController extends Controller
             'status' => 'required|in:pending,approved,rejected',
             'cover_upload' => 'nullable|image|max:10240',
             'is_featured' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
             'google_gallery_photo_urls' => 'nullable|array|max:5',
             'google_gallery_photo_urls.*' => 'nullable|string|url|max:4096',
         ]);
@@ -156,6 +159,7 @@ class VenueController extends Controller
         }
 
         $validated['is_featured'] = $request->boolean('is_featured');
+        $validated['is_active'] = $request->boolean('is_active', true);
         if (empty($validated['google_maps_url'])) {
             $validated['google_maps_url'] = null;
         }
@@ -211,6 +215,28 @@ class VenueController extends Controller
             }
         }
 
+        $venueOwnerCandidates = User::query()
+            ->where(function ($outer) use ($venue) {
+                $outer->where(function ($q) {
+                    $q->where('role', 'venue_owner')->where('is_active', true);
+                });
+                if ($venue->user_id) {
+                    $outer->orWhere('id', $venue->user_id);
+                }
+            })
+            ->orderBy('name')
+            ->limit(500)
+            ->get(['id', 'name', 'email', 'role', 'is_active'])
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role_label' => $u->role === 'venue_owner' ? null : $u->role,
+                'inactive' => ! $u->is_active,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Admin/Venues/Edit', [
             'venue' => $venue,
             'categories' => Category::orderBy('order')->get(['id', 'name']),
@@ -218,6 +244,7 @@ class VenueController extends Controller
             'venueOwner' => $owner !== null
                 ? ['id' => $owner->id, 'name' => $owner->name, 'email' => $owner->email]
                 : null,
+            'venueOwnerCandidates' => $venueOwnerCandidates,
             'venueSubscriptionPlans' => $venueSubscriptionPlans,
             'venueOwnerSubscription' => $venueOwnerSubscription,
         ]);
@@ -238,6 +265,9 @@ class VenueController extends Controller
             'district_id' => $request->input('district_id') ?: null,
             'neighborhood_id' => $request->input('neighborhood_id') ?: null,
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
+            'user_id' => ($request->input('user_id') === '' || $request->input('user_id') === null)
+                ? null
+                : (int) $request->input('user_id'),
         ]);
 
         $validated = $request->validate([
@@ -268,6 +298,8 @@ class VenueController extends Controller
             'status' => 'required|in:pending,approved,rejected',
             'cover_upload' => 'nullable|image|max:10240',
             'is_featured' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
@@ -287,6 +319,7 @@ class VenueController extends Controller
         }
 
         $validated['is_featured'] = $request->boolean('is_featured');
+        $validated['is_active'] = $request->boolean('is_active');
         $validated['slug'] = Str::slug($validated['slug']);
         if (empty($validated['google_maps_url'])) {
             $validated['google_maps_url'] = null;
@@ -301,6 +334,17 @@ class VenueController extends Controller
             throw ValidationException::withMessages([
                 'name' => 'Bu şehirde bu isimde başka bir mekan zaten kayıtlı.',
             ]);
+        }
+
+        $newUserId = array_key_exists('user_id', $validated) ? $validated['user_id'] : $venue->user_id;
+        $prevUserId = $venue->user_id;
+        if ($newUserId !== null && (int) $newUserId !== (int) ($prevUserId ?? 0)) {
+            $assignee = User::query()->find((int) $newUserId);
+            if ($assignee === null || ! $assignee->is_active || ! $assignee->isVenueOwner()) {
+                throw ValidationException::withMessages([
+                    'user_id' => 'Yalnızca aktif «Mekân sahibi» rolündeki kullanıcılar atanabilir. Önce /admin/kullanicilar üzerinden rolü güncelleyin.',
+                ]);
+            }
         }
 
         $venue->update($validated);
@@ -471,7 +515,10 @@ class VenueController extends Controller
 
     public function approve(Venue $venue)
     {
-        $venue->update(['status' => 'approved']);
+        $venue->update([
+            'status' => 'approved',
+            'is_active' => true,
+        ]);
 
         return back()->with('success', 'Mekan onaylandı.');
     }

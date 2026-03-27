@@ -31,6 +31,16 @@ class ProfileTest extends TestCase
             ->assertRedirect(route('admin.profile'));
     }
 
+    public function test_venue_owner_is_redirected_from_public_profile_to_artist_profile(): void
+    {
+        $user = User::factory()->venueOwner()->create();
+
+        $this
+            ->actingAs($user)
+            ->get('/profile')
+            ->assertRedirect(route('artist.profile'));
+    }
+
     public function test_admin_profile_update_redirects_to_admin_profile(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

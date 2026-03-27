@@ -182,6 +182,8 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::put('/sanatci-sayfam', [PublicArtistProfileController::class, 'update'])->name('public-profile.update');
     Route::post('/sanatci-sayfam/galeri', [PublicArtistProfileController::class, 'storeGallery'])
         ->name('public-profile.gallery.store');
+    Route::post('/sanatci-sayfam/galeri-instagram', [PublicArtistProfileController::class, 'storeGalleryInstagramEmbed'])
+        ->name('public-profile.gallery.instagram.store');
     Route::delete('/sanatci-sayfam/galeri/{media}', [PublicArtistProfileController::class, 'destroyGallery'])
         ->name('public-profile.gallery.destroy');
     Route::get('/mekanlarim', [ArtistVenueController::class, 'index'])->name('venues.index');
@@ -281,6 +283,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/etkinlikler/{event}/adresten-medya', [AdminEventController::class, 'importMediaFromUrl'])
         ->middleware('throttle:20,1')
         ->name('events.import-media');
+    Route::post('/etkinlikler/{event}/tanitim-dosya-yukle', [AdminEventController::class, 'appendPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('events.append-promo-files');
     Route::post('/etkinlikler/{event}/tanitim-medya-temizle', [AdminEventController::class, 'clearPromoMedia'])
         ->name('events.clear-promo-media');
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');

@@ -144,6 +144,20 @@ final class SahnebulMail
     {
         $admins = self::adminNotificationEmails();
         if ($admins === []) {
+            $site = app(AppSettingsService::class)->getSitePublicSettings();
+            foreach (['contact_email', 'support_email'] as $key) {
+                $e = isset($site[$key]) ? trim((string) $site[$key]) : '';
+                if ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                    $admins[] = $e;
+                }
+            }
+            $fallback = config('sahnebul.super_admin.email');
+            if (is_string($fallback) && filter_var($fallback, FILTER_VALIDATE_EMAIL)) {
+                $admins[] = $fallback;
+            }
+            $admins = array_values(array_unique(array_filter($admins)));
+        }
+        if ($admins === []) {
             return;
         }
 
@@ -439,7 +453,7 @@ final class SahnebulMail
             title: 'Etkinlik yarın',
             introLines: [
                 'Merhaba <strong>'.e($user->name).'</strong>,',
-                'Hatırlatma eklediğiniz etkinlik <strong>yarın</strong> gerçekleşecek.',
+                'Takip listesine eklediğiniz etkinlik <strong>yarın</strong> gerçekleşecek; bu mesaj etkinlik gününden bir gün önce gönderilir.',
             ],
             detailLines: $detail,
             actionUrl: $url,

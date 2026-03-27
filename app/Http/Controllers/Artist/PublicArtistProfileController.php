@@ -8,6 +8,7 @@ use App\Models\ArtistMedia;
 use App\Models\MusicGenre;
 use App\Services\AppSettingsService;
 use App\Support\ArtistProfileInputs;
+use App\Support\InstagramPostUrl;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
@@ -38,9 +39,11 @@ class PublicArtistProfileController extends Controller
 
             $artist->load(['media' => fn ($q) => $q->orderBy('order')]);
             foreach ($artist->media as $m) {
+                $path = is_string($m->path) ? trim($m->path) : '';
                 $gallery[] = [
                     'id' => $m->id,
-                    'url' => Storage::disk('public')->url($m->path),
+                    'url' => $path !== '' ? Storage::disk('public')->url($m->path) : null,
+                    'embed_url' => $m->embed_url,
                     'moderation_status' => $m->moderation_status ?? ArtistMedia::MODERATION_APPROVED,
                     'moderation_note' => $m->moderation_note,
                 ];
@@ -172,6 +175,81 @@ class PublicArtistProfileController extends Controller
         );
     }
 
+    /**
+     * Instagram gönderi / reel URL’si — kamu sayfasında gömülü oynatıcı ile gösterilir (etkinlik tanıtımı ile aynı mantık).
+     */
+    public function storeGalleryInstagramEmbed(Request $request)
+    {
+        $artist = Artist::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        $validated = $request->validate([
+            'instagram_url' => ['required', 'string', 'max:2048'],
+        ]);
+
+        $raw = trim($validated['instagram_url']);
+        if (! InstagramPostUrl::isInstagramHost($raw)) {
+            return back()->with('error', 'Yalnızca instagram.com gönderi veya reel bağlantıları kabul edilir.');
+        }
+
+        $canonical = InstagramPostUrl::canonicalPermalink($raw);
+        if ($canonical === null) {
+            return back()->with('error', 'Bağlantı okunamadı. Örnek: https://www.instagram.com/reel/… veya …/p/…');
+        }
+
+        $short = InstagramPostUrl::shortcodeFromUrl($canonical);
+        if ($short === null) {
+            return back()->with('error', 'Instagram gönderi kodu çıkarılamadı.');
+        }
+
+        $maxItems = 24;
+        if ($artist->media()->count() >= $maxItems) {
+            return back()->with('error', 'Galeri en fazla '.$maxItems.' öğe olabilir.');
+        }
+
+        foreach ($artist->media()->whereNotNull('embed_url')->get() as $existing) {
+            $eu = is_string($existing->embed_url) ? trim($existing->embed_url) : '';
+            if ($eu === '') {
+                continue;
+            }
+            $exShort = InstagramPostUrl::shortcodeFromUrl($eu);
+            if ($exShort !== null && $exShort === $short) {
+                return back()->with('error', 'Bu Instagram içeriği zaten galerinizde.');
+            }
+        }
+
+        $mod = $artist->status === 'approved'
+            ? ArtistMedia::MODERATION_APPROVED
+            : ArtistMedia::MODERATION_PENDING;
+
+        $maxOrder = (int) $artist->media()->max('order');
+
+        ArtistMedia::create([
+            'artist_id' => $artist->id,
+            'type' => 'video',
+            'path' => '',
+            'embed_url' => $canonical,
+            'order' => $maxOrder + 1,
+            'moderation_status' => $mod,
+        ]);
+
+        if ($mod === ArtistMedia::MODERATION_PENDING) {
+            app(AppSettingsService::class)->forgetCaches();
+        }
+
+        return back()->with(
+            'success',
+            $mod === ArtistMedia::MODERATION_PENDING
+                ? 'Instagram içeriği eklendi. Onay sonrası kamu sayfasında gösterilir.'
+                : 'Instagram içeriği galerinize eklendi; sayfanızda gömülü oynatıcı olarak görünür.'
+        );
+    }
+
     public function destroyGallery(Request $request, ArtistMedia $media)
     {
         $artist = Artist::query()
@@ -184,7 +262,8 @@ class PublicArtistProfileController extends Controller
 
         $wasPending = $media->moderation_status === ArtistMedia::MODERATION_PENDING;
 
-        if ($media->path) {
+        $path = is_string($media->path) ? trim($media->path) : '';
+        if ($path !== '') {
             Storage::disk('public')->delete($media->path);
         }
         if ($media->thumbnail) {

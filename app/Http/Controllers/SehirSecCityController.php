@@ -31,10 +31,10 @@ class SehirSecCityController extends Controller
 
         $categories = Category::query()
             ->whereHas('venues', function ($vq) use ($city) {
-                $vq->approved()
+                $vq->listedPublicly()
                     ->whereHas('city', fn ($c) => $c->where('slug', $city))
                     ->whereHas('events', function ($eq) {
-                        $eq->published()->whereHas('venue', fn ($v) => $v->approved());
+                        $eq->published()->whereHas('venue', fn ($v) => $v->listedPublicly());
                     });
             })
             ->orderBy('name')
@@ -64,7 +64,7 @@ class SehirSecCityController extends Controller
             ->whereHas('events', function ($eq) use ($city) {
                 $eq->published()
                     ->whereHas('venue', function ($vq) use ($city) {
-                        $vq->approved()->whereHas('city', fn ($c) => $c->where('slug', $city));
+                        $vq->listedPublicly()->whereHas('city', fn ($c) => $c->where('slug', $city));
                     });
             })
             ->whereNotNull('genre')

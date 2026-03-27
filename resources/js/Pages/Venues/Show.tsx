@@ -13,8 +13,12 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Building2, Eye, PenLine } from 'lucide-react';
-import { googleMapsOpenUrl } from '@/lib/googleMapsOpenUrl';
+import { Building2, Eye, Navigation, PenLine } from 'lucide-react';
+import {
+    googleMapsDirectionsUrl,
+    googleMapsOpenUrl,
+    venueMapAddressDisplay,
+} from '@/lib/googleMapsOpenUrl';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { useEffect, useState } from 'react';
 
@@ -211,11 +215,22 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
     const [claimPhone, setClaimPhone] = useState('');
     const [claimEmail, setClaimEmail] = useState('');
     const [claimLoading, setClaimLoading] = useState(false);
-    const mapUrl = googleMapsOpenUrl({
+    const venueMapInput = {
         google_maps_url: venue.google_maps_url,
         latitude: venue.latitude,
         longitude: venue.longitude,
         address: venue.address,
+    };
+    const mapUrl = googleMapsOpenUrl(venueMapInput);
+    const directionsUrl = googleMapsDirectionsUrl({
+        ...venueMapInput,
+        venueName: venue.name,
+        cityName: venue.city?.name,
+    });
+    const addressMapLinkLabel = venueMapAddressDisplay({
+        address: venue.address,
+        venueName: venue.name,
+        cityName: venue.city?.name,
     });
     const reviewCount = venue.reviews_count || venue.review_count || 0;
     const reviews = venue.reviews || [];
@@ -555,7 +570,7 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                                             <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                             </svg>
-                                            {venue.address}
+                                            <span className="leading-snug">{addressMapLinkLabel}</span>
                                         </a>
                                     </div>
                                     {venue.phone && (
@@ -616,17 +631,28 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                                         </div>
                                     )}
                                 </div>
-                                <a
-                                    href={mapUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-50 py-3 font-medium text-amber-900 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                                >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    </svg>
-                                    Haritada Görüntüle
-                                </a>
+                                <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                                    <a
+                                        href={mapUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-50 py-3 font-medium text-amber-900 transition hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+                                    >
+                                        <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        </svg>
+                                        Haritada aç
+                                    </a>
+                                    <a
+                                        href={directionsUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-3 font-medium text-zinc-800 transition hover:border-amber-400/50 hover:text-amber-700 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-amber-400"
+                                    >
+                                        <Navigation className="h-5 w-5 shrink-0" aria-hidden />
+                                        Yol tarifi al
+                                    </a>
+                                </div>
                                 {user && auth?.is_platform_admin !== true && (
                                     <Link
                                         href={route('reservations.create', venue.slug)}

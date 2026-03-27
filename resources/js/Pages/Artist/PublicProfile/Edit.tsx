@@ -3,6 +3,7 @@ import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
+import { safeRoute } from '@/lib/safeRoute';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, router, useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -38,7 +39,8 @@ interface ProfileAnalytics {
 
 interface GalleryItem {
     id: number;
-    url: string;
+    url: string | null;
+    embed_url?: string | null;
     moderation_status: string;
     moderation_note: string | null;
 }
@@ -93,6 +95,8 @@ export default function PublicArtistProfileEdit({
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadBusy, setUploadBusy] = useState(false);
+    const [instagramUrl, setInstagramUrl] = useState('');
+    const [igBusy, setIgBusy] = useState(false);
 
     const { data, setData, put, processing, errors, progress } = useForm({
         bio: artist?.bio ?? '',
@@ -163,6 +167,21 @@ export default function PublicArtistProfileEdit({
                 e.target.value = '';
             },
         });
+    };
+
+    const submitInstagramEmbed = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!artist || !instagramUrl.trim()) return;
+        setIgBusy(true);
+        router.post(
+            safeRoute('artist.public-profile.gallery.instagram.store'),
+            { instagram_url: instagramUrl.trim() },
+            {
+                preserveScroll: true,
+                onFinish: () => setIgBusy(false),
+                onSuccess: () => setInstagramUrl(''),
+            },
+        );
     };
 
     const toggleMusicGenre = (label: string) => {
@@ -294,7 +313,9 @@ export default function PublicArtistProfileEdit({
                 <section className="mb-10 max-w-3xl rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
                     <h2 className="font-display text-lg font-semibold text-white">Galeri</h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                        Çoklu fotoğraf yükleyebilir veya silebilirsiniz.
+                        Fotoğraf yükleyebilir, Instagram gönderi veya reel bağlantısı ekleyebilir veya öğeleri silebilirsiniz. Instagram
+                        öğeleri etkinlik sayfalarındaki gibi sitede gömülü oynatıcı ile gösterilir (ayrıca Instagram&apos;a yönlendiren bir
+                        kapak düğmesi kullanılmaz).
                         {artistProfileApproved
                             ? ' Onaylı sanatçı profiliniz olduğu için görseller doğrudan sayfanızda yayınlanır.'
                             : ' Profiliniz henüz onaylı değilse yüklemeler yönetici onayına gider; onaylanana kadar kamu sayfasında görünmez.'}
@@ -315,11 +336,45 @@ export default function PublicArtistProfileEdit({
                     >
                         {uploadBusy ? 'Yükleniyor…' : 'Fotoğraf ekle'}
                     </button>
+                    <form onSubmit={submitInstagramEmbed} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <div className="min-w-0 flex-1">
+                            <label htmlFor="artist-gallery-instagram-url" className="block text-xs font-medium text-zinc-400">
+                                Instagram gönderi / reel URL
+                            </label>
+                            <input
+                                id="artist-gallery-instagram-url"
+                                type="url"
+                                value={instagramUrl}
+                                onChange={(e) => setInstagramUrl(e.target.value)}
+                                placeholder="https://www.instagram.com/reel/…"
+                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-3 py-2 text-sm text-white placeholder:text-zinc-500"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={igBusy || !instagramUrl.trim()}
+                            className="shrink-0 rounded-xl bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 disabled:opacity-50"
+                        >
+                            {igBusy ? 'Ekleniyor…' : 'Instagram ekle'}
+                        </button>
+                    </form>
                     {gallery.length > 0 ? (
                         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             {gallery.map((g) => (
                                 <li key={g.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-zinc-950/60">
-                                    <img src={g.url} alt="" className="aspect-square w-full object-cover" />
+                                    {g.embed_url?.includes('instagram.com') ? (
+                                        <div className="flex aspect-square flex-col items-center justify-center gap-2 bg-gradient-to-br from-fuchsia-950/50 to-amber-950/40 p-3 text-center">
+                                            <span className="text-2xl" aria-hidden>
+                                                ▶
+                                            </span>
+                                            <span className="text-xs font-semibold text-amber-200">Instagram (gömülü)</span>
+                                            <span className="line-clamp-3 break-all text-[10px] text-zinc-400">{g.embed_url}</span>
+                                        </div>
+                                    ) : g.url ? (
+                                        <img src={g.url} alt="" className="aspect-square w-full object-cover" />
+                                    ) : (
+                                        <div className="flex aspect-square items-center justify-center text-xs text-zinc-500">Önizleme yok</div>
+                                    )}
                                     <div className="absolute left-2 top-2">
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${

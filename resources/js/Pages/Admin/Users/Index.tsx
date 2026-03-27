@@ -20,6 +20,8 @@ interface User {
 interface Props {
     users: { data: User[]; links: unknown[] };
     filters: { search?: string; role?: string; status?: string };
+    /** Süper yönetici: admin / süper admin rolü atama ve yönetici satırlarında işlemler */
+    canAssignElevatedRoles?: boolean;
 }
 
 function roleLabelTr(role: string): string {
@@ -37,7 +39,7 @@ function roleLabelTr(role: string): string {
 const inputClass =
     'w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500';
 
-export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
+export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles = false }: Readonly<Props>) {
     const isOrganizationFirmsList = filters.role === 'manager_organization';
     const currentUserId = (usePage().props.auth as { user?: { id: number } })?.user?.id;
     const [newUserForm, setNewUserForm] = useState({
@@ -165,8 +167,12 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                             <option value="artist">Sanatçı</option>
                             <option value="venue_owner">Mekân sahibi</option>
                             <option value="manager_organization">Organizasyon firması</option>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Süper admin</option>
+                            {canAssignElevatedRoles ? (
+                                <>
+                                    <option value="admin">Admin</option>
+                                    <option value="super_admin">Süper admin</option>
+                                </>
+                            ) : null}
                         </select>
                         <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:col-span-2 lg:col-span-1">
                             <input
@@ -232,8 +238,25 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                     columns={columns}
                     rows={users.data}
                     getRowKey={(u) => u.id}
-                    actions={(user) =>
-                        !['admin', 'super_admin'].includes(user.role) && user.id !== currentUserId ? (
+                    actions={(user) => {
+                        if (user.id === currentUserId) {
+                            return <span className="text-xs text-zinc-500 dark:text-zinc-400">Giriş yaptığınız hesap</span>;
+                        }
+                        const elevated = user.role === 'admin' || user.role === 'super_admin';
+                        if (elevated && !canAssignElevatedRoles) {
+                            return null;
+                        }
+                        if (user.role === 'super_admin') {
+                            return (
+                                <Link
+                                    href={route('admin.users.edit', user.id)}
+                                    className="text-sm font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400"
+                                >
+                                    Düzenle
+                                </Link>
+                            );
+                        }
+                        return (
                             <>
                                 <Link
                                     href={route('admin.users.edit', user.id)}
@@ -251,15 +274,23 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                                         Sanatçı düzenle
                                     </Link>
                                 ) : null}
-                                <button type="button" onClick={() => handleToggle(user)} className="text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400">
+                                <button
+                                    type="button"
+                                    onClick={() => handleToggle(user)}
+                                    className="text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
                                     {user.is_active ? 'Dondur' : 'Aktifleştir'}
                                 </button>
-                                <button type="button" onClick={() => handleDelete(user)} className="text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400">
+                                <button
+                                    type="button"
+                                    onClick={() => handleDelete(user)}
+                                    className="text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400"
+                                >
                                     Sil
                                 </button>
                             </>
-                        ) : null
-                    }
+                        );
+                    }}
                 />
             </div>
         </AdminLayout>

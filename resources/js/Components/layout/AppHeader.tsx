@@ -143,32 +143,36 @@ export function AppHeader() {
                                         <MapPin className="h-4 w-4 opacity-70" aria-hidden />
                                         Tüm mekanlar
                                     </Link>
-                                    <Link href={route('login.mekan')} className={flyoutItemClass} onClick={close} role="menuitem">
-                                        <LogIn className="h-4 w-4 opacity-70" aria-hidden />
-                                        Mekan girişi
-                                    </Link>
-                                    <Link
-                                        href={route('register', { uyelik: 'mekan' })}
-                                        className={flyoutItemClass}
-                                        onClick={close}
-                                        role="menuitem"
-                                    >
-                                        <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
-                                        Mekan kaydı
-                                    </Link>
-                                    <Link href={route('login.organizasyon')} className={flyoutItemClass} onClick={close} role="menuitem">
-                                        <LogIn className="h-4 w-4 opacity-70" aria-hidden />
-                                        Organizasyon girişi
-                                    </Link>
-                                    <Link
-                                        href={route('register', { uyelik: 'organizasyon' })}
-                                        className={flyoutItemClass}
-                                        onClick={close}
-                                        role="menuitem"
-                                    >
-                                        <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
-                                        Organizasyon kaydı
-                                    </Link>
+                                    {!user ? (
+                                        <>
+                                            <Link href={route('login.mekan')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                                <LogIn className="h-4 w-4 opacity-70" aria-hidden />
+                                                Mekan girişi
+                                            </Link>
+                                            <Link
+                                                href={route('register', { uyelik: 'mekan' })}
+                                                className={flyoutItemClass}
+                                                onClick={close}
+                                                role="menuitem"
+                                            >
+                                                <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
+                                                Mekan kaydı
+                                            </Link>
+                                            <Link href={route('login.organizasyon')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                                <LogIn className="h-4 w-4 opacity-70" aria-hidden />
+                                                Organizasyon girişi
+                                            </Link>
+                                            <Link
+                                                href={route('register', { uyelik: 'organizasyon' })}
+                                                className={flyoutItemClass}
+                                                onClick={close}
+                                                role="menuitem"
+                                            >
+                                                <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
+                                                Organizasyon kaydı
+                                            </Link>
+                                        </>
+                                    ) : null}
                                 </>
                             )}
                         </NavFlyout>
@@ -182,19 +186,23 @@ export function AppHeader() {
                                         <Mic2 className="h-4 w-4 opacity-70" aria-hidden />
                                         Tüm sanatçılar
                                     </Link>
-                                    <Link href={route('login.sanatci')} className={flyoutItemClass} onClick={close} role="menuitem">
-                                        <LogIn className="h-4 w-4 opacity-70" aria-hidden />
-                                        Sanatçı girişi
-                                    </Link>
-                                    <Link
-                                        href={route('register', { uyelik: 'sanatci' })}
-                                        className={flyoutItemClass}
-                                        onClick={close}
-                                        role="menuitem"
-                                    >
-                                        <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
-                                        Sanatçı kaydı
-                                    </Link>
+                                    {!user ? (
+                                        <>
+                                            <Link href={route('login.sanatci')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                                <LogIn className="h-4 w-4 opacity-70" aria-hidden />
+                                                Sanatçı girişi
+                                            </Link>
+                                            <Link
+                                                href={route('register', { uyelik: 'sanatci' })}
+                                                className={flyoutItemClass}
+                                                onClick={close}
+                                                role="menuitem"
+                                            >
+                                                <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
+                                                Sanatçı kaydı
+                                            </Link>
+                                        </>
+                                    ) : null}
                                 </>
                             )}
                         </NavFlyout>
@@ -321,40 +329,42 @@ export function AppHeader() {
                                 <MapPin className={iconClass.md} />
                                 Mekanlar
                             </Link>
-                            <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
-                                <Link
-                                    href={route('login.mekan')}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Mekan girişi
-                                </Link>
-                                <Link
-                                    href={route('register', { uyelik: 'mekan' })}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Mekan kaydı
-                                </Link>
-                                <Link
-                                    href={route('login.organizasyon')}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Organizasyon girişi
-                                </Link>
-                                <Link
-                                    href={route('register', { uyelik: 'organizasyon' })}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Organizasyon kaydı
-                                </Link>
-                            </div>
+                            {!user ? (
+                                <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
+                                    <Link
+                                        href={route('login.mekan')}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Mekan girişi
+                                    </Link>
+                                    <Link
+                                        href={route('register', { uyelik: 'mekan' })}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Mekan kaydı
+                                    </Link>
+                                    <Link
+                                        href={route('login.organizasyon')}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Organizasyon girişi
+                                    </Link>
+                                    <Link
+                                        href={route('register', { uyelik: 'organizasyon' })}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Organizasyon kaydı
+                                    </Link>
+                                </div>
+                            ) : null}
                             <Link
                                 href={route('events.index')}
                                 className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
@@ -371,24 +381,26 @@ export function AppHeader() {
                                 <Mic2 className={iconClass.md} />
                                 Sanatçılar
                             </Link>
-                            <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
-                                <Link
-                                    href={route('login.sanatci')}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Sanatçı girişi
-                                </Link>
-                                <Link
-                                    href={route('register', { uyelik: 'sanatci' })}
-                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
-                                    onClick={closeDrawer}
-                                >
-                                    <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                                    Sanatçı kaydı
-                                </Link>
-                            </div>
+                            {!user ? (
+                                <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
+                                    <Link
+                                        href={route('login.sanatci')}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Sanatçı girişi
+                                    </Link>
+                                    <Link
+                                        href={route('register', { uyelik: 'sanatci' })}
+                                        className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                        onClick={closeDrawer}
+                                    >
+                                        <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                        Sanatçı kaydı
+                                    </Link>
+                                </div>
+                            ) : null}
                             <Link
                                 href={route('sehir-sec')}
                                 className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"

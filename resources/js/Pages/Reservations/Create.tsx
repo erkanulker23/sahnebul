@@ -97,6 +97,9 @@ export default function ReservationCreate({
         post(route('reservations.store'));
     };
 
+    const inputSurfaceClass =
+        'mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-white/10 dark:bg-zinc-800 dark:text-white';
+
     return (
         <AppLayout>
             <SeoHead
@@ -106,18 +109,18 @@ export default function ReservationCreate({
             />
 
             <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-                <Link href={route('venues.show', venue.slug)} className="mb-6 inline-block text-amber-400 hover:text-amber-300">
+                <Link href={route('venues.show', venue.slug)} className="mb-6 inline-block text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
                     ← {venue.name}
                 </Link>
-                <h1 className="font-display mb-4 text-3xl font-bold text-white">Rezervasyon Yap</h1>
-                <p className="mb-8 text-sm text-zinc-400">
+                <h1 className="font-display mb-4 text-3xl font-bold text-zinc-900 dark:text-white">Rezervasyon Yap</h1>
+                <p className="mb-8 text-sm text-zinc-600 dark:text-zinc-400">
                     Bu form Sahnebul rezervasyon sistemidir. Talebiniz mekân yönetimine iletilir; aynı zamanda{' '}
-                    <strong className="text-zinc-300">sahnebul.com yönetimi</strong> kayıt altına alır ve gerekirse size dönüş yapabilir.
+                    <strong className="text-zinc-800 dark:text-zinc-300">sahnebul.com yönetimi</strong> kayıt altına alır ve gerekirse size dönüş yapabilir.
                 </p>
 
                 {whatsappReservationHref ? (
-                    <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5">
-                        <p className="text-sm text-emerald-100/90">
+                    <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                        <p className="text-sm text-emerald-900 dark:text-emerald-100/90">
                             WhatsApp üzerinden mekâna yazarken etkinlik bilgisi ve Sahnebul kaynağı mesaja eklenir.
                         </p>
                         <a
@@ -131,9 +134,12 @@ export default function ReservationCreate({
                     </div>
                 ) : null}
 
-                <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-white/5 bg-zinc-900/50 p-8">
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none"
+                >
                     <div>
-                        <label htmlFor="res_guest_name" className="block text-sm font-medium text-zinc-400">
+                        <label htmlFor="res_guest_name" className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">
                             Adınız Soyadınız *
                         </label>
                         <input
@@ -144,12 +150,12 @@ export default function ReservationCreate({
                             onChange={(e) => setData('guest_name', e.target.value)}
                             required
                             maxLength={120}
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         />
-                        {errors.guest_name && <p className="mt-1 text-sm text-red-400">{errors.guest_name}</p>}
+                        {errors.guest_name && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.guest_name}</p>}
                     </div>
                     <div>
-                        <label htmlFor="res_guest_phone" className="block text-sm font-medium text-zinc-400">
+                        <label htmlFor="res_guest_phone" className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">
                             Telefon numaranız *
                         </label>
                         <PhoneInput
@@ -157,38 +163,38 @@ export default function ReservationCreate({
                             value={data.guest_phone}
                             onChange={(v) => setData('guest_phone', v)}
                             required
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         />
-                        {errors.guest_phone && <p className="mt-1 text-sm text-red-400">{errors.guest_phone}</p>}
+                        {errors.guest_phone && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.guest_phone}</p>}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Tarih</label>
+                        <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Tarih</label>
                         <input
                             type="date"
                             value={data.reservation_date}
                             onChange={(e) => setData('reservation_date', e.target.value)}
                             required
                             min={new Date().toISOString().split('T')[0]}
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         />
-                        {errors.reservation_date && <p className="mt-1 text-sm text-red-400">{errors.reservation_date}</p>}
+                        {errors.reservation_date && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.reservation_date}</p>}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Saat</label>
+                        <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Saat</label>
                         <input
                             type="time"
                             value={data.reservation_time}
                             onChange={(e) => setData('reservation_time', e.target.value)}
                             required
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Rezervasyon Tipi</label>
+                        <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Rezervasyon Tipi</label>
                         <select
                             value={data.reservation_type}
                             onChange={(e) => setData('reservation_type', e.target.value as 'table' | 'ticket')}
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         >
                             <option value="table">Masa</option>
                             <option value="ticket">Bilet</option>
@@ -196,7 +202,7 @@ export default function ReservationCreate({
                     </div>
                     {events.length > 0 && (
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Etkinlik (opsiyonel)</label>
+                            <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Etkinlik (opsiyonel)</label>
                             <select
                                 value={data.event_id ?? ''}
                                 onChange={(e) => {
@@ -216,7 +222,7 @@ export default function ReservationCreate({
                                         setData('event_ticket_tier_id', null);
                                     }
                                 }}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                                className={inputSurfaceClass}
                             >
                                 <option value="">Etkinlik yok</option>
                                 {events.map((ev) => (
@@ -229,13 +235,13 @@ export default function ReservationCreate({
                     )}
                     {needsTier && (
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Bilet kategorisi</label>
-                            <p className="mt-1 text-xs text-zinc-500">Etkinlikte farklı fiyatlı koltuk / ayakta alanları seçin.</p>
+                            <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Bilet kategorisi</label>
+                            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-500">Etkinlikte farklı fiyatlı koltuk / ayakta alanları seçin.</p>
                             <select
                                 value={data.event_ticket_tier_id ?? ''}
                                 onChange={(e) => setData('event_ticket_tier_id', e.target.value ? parseInt(e.target.value, 10) : null)}
                                 required={needsTier}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                                className={inputSurfaceClass}
                             >
                                 {[...tierOptions]
                                     .sort((a, b) => a.sort_order - b.sort_order)
@@ -247,36 +253,36 @@ export default function ReservationCreate({
                                     ))}
                             </select>
                             {errors.event_ticket_tier_id && (
-                                <p className="mt-1 text-sm text-red-400">{errors.event_ticket_tier_id}</p>
+                                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.event_ticket_tier_id}</p>
                             )}
                         </div>
                     )}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Kaç kişisiniz? *</label>
+                            <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Kaç kişisiniz? *</label>
                             <input
                                 type="number"
                                 min={1}
                                 max={50}
                                 value={data.guest_count}
                                 onChange={(e) => setData('guest_count', parseInt(e.target.value, 10) || 1)}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                                className={inputSurfaceClass}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Adet (bilet için)</label>
+                            <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">Adet (bilet için)</label>
                             <input
                                 type="number"
                                 min={1}
                                 max={20}
                                 value={data.quantity}
                                 onChange={(e) => setData('quantity', parseInt(e.target.value, 10) || 1)}
-                                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                                className={inputSurfaceClass}
                             />
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="res_notes" className="block text-sm font-medium text-zinc-400">
+                        <label htmlFor="res_notes" className="block text-sm font-medium text-zinc-600 dark:text-zinc-400">
                             Mesajınız (isteğe bağlı)
                         </label>
                         <textarea
@@ -286,7 +292,7 @@ export default function ReservationCreate({
                             rows={3}
                             maxLength={500}
                             placeholder="Özel istek, masa tercihi vb."
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            className={inputSurfaceClass}
                         />
                     </div>
                     <button

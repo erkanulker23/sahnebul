@@ -24,7 +24,7 @@ class SearchController extends Controller
 
         $query = Event::query()
             ->published()
-            ->whereHas('venue', fn ($v) => $v->approved())
+            ->whereHas('venue', fn ($v) => $v->listedPublicly())
             ->where('start_date', '>=', now())
             ->with(['venue:id,name'])
             ->orderByDesc('view_count')
@@ -72,7 +72,7 @@ class SearchController extends Controller
             ->get(['id', 'name', 'slug', 'avatar', 'genre']);
 
         $venues = Venue::query()
-            ->approved()
+            ->listedPublicly()
             ->where('name', 'like', $like)
             ->orderBy('name')
             ->limit(8)
@@ -80,7 +80,7 @@ class SearchController extends Controller
 
         $events = Event::query()
             ->published()
-            ->whereHas('venue', fn ($v) => $v->approved())
+            ->whereHas('venue', fn ($v) => $v->listedPublicly())
             ->where('title', 'like', $like)
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')

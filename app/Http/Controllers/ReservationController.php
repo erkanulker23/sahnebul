@@ -48,7 +48,7 @@ class ReservationController extends Controller
                 ->with('error', 'Yönetici hesabıyla müşteri rezervasyonu oluşturulamaz.');
         }
 
-        if ($venue->status !== 'approved') {
+        if ($venue->status !== 'approved' || ! $venue->is_active) {
             abort(404);
         }
         $venue->load('city', 'category');
@@ -161,10 +161,11 @@ class ReservationController extends Controller
 
         $actor = $request->user();
         if ($reservation->event_id !== null && $actor->canUsePublicEngagementFeatures()) {
-            $ev = Event::query()->with('venue:id,status')->find($reservation->event_id);
+            $ev = Event::query()->with('venue:id,status,is_active')->find($reservation->event_id);
             if ($ev
                 && $ev->status === 'published'
                 && $ev->venue?->status === 'approved'
+                && $ev->venue?->is_active
                 && $ev->start_date !== null
                 && $ev->start_date->isFuture()
                 && ! $actor->remindedEvents()->whereKey($ev->id)->exists()) {

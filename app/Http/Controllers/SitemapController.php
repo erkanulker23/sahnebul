@@ -37,7 +37,7 @@ class SitemapController extends Controller
         $push('/iletisim', null, 'monthly', '0.4');
         $push('/sehir-sec', null, 'weekly', '0.6');
 
-        foreach (['gizlilik-politikasi', 'cerez-politikasi', 'kvkk', 'ticari-elektronik-ileti', 'sss'] as $slug) {
+        foreach (['hakkimizda', 'gizlilik-politikasi', 'cerez-politikasi', 'kvkk', 'ticari-elektronik-ileti', 'sss'] as $slug) {
             $push('/sayfalar/'.$slug, null, 'yearly', '0.3');
         }
 
@@ -47,7 +47,7 @@ class SitemapController extends Controller
 
         Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->select(['id', 'slug', 'updated_at'])
             ->orderBy('id')
             ->chunkById(500, function ($events) use (&$push): void {
@@ -58,7 +58,7 @@ class SitemapController extends Controller
             });
 
         Venue::query()
-            ->approved()
+            ->listedPublicly()
             ->select(['id', 'slug', 'updated_at'])
             ->orderBy('id')
             ->chunkById(500, function ($venues) use (&$push): void {

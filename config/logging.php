@@ -73,6 +73,18 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /*
+         * Kimlik doğrulama, rol, abonelik ve yönetim eylemleri için yapılandırılmış denetim izi.
+         * Üretimde LOG_STACK içine ekleyebilir veya ayrı dosyada tutabilirsiniz.
+         */
+        'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_SECURITY_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

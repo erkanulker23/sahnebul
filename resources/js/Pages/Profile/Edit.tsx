@@ -71,7 +71,7 @@ export default function Edit({ mustVerifyEmail, status, cities = [], layoutVaria
     const cardClass =
         layoutVariant === 'admin'
             ? 'rounded-lg border border-zinc-800 bg-zinc-900 p-6 sm:p-8'
-            : 'rounded-2xl border border-white/5 bg-zinc-900/50 p-6 sm:p-8';
+            : 'rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none sm:p-8';
 
     const inner =
         layoutVariant === 'admin' ? (
@@ -156,7 +156,7 @@ export default function Edit({ mustVerifyEmail, status, cities = [], layoutVaria
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="font-display text-xl font-semibold leading-tight text-white">
+                <h2 className="font-display text-xl font-semibold leading-tight text-zinc-900 dark:text-white">
                     Profil
                 </h2>
             }

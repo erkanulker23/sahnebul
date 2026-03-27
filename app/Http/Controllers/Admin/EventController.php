@@ -435,13 +435,25 @@ class EventController extends Controller
     public function importMediaFromUrl(Request $request, Event $event, EventMediaImportFromUrlService $importer)
     {
         $validated = $request->validate([
-            'url' => ['required', 'string', 'max:2048'],
+            'url' => ['nullable', 'string', 'max:2048'],
+            'urls_text' => ['nullable', 'string', 'max:65535'],
             'mode' => ['required', 'string', 'in:image_cover,image_listing,promo_video'],
             'append_promo' => ['sometimes', 'boolean'],
         ]);
 
         $appendPromo = (bool) ($validated['append_promo'] ?? true);
-        $result = $importer->import($event->fresh(), $validated['url'], $validated['mode'], $appendPromo);
+        $urlsText = trim((string) ($validated['urls_text'] ?? ''));
+        $urlSingle = trim((string) ($validated['url'] ?? ''));
+
+        if ($urlsText !== '') {
+            $lines = preg_split('/\r\n|\r|\n/', $urlsText);
+            $urls = array_values(array_filter(array_map('trim', $lines), fn (string $l) => $l !== ''));
+            $result = $importer->importMany($event->fresh(), $urls, $validated['mode'], $appendPromo);
+        } elseif ($urlSingle !== '') {
+            $result = $importer->import($event->fresh(), $urlSingle, $validated['mode'], $appendPromo);
+        } else {
+            return back()->with('error', 'En az bir bağlantı veya satır girin.');
+        }
 
         if (! $result['success']) {
             return back()->with('error', $result['message']);
@@ -450,28 +462,30 @@ class EventController extends Controller
         return back()->with('success', $result['message']);
     }
 
-    public function clearPromoMedia(Event $event)
+    public function appendPromoFiles(Request $request, Event $event, EventMediaImportFromUrlService $importer)
     {
-        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
-        foreach ($gallery as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-            foreach (['video_path', 'poster_path'] as $key) {
-                $path = $item[$key] ?? null;
-                if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
-                    Storage::disk('public')->delete($path);
-                }
-            }
-        }
-        if (is_string($event->promo_video_path) && $event->promo_video_path !== '' && ! Str::startsWith($event->promo_video_path, ['http://', 'https://'])) {
-            Storage::disk('public')->delete($event->promo_video_path);
-        }
-        $event->update([
-            'promo_video_path' => null,
-            'promo_embed_url' => null,
-            'promo_gallery' => null,
+        $validated = $request->validate([
+            'promo_video_upload' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
+            'promo_poster_upload' => ['nullable', 'file', 'max:12288', 'image'],
+            'append_promo' => ['sometimes', 'boolean'],
         ]);
+
+        $append = (bool) ($validated['append_promo'] ?? true);
+        $video = $request->file('promo_video_upload');
+        $poster = $request->file('promo_poster_upload');
+
+        $result = $importer->appendPromoFromUploads($event->fresh(), $video, $poster, $append);
+
+        if (! $result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        return back()->with('success', $result['message']);
+    }
+
+    public function clearPromoMedia(Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $importer->purgePromoGallery($event);
 
         return back()->with('success', 'Tanıtım medyası kaldırıldı.');
     }

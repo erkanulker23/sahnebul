@@ -103,8 +103,8 @@ export default function UpdateProfileInformation({
         <section className={className}>
             {!omitSectionHeader && (
                 <header>
-                    <h2 className="text-lg font-medium text-white">Profil Bilgileri</h2>
-                    <p className="mt-1 text-sm text-zinc-500">Hesap bilgilerinizi güncelleyin.</p>
+                    <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Profil Bilgileri</h2>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-500">Hesap bilgilerinizi güncelleyin.</p>
                 </header>
             )}
 
@@ -116,7 +116,7 @@ export default function UpdateProfileInformation({
                         ) : storedOrArtistPhotoUrl ? (
                             <img src={storedOrArtistPhotoUrl} alt="" className="h-24 w-24 rounded-full object-cover" />
                         ) : (
-                            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-800 text-3xl text-zinc-500">👤</div>
+                            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-200 text-3xl text-zinc-500 dark:bg-zinc-800">👤</div>
                         )}
                     </div>
                     <div>
@@ -125,7 +125,7 @@ export default function UpdateProfileInformation({
                             id="avatar"
                             type="file"
                             accept="image/*"
-                            className="mt-2 block w-full text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500/20 file:px-4 file:py-2 file:text-amber-400"
+                            className="mt-2 block w-full text-sm text-zinc-600 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-100 file:px-4 file:py-2 file:text-amber-900 file:hover:bg-amber-200 dark:text-zinc-400 dark:file:bg-amber-500/20 dark:file:text-amber-400 dark:file:hover:bg-amber-500/30"
                             onChange={(e) => setData('avatar', e.target.files?.[0] ?? null)}
                         />
                         {omitCityField && artistPhotoUrl && !userPhotoUrl ? (
@@ -165,9 +165,9 @@ export default function UpdateProfileInformation({
                 </div>
 
                 {isManagerOrganization && (
-                    <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                        <p className="text-sm font-medium text-amber-200/90">Organizasyon / firma bilgileri</p>
-                        <p className="text-xs text-zinc-500">
+                    <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200/90">Organizasyon / firma bilgileri</p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-500">
                             Firma unvanı ve vergi alanları yalnızca hesabınız ve yönetim kayıtları için kullanılır; herkese açık sanatçı sayfalarından ayrıdır.
                         </p>
                         <div>
@@ -213,7 +213,7 @@ export default function UpdateProfileInformation({
                             id="city"
                             value={data.city}
                             onChange={(e) => setData('city', e.target.value)}
-                            className="mt-1 block w-full rounded-xl border border-white/10 bg-zinc-800/50 px-4 py-3 text-white"
+                            className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/25 dark:border-white/10 dark:bg-zinc-800/50 dark:text-white dark:focus:border-amber-500 dark:focus:ring-amber-500/20"
                         >
                             <option value="">Seçin</option>
                             {cities.map((c) => (
@@ -228,7 +228,10 @@ export default function UpdateProfileInformation({
                         <InputLabel value="İlgi alanları" />
                         <div className="mt-2 flex flex-wrap gap-2">
                             {data.interests.map((v, i) => (
-                                <span key={`${v}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-sm text-amber-400">
+                                <span
+                                    key={`${v}-${i}`}
+                                    className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-900 dark:bg-amber-500/20 dark:text-amber-400"
+                                >
                                     {v}
                                     <button type="button" onClick={() => removeInterest(i)} className="hover:text-red-400">×</button>
                                 </span>
@@ -242,7 +245,11 @@ export default function UpdateProfileInformation({
                                 placeholder="Eklemek için yazıp Enter"
                                 className="flex-1"
                             />
-                            <button type="button" onClick={addInterest} className="rounded-xl bg-amber-500/20 px-4 py-2 text-sm text-amber-400 hover:bg-amber-500/30">
+                            <button
+                                type="button"
+                                onClick={addInterest}
+                                className="rounded-xl bg-amber-100 px-4 py-2 text-sm text-amber-900 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:hover:bg-amber-500/30"
+                            >
                                 Ekle
                             </button>
                         </div>
@@ -251,14 +258,19 @@ export default function UpdateProfileInformation({
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <p className="mt-2 text-sm text-zinc-400">
-                            E-posta adresiniz doğrulanmamış.
-                            <Link href={route('verification.send')} method="post" as="button" className="text-amber-400 underline">
+                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            E-posta adresiniz doğrulanmamış.{' '}
+                            <Link
+                                href={route('verification.send')}
+                                method="post"
+                                as="button"
+                                className="text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                            >
                                 Doğrulama e-postası gönder
                             </Link>
                         </p>
                         {status === 'verification-link-sent' && (
-                            <p className="mt-2 text-sm text-green-400">Yeni doğrulama e-postası gönderildi.</p>
+                            <p className="mt-2 text-sm text-emerald-700 dark:text-green-400">Yeni doğrulama e-postası gönderildi.</p>
                         )}
                     </div>
                 )}
@@ -266,7 +278,7 @@ export default function UpdateProfileInformation({
                 <div className="flex items-center gap-4">
                     <PrimaryButton disabled={processing}>Kaydet</PrimaryButton>
                     <Transition show={recentlySuccessful} enter="transition ease-in-out" enterFrom="opacity-0" leave="transition ease-in-out" leaveTo="opacity-0">
-                        <p className="text-sm text-green-400">Kaydedildi.</p>
+                        <p className="text-sm text-emerald-700 dark:text-green-400">Kaydedildi.</p>
                     </Transition>
                 </div>
             </form>

@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
         $reminderEvents = $user->remindedEvents()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(30)
@@ -43,7 +43,7 @@ class DashboardController extends Controller
 
         $upcomingEvents = Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->approved())
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->with(['venue:id,name,slug', 'artists:id,name,slug,avatar'])
             ->orderBy('start_date')
             ->limit(6)

@@ -13,7 +13,7 @@ class Venue extends Model
     protected $fillable = [
         'user_id', 'category_id', 'city_id', 'district_id', 'neighborhood_id',
         'name', 'slug', 'description', 'address', 'latitude', 'longitude', 'google_maps_url',
-        'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image', 'status', 'is_featured',
+        'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image', 'status', 'is_featured', 'is_active',
         'rating_avg', 'review_count', 'view_count',
     ];
 
@@ -22,6 +22,8 @@ class Venue extends Model
         'longitude' => 'decimal:8',
         'view_count' => 'integer',
         'social_links' => 'array',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -87,5 +89,11 @@ class Venue extends Model
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
+    }
+
+    /** Ziyaretçi arayüzünde listelenir ve mekân sayfası açılır: onaylı + yayında. */
+    public function scopeListedPublicly($query)
+    {
+        return $query->where('status', 'approved')->where('is_active', true);
     }
 }

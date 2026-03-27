@@ -8,7 +8,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 
 interface Artist {
     id: number;
@@ -49,6 +49,7 @@ interface NearbyVenue {
     cover_image: string | null;
     address: string;
     distance_km?: number;
+    is_featured?: boolean | number | null;
     city?: { name: string } | null;
     district?: { name: string } | null;
     category?: { name: string } | null;
@@ -127,6 +128,18 @@ export default function VenuesIndex({
     const [categorySlug, setCategorySlug] = useState(filters.category ?? '');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const nearbyVenuesScrollRef = useRef<HTMLUListElement>(null);
+    const nearbyEventsScrollRef = useRef<HTMLDivElement>(null);
+
+    const scrollNearbyEventsBy = useCallback((dir: -1 | 1) => {
+        const el = nearbyEventsScrollRef.current;
+        if (!el) {
+            return;
+        }
+        const card = el.querySelector<HTMLElement>('[data-nearby-event-card]');
+        const w = card?.offsetWidth ?? 300;
+        const gap = globalThis.matchMedia('(min-width: 640px)').matches ? 16 : 8;
+        el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+    }, []);
 
     const scrollNearbyVenuesBy = useCallback((dir: -1 | 1) => {
         const el = nearbyVenuesScrollRef.current;
@@ -436,8 +449,9 @@ export default function VenuesIndex({
                                             Yakınınızdaki mekânlar
                                         </h2>
                                         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                                            Kaydırarak gezinin. Koordinatı kayıtlı mekânlar yakınlığa göre sıralanır; koordinatı olmayanlar
-                                            sonda yer alır. Yeşil rozet yalnızca mesafe hesaplanabildiğinde gösterilir.
+                                            Kaydırarak gezinin. Öne çıkan mekânlar altın çerçeve ve yıldız rozetiyle işaretlenir; sıralamada
+                                            önce gelir, ardından yakınlık uygulanır. Koordinatı olmayanlar sonda yer alır. Yeşil rozet yalnızca
+                                            mesafe hesaplanabildiğinde gösterilir.
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 gap-2">
@@ -472,59 +486,99 @@ export default function VenuesIndex({
                                                 : null;
                                         /** Sunucu: koordinatsız mekânlar için sentinel (~999999 km) */
                                         const dist = rawDist != null && rawDist < 900_000 ? rawDist : null;
+                                        const featured = Boolean(venue.is_featured);
+                                        const card = (
+                                            <Link
+                                                data-nearby-venue-card
+                                                href={route('venues.show', venue.slug)}
+                                                className={`block w-[min(85vw,300px)] max-w-[300px] overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60 dark:hover:border-amber-500/40 ${
+                                                    featured
+                                                        ? 'rounded-[14px] border-transparent shadow-inner shadow-amber-950/10 dark:border-transparent'
+                                                        : ''
+                                                }`}
+                                            >
+                                                <div className="relative h-40 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+                                                    {venue.cover_image ? (
+                                                        <img
+                                                            src={imageSrc(venue.cover_image) ?? ''}
+                                                            alt=""
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                                                            🎭
+                                                        </div>
+                                                    )}
+                                                    <div
+                                                        className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${
+                                                            featured
+                                                                ? 'from-amber-950/75 via-black/25 to-amber-900/20'
+                                                                : 'from-black/40 to-transparent'
+                                                        }`}
+                                                    />
+                                                    {featured ? (
+                                                        <div className="pointer-events-none absolute left-2 top-2 z-[3] sm:left-3 sm:top-3">
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 via-amber-500 to-amber-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-amber-900/50 ring-2 ring-white/50 sm:gap-1.5 sm:px-2.5 sm:text-[10px]">
+                                                                <Star className="h-3 w-3 fill-zinc-950" strokeWidth={2} aria-hidden />
+                                                                Öne çıkan
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                    {locLine !== '' ? (
+                                                        <div
+                                                            className={`pointer-events-none absolute z-[2] max-w-[calc(100%-4.5rem)] sm:max-w-[calc(100%-5rem)] ${
+                                                                featured
+                                                                    ? 'left-2 top-11 sm:left-3 sm:top-12'
+                                                                    : 'left-2 top-2 sm:left-3 sm:top-3'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20"
+                                                                title={locLine}
+                                                            >
+                                                                <MapPin className="h-3 w-3 shrink-0 text-white/95" aria-hidden />
+                                                                <span className="min-w-0 truncate text-left text-[9px] font-semibold text-white sm:text-[10px]">
+                                                                    {locLine}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                    {dist != null ? (
+                                                        <div className="pointer-events-none absolute bottom-2 right-2 z-[2]">
+                                                            <span className="inline-flex rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-bold tabular-nums text-white shadow-lg ring-1 ring-white/25 sm:text-[10px]">
+                                                                {dist.toFixed(1)} km
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div
+                                                    className={`p-4 ${
+                                                        featured
+                                                            ? 'bg-gradient-to-b from-amber-50/90 to-white dark:from-amber-950/35 dark:to-zinc-900/90'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                    {venue.category?.name ? (
+                                                        <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                                                            {venue.category.name}
+                                                        </p>
+                                                    ) : null}
+                                                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">
+                                                        {venue.address}
+                                                    </p>
+                                                </div>
+                                            </Link>
+                                        );
                                         return (
                                             <li key={venue.id} className="shrink-0 snap-start">
-                                                <Link
-                                                    data-nearby-venue-card
-                                                    href={route('venues.show', venue.slug)}
-                                                    className="block w-[min(85vw,300px)] max-w-[300px] overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60 dark:hover:border-amber-500/40"
-                                                >
-                                                    <div className="relative h-40 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
-                                                        {venue.cover_image ? (
-                                                            <img
-                                                                src={imageSrc(venue.cover_image) ?? ''}
-                                                                alt=""
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                                                                🎭
-                                                            </div>
-                                                        )}
-                                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                                                        {locLine !== '' ? (
-                                                            <div className="pointer-events-none absolute left-2 top-2 z-[2] max-w-[calc(100%-4.5rem)] sm:left-3 sm:top-3">
-                                                                <span
-                                                                    className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20"
-                                                                    title={locLine}
-                                                                >
-                                                                    <MapPin className="h-3 w-3 shrink-0 text-white/95" aria-hidden />
-                                                                    <span className="min-w-0 truncate text-left text-[9px] font-semibold text-white sm:text-[10px]">
-                                                                        {locLine}
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                        ) : null}
-                                                        {dist != null ? (
-                                                            <div className="pointer-events-none absolute bottom-2 right-2 z-[2]">
-                                                                <span className="inline-flex rounded-full bg-emerald-600 px-2 py-1 text-[9px] font-bold tabular-nums text-white shadow-lg ring-1 ring-white/25 sm:text-[10px]">
-                                                                    {dist.toFixed(1)} km
-                                                                </span>
-                                                            </div>
-                                                        ) : null}
+                                                {featured ? (
+                                                    <div className="rounded-2xl bg-gradient-to-br from-amber-200/90 via-amber-500 to-amber-800 p-[2px] shadow-xl shadow-amber-500/25 dark:from-amber-400/70 dark:via-amber-600 dark:to-amber-950">
+                                                        {card}
                                                     </div>
-                                                    <div className="p-4">
-                                                        <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
-                                                        {venue.category?.name ? (
-                                                            <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-                                                                {venue.category.name}
-                                                            </p>
-                                                        ) : null}
-                                                        <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">
-                                                            {venue.address}
-                                                        </p>
-                                                    </div>
-                                                </Link>
+                                                ) : (
+                                                    card
+                                                )}
                                             </li>
                                         );
                                     })}
@@ -537,7 +591,14 @@ export default function VenuesIndex({
                         <AdSlot slotKey="venues_list_top" />
                         <div className="mb-6">
                             <h2 className="font-display text-3xl font-bold text-zinc-900 dark:text-white">Mekanlar</h2>
-                            <p className="mt-2 text-zinc-700 dark:text-zinc-400">Onaylı tüm etkinlik mekanları.</p>
+                            <p className="mt-2 text-zinc-700 dark:text-zinc-400">
+                                Onaylı ve yayında olan tüm etkinlik mekanları.{' '}
+                                <span className="inline-flex items-center gap-1 text-amber-800 dark:text-amber-300/90">
+                                    <Star className="inline h-3.5 w-3.5 fill-amber-500 text-amber-600 dark:fill-amber-400" aria-hidden />
+                                    <span>Öne çıkan</span>
+                                </span>{' '}
+                                mekânlar altın çerçeve ve yıldız rozetiyle işaretlenir.
+                            </p>
                         </div>
                         {(venues?.data ?? []).length === 0 ? (
                             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 py-20 text-center dark:border-white/10 dark:bg-zinc-900/40">
@@ -560,65 +621,100 @@ export default function VenuesIndex({
                                     {(venues?.data ?? []).map((venue) => {
                                         const venueLocationLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
                                         const showVenueLocation = venueLocationLine !== '';
-                                        const featured = venue.is_featured === true;
-                                        return (
-                                        <Link
-                                            key={venue.id}
-                                            href={route('venues.show', venue.slug)}
-                                            className={`group/card overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 ${
-                                                featured
-                                                    ? 'border-amber-400/90 shadow-lg shadow-amber-500/15 ring-2 ring-amber-400/50 hover:border-amber-300 dark:border-amber-500/40 dark:shadow-amber-900/20 dark:ring-amber-500/30'
-                                                    : 'border-zinc-200 hover:border-amber-300 dark:border-white/10'
-                                            }`}
-                                        >
-                                            <div className="relative h-44 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
-                                                {venue.cover_image ? (
-                                                    <img src={imageSrc(venue.cover_image) ?? ''} alt={venue.name} className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
-                                                )}
-                                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/20" />
-                                                {featured ? (
-                                                    <div className="pointer-events-none absolute left-2 top-2 z-[14] sm:left-3 sm:top-3">
-                                                        <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-md ring-1 ring-amber-200/80 sm:text-xs">
-                                                            Öne çıkan
-                                                        </span>
-                                                    </div>
-                                                ) : null}
-                                                {showVenueLocation ? (
-                                                    <div className="pointer-events-none absolute right-2 top-2 z-[12] max-w-[calc(100%-5.5rem)] sm:right-3 sm:top-3">
-                                                        <span
-                                                            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
-                                                            title={venueLocationLine}
-                                                        >
-                                                            <MapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" aria-hidden />
-                                                            <span className="min-w-0 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
-                                                                {venueLocationLine}
+                                        const featured = Boolean(venue.is_featured);
+                                        const link = (
+                                            <Link
+                                                href={route('venues.show', venue.slug)}
+                                                className={`group/card block h-full overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 ${
+                                                    featured
+                                                        ? 'rounded-[14px] border-transparent shadow-md shadow-amber-900/15 dark:border-transparent dark:shadow-amber-950/30'
+                                                        : 'border-zinc-200 hover:border-amber-300 dark:border-white/10'
+                                                }`}
+                                            >
+                                                <div className="relative h-44 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+                                                    {venue.cover_image ? (
+                                                        <img src={imageSrc(venue.cover_image) ?? ''} alt={venue.name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
+                                                    )}
+                                                    <div
+                                                        className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${
+                                                            featured
+                                                                ? 'from-amber-950/70 via-black/20 to-amber-800/25'
+                                                                : 'from-black/35 via-transparent to-black/20'
+                                                        }`}
+                                                    />
+                                                    {featured ? (
+                                                        <div className="pointer-events-none absolute left-2 top-2 z-[14] sm:left-3 sm:top-3">
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 via-amber-500 to-amber-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-amber-900/40 ring-2 ring-white/45 sm:gap-1.5 sm:text-xs">
+                                                                <Star className="h-3 w-3 fill-zinc-950 sm:h-3.5 sm:w-3.5" strokeWidth={2} aria-hidden />
+                                                                Öne çıkan
                                                             </span>
-                                                        </span>
-                                                    </div>
-                                                ) : null}
-                                                <ThisWeekEventsBadge
-                                                    weekCount={venue.weekly_events_count ?? 0}
-                                                    monthCount={venue.monthly_events_count ?? 0}
-                                                />
+                                                        </div>
+                                                    ) : null}
+                                                    {showVenueLocation ? (
+                                                        <div
+                                                            className={`pointer-events-none absolute right-2 z-[12] max-w-[calc(100%-5.5rem)] sm:right-3 ${
+                                                                featured ? 'top-11 sm:top-12' : 'top-2 sm:top-3'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
+                                                                title={venueLocationLine}
+                                                            >
+                                                                <MapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" aria-hidden />
+                                                                <span className="min-w-0 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
+                                                                    {venueLocationLine}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                    <ThisWeekEventsBadge
+                                                        weekCount={venue.weekly_events_count ?? 0}
+                                                        monthCount={venue.monthly_events_count ?? 0}
+                                                        className={
+                                                            featured
+                                                                ? '!top-auto bottom-3 left-2 max-w-[min(100%,8.5rem)] sm:!left-3 sm:bottom-3'
+                                                                : ''
+                                                        }
+                                                    />
+                                                </div>
+                                                <div
+                                                    className={`p-4 ${
+                                                        featured
+                                                            ? 'bg-gradient-to-b from-amber-50/95 to-white dark:from-amber-950/40 dark:to-zinc-900/95'
+                                                            : ''
+                                                    }`}
+                                                >
+                                                    <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                        {venue.city?.name ?? '-'} • {venue.category?.name ?? '-'}
+                                                    </p>
+                                                    {(venue.review_count ?? 0) > 0 && (venue.rating_avg ?? 0) > 0 ? (
+                                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                                            <span className="flex text-amber-500 dark:text-amber-400" aria-hidden>
+                                                                {'★'.repeat(Math.min(5, venue.rating_avg ?? 0))}
+                                                                <span className="text-zinc-300 dark:text-zinc-600">
+                                                                    {'★'.repeat(5 - Math.min(5, venue.rating_avg ?? 0))}
+                                                                </span>
+                                                            </span>
+                                                            <span className="font-medium text-zinc-800 dark:text-zinc-200">{venue.rating_avg}</span>
+                                                            <span className="text-zinc-500 dark:text-zinc-500">({venue.review_count} değerlendirme)</span>
+                                                        </div>
+                                                    ) : null}
+                                                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">{venue.address}</p>
+                                                </div>
+                                            </Link>
+                                        );
+                                        return featured ? (
+                                            <div
+                                                key={venue.id}
+                                                className="rounded-2xl bg-gradient-to-br from-amber-200/90 via-amber-500 to-amber-800 p-[2px] shadow-xl shadow-amber-500/20 dark:from-amber-400/75 dark:via-amber-600 dark:to-amber-950"
+                                            >
+                                                {link}
                                             </div>
-                                            <div className="p-4">
-                                                <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
-                                                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{venue.city?.name ?? '-'} • {venue.category?.name ?? '-'}</p>
-                                                {(venue.review_count ?? 0) > 0 && (venue.rating_avg ?? 0) > 0 ? (
-                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                                                        <span className="flex text-amber-500 dark:text-amber-400" aria-hidden>
-                                                            {'★'.repeat(Math.min(5, venue.rating_avg ?? 0))}
-                                                            <span className="text-zinc-300 dark:text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg ?? 0))}</span>
-                                                        </span>
-                                                        <span className="font-medium text-zinc-800 dark:text-zinc-200">{venue.rating_avg}</span>
-                                                        <span className="text-zinc-500 dark:text-zinc-500">({venue.review_count} değerlendirme)</span>
-                                                    </div>
-                                                ) : null}
-                                                <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">{venue.address}</p>
-                                            </div>
-                                        </Link>
+                                        ) : (
+                                            <div key={venue.id}>{link}</div>
                                         );
                                     })}
                                 </div>
@@ -732,7 +828,7 @@ export default function VenuesIndex({
             {locationChecked && nearbyEvents.length > 0 && (
                 <section className="mx-auto max-w-7xl px-0 pb-10 pt-6 sm:px-4 lg:px-8">
                     <div className="rounded-2xl border border-zinc-200/90 bg-gradient-to-b from-white via-zinc-50/80 to-zinc-100/40 p-4 shadow-sm ring-1 ring-zinc-200/60 dark:border-white/[0.08] dark:from-zinc-900/90 dark:via-zinc-950/80 dark:to-zinc-950 dark:ring-white/[0.06] sm:p-6 lg:p-8">
-                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                             <div className="min-w-0">
                                 <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                                     <MapPin className="h-3.5 w-3.5" aria-hidden />
@@ -745,17 +841,42 @@ export default function VenuesIndex({
                                     Yaklaşan yayınlar; mesafe, mekân koordinatlarına göre hesaplanır. Kartlardaki yeşil rozet yaklaşık km bilgisidir.
                                 </p>
                             </div>
+                            <div className="flex shrink-0 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => scrollNearbyEventsBy(-1)}
+                                    className="rounded-full border border-zinc-300 bg-white/80 px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                    aria-label="Önceki etkinlikler"
+                                >
+                                    ←
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => scrollNearbyEventsBy(1)}
+                                    className="rounded-full border border-zinc-300 bg-white/80 px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                    aria-label="Sonraki etkinlikler"
+                                >
+                                    →
+                                </button>
+                            </div>
                         </div>
-                        <ul className="grid list-none grid-cols-2 gap-2 sm:gap-5 lg:grid-cols-4">
+                        <div
+                            ref={nearbyEventsScrollRef}
+                            className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 sm:pb-4 [&::-webkit-scrollbar]:hidden"
+                        >
                             {nearbyEvents.map((ev) => {
                                 const { distance_km: distanceKm, ...cardEvent } = ev;
                                 return (
-                                    <li key={ev.id} className="h-full min-w-0">
+                                    <div
+                                        key={ev.id}
+                                        data-nearby-event-card
+                                        className="h-full min-w-[min(100%,320px)] max-w-[320px] shrink-0 snap-start"
+                                    >
                                         <PublicEventTicketCard event={cardEvent} distanceKm={distanceKm} />
-                                    </li>
+                                    </div>
                                 );
                             })}
-                        </ul>
+                        </div>
                     </div>
                 </section>
             )}

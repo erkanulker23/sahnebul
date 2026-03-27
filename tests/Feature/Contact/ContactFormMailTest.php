@@ -37,7 +37,7 @@ class ContactFormMailTest extends TestCase
             'email' => 'deneme@example.com',
             'name' => 'Deneme Kullanıcı',
         ]);
-        Mail::assertQueued(ContactFormSubmitted::class);
+        Mail::assertSent(ContactFormSubmitted::class);
         Mail::assertSent(SahnebulTemplateMail::class, function (SahnebulTemplateMail $mail): bool {
             return str_contains($mail->emailSubject, 'İletişim formu');
         });

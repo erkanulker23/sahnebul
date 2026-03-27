@@ -21,7 +21,7 @@ class ProfileController extends Controller
         if ($user->isAdmin()) {
             return redirect()->route('admin.profile');
         }
-        if ($user->isArtist() || $user->isManagerOrganization()) {
+        if ($user->isArtist() || $user->isManagerOrganization() || $user->isVenueOwner()) {
             return redirect()->route('artist.profile');
         }
 
@@ -55,7 +55,7 @@ class ProfileController extends Controller
 
         $redirect = match (true) {
             $user->isAdmin() => 'admin.profile',
-            $user->isArtist(), $user->isManagerOrganization() => 'artist.profile',
+            $user->isArtist(), $user->isManagerOrganization(), $user->isVenueOwner() => 'artist.profile',
             default => 'profile.edit',
         };
 

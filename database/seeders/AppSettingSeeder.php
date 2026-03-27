@@ -39,6 +39,10 @@ class AppSettingSeeder extends Seeder
         );
 
         $legalPages = [
+            'hakkimizda' => [
+                'title' => 'Hakkımızda',
+                'content' => "Sahnebul’u, canlı müzik ve sahne kültürünü seven herkesin hayatını kolaylaştırmak için kurguladık. Etkinlik ararken dağılan duyurular, eksik bilgiler ve “nerede, ne zaman?” sorusuna yanıt bulmak çoğu zaman yorucu olabiliyor; sanatçılar ve mekânlar için de görünürlük ile doğru kitleye ulaşmak ayrı bir emek gerektiriyor.\n\nTürkiye’de mekânları, sanatçıları ve güncel etkinlikleri tek bir yerde, tutarlı bir deneyimle sunan bir yapı eksikliğini gördük. Bu boşluğu doldurmak ve hem izleyici hem sahne tarafına net bir omurga sunmak istedik.\n\nİzleyiciler için hedefimiz basit: İlgilendiğiniz konser, kulüp gecesi veya sahne etkinliğine daha rahat ulaşmanız; tarih, şehir ve mekân bilgisini net görebilmeniz, keşfetmenin dağınık kaynaklara bölünmemesi. Yakınınızdaki yayınları bulmak ve takip etmek daha sade bir akışa oturmalı.\n\nSanatçılar ve mekân sahipleri için ise profillerin ve etkinliklerin yönetilebilir olması, programın doğru şekilde duyurulması ve sahnenin erişilebilir hale gelmesi kritik. Sahnebul ile bu süreçleri tek platformda toplamayı, “bir yerde paylaştım, bir yerde kayboldu” hissini azaltmayı hedefliyoruz.\n\nBugün olduğu gibi yarın da geri bildirimlerinizle birlikte gelişmeye devam edeceğiz. Türkiye’nin canlı kültür haritasını daha kullanışlı kılmak için buradayız.\n\nKurucu: Erkan Ülker",
+            ],
             'gizlilik-politikasi' => [
                 'title' => 'Gizlilik',
                 'content' => "Sahnebul olarak gizliliğinizi önemsiyoruz. Bu metin, platformu kullanırken kişisel verilerinizin hangi kapsamda toplandığını, hangi amaçlarla işlendiğini ve nasıl korunduğunu açıklamak için hazırlanmıştır.\nHesap oluşturma, etkinlik kaydetme, mekan/sanatçı sahiplenme talebi oluşturma ve iletişim formlarını kullanma süreçlerinde ad-soyad, e-posta, telefon, şehir ve kullanım tercihleri gibi bilgiler toplanabilir.\nToplanan veriler; üyelik işlemlerini yürütmek, güvenli giriş sağlamak, kullanıcı deneyimini iyileştirmek, destek taleplerini yanıtlamak ve hizmet kalitesini artırmak amacıyla işlenir.\nKişisel verileriniz, yasal zorunluluklar dışında üçüncü taraflara satılmaz veya izinsiz paylaşılmaz. Teknik altyapı, barındırma, e-posta ve analitik gibi hizmet alınan iş ortakları yalnızca hizmetin yürütülmesi için gerekli ölçüde erişim sağlayabilir.\nVerileriniz, yetkisiz erişime karşı güvenlik duvarı, erişim kontrolü, şifreleme ve kayıt izleme gibi idari ve teknik tedbirlerle korunur.\nDilediğiniz zaman hesabınızla ilgili bilgi talep edebilir, verilerinizin düzeltilmesini veya silinmesini isteyebilirsiniz. Bu tür taleplerinizi iletisim@sahnebul.com adresi üzerinden bize iletebilirsiniz.\nBu metin gerektiğinde güncellenebilir. Güncel sürüm her zaman bu sayfada yayımlanır.",
@@ -83,4 +87,3 @@ class AppSettingSeeder extends Seeder
         );
     }
 }
-

@@ -15,6 +15,7 @@ interface UserRow {
 
 interface Props {
     user: UserRow;
+    canAssignElevatedRoles?: boolean;
 }
 
 function roleLabelTr(role: string): string {
@@ -32,7 +33,7 @@ function roleLabelTr(role: string): string {
 const inputClass =
     'w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500';
 
-export default function AdminUsersEdit({ user }: Readonly<Props>) {
+export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }: Readonly<Props>) {
     const currentUserId = (usePage().props.auth as { user?: { id: number } })?.user?.id;
     const [resetBusy, setResetBusy] = useState(false);
 
@@ -128,8 +129,12 @@ export default function AdminUsersEdit({ user }: Readonly<Props>) {
                             <option value="artist">Sanatçı</option>
                             <option value="venue_owner">Mekân sahibi</option>
                             <option value="manager_organization">Organizasyon firması</option>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Süper admin</option>
+                            {canAssignElevatedRoles ? (
+                                <>
+                                    <option value="admin">Admin</option>
+                                    <option value="super_admin">Süper admin</option>
+                                </>
+                            ) : null}
                         </select>
                         {form.errors.role && <p className="mt-1 text-sm text-red-600">{form.errors.role}</p>}
                     </div>

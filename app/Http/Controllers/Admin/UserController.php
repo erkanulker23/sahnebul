@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\User;
+use App\Support\AdminAssignableUserRoles;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -44,30 +47,53 @@ class UserController extends Controller
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => $request->only(['search', 'role', 'status']),
+            'canAssignElevatedRoles' => $request->user()->isSuperAdmin(),
         ]);
     }
 
-    public function toggleActive(User $user)
+    public function edit(Request $request, User $user)
     {
-        if ($user->id === auth()->id()) {
+        $this->authorizeAdminUserEdit($request->user(), $user);
+
+        return Inertia::render('Admin/Users/Edit', [
+            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            'canAssignElevatedRoles' => $request->user()->isSuperAdmin(),
+        ]);
+    }
+
+    public function toggleActive(Request $request, User $user)
+    {
+        if ($user->id === $request->user()->id) {
             return back()->with('error', 'Kendi hesabınızı devre dışı bırakamazsınız.');
         }
-        if ($user->isAdmin()) {
-            return back()->with('error', 'Admin hesapları devre dışı bırakılamaz.');
+
+        if ($user->isSuperAdmin()) {
+            return back()->with('error', 'Süper yönetici hesapları dondurulamaz.');
         }
+
+        if ($user->isAdmin() && ! $request->user()->isSuperAdmin()) {
+            return back()->with('error', 'Admin hesaplarını yalnızca süper yönetici dondurabilir.');
+        }
+
         $user->update(['is_active' => ! $user->is_active]);
 
         return back()->with('success', $user->is_active ? 'Kullanıcı aktifleştirildi.' : 'Hesap donduruldu.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
-        if ($user->id === auth()->id()) {
+        if ($user->id === $request->user()->id) {
             return back()->with('error', 'Kendi hesabınızı silemezsiniz.');
         }
-        if ($user->isAdmin()) {
-            return back()->with('error', 'Admin hesapları silinemez.');
+
+        if ($user->isSuperAdmin()) {
+            return back()->with('error', 'Süper yönetici hesapları silinemez.');
         }
+
+        if ($user->isAdmin() && ! $request->user()->isSuperAdmin()) {
+            return back()->with('error', 'Admin hesaplarını yalnızca süper yönetici silebilir.');
+        }
+
         $user->delete();
 
         return back()->with('success', 'Kullanıcı silindi.');
@@ -75,11 +101,14 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $actor = $request->user();
+        $assignable = AdminAssignableUserRoles::forActor($actor);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email']),
             'password' => ['required', 'string', 'min:6'],
-            'role' => ['required', 'in:customer,artist,venue_owner,manager_organization,admin,super_admin'],
+            'role' => ['required', Rule::in($assignable)],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -96,15 +125,16 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        if ($user->isAdmin()) {
-            abort(403, 'Admin hesapları bu ekrandan düzenlenemez.');
-        }
+        $this->authorizeAdminUserEdit($request->user(), $user);
+
+        $actor = $request->user();
+        $assignable = AdminAssignableUserRoles::forActor($actor);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email,'.$user->id]),
             'password' => ['nullable', 'string', 'min:6'],
-            'role' => ['required', 'in:customer,artist,venue_owner,manager_organization,admin,super_admin'],
+            'role' => ['required', Rule::in($assignable)],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -124,5 +154,29 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.edit', $user)
             ->with('success', 'Kullanıcı güncellendi.');
+    }
+
+    public function sendPasswordReset(Request $request, User $user)
+    {
+        if ($user->id === $request->user()->id) {
+            return back()->with('error', 'Kendi hesabınız için bu işlemi kullanamazsınız.');
+        }
+
+        if (($user->isAdmin() || $user->isSuperAdmin()) && ! $request->user()->isSuperAdmin()) {
+            abort(403, 'Yönetici hesapları için şifre sıfırlama yalnızca süper yönetici tarafından tetiklenebilir.');
+        }
+
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with('success', 'Şifre sıfırlama bağlantısı e-posta ile gönderildi.')
+            : back()->with('error', 'Şifre sıfırlama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.');
+    }
+
+    private function authorizeAdminUserEdit(User $actor, User $target): void
+    {
+        if ($target->isAdmin() && ! AdminAssignableUserRoles::canManageAdminOrSuperAdminAccounts($actor)) {
+            abort(403, 'Yönetici hesaplarını yalnızca süper yönetici düzenleyebilir.');
+        }
     }
 }

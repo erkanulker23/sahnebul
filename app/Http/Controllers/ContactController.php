@@ -26,7 +26,8 @@ class ContactController extends Controller
 
     public function store(ContactFormRequest $request): RedirectResponse
     {
-        if ($request->filled('company')) {
+        // Gizli tuzak alanı — adı "company" olunca tarayıcılar "şirket" olarak otomatik dolduruyor; mesaj sessizce atlanıyordu.
+        if ($request->filled('sahnebul_hp')) {
             return redirect()
                 ->route('contact')
                 ->with('success', 'Mesajınız alındı. En kısa sürede size dönüş yapacağız.');

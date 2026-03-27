@@ -37,7 +37,7 @@ class EventPublicController extends Controller
         if (ctype_digit($segment)) {
             return Event::query()
                 ->published()
-                ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+                ->whereHas('venue', fn ($q) => $q->listedPublicly())
                 ->whereKey((int) $segment)
                 ->firstOrFail();
         }
@@ -57,7 +57,7 @@ class EventPublicController extends Controller
 
     private function renderPublishedEventShow(Request $request, Event $event): Response
     {
-        if ($event->venue?->status !== 'approved') {
+        if ($event->venue === null || $event->venue->status !== 'approved' || ! $event->venue->is_active) {
             abort(404);
         }
 
@@ -109,7 +109,7 @@ class EventPublicController extends Controller
 
         $venueUpcomingEvents = Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->where('venue_id', $event->venue_id)
             ->where('id', '!=', $event->id)
             ->whereNotNull('start_date')
@@ -123,7 +123,7 @@ class EventPublicController extends Controller
         if ($artistIds !== []) {
             $artistUpcomingEvents = Event::query()
                 ->published()
-                ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+                ->whereHas('venue', fn ($q) => $q->listedPublicly())
                 ->where('venue_id', '!=', $event->venue_id)
                 ->where('id', '!=', $event->id)
                 ->whereNotNull('start_date')
@@ -144,6 +144,8 @@ class EventPublicController extends Controller
             && $u->canUsePublicEngagementFeatures()
             && $u->canSubmitEventReviewForEvent((int) $event->id);
 
+        $futureStart = $event->start_date !== null && $event->start_date->isFuture();
+
         return Inertia::render('Events/Show', [
             'event' => $event,
             'documentStructuredData' => PublicStructuredData::eventShowGraph($event),
@@ -151,10 +153,14 @@ class EventPublicController extends Controller
             'artistUpcomingEvents' => $artistUpcomingEvents,
             'eventReviews' => $eventReviews,
             'eventCustomerActions' => [
+                'followUiVisible' => $futureStart,
                 'canToggle' => $u !== null && $u->canUsePublicEngagementFeatures()
-                    && $event->start_date !== null
-                    && $event->start_date->isFuture(),
+                    && $futureStart,
                 'hasReminder' => $hasEventReminder,
+                'needsEmailVerificationForFollow' => $u !== null
+                    && $futureStart
+                    && ! $u->isAdmin()
+                    && $u->email_verified_at === null,
             ],
             'eventReviewEligibility' => [
                 'canSubmit' => $canSubmitEventReview,

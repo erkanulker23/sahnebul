@@ -88,6 +88,8 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/sahne/organizasyon/sanatcilar';
         }
+        case 'artist.public-profile.gallery.instagram.store':
+            return '/sahne/sanatci-sayfam/galeri-instagram';
         default:
             return '/';
     }

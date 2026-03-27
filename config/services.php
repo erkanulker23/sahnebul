@@ -113,4 +113,16 @@ return [
         'api_locations_per_minute' => (int) env('RATE_LIMIT_API_LOCATIONS', 90),
     ],
 
+    /**
+     * Instagram (ve benzeri) video indirmek için isteğe bağlı yt-dlp ikili dosyası.
+     * Sunucuda: brew install yt-dlp veya pip install yt-dlp — ardından YTDLP_BINARY=/usr/local/bin/yt-dlp
+     *
+     * @see https://github.com/yt-dlp/yt-dlp
+     */
+    'ytdlp' => [
+        'binary' => env('YTDLP_BINARY'),
+        'timeout' => (int) env('YTDLP_TIMEOUT', 300),
+        'cookies_file' => env('YTDLP_COOKIES_FILE'),
+    ],
+
 ];

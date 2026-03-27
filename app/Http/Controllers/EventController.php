@@ -130,7 +130,7 @@ class EventController extends Controller
         $events = Event::query()
             ->published()
             ->where('start_date', '>=', now())
-            ->whereHas('venue', fn ($q) => $q->approved()->whereNotNull('latitude')->whereNotNull('longitude'))
+            ->whereHas('venue', fn ($q) => $q->listedPublicly()->whereNotNull('latitude')->whereNotNull('longitude'))
             ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->select('events.*')
             ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])

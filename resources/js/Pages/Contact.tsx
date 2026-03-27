@@ -40,7 +40,8 @@ export default function Contact() {
         subject: '',
         message: '',
         consent: false as boolean,
-        company: '',
+        /** Gizli honeypot — "company" adı tarayıcı otomatik doldurmasıyla tetikleniyordu */
+        sahnebul_hp: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -48,7 +49,7 @@ export default function Contact() {
         post(route('contact.store'), {
             preserveScroll: true,
             onSuccess: () => {
-                reset('message', 'subject', 'phone', 'company');
+                reset('message', 'subject', 'phone', 'sahnebul_hp');
                 setData('consent', false);
                 if (user) {
                     setData('name', user.name);
@@ -160,15 +161,18 @@ export default function Contact() {
                             noValidate
                         >
                             <div className="pointer-events-none absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden opacity-0" aria-hidden="true">
-                                <label htmlFor="contact-company">Şirket</label>
+                                <label htmlFor="contact-sahnebul-hp">Bırakın boş</label>
                                 <input
-                                    id="contact-company"
+                                    id="contact-sahnebul-hp"
                                     type="text"
-                                    name="company"
+                                    name="sahnebul_hp"
                                     tabIndex={-1}
                                     autoComplete="off"
-                                    value={data.company}
-                                    onChange={(e) => setData('company', e.target.value)}
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-form-type="other"
+                                    value={data.sahnebul_hp}
+                                    onChange={(e) => setData('sahnebul_hp', e.target.value)}
                                 />
                             </div>
 

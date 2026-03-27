@@ -16,7 +16,7 @@ class ArtistMedia extends Model
     protected $table = 'artist_media';
 
     protected $fillable = [
-        'artist_id', 'type', 'path', 'thumbnail', 'title', 'order',
+        'artist_id', 'type', 'path', 'embed_url', 'thumbnail', 'title', 'order',
         'moderation_status', 'moderation_note',
     ];
 

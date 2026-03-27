@@ -1,3 +1,4 @@
+import { InstagramPostBlock, instagramPermalinkForEmbed, useInstagramEmbedScript } from '@/Components/InstagramPostEmbed';
 import PhoneInput from '@/Components/PhoneInput';
 import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
@@ -50,6 +51,8 @@ interface ArtistMediaItem {
     path: string;
     title: string | null;
     type: string;
+    /** Instagram gönderi/reel — sitede gömülü oynatıcı */
+    embed_url?: string | null;
 }
 
 function stringMapHasContent(obj: Record<string, unknown> | null | undefined): boolean {
@@ -354,6 +357,15 @@ export default function ArtistShow({
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
+    const instagramGallerySignatures = useMemo(() => {
+        const list = artist.media ?? [];
+        return list
+            .map((x) => (x.embed_url ?? '').trim())
+            .filter((u) => u.includes('instagram.com'))
+            .map((u) => instagramPermalinkForEmbed(u))
+            .join('|');
+    }, [artist.media]);
+    useInstagramEmbedScript(instagramGallerySignatures);
     const canClaimArtist = artist.user_id == null && artist.status !== 'approved';
 
     const formatTrackDuration = (ms: number | null | undefined) => {
@@ -962,20 +974,36 @@ export default function ArtistShow({
                                 <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-white/[0.06] dark:bg-zinc-900/50">
                                     <h2 className="font-display mb-4 text-xl font-bold text-zinc-900 dark:text-white">Galeri</h2>
                                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                                        {artist.media.map((m) => (
-                                            <figure key={m.id} className="overflow-hidden rounded-xl border border-zinc-200 dark:border-white/10">
-                                                <img
-                                                    src={imageSrc(m.path) ?? ''}
-                                                    alt={m.title ?? artist.name}
-                                                    className="aspect-square w-full object-cover"
-                                                />
-                                                {m.title && (
-                                                    <figcaption className="truncate px-2 py-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                                                        {m.title}
-                                                    </figcaption>
-                                                )}
-                                            </figure>
-                                        ))}
+                                        {artist.media.map((m) => {
+                                            const ig = (m.embed_url ?? '').trim();
+                                            if (ig.includes('instagram.com')) {
+                                                return (
+                                                    <div
+                                                        key={m.id}
+                                                        className="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-950/40 sm:col-span-3 md:col-span-4"
+                                                    >
+                                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                                                            Tanıtım (Instagram)
+                                                        </p>
+                                                        <InstagramPostBlock permalink={ig} />
+                                                    </div>
+                                                );
+                                            }
+                                            const src = imageSrc(m.path);
+                                            if (!src) {
+                                                return null;
+                                            }
+                                            return (
+                                                <figure key={m.id} className="overflow-hidden rounded-xl border border-zinc-200 dark:border-white/10">
+                                                    <img src={src} alt={m.title ?? artist.name} className="aspect-square w-full object-cover" />
+                                                    {m.title ? (
+                                                        <figcaption className="truncate px-2 py-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                                                            {m.title}
+                                                        </figcaption>
+                                                    ) : null}
+                                                </figure>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

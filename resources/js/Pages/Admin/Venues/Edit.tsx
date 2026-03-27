@@ -10,6 +10,7 @@ import { formatTrPhoneInput } from '@/lib/trPhoneInput';
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { Link, router, useForm } from '@inertiajs/react';
 import axios from 'axios';
+import { Star } from 'lucide-react';
 import { useState } from 'react';
 
 interface MediaItem {
@@ -22,6 +23,7 @@ interface Venue {
     name: string;
     slug: string;
     events_count?: number;
+    user_id?: number | null;
     category_id: number;
     city_id: number;
     district_id?: number | null;
@@ -39,8 +41,17 @@ interface Venue {
     cover_image: string | null;
     status: string;
     is_featured?: boolean;
+    is_active?: boolean;
     view_count?: number;
     media: MediaItem[];
+}
+
+interface VenueOwnerCandidate {
+    id: number;
+    name: string;
+    email: string;
+    role_label: string | null;
+    inactive: boolean;
 }
 
 interface SubscriptionPlanRow {
@@ -62,6 +73,7 @@ interface Props {
     categories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
     venueOwner?: { id: number; name: string; email: string } | null;
+    venueOwnerCandidates?: VenueOwnerCandidate[];
     venueSubscriptionPlans?: SubscriptionPlanRow[];
     venueOwnerSubscription?: OwnerSub | null;
 }
@@ -79,6 +91,7 @@ export default function AdminVenueEdit({
     categories,
     googleMapsBrowserKey = null,
     venueOwner = null,
+    venueOwnerCandidates = [],
     venueSubscriptionPlans = [],
     venueOwnerSubscription = null,
 }: Readonly<Props>) {
@@ -115,12 +128,15 @@ export default function AdminVenueEdit({
         cover_image: venue.cover_image ?? '',
         status: venue.status,
         is_featured: Boolean(venue.is_featured),
+        is_active: venue.is_active !== false,
+        user_id: venue.user_id != null ? String(venue.user_id) : '',
         cover_upload: null as File | null,
     });
 
     transform((formData) => ({
         ...formData,
         is_featured: formData.is_featured ? 1 : 0,
+        is_active: formData.is_active ? 1 : 0,
     }));
 
     const submit = (e: React.FormEvent) => {
@@ -230,16 +246,104 @@ export default function AdminVenueEdit({
                             />
                             {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
                         </div>
+                        <div className="sm:col-span-2 rounded-2xl border border-amber-500/35 bg-gradient-to-br from-amber-500/[0.12] via-zinc-900/90 to-zinc-950 p-5 shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/20">
+                            <div className="flex items-center gap-2 text-amber-400">
+                                <Star className="h-5 w-5 fill-amber-400/30" strokeWidth={1.5} aria-hidden />
+                                <h3 className="text-sm font-semibold tracking-wide text-amber-100/95">
+                                    Onay, yayında görünürlük ve vitrin
+                                </h3>
+                            </div>
+                            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                                <strong className="font-medium text-zinc-300">Onaylı</strong>, kaydın yönetici tarafından doğrulandığını ve bir mekân sahibi hesabıyla eşleştirildiğini ifade eder.
+                                Sitede listelenmesi için ayrıca <strong className="font-medium text-zinc-300">yayında (aktif)</strong> olmalıdır; pasif mekânlar ziyaretçilere gösterilmez.
+                            </p>
+                            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                <div className="sm:col-span-2">
+                                    <label className="block text-sm font-medium text-zinc-400">Yönetici onayı *</label>
+                                    <select
+                                        value={data.status}
+                                        onChange={(e) => setData('status', e.target.value)}
+                                        className="mt-1 w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                    >
+                                        <option value="pending">Beklemede</option>
+                                        <option value="approved">Onaylı</option>
+                                        <option value="rejected">Reddedildi</option>
+                                    </select>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-700/80 bg-zinc-950/40 px-3 py-3 text-sm text-zinc-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.is_active}
+                                            onChange={(e) => setData('is_active', e.target.checked)}
+                                            className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                                        />
+                                        <span>
+                                            <span className="font-medium text-white">Yayında (aktif)</span>
+                                            <span className="mt-1 block text-xs font-normal text-zinc-500">
+                                                İşaretliyse ve onaylıysa mekân /mekanlar ve aramalarda listelenir. Pasif bırakarak geçici olarak gizleyebilirsiniz.
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-600/35 bg-gradient-to-r from-amber-950/50 to-zinc-950/40 px-3 py-3 text-sm text-zinc-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.is_featured}
+                                            onChange={(e) => setData('is_featured', e.target.checked)}
+                                            className="mt-0.5 rounded border-amber-700/60 bg-zinc-900 text-amber-500"
+                                        />
+                                        <span className="flex min-w-0 flex-1 items-start gap-2">
+                                            <Star
+                                                className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
+                                                strokeWidth={2}
+                                                aria-hidden
+                                            />
+                                            <span>
+                                                <span className="font-medium text-amber-100">Öne çıkan mekân</span>
+                                                <span className="mt-1 block text-xs font-normal text-zinc-500">
+                                                    Listelerde üst sıralarda yer alır; kartlarda yıldız ve altın çerçeve ile vurgulanır.
+                                                </span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div className="sm:col-span-2">
-                            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-300">
-                                <input
-                                    type="checkbox"
-                                    checked={data.is_featured}
-                                    onChange={(e) => setData('is_featured', e.target.checked)}
-                                    className="rounded border-zinc-600 bg-zinc-800 text-amber-500"
-                                />
-                                Öne çıkan mekan (bulunduğu şehirde /mekanlar listesinde üstte ve belirgin kartla gösterilir)
-                            </label>
+                            <label className="block text-sm font-medium text-zinc-400">Mekân sahibi (kullanıcı)</label>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                                Yalnızca «Mekân sahibi» rolündeki aktif kullanıcılar seçilebilir. Rol atamak için{' '}
+                                <Link
+                                    href={route('admin.users.index', { role: 'venue_owner' })}
+                                    className="text-amber-400 hover:text-amber-300"
+                                >
+                                    kullanıcılar
+                                </Link>{' '}
+                                sayfasını kullanın.
+                            </p>
+                            <select
+                                value={data.user_id}
+                                onChange={(e) => setData('user_id', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            >
+                                <option value="">Atanmadı</option>
+                                {venueOwnerCandidates.map((c) => {
+                                    const suffix = [
+                                        c.inactive ? 'pasif' : null,
+                                        c.role_label ? `rol: ${c.role_label}` : null,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' — ');
+                                    return (
+                                        <option key={c.id} value={String(c.id)}>
+                                            {c.name} ({c.email}){suffix ? ` — ${suffix}` : ''}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            {errors.user_id && <p className="mt-1 text-sm text-red-400">{errors.user_id}</p>}
                         </div>
                         <div className="sm:col-span-2">
                             <VenueGoogleLocationField
@@ -410,18 +514,6 @@ export default function AdminVenueEdit({
                                 onChange={(e) => setData('capacity', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-400">Durum *</label>
-                            <select
-                                value={data.status}
-                                onChange={(e) => setData('status', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
-                            >
-                                <option value="pending">Beklemede</option>
-                                <option value="approved">Onaylı</option>
-                                <option value="rejected">Reddedildi</option>
-                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Telefon</label>

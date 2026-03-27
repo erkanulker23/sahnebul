@@ -21,11 +21,14 @@ class EventReminderController extends Controller
         if ($user->remindedEvents()->whereKey($model->id)->exists()) {
             $user->remindedEvents()->detach($model->id);
 
-            return back()->with('success', 'Etkinlik takibi kapatıldı.');
+            return back()->with('success', 'Takip listesinden çıkarıldı.');
         }
 
         $user->remindedEvents()->attach($model->id, ['reminder_sent_at' => null]);
 
-        return back()->with('success', 'Etkinliği takip ediyorsunuz. Etkinlikten bir gün önce e-posta ve bildirim alırsınız.');
+        return back()->with(
+            'success',
+            'Takip listesine eklendi. Etkinlikten bir gün önce (yaklaşık saat 10:00, İstanbul) e-posta ve hesabınızdaki bildirimler gönderilir.'
+        );
     }
 }

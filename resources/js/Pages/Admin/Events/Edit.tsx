@@ -87,13 +87,18 @@ export default function AdminEventEdit({
 }: Readonly<Props>) {
     const page = usePage();
     const flash = (page.props as { flash?: FlashProps }).flash;
-    const [mediaImportUrl, setMediaImportUrl] = useState('');
+    const [mediaImportUrls, setMediaImportUrls] = useState('');
     const [mediaImportMode, setMediaImportMode] = useState<'image_cover' | 'image_listing' | 'promo_video'>('image_listing');
     const [appendPromoToGallery, setAppendPromoToGallery] = useState(true);
     const [mediaImporting, setMediaImporting] = useState(false);
+    const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
+    const [promoPosterFile, setPromoPosterFile] = useState<File | null>(null);
+    const [promoUploading, setPromoUploading] = useState(false);
     const [venueOptions, setVenueOptions] = useState(venues);
     const coverFileInputRef = useRef<HTMLInputElement>(null);
     const listingFileInputRef = useRef<HTMLInputElement>(null);
+    const promoVideoInputRef = useRef<HTMLInputElement>(null);
+    const promoPosterInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         setVenueOptions(venues);
     }, [venues]);
@@ -178,22 +183,49 @@ export default function AdminEventEdit({
     const hasListingToRemove = Boolean(data.listing_image?.trim() || data.listing_upload);
 
     const submitMediaImport = () => {
-        const url = mediaImportUrl.trim();
-        if (!url) return;
+        if (!mediaImportUrls.trim()) return;
         setMediaImporting(true);
         router.post(
             route('admin.events.import-media', event.id),
             {
-                url,
+                urls_text: mediaImportUrls,
                 mode: mediaImportMode,
                 append_promo: mediaImportMode === 'promo_video' ? appendPromoToGallery : true,
             },
             {
                 preserveScroll: true,
                 onFinish: () => setMediaImporting(false),
-                onSuccess: () => setMediaImportUrl(''),
+                onSuccess: () => setMediaImportUrls(''),
             },
         );
+    };
+
+    const submitPromoFileUpload = () => {
+        if (!promoVideoFile && !promoPosterFile) return;
+        setPromoUploading(true);
+        const fd = new FormData();
+        if (promoVideoFile) {
+            fd.append('promo_video_upload', promoVideoFile);
+        }
+        if (promoPosterFile) {
+            fd.append('promo_poster_upload', promoPosterFile);
+        }
+        fd.append('append_promo', appendPromoToGallery ? '1' : '0');
+        router.post(route('admin.events.append-promo-files', event.id), fd, {
+            preserveScroll: true,
+            forceFormData: true,
+            onFinish: () => setPromoUploading(false),
+            onSuccess: () => {
+                setPromoVideoFile(null);
+                setPromoPosterFile(null);
+                if (promoVideoInputRef.current) {
+                    promoVideoInputRef.current.value = '';
+                }
+                if (promoPosterInputRef.current) {
+                    promoPosterInputRef.current.value = '';
+                }
+            },
+        });
     };
 
     const clearPromoFromServer = () => {
@@ -558,26 +590,93 @@ export default function AdminEventEdit({
                         />
                     </div>
 
-                    <div className="rounded-lg border border-zinc-700/80 bg-zinc-950/40 p-4">
-                        <h2 className="text-sm font-semibold text-zinc-200">Bağlantıdan içe aktar</h2>
+                    <div className="space-y-6 rounded-lg border border-zinc-700/80 bg-zinc-950/40 p-4">
+                        <div>
+                            <h2 className="text-sm font-semibold text-zinc-200">Tanıtım videosu (HTML5 — sitede oynatılır)</h2>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                Ziyaretçiler yalnızca sunucunuza kaydedilen <strong className="text-zinc-400">MP4 / WebM / MOV</strong>{' '}
+                                dosyasını görür; Instagram gömülüsü kullanılmaz. Videoyu harici bir siteden indirip aşağıdan yükleyin veya
+                                doğrudan <code className="text-zinc-400">https://…/dosya.mp4</code> gibi bir adres yapıştırın. Instagram reel
+                                bağlantısı yalnızca sunucuda <code className="text-zinc-400">yt-dlp</code> (
+                                <code className="text-zinc-400">YTDLP_BINARY</code>) tanımlıysa otomatik indirilebilir; aksi halde hata
+                                verir — o zaman dosyayı elle yükleyin.
+                            </p>
+                            <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-zinc-400">
+                                <input
+                                    type="checkbox"
+                                    checked={appendPromoToGallery}
+                                    onChange={(e) => setAppendPromoToGallery(e.target.checked)}
+                                    className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                                />
+                                <span>
+                                    Tanıtım galerisine <strong className="text-zinc-300">yanına ekle</strong> (dosya yükleme ve tanıtım
+                                    bağlantıları için). İşaretsiz: önce mevcut tüm tanıtım öğeleri silinir; ardından yüklediğiniz dosya veya
+                                    yapıştırdığınız bağlantılar uygulanır.
+                                </span>
+                            </label>
+                        </div>
+
+                        <div className="border-t border-zinc-700/60 pt-5">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dosyadan ekle</h3>
+                            <p className="mt-1 text-xs text-zinc-500">MP4, WebM veya MOV video; isteğe bağlı tanıtım poster görseli.</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label htmlFor="admin-event-promo-video-file" className="block text-xs font-medium text-zinc-400">
+                                    Tanıtım videosu (dosya)
+                                </label>
+                                <input
+                                    id="admin-event-promo-video-file"
+                                    ref={promoVideoInputRef}
+                                    type="file"
+                                    accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                                    onChange={(e) => setPromoVideoFile(e.target.files?.[0] ?? null)}
+                                    className="mt-1 w-full text-sm text-zinc-300"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="admin-event-promo-poster-file" className="block text-xs font-medium text-zinc-400">
+                                    Tanıtım görseli / poster
+                                </label>
+                                <input
+                                    id="admin-event-promo-poster-file"
+                                    ref={promoPosterInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setPromoPosterFile(e.target.files?.[0] ?? null)}
+                                    className="mt-1 w-full text-sm text-zinc-300"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            disabled={promoUploading || (!promoVideoFile && !promoPosterFile)}
+                            onClick={submitPromoFileUpload}
+                            className="mt-3 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600 disabled:opacity-50"
+                        >
+                            {promoUploading ? 'Yükleniyor…' : 'Tanıtım dosyalarını kaydet'}
+                        </button>
+                        </div>
+
+                        <div className="border-t border-zinc-700/60 pt-5">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Bağlantıdan içe aktar</h3>
                         <p className="mt-1 text-xs text-zinc-500">
-                            Instagram <code className="text-zinc-400">/p/…</code> veya <code className="text-zinc-400">/reel/…</code>{' '}
-                            bağlantılarında önizleme görseli sunucuya indirilir (og:image gerekmez). Tanıtım modunda mümkünse doğrudan video
-                            dosyası da kaydedilir; aksi halde gömülü oynatıcı ve ızgara için poster kullanılır. Aynı gönderiyi tekrar
-                            eklemek kaydı günceller.
+                            Her satıra bir <code className="text-zinc-400">https://</code> adresi. Kapak / liste modunda yalnızca ilk satır
+                            kullanılır.
                         </p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                             <div className="sm:col-span-2">
-                                <label htmlFor="admin-event-import-url" className="block text-xs font-medium text-zinc-400">
-                                    Sayfa URL (https)
+                                <label htmlFor="admin-event-import-urls" className="block text-xs font-medium text-zinc-400">
+                                    Bağlantılar (satır başına bir URL)
                                 </label>
-                                <input
-                                    id="admin-event-import-url"
-                                    type="url"
-                                    value={mediaImportUrl}
-                                    onChange={(e) => setMediaImportUrl(e.target.value)}
-                                    placeholder="https://www.instagram.com/reel/…"
-                                    className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white"
+                                <textarea
+                                    id="admin-event-import-urls"
+                                    value={mediaImportUrls}
+                                    onChange={(e) => setMediaImportUrls(e.target.value)}
+                                    placeholder={
+                                        'https://cdn.ornek.com/tanitim.mp4\nhttps://www.instagram.com/reel/… (yalnızca yt-dlp ile)'
+                                    }
+                                    rows={5}
+                                    className="mt-1 w-full resize-y rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-white placeholder:text-zinc-600"
                                 />
                             </div>
                             <div>
@@ -594,29 +693,18 @@ export default function AdminEventEdit({
                                 >
                                     <option value="image_cover">Kapak görseli (detay)</option>
                                     <option value="image_listing">Liste / kart görseli</option>
-                                    <option value="promo_video">Tanıtım videosu (+ mümkünse liste görseli)</option>
+                                    <option value="promo_video">Tanıtım videosu — MP4 indir / IG (yt-dlp)</option>
                                 </select>
                             </div>
                             <button
                                 type="button"
-                                disabled={mediaImporting || !mediaImportUrl.trim()}
+                                disabled={mediaImporting || !mediaImportUrls.trim()}
                                 onClick={submitMediaImport}
                                 className="rounded-lg bg-zinc-700 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-600 disabled:opacity-50"
                             >
                                 {mediaImporting ? 'İndiriliyor…' : 'İçe aktar'}
                             </button>
                         </div>
-                        {mediaImportMode === 'promo_video' ? (
-                            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
-                                <input
-                                    type="checkbox"
-                                    checked={appendPromoToGallery}
-                                    onChange={(e) => setAppendPromoToGallery(e.target.checked)}
-                                    className="rounded border-zinc-600 bg-zinc-800 text-amber-500"
-                                />
-                                Mevcut tanıtımların yanına ekle (işaretli değilse hepsi silinip yalnızca bu bağlantı kalır)
-                            </label>
-                        ) : null}
                         {adminPromoPreviewItems.length > 0 && (
                             <div className="mt-4 border-t border-zinc-700/60 pt-4">
                                 <p className="text-xs text-zinc-500">
@@ -644,7 +732,9 @@ export default function AdminEventEdit({
                                                 />
                                             ) : (
                                                 <div className="flex h-full items-center justify-center p-2 text-center text-[10px] text-zinc-500">
-                                                    {row.embed_url?.includes('instagram.com') ? 'Instagram gömüsü' : 'Bağlantı'}
+                                                    {row.embed_url?.includes('instagram.com')
+                                                        ? 'Yalnızca IG URL (sitede gösterilmez — video yükleyin)'
+                                                        : 'Bağlantı'}
                                                 </div>
                                             )}
                                         </li>
@@ -669,6 +759,7 @@ export default function AdminEventEdit({
                                 </button>
                             </div>
                         )}
+                        </div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">

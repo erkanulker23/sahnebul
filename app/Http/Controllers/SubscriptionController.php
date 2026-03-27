@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\SubscriptionPlan;
-use App\Models\UserSubscription;
+use App\Services\Subscriptions\SubscriptionPurchaseService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use InvalidArgumentException;
 
 class SubscriptionController extends Controller
 {
@@ -13,9 +15,9 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isSuperAdmin()) {
+        if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard')
-                ->with('error', 'Süper yöneticiler üyelik paketi satın alamaz.');
+                ->with('error', 'Yönetici hesapları üyelik paketi satın alamaz.');
         }
 
         $user->loadCount('venues');
@@ -39,7 +41,7 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, SubscriptionPurchaseService $purchaseService)
     {
         $validated = $request->validate([
             'plan_id' => 'required|exists:subscription_plans,id',
@@ -48,44 +50,23 @@ class SubscriptionController extends Controller
         $plan = SubscriptionPlan::findOrFail($validated['plan_id']);
         $user = $request->user();
 
-        if ($user->isSuperAdmin()) {
-            abort(403, 'Süper yöneticiler üyelik paketi satın alamaz.');
+        if ($user->isAdmin()) {
+            abort(403, 'Yönetici hesapları üyelik paketi satın alamaz.');
         }
 
-        if ($plan->membership_type === 'artist' && ! $user->isArtist()) {
-            return redirect()->route('subscriptions.index', ['type' => 'artist'])
-                ->with('error', 'Sanatçı üyeliği yalnızca sanatçı hesapları satın alabilir.');
+        try {
+            $purchaseService->purchase($user, $plan);
+        } catch (InvalidArgumentException $e) {
+            Log::channel('security')->notice('subscription.purchase_rejected', [
+                'user_id' => $user->id,
+                'plan_id' => $plan->id,
+                'reason' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('subscriptions.index', ['type' => $plan->membership_type])
+                ->with('error', $e->getMessage());
         }
-
-        if ($plan->membership_type === 'venue' && ! $user->venues()->exists()) {
-            return redirect()->route('subscriptions.index', ['type' => 'venue'])
-                ->with('error', 'Mekan üyeliği yalnızca size bağlı en az bir mekan varken satın alınabilir.');
-        }
-
-        if ($plan->membership_type === 'manager' && ! $user->isManagerOrganization()) {
-            return redirect()->route('subscriptions.index', ['type' => 'manager'])
-                ->with('error', 'Organizasyon üyeliği yalnızca organizasyon firması hesapları satın alabilir.');
-        }
-
-        $current = $user->activeSubscription();
-        if ($current) {
-            $current->update(['status' => 'cancelled']);
-        }
-
-        $startsAt = now();
-        $trialDays = (int) ($plan->trial_days ?? 0);
-        $afterTrial = $startsAt->copy()->addDays($trialDays);
-        $endsAt = $plan->interval === 'yearly'
-            ? $afterTrial->copy()->addYear()
-            : $afterTrial->copy()->addMonth();
-
-        UserSubscription::create([
-            'user_id' => $user->id,
-            'subscription_plan_id' => $plan->id,
-            'status' => 'active',
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-        ]);
 
         return redirect()->route('artist.dashboard')
             ->with('success', 'Gold üyelik aktif edildi. Artık mekan ve etkinlik yönetebilirsiniz.');

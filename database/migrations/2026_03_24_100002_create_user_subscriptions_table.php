@@ -13,8 +13,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('subscription_plan_id')->constrained()->cascadeOnDelete();
             $table->enum('status', ['active', 'expired', 'cancelled'])->default('active');
-            $table->timestamp('starts_at');
-            $table->timestamp('ends_at');
+            $table->dateTime('starts_at');
+            $table->dateTime('ends_at');
             $table->timestamps();
 
             $table->index(['user_id', 'status', 'ends_at']);

@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\Event;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Process\Process;
 
 /**
  * Paylaşım / sayfa URL’sinden og:image ve (mümkünse) og:video indirir.
@@ -28,6 +30,156 @@ final class EventMediaImportFromUrlService
 
     private const MAX_PROMO_GALLERY_ITEMS = 12;
 
+    private const MAX_BATCH_URLS = 20;
+
+    /** @param  list<string>  $urls */
+    public function importMany(Event $event, array $urls, string $mode, bool $appendPromoGallery): array
+    {
+        $urls = array_values(array_unique(array_filter(array_map('trim', $urls), fn (string $u) => $u !== '')));
+        if ($urls === []) {
+            return ['success' => false, 'message' => 'Geçerli bağlantı satırı yok.'];
+        }
+        if (count($urls) > self::MAX_BATCH_URLS) {
+            return ['success' => false, 'message' => 'En fazla '.self::MAX_BATCH_URLS.' bağlantı işlenebilir.'];
+        }
+        if ($mode !== 'promo_video' && count($urls) > 1) {
+            return ['success' => false, 'message' => 'Çoklu satır yalnızca «Tanıtım videosu» modunda kullanılabilir.'];
+        }
+
+        if ($mode === 'promo_video' && ! $appendPromoGallery) {
+            $this->purgePromoGallery($event);
+            $event->refresh();
+        }
+
+        $ok = 0;
+        /** @var list<string> $failures */
+        $failures = [];
+        foreach ($urls as $u) {
+            $r = $this->import($event->fresh(), $u, $mode, true);
+            if ($r['success']) {
+                $ok++;
+            } else {
+                $failures[] = Str::limit($u, 64).' — '.$r['message'];
+            }
+        }
+
+        $total = count($urls);
+        $msg = "{$ok}/{$total} bağlantı işlendi.";
+        if ($failures !== []) {
+            $msg .= ' '.implode(' | ', array_slice($failures, 0, 6));
+            if (count($failures) > 6) {
+                $msg .= ' …';
+            }
+        }
+
+        return [
+            'success' => $ok > 0,
+            'message' => $msg,
+            'details' => ['ok' => $ok, 'total' => $total, 'failures' => $failures],
+        ];
+    }
+
+    public function purgePromoGallery(Event $event): void
+    {
+        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
+        foreach ($gallery as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $this->deleteStoredPathIfOwned($item['video_path'] ?? null);
+            $this->deleteStoredPathIfOwned($item['poster_path'] ?? null);
+        }
+        $this->deleteStoredPathIfOwned($event->promo_video_path);
+        $event->forceFill([
+            'promo_video_path' => null,
+            'promo_embed_url' => null,
+            'promo_gallery' => null,
+        ])->save();
+    }
+
+    /**
+     * @return array{success: bool, message: string, details?: array<string, mixed>}
+     */
+    public function appendPromoFromUploads(Event $event, ?UploadedFile $video, ?UploadedFile $poster, bool $append): array
+    {
+        if (($video === null || ! $video->isValid()) && ($poster === null || ! $poster->isValid())) {
+            return ['success' => false, 'message' => 'Video veya görsel dosyası seçin.'];
+        }
+
+        if (! $append) {
+            $this->purgePromoGallery($event);
+            $event->refresh();
+        }
+
+        $videoPath = null;
+        $posterPath = null;
+
+        if ($video !== null && $video->isValid()) {
+            if ($video->getSize() > self::MAX_VIDEO_BYTES) {
+                return ['success' => false, 'message' => 'Video dosyası çok büyük (en fazla '.(int) (self::MAX_VIDEO_BYTES / 1024 / 1024).' MB).'];
+            }
+            $mime = $video->getMimeType() ?: '';
+            if (! in_array($mime, ['video/mp4', 'video/webm', 'video/quicktime'], true)) {
+                return ['success' => false, 'message' => 'Video: yalnızca MP4, WebM veya MOV kabul edilir.'];
+            }
+            $ext = match ($mime) {
+                'video/webm' => 'webm',
+                'video/quicktime' => 'mov',
+                default => 'mp4',
+            };
+            $videoPath = $video->storeAs('event-promo', Str::uuid()->toString().'.'.$ext, 'public');
+        }
+
+        if ($poster !== null && $poster->isValid()) {
+            if ($poster->getSize() > self::MAX_IMAGE_BYTES) {
+                if ($videoPath !== null) {
+                    Storage::disk('public')->delete($videoPath);
+                }
+
+                return ['success' => false, 'message' => 'Görsel dosyası çok büyük.'];
+            }
+            $posterPath = $poster->store('event-promo-posters', 'public');
+        }
+
+        $gallery = $this->currentPromoGallery($event);
+        if (count($gallery) >= self::MAX_PROMO_GALLERY_ITEMS) {
+            if ($videoPath !== null) {
+                Storage::disk('public')->delete($videoPath);
+            }
+            if ($posterPath !== null) {
+                Storage::disk('public')->delete($posterPath);
+            }
+
+            return [
+                'success' => false,
+                'message' => 'En fazla '.self::MAX_PROMO_GALLERY_ITEMS.' tanıtım öğesi eklenebilir.',
+            ];
+        }
+
+        $gallery[] = [
+            'embed_url' => null,
+            'video_path' => $videoPath,
+            'poster_path' => $posterPath,
+        ];
+        $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
+        $event->promo_gallery = $gallery;
+        $event->save();
+
+        $parts = [];
+        if ($videoPath !== null) {
+            $parts[] = 'Video yüklendi.';
+        }
+        if ($posterPath !== null) {
+            $parts[] = 'Tanıtım görseli yüklendi.';
+        }
+
+        return [
+            'success' => true,
+            'message' => implode(' ', $parts),
+            'details' => ['gallery_count' => count($gallery)],
+        ];
+    }
+
     /** @return array{success: bool, message: string, details?: array<string, mixed>} */
     public function import(Event $event, string $url, string $mode, bool $appendPromoGallery = true): array
     {
@@ -37,6 +189,13 @@ final class EventMediaImportFromUrlService
             $msg = $e->errors()['url'][0] ?? 'Geçersiz URL.';
 
             return ['success' => false, 'message' => $msg];
+        }
+
+        if ($mode === 'promo_video') {
+            $direct = $this->tryImportDirectVideoUrl($event, $normalized, $appendPromoGallery);
+            if ($direct !== null) {
+                return $direct;
+            }
         }
 
         $htmlResp = Http::withHeaders($this->browserHeaders())
@@ -149,6 +308,57 @@ final class EventMediaImportFromUrlService
     }
 
     /**
+     * Doğrudan .mp4 / .webm HTTPS adresi (yol uzantılı) — HTML taraması olmadan indirir.
+     *
+     * @return array{success: bool, message: string, details?: array<string, mixed>}|null Başarı, hata veya «bu mod değil» için null
+     */
+    private function tryImportDirectVideoUrl(Event $event, string $url, bool $appendPromoGallery): ?array
+    {
+        $pathOnly = parse_url($url, PHP_URL_PATH);
+        if (! is_string($pathOnly) || ! preg_match('/\.(mp4|webm)$/i', $pathOnly)) {
+            return null;
+        }
+
+        $videoPath = $this->downloadVideoToStorage($url, null);
+        if ($videoPath === null) {
+            return [
+                'success' => false,
+                'message' => 'Video bağlantısından dosya indirilemedi veya format MP4/WebM değil / boyut sınırı aşıldı.',
+            ];
+        }
+
+        if (! $appendPromoGallery) {
+            $this->purgePromoGallery($event);
+            $event->refresh();
+        }
+
+        $gallery = $this->currentPromoGallery($event);
+        if (count($gallery) >= self::MAX_PROMO_GALLERY_ITEMS) {
+            Storage::disk('public')->delete($videoPath);
+
+            return [
+                'success' => false,
+                'message' => 'En fazla '.self::MAX_PROMO_GALLERY_ITEMS.' tanıtım öğesi eklenebilir.',
+            ];
+        }
+
+        $gallery[] = [
+            'embed_url' => null,
+            'video_path' => $videoPath,
+            'poster_path' => null,
+        ];
+        $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
+        $event->promo_gallery = $gallery;
+        $event->save();
+
+        return [
+            'success' => true,
+            'message' => 'Video doğrudan adresten indirilip sunucuya kaydedildi.',
+            'details' => ['video_saved' => true, 'gallery_count' => count($gallery)],
+        ];
+    }
+
+    /**
      * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
     private function importPromoVideo(
@@ -178,6 +388,15 @@ final class EventMediaImportFromUrlService
             }
         }
 
+        if (! $videoSaved && $isInstagram && $shortcode) {
+            $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized);
+            if ($ytPath !== null) {
+                $videoPath = $ytPath;
+                $videoSaved = true;
+                $messages[] = 'Video yt-dlp ile indirilip sunucuya kaydedildi (sunucuda YTDLP_BINARY tanımlı olmalı).';
+            }
+        }
+
         $posterPath = null;
         if ($shortcode) {
             $posterPath = $this->downloadInstagramStillToStorage($shortcode, 'event-promo-posters');
@@ -191,7 +410,11 @@ final class EventMediaImportFromUrlService
             : null;
 
         if (! $videoSaved && $isInstagram && $shortcode) {
-            $messages[] = 'Doğrudan video dosyası alınamadı; gömülü oynatıcı ve önizleme görseli kullanılacak.';
+            $binary = config('services.ytdlp.binary');
+            $hint = (is_string($binary) && $binary !== '' && is_executable($binary))
+                ? 'Sunucuda yt-dlp çalıştırılamadı veya Instagram engelledi.'
+                : 'Sunucuda yt-dlp yok veya Instagram video URL’si alınamadı (.env içinde YTDLP_BINARY).';
+            $messages[] = 'Doğrudan video indirilemedi; '.$hint;
         } elseif (! $videoSaved && ! $isInstagram) {
             $messages[] = 'Doğrudan indirilebilir video bulunamadı (og:video yok veya erişim engellendi).';
         }
@@ -242,14 +465,21 @@ final class EventMediaImportFromUrlService
             ];
         }
 
-        $gallery = $this->currentPromoGallery($event);
+        if (! $videoSaved && $isInstagram && $shortcode) {
+            $event->save();
+
+            return [
+                'success' => false,
+                'message' => 'Instagram gönderisi sitede gömülü gösterilmez. Videoyu MP4 veya WebM olarak indirip panelden «Tanıtım videosu (dosya)» ile yükleyin; veya doğrudan .mp4/.webm indirme bağlantısı yapıştırın. '.implode(' ', $messages),
+            ];
+        }
 
         if (! $appendPromoGallery) {
-            foreach ($gallery as $item) {
-                $this->deleteGalleryItemFiles($item);
-            }
-            $gallery = [];
+            $this->purgePromoGallery($event);
+            $event->refresh();
         }
+
+        $gallery = $this->currentPromoGallery($event);
 
         if ($shortcode) {
             foreach ($gallery as $idx => $item) {
@@ -633,5 +863,94 @@ final class EventMediaImportFromUrlService
             return;
         }
         Storage::disk('public')->delete($path);
+    }
+
+    private function tryDownloadInstagramVideoWithYtDlp(string $httpsInstagramUrl): ?string
+    {
+        $binary = config('services.ytdlp.binary');
+        if (! is_string($binary) || $binary === '' || ! is_executable($binary)) {
+            return null;
+        }
+        $timeout = (float) config('services.ytdlp.timeout', 300);
+        $dir = sys_get_temp_dir();
+        $base = 'sbn_ytdlp_'.Str::random(20);
+        $outTemplate = $dir.DIRECTORY_SEPARATOR.$base.'.%(ext)s';
+        $cmd = [
+            $binary,
+            '-o',
+            $outTemplate,
+            '--no-playlist',
+            '--no-progress',
+            '--no-warnings',
+            '-f',
+            'bestvideo*[ext=mp4]+bestaudio*[ext=m4a]/best[ext=mp4]/best[height<=1080]/best',
+            '--merge-output-format',
+            'mp4',
+            $httpsInstagramUrl,
+        ];
+        $cookies = config('services.ytdlp.cookies_file');
+        if (is_string($cookies) && $cookies !== '' && is_readable($cookies)) {
+            array_splice($cmd, 1, 0, ['--cookies', $cookies]);
+        }
+        try {
+            $process = new Process($cmd, $dir, null, null, $timeout);
+            $process->run();
+        } catch (\Throwable $e) {
+            Log::notice('yt-dlp process exception', ['message' => $e->getMessage()]);
+
+            return null;
+        }
+        if (! $process->isSuccessful()) {
+            Log::info('yt-dlp instagram exited non-zero', [
+                'output' => Str::limit($process->getErrorOutput().$process->getOutput(), 500),
+            ]);
+
+            return null;
+        }
+        $matches = glob($dir.DIRECTORY_SEPARATOR.$base.'.*', GLOB_NOSORT);
+        if ($matches === false || $matches === []) {
+            return null;
+        }
+        usort($matches, function (string $a, string $b): int {
+            $sa = @filesize($a) ?: 0;
+            $sb = @filesize($b) ?: 0;
+
+            return $sb <=> $sa;
+        });
+        $tmpFile = $matches[0];
+        if (! is_file($tmpFile)) {
+            return null;
+        }
+        $size = filesize($tmpFile);
+        if ($size === false || $size > self::MAX_VIDEO_BYTES || $size < 1024) {
+            @unlink($tmpFile);
+
+            return null;
+        }
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($tmpFile);
+        if ($mime === false || ! in_array($mime, ['video/mp4', 'video/webm'], true)) {
+            @unlink($tmpFile);
+
+            return null;
+        }
+        $ext = $mime === 'video/webm' ? 'webm' : 'mp4';
+        $dest = 'event-promo/'.Str::uuid()->toString().'.'.$ext;
+        $stream = fopen($tmpFile, 'rb');
+        if ($stream === false) {
+            @unlink($tmpFile);
+
+            return null;
+        }
+        try {
+            Storage::disk('public')->put($dest, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            @unlink($tmpFile);
+        }
+
+        return $dest;
     }
 }

@@ -169,6 +169,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
      */
     public function canAccessStagePanel(): bool
     {
+        /** Platform personeli (admin / süper admin) sahne paneline erişemez — ayrıcalık sızıntısı ve veri karışıklığını önler. */
+        if ($this->isAdmin()) {
+            return false;
+        }
+
         if ($this->isArtist() || $this->isVenueOwner() || $this->isManagerOrganization()) {
             return true;
         }

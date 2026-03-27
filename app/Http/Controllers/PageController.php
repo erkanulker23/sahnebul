@@ -10,6 +10,7 @@ class PageController extends Controller
     public function show(string $slug)
     {
         $allowed = [
+            'hakkimizda' => 'Hakkımızda',
             'gizlilik-politikasi' => 'Gizlilik',
             'cerez-politikasi' => 'Çerez Politikası',
             'kvkk' => 'Kişisel Verilerin Korunması',

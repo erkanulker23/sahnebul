@@ -63,6 +63,7 @@ interface Props {
 }
 
 const LEGAL_SLUGS: { slug: string; label: string; defaultTitle: string }[] = [
+    { slug: 'hakkimizda', label: 'Hakkımızda', defaultTitle: 'Hakkımızda' },
     { slug: 'gizlilik-politikasi', label: 'Gizlilik politikası', defaultTitle: 'Gizlilik' },
     { slug: 'cerez-politikasi', label: 'Çerez politikası', defaultTitle: 'Çerez Politikası' },
     { slug: 'kvkk', label: 'KVKK', defaultTitle: 'Kişisel Verilerin Korunması' },
@@ -80,7 +81,7 @@ const TABS: { id: SettingsTabId; label: string; description: string; icon: Lucid
     { id: 'seo', label: 'SEO', description: 'Meta, OG, doğrulama', icon: Search },
     { id: 'contact', label: 'İletişim & sosyal', description: 'E-posta, telefon, sosyal bağlantılar', icon: Share2 },
     { id: 'maps', label: 'Harita API', description: 'Google Maps anahtarı', icon: MapPin },
-    { id: 'content', label: 'İçerik', description: 'Yasal sayfalar ve footer', icon: FileText },
+    { id: 'content', label: 'İçerik', description: 'Statik sayfalar ve footer', icon: FileText },
 ];
 
 const SITE_FORM_TABS: SettingsTabId[] = ['brand', 'seo', 'contact', 'maps'];
@@ -885,7 +886,7 @@ export default function AdminSettingsIndex({
                 >
                     <h2 className="text-lg font-semibold text-white">Platform içeriği</h2>
                     <p className="mt-1 text-sm text-zinc-400">
-                        Yasal sayfalar ve footer JSON tüm yöneticiler tarafından düzenlenebilir. Reklamlar:{' '}
+                        Statik sayfalar (Hakkımızda, yasal metinler) ve footer JSON tüm yöneticiler tarafından düzenlenebilir. Reklamlar:{' '}
                         <Link href={route('admin.ad-slots.index')} className="font-medium text-amber-400 hover:underline">
                             Reklam alanları
                         </Link>
@@ -893,9 +894,9 @@ export default function AdminSettingsIndex({
                     </p>
 
                     <div className="mt-8 border-t border-zinc-800 pt-8">
-                        <h3 className="font-semibold text-white">Yasal sayfalar</h3>
+                        <h3 className="font-semibold text-white">Statik sayfalar</h3>
                         <p className="mt-1 text-sm text-zinc-500">
-                            <code className="text-amber-400/90">/sayfalar/…</code> adreslerinde yayınlanır.
+                            Hakkımızda ve yasal metinler <code className="text-amber-400/90">/sayfalar/…</code> altında yayınlanır.
                         </p>
                         <div className="mt-4">
                             <label htmlFor="legal-slug" className={labelClass}>
@@ -931,12 +932,12 @@ export default function AdminSettingsIndex({
                                 key={legalSlug}
                                 value={currentLegal.content}
                                 onChange={setLegalContent}
-                                placeholder="Yasal metin…"
+                                placeholder="Sayfa metni…"
                                 className="mt-2"
                             />
                         </div>
                         <details className="mt-4 rounded-lg border border-zinc-700/80 bg-zinc-950/50 p-3">
-                            <summary className="cursor-pointer text-sm text-zinc-400">Ham JSON (yasal sayfalar)</summary>
+                            <summary className="cursor-pointer text-sm text-zinc-400">Ham JSON (statik sayfalar)</summary>
                             <textarea
                                 readOnly
                                 rows={6}
@@ -962,7 +963,7 @@ export default function AdminSettingsIndex({
                         onClick={saveSettings}
                         className="mt-6 rounded-lg bg-amber-500 px-5 py-2.5 font-semibold text-zinc-950"
                     >
-                        Yasal sayfalar ve footer’ı kaydet
+                        Statik sayfalar ve footer’ı kaydet
                     </button>
                 </section>
             </div>

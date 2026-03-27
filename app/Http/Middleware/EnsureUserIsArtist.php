@@ -15,6 +15,11 @@ class EnsureUserIsArtist
         }
 
         $user = $request->user();
+
+        if ($user->isAdmin()) {
+            abort(403, 'Platform yöneticileri sahne paneline bu oturumla erişemez.');
+        }
+
         if ($user->canAccessStagePanel()) {
             return $next($request);
         }

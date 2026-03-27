@@ -40,11 +40,11 @@ class ArtistController extends Controller
             ->withCount([
                 'events as weekly_events_count' => fn ($q) => $q
                     ->published()
-                    ->whereHas('venue', fn ($v) => $v->approved())
+                    ->whereHas('venue', fn ($v) => $v->listedPublicly())
                     ->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]),
                 'events as monthly_events_count' => fn ($q) => $q
                     ->published()
-                    ->whereHas('venue', fn ($v) => $v->approved())
+                    ->whereHas('venue', fn ($v) => $v->listedPublicly())
                     ->where('start_date', '>=', now()->startOfDay())
                     ->where('start_date', '<=', now()->endOfMonth()),
             ]);
@@ -116,6 +116,7 @@ class ArtistController extends Controller
             ->join('artists', 'artists.id', '=', 'event_artists.artist_id')
             ->where('events.status', 'published')
             ->where('venues.status', 'approved')
+            ->where('venues.is_active', true)
             ->where('artists.status', 'approved')
             ->where(function ($q) {
                 $q->whereNull('artists.country_code')
@@ -213,7 +214,7 @@ class ArtistController extends Controller
         // ileri tarihli konserleri listeden düşürüyordu (aynı sanatçıda çok etkinlik varsa).
         $baseArtistEvents = fn () => $artist->events()
             ->published()
-            ->whereHas('venue', fn ($v) => $v->approved());
+            ->whereHas('venue', fn ($v) => $v->listedPublicly());
 
         $upcomingEvents = $baseArtistEvents()
             ->where('start_date', '>', now())

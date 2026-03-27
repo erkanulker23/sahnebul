@@ -3,13 +3,17 @@ import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Compon
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
-import { googleMapsOpenUrl } from '@/lib/googleMapsOpenUrl';
+import {
+    googleMapsDirectionsUrl,
+    googleMapsOpenUrl,
+    venueMapAddressDisplay,
+} from '@/lib/googleMapsOpenUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { ExternalLink, MessageCircle, Ticket } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ExternalLink, MessageCircle, Navigation, Ticket } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -88,7 +92,13 @@ interface Props {
     venueUpcomingEvents?: PublicEventTicketCardEvent[];
     artistUpcomingEvents?: PublicEventTicketCardEvent[];
     eventReviews?: EventReviewRow[];
-    eventCustomerActions?: { canToggle: boolean; hasReminder: boolean };
+    eventCustomerActions?: {
+        /** Sunucu start_date->isFuture() — istemci saat/tarih parse ile uyumsuzluk olmasın */
+        followUiVisible?: boolean;
+        canToggle: boolean;
+        hasReminder: boolean;
+        needsEmailVerificationForFollow?: boolean;
+    };
     /** Onaylı / tamamlanmış etkinlik rezervasyonu olan ziyaretçi değerlendirme gönderebilir */
     eventReviewEligibility?: { canSubmit: boolean };
 }
@@ -138,8 +148,23 @@ function eventPromoItemsFromEvent(event: Event): PromoGalleryItem[] {
     return [];
 }
 
-function instagramPermalinkForEmbed(url: string): string {
-    return url.includes('instagram.com') ? (url.endsWith('/') ? url : `${url}/`) : url;
+/** Eski kayıtlardaki yalnızca Instagram gömülüsü — sitede gösterilmez; MP4 yüklenene kadar bölüm gizlenir. */
+function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
+    return items.filter((it) => {
+        const hasVideo = Boolean(it.video_path?.trim());
+        if (hasVideo) {
+            return true;
+        }
+        const embed = it.embed_url?.trim() ?? '';
+        if (embed.includes('instagram.com')) {
+            return false;
+        }
+        const poster = Boolean(it.poster_path?.trim());
+        if (poster) {
+            return true;
+        }
+        return embed.length > 0;
+    });
 }
 
 function EventPromoSection({
@@ -149,57 +174,39 @@ function EventPromoSection({
     items: PromoGalleryItem[];
     resolveStorageSrc: (path: string | null) => string | null;
 }>) {
-    const visualItems = useMemo(
+    const playableItems = useMemo(
+        () => items.filter((it) => Boolean(it.video_path && resolveStorageSrc(it.video_path))),
+        [items, resolveStorageSrc],
+    );
+
+    const primaryVideo = playableItems[0];
+    const extraPlayableVideos = playableItems.slice(1);
+    const primaryVideoSrc = primaryVideo?.video_path ? resolveStorageSrc(primaryVideo.video_path) : null;
+    const primaryPosterSrc = primaryVideo?.poster_path ? resolveStorageSrc(primaryVideo.poster_path) : null;
+
+    const posterOnlyNonIg = useMemo(
         () =>
             items.filter((it) => {
-                const v = it.video_path ? resolveStorageSrc(it.video_path) : null;
-                const p = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                return Boolean(v || p);
+                const hasVideo = Boolean(it.video_path && resolveStorageSrc(it.video_path));
+                const poster = Boolean(it.poster_path && resolveStorageSrc(it.poster_path));
+                const embed = it.embed_url?.trim() ?? '';
+                if (hasVideo) return false;
+                if (embed.includes('instagram.com')) return false;
+                return poster;
             }),
         [items, resolveStorageSrc],
     );
 
-    const embedOnlyItems = useMemo(
+    const genericEmbedOnly = useMemo(
         () =>
             items.filter((it) => {
-                const v = it.video_path ? resolveStorageSrc(it.video_path) : null;
-                const p = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                const e = it.embed_url?.trim() ?? '';
-                return !v && !p && e.length > 0;
+                const hasVideo = Boolean(it.video_path && resolveStorageSrc(it.video_path));
+                const poster = Boolean(it.poster_path && resolveStorageSrc(it.poster_path));
+                const embed = it.embed_url?.trim() ?? '';
+                return !hasVideo && !poster && embed.length > 0 && !embed.includes('instagram.com');
             }),
         [items, resolveStorageSrc],
     );
-
-    const instagramEmbedSignatures = useMemo(
-        () =>
-            embedOnlyItems
-                .filter((it) => (it.embed_url ?? '').includes('instagram.com'))
-                .map((it) => instagramPermalinkForEmbed(it.embed_url!))
-                .join('|'),
-        [embedOnlyItems],
-    );
-
-    useEffect(() => {
-        if (!instagramEmbedSignatures) {
-            return;
-        }
-        const w = window as Window & { instgrm?: { Embeds: { process: () => void } } };
-        const scriptSrc = 'https://www.instagram.com/embed.js';
-        const existing = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement | null;
-        const runProcess = () => {
-            w.instgrm?.Embeds?.process();
-        };
-        if (!existing) {
-            const script = document.createElement('script');
-            script.src = scriptSrc;
-            script.async = true;
-            script.addEventListener('load', runProcess);
-            document.body.appendChild(script);
-            return undefined;
-        }
-        const t = window.setTimeout(runProcess, 0);
-        return () => window.clearTimeout(t);
-    }, [instagramEmbedSignatures]);
 
     if (items.length === 0) {
         return null;
@@ -212,13 +219,29 @@ function EventPromoSection({
                 Etkinlik için eklenen tanıtım görüntüleri{items.length > 1 ? ` (${items.length})` : ''}.
             </p>
             <div className="mt-5 space-y-8">
-                {visualItems.length > 0 ? (
+                {primaryVideoSrc ? (
+                    <div className="mx-auto w-full max-w-4xl">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-zinc-200 bg-black dark:border-white/10">
+                            <video
+                                src={primaryVideoSrc}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="absolute inset-0 h-full w-full object-contain"
+                                poster={primaryPosterSrc ?? undefined}
+                            >
+                                Tarayıcınız bu videoyu oynatamıyor.
+                            </video>
+                        </div>
+                    </div>
+                ) : null}
+
+                {extraPlayableVideos.length > 0 ? (
                     <ul className="grid list-none grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-                        {visualItems.map((it, idx) => {
+                        {extraPlayableVideos.map((it, idx) => {
                             const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
                             const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
                             const embed = it.embed_url?.trim() ?? '';
-                            const ig = embed.includes('instagram.com');
                             return (
                                 <li
                                     key={`${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
@@ -229,23 +252,10 @@ function EventPromoSection({
                                             src={videoSrc}
                                             controls
                                             playsInline
+                                            preload="metadata"
                                             className="absolute inset-0 h-full w-full object-cover"
                                             poster={posterSrc ?? undefined}
                                         />
-                                    ) : posterSrc ? (
-                                        <>
-                                            <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                            {ig ? (
-                                                <a
-                                                    href={embed}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent pb-4 text-center text-sm font-semibold text-white"
-                                                >
-                                                    <span className="rounded-full bg-white/15 px-3 py-1 backdrop-blur-sm">Instagram&apos;da izle</span>
-                                                </a>
-                                            ) : null}
-                                        </>
                                     ) : null}
                                 </li>
                             );
@@ -253,33 +263,26 @@ function EventPromoSection({
                     </ul>
                 ) : null}
 
-                {embedOnlyItems.length > 0 ? (
-                    <div className="space-y-6">
-                        {embedOnlyItems.map((it, idx) => {
+                {posterOnlyNonIg.length > 0 ? (
+                    <ul className="grid list-none grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {posterOnlyNonIg.map((it, idx) => {
+                            const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                            return posterSrc ? (
+                                <li
+                                    key={`${posterSrc}-${idx}`}
+                                    className="relative aspect-[9/16] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 dark:border-white/10"
+                                >
+                                    <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                </li>
+                            ) : null;
+                        })}
+                    </ul>
+                ) : null}
+
+                {genericEmbedOnly.length > 0 ? (
+                    <div className="space-y-3">
+                        {genericEmbedOnly.map((it, idx) => {
                             const embed = it.embed_url?.trim() ?? '';
-                            if (embed.includes('instagram.com')) {
-                                const permalink = instagramPermalinkForEmbed(embed);
-                                return (
-                                    <div key={`${permalink}-${idx}`} className="flex justify-center overflow-x-auto">
-                                        <blockquote
-                                            className="instagram-media"
-                                            data-instgrm-captioned
-                                            data-instgrm-permalink={permalink}
-                                            data-instgrm-version="14"
-                                            style={{
-                                                background: 'transparent',
-                                                border: 0,
-                                                borderRadius: 12,
-                                                margin: 0,
-                                                maxWidth: 540,
-                                                minWidth: 280,
-                                                padding: 0,
-                                                width: '100%',
-                                            }}
-                                        />
-                                    </div>
-                                );
-                            }
                             return (
                                 <a
                                     key={`${embed}-${idx}`}
@@ -332,7 +335,12 @@ export default function EventShow({
     venueUpcomingEvents = [],
     artistUpcomingEvents = [],
     eventReviews = [],
-    eventCustomerActions = { canToggle: false, hasReminder: false },
+    eventCustomerActions = {
+        followUiVisible: false,
+        canToggle: false,
+        hasReminder: false,
+        needsEmailVerificationForFollow: false,
+    },
     eventReviewEligibility = { canSubmit: false },
 }: Readonly<Props>) {
     const page = usePage();
@@ -370,13 +378,24 @@ export default function EventShow({
             ? 'Bilet veya rezervasyon aşağıdaki platform bağlantıları üzerinden yapılır; Sahnebul rezervasyon formu bu etkinlik için kullanılmaz.'
             : acquisitionMode === 'sahnebul'
               ? 'Önce Sahnebul üzerinden rezervasyon / bilet talebi oluşturabilirsiniz. Ek olarak harici bağlantılar varsa onlar da listelenir.'
-              : 'Bu etkinlikte çevrimiçi bilet satışı yoktur. Rezervasyon için aşağıdaki notu ve mekân iletişim bilgilerini (telefon, WhatsApp) kullanın.';
+              : 'Bu etkinlikte çevrimiçi bilet satışı yoktur. Rezervasyon için soldaki notu ve yan sütundaki mekân iletişim bilgilerini (telefon, WhatsApp) kullanın.';
     const reservationHref = `${route('reservations.create', event.venue.slug)}?event=${event.id}`;
-    const mapUrl = googleMapsOpenUrl({
+    const venueMapInput = {
         google_maps_url: event.venue.google_maps_url,
         latitude: event.venue.latitude,
         longitude: event.venue.longitude,
         address: event.venue.address,
+    };
+    const mapUrl = googleMapsOpenUrl(venueMapInput);
+    const directionsUrl = googleMapsDirectionsUrl({
+        ...venueMapInput,
+        venueName: event.venue.name,
+        cityName: event.venue.city?.name ?? null,
+    });
+    const venueAddressMapLabel = venueMapAddressDisplay({
+        address: event.venue.address,
+        venueName: event.venue.name,
+        cityName: event.venue.city?.name ?? null,
     });
     const sharePageUrl = canonicalUrl ?? (typeof window !== 'undefined' ? window.location.href : '');
     const waVenueDigits = event.venue.whatsapp ? event.venue.whatsapp.replaceAll(/[^\d]/g, '') : '';
@@ -421,6 +440,7 @@ export default function EventShow({
     const dateSummary = event.start_date
         ? `Tarih: ${formatTurkishDateTime(event.start_date)}.`
         : 'Tarih yakında açıklanacak.';
+    const followUiVisible = eventCustomerActions.followUiVisible === true;
     const eventDesc = metaDescriptionFromContent(
         event.description,
         `${event.title} — ${event.venue.name}${event.venue.city?.name ? `, ${event.venue.city.name}` : ''}. ${dateSummary} Bilet ve detaylar Sahnebul’da.`,
@@ -517,7 +537,7 @@ export default function EventShow({
                         </div>
                         <div className="mt-6 flex flex-col gap-2">
                             <div className="flex flex-wrap items-center gap-3">
-                                {eventCustomerActions.canToggle ? (
+                                {followUiVisible && eventCustomerActions.canToggle ? (
                                     <>
                                         <button
                                             type="button"
@@ -526,7 +546,7 @@ export default function EventShow({
                                             }
                                             className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
                                         >
-                                            {eventCustomerActions.hasReminder ? 'Takibi bırak' : 'Etkinliği takip et'}
+                                            {eventCustomerActions.hasReminder ? 'Takip listesinden çıkar' : 'Takip listesine ekle'}
                                         </button>
                                         {eventCustomerActions.hasReminder ? (
                                             <a
@@ -537,19 +557,32 @@ export default function EventShow({
                                             </a>
                                         ) : null}
                                     </>
-                                ) : !authed ? (
+                                ) : followUiVisible && !authed ? (
                                     <Link
                                         href={route('login', { redirect: `/etkinlikler/${eventShowParam(event)}` })}
                                         className="rounded-full border border-amber-400/40 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-500/10"
                                     >
-                                        Takip için giriş yapın
+                                        Takip listesine eklemek için giriş yapın
+                                    </Link>
+                                ) : followUiVisible && eventCustomerActions.needsEmailVerificationForFollow ? (
+                                    <Link
+                                        href={route('verification.notice')}
+                                        className="rounded-full border border-amber-400/40 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-500/10"
+                                    >
+                                        E-postanızı doğrulayın — takip ve hatırlatma
                                     </Link>
                                 ) : null}
                             </div>
-                            {eventCustomerActions.canToggle && !eventCustomerActions.hasReminder ? (
+                            {followUiVisible && eventCustomerActions.canToggle && !eventCustomerActions.hasReminder ? (
                                 <p className="max-w-xl text-xs leading-relaxed text-zinc-300">
-                                    Takip ettiğinizde etkinlikten bir gün önce e-posta ve hesabınızdaki bildirimler sayfasına hatırlatma düşer. Rezervasyon
-                                    yaptığınız etkinliklerde bu hatırlatma, aynı kurala göre otomatik açılır.
+                                    Listeye eklediğinizde etkinlikten <strong className="text-zinc-200">bir gün önce</strong> e-posta alırsınız
+                                    (İstanbul saatiyle genelde <strong className="text-zinc-200">10:00</strong> civarı). Bildirimler sayfanızda da
+                                    görünür. Rezervasyon yaptığınız etkinliklerde takip aynı kurala göre otomatik açılabilir.
+                                </p>
+                            ) : null}
+                            {followUiVisible && eventCustomerActions.needsEmailVerificationForFollow ? (
+                                <p className="max-w-xl text-xs leading-relaxed text-zinc-400">
+                                    Takip listesi ve e-posta hatırlatması için hesabınızdaki adresi doğrulamanız gerekir.
                                 </p>
                             ) : null}
                         </div>
@@ -602,7 +635,10 @@ export default function EventShow({
             <div className="mx-auto w-full max-w-6xl -mx-2.5 px-3 py-8 sm:mx-auto sm:px-5 sm:py-10 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-10">
                     <div className="space-y-8 lg:col-span-2">
-                        <EventPromoSection items={eventPromoItemsFromEvent(event)} resolveStorageSrc={imageSrc} />
+                        <EventPromoSection
+                            items={filterPublicPromoItems(eventPromoItemsFromEvent(event))}
+                            resolveStorageSrc={imageSrc}
+                        />
                         <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
                             {event.description?.trim() && (
                                 <RichOrPlainContent
@@ -711,100 +747,15 @@ export default function EventShow({
                                     )}
                                     {acquisitionMode === 'phone_only' && purchaseNote.length === 0 && (
                                         <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-zinc-800/50 dark:text-zinc-300">
-                                            Rezervasyon ve bilgi için bu sayfadaki <strong>Mekan iletişimi</strong> bölümündeki telefon veya WhatsApp satırlarını kullanın.
+                                            Rezervasyon ve bilgi için yan sütundaki <strong>Mekan iletişimi</strong> kutusundaki telefon veya WhatsApp satırlarını kullanın.
                                         </p>
                                     )}
                                 </div>
                             ) : (
                                 <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-                                    Bu etkinlik için henüz bilet veya rezervasyon kanalı tanımlanmamış. Bilgi için aşağıdaki mekân iletişimini kullanabilirsiniz.
+                                    Bu etkinlik için henüz bilet veya rezervasyon kanalı tanımlanmamış. Bilgi için yan sütundaki mekân iletişimini kullanabilirsiniz.
                                 </p>
                             )}
-                        </div>
-
-                        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/60">
-                            <p className="text-xs uppercase tracking-wide text-zinc-500">Mekan iletişimi</p>
-                            <p className="mt-2 font-semibold text-zinc-900 dark:text-white">
-                                <Link
-                                    href={route('venues.show', event.venue.slug)}
-                                    className="hover:text-amber-600 hover:underline dark:hover:text-amber-400"
-                                >
-                                    {event.venue.name}
-                                </Link>
-                            </p>
-                            <div className="mt-4 space-y-4 text-sm">
-                                {event.venue.phone && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Telefon</p>
-                                        <a
-                                            href={`tel:${event.venue.phone.replaceAll(/\s/g, '')}`}
-                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                        >
-                                            {event.venue.phone}
-                                        </a>
-                                    </div>
-                                )}
-                                {event.venue.whatsapp && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">WhatsApp</p>
-                                        <a
-                                            href={waVenuePrefill ?? `https://wa.me/${event.venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-1 block text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
-                                        >
-                                            {event.venue.whatsapp}
-                                        </a>
-                                    </div>
-                                )}
-                                {event.venue.website && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Web sitesi</p>
-                                        <a
-                                            href={event.venue.website}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                        >
-                                            {event.venue.website.replace(/^https?:\/\//, '')}
-                                        </a>
-                                    </div>
-                                )}
-                                {socialEntries.length > 0 && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Sosyal medya</p>
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            {socialEntries.map(([key, url]) => (
-                                                <a
-                                                    key={key}
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-amber-400/50 hover:text-amber-600 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-amber-400"
-                                                >
-                                                    {venueSocialLinkTitle(key)}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-3 border-t border-zinc-100 pt-4 dark:border-white/10">
-                                <a
-                                    href={mapUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                >
-                                    Haritada aç →
-                                </a>
-                                <Link
-                                    href={route('venues.show', event.venue.slug)}
-                                    className="inline-flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
-                                >
-                                    Mekan sayfası →
-                                </Link>
-                            </div>
                         </div>
 
                         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
@@ -1003,6 +954,54 @@ export default function EventShow({
                                 <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>
                             )}
                         </div>
+                        {followUiVisible &&
+                        (eventCustomerActions.canToggle ||
+                            !authed ||
+                            eventCustomerActions.needsEmailVerificationForFollow) ? (
+                            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
+                                <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Takip listesi</p>
+                                <p className="mt-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">
+                                    Etkinlikten bir gün önce e-posta hatırlatması (yaklaşık 10:00, İstanbul).
+                                </p>
+                                <div className="mt-4 space-y-2">
+                                    {eventCustomerActions.canToggle ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.post(route('user.event-reminders.toggle', event.id), {}, { preserveScroll: true })
+                                                }
+                                                className="block w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-center text-sm font-semibold text-zinc-900 hover:border-amber-400/50 dark:border-white/10 dark:bg-zinc-800/80 dark:text-white"
+                                            >
+                                                {eventCustomerActions.hasReminder ? 'Takip listesinden çıkar' : 'Takip listesine ekle'}
+                                            </button>
+                                            {eventCustomerActions.hasReminder ? (
+                                                <a
+                                                    href={route('user.events.ics', event.id)}
+                                                    className="block w-full text-center text-xs font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                                >
+                                                    Takvim (.ics) indir
+                                                </a>
+                                            ) : null}
+                                        </>
+                                    ) : !authed ? (
+                                        <Link
+                                            href={route('login', { redirect: `/etkinlikler/${eventShowParam(event)}` })}
+                                            className="block w-full rounded-xl bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-zinc-950 hover:bg-amber-400"
+                                        >
+                                            Giriş yap
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            href={route('verification.notice')}
+                                            className="block w-full rounded-xl border border-amber-400/50 bg-amber-500/10 px-4 py-2.5 text-center text-sm font-medium text-amber-800 dark:text-amber-200"
+                                        >
+                                            E-postayı doğrula
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        ) : null}
                         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Mekan</p>
                             {imageSrc(event.venue.cover_image ?? null) ? (
@@ -1026,13 +1025,146 @@ export default function EventShow({
                                 </Link>
                             </p>
                             <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{event.venue.category?.name ?? '-'}</p>
-                            <p className="mt-1 text-sm leading-snug text-zinc-500 dark:text-zinc-400">{event.venue.address}</p>
+                            <a
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 block text-sm leading-snug text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
+                            >
+                                {venueAddressMapLabel}
+                            </a>
+                            <div className="mt-3 flex flex-col gap-2">
+                                <a
+                                    href={mapUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-center text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
+                                    Haritada aç →
+                                </a>
+                                <a
+                                    href={directionsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-center text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
+                                    Yol tarifi al
+                                </a>
+                            </div>
                             <Link
                                 href={route('venues.show', event.venue.slug)}
-                                className="mt-3 inline-block text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                className="mt-3 inline-block text-sm font-medium text-zinc-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
                             >
                                 Mekan sayfası →
                             </Link>
+                        </div>
+                        <div
+                            id="mekan-iletisimi"
+                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80"
+                        >
+                            <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Mekan iletişimi</p>
+                            <p className="mt-2 font-semibold text-zinc-900 dark:text-white">
+                                <Link
+                                    href={route('venues.show', event.venue.slug)}
+                                    className="hover:text-amber-600 hover:underline dark:hover:text-amber-400"
+                                >
+                                    {event.venue.name}
+                                </Link>
+                            </p>
+                            <div className="mt-3">
+                                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Adres</p>
+                                <a
+                                    href={mapUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-1 flex items-start gap-2 text-sm text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
+                                    <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                    <span className="leading-snug">{venueAddressMapLabel}</span>
+                                </a>
+                            </div>
+                            <div className="mt-4 space-y-4 text-sm">
+                                {event.venue.phone && (
+                                    <div>
+                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Telefon</p>
+                                        <a
+                                            href={`tel:${event.venue.phone.replaceAll(/\s/g, '')}`}
+                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                        >
+                                            {event.venue.phone}
+                                        </a>
+                                    </div>
+                                )}
+                                {event.venue.whatsapp && (
+                                    <div>
+                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">WhatsApp</p>
+                                        <a
+                                            href={waVenuePrefill ?? `https://wa.me/${event.venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-1 block text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+                                        >
+                                            {event.venue.whatsapp}
+                                        </a>
+                                    </div>
+                                )}
+                                {event.venue.website && (
+                                    <div>
+                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Web sitesi</p>
+                                        <a
+                                            href={event.venue.website}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                        >
+                                            {event.venue.website.replace(/^https?:\/\//, '')}
+                                        </a>
+                                    </div>
+                                )}
+                                {socialEntries.length > 0 && (
+                                    <div>
+                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Sosyal medya</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {socialEntries.map(([key, url]) => (
+                                                <a
+                                                    key={key}
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-amber-400/50 hover:text-amber-600 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-amber-400"
+                                                >
+                                                    {venueSocialLinkTitle(key)}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-3 border-t border-zinc-100 pt-4 dark:border-white/10">
+                                <a
+                                    href={mapUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
+                                    Haritada aç →
+                                </a>
+                                <a
+                                    href={directionsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                >
+                                    <Navigation className="h-4 w-4" aria-hidden />
+                                    Yol tarifi al
+                                </a>
+                                <Link
+                                    href={route('venues.show', event.venue.slug)}
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
+                                >
+                                    Mekan sayfası →
+                                </Link>
+                            </div>
                         </div>
                         {hasTicketChannels && (
                             <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
@@ -1040,10 +1172,10 @@ export default function EventShow({
                                 <div className="mt-3 space-y-2">
                                     {acquisitionMode === 'phone_only' ? (
                                         <a
-                                            href="#bilet-kanallari"
+                                            href="#mekan-iletisimi"
                                             className="block w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-center text-sm font-medium text-zinc-800 hover:border-amber-400/50 dark:border-white/10 dark:text-zinc-200"
                                         >
-                                            Rezervasyon / iletişim ↓
+                                            Mekan iletişimi ↓
                                         </a>
                                     ) : (
                                         <>
@@ -1125,7 +1257,7 @@ export default function EventShow({
                                 <p className="mt-4 text-xs text-zinc-500">
                                     {hasTicketChannels
                                         ? 'Satın alma seçenekleri yukarıda ve “Biletleri nereden alabilirsiniz?” bölümünde.'
-                                        : 'Bilet bilgisi için mekân iletişimini kullanın.'}
+                                        : 'Bilet bilgisi için yan sütundaki mekân iletişimini kullanın.'}
                                 </p>
                             </div>
                         ) : (

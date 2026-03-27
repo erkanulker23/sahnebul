@@ -35,7 +35,7 @@ class VenueController extends Controller
                     ->where('start_date', '>=', now()->startOfDay())
                     ->where('start_date', '<=', now()->endOfMonth()),
             ])
-            ->approved();
+            ->listedPublicly();
 
         if ($request->filled('city')) {
             $query->whereHas('city', fn ($q) => $q->where('slug', $request->city));
@@ -74,7 +74,7 @@ class VenueController extends Controller
 
         $todayEvents = Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->approved())
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->whereBetween('start_date', [$todayStart, $todayEnd])
             ->with([
                 'venue:id,name,slug,category_id,city_id,district_id',
@@ -89,7 +89,7 @@ class VenueController extends Controller
 
         $upcomingWeekEvents = Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->approved())
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->where('start_date', '>', $todayEnd)
             ->where('start_date', '<=', now()->copy()->addDays(7)->endOfDay())
             ->with([
@@ -143,7 +143,7 @@ class VenueController extends Controller
 
     public function show(Request $request, Venue $venue)
     {
-        if ($venue->status !== 'approved') {
+        if ($venue->status !== 'approved' || ! $venue->is_active) {
             abort(404);
         }
 
@@ -208,7 +208,7 @@ class VenueController extends Controller
             .'ELSE 999999 END)';
 
         $venues = Venue::query()
-            ->approved()
+            ->listedPublicly()
             ->select('venues.*')
             ->selectRaw($distanceSql.' as distance_km', [$lat, $lng, $lat])
             ->with([
@@ -216,6 +216,7 @@ class VenueController extends Controller
                 'city:id,name',
                 'district:id,name',
             ])
+            ->orderByDesc('venues.is_featured')
             ->orderBy('distance_km')
             ->orderBy('venues.name')
             ->limit($limit)

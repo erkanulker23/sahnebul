@@ -66,4 +66,26 @@ class UserFactory extends Factory
             'role' => 'admin',
         ]);
     }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'super_admin',
+        ]);
+    }
+
+    public function venueOwner(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'venue_owner',
+        ]);
+    }
+
+    public function managerOrganization(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'manager_organization',
+            'organization_display_name' => 'Test Org A.Ş.',
+        ]);
+    }
 }

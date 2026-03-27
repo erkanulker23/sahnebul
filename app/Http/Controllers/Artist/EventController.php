@@ -157,7 +157,7 @@ class EventController extends Controller
             }
 
             $search = $request->string('venue_search')->trim()->toString();
-            $query = Venue::query()->approved()->with(['city:id,name']);
+            $query = Venue::query()->listedPublicly()->with(['city:id,name']);
             if ($search !== '') {
                 $term = '%'.addcslashes($search, '%_\\').'%';
                 $query->where('name', 'like', $term);
@@ -400,9 +400,9 @@ class EventController extends Controller
 
                         return;
                     }
-                    $venue = Venue::query()->whereKey($id)->where('status', 'approved')->first();
+                    $venue = Venue::query()->whereKey($id)->where('status', 'approved')->where('is_active', true)->first();
                     if ($venue === null) {
-                        $fail('Seçilen mekân bulunamadı veya onaylı değil.');
+                        $fail('Seçilen mekân bulunamadı, onaylı değil veya yayında değil.');
 
                         return;
                     }

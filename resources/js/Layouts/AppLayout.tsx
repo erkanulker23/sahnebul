@@ -20,7 +20,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 description?: string;
                 contact?: { email?: string; phone?: string; address?: string };
                 support_email?: string;
-                links?: { label: string; route: string }[];
+                links?: { label: string; route: string; slug?: string }[];
                 social?: { label: string; url: string }[];
                 copyright?: string;
             } | null;
@@ -33,12 +33,12 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
         brand: 'SAHNEBUL',
         description: 'Türkiye genelinde mekanları, sanatçıları ve etkinlikleri keşfet.',
         contact: { email: 'iletisim@sahnebul.com', phone: '', address: '' },
-        links: [] as { label: string; route: string }[],
+        links: [] as { label: string; route: string; slug?: string }[],
         social: [] as { label: string; url: string }[],
         copyright: '',
     };
     const footerLinks = (() => {
-        const links = [...(footer?.links ?? [])];
+        const links = [...(footer?.links ?? [])] as { label: string; route: string; slug?: string }[];
         if (!links.some((link) => link.route === 'venues.index')) {
             links.unshift({ label: 'Mekanlar', route: 'venues.index' });
         }
@@ -51,11 +51,27 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
         if (!links.some((link) => link.route === 'blog.index')) {
             links.push({ label: 'Blog', route: 'blog.index' });
         }
+        if (!links.some((link) => link.route === 'pages.show' && link.slug === 'hakkimizda')) {
+            const contactIdx = links.findIndex((l) => l.route === 'contact');
+            const about = { label: 'Hakkımızda', route: 'pages.show', slug: 'hakkimizda' };
+            if (contactIdx >= 0) {
+                links.splice(contactIdx, 0, about);
+            } else {
+                links.push(about);
+            }
+        }
         if (!links.some((link) => link.route === 'contact')) {
             links.push({ label: 'İletişim', route: 'contact' });
         }
         return links;
     })();
+
+    const footerLinkHref = (link: { label: string; route: string; slug?: string }) => {
+        if (link.route === 'pages.show' && link.slug) {
+            return route('pages.show', link.slug);
+        }
+        return route(link.route as 'venues.index');
+    };
 
     return (
         <div className="flex min-h-[100dvh] flex-col overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
@@ -93,6 +109,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                                 <p className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{footer.brand ?? 'SAHNEBUL'}</p>
                             </div>
                             <p className="mt-3 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">{footer.description}</p>
+                            <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Kurucu: Erkan Ülker</p>
                             <div className="mt-4 space-y-1 text-sm text-zinc-600 dark:text-zinc-500">
                                 {footer.contact?.email && <p>{footer.contact.email}</p>}
                                 {footer.support_email && footer.support_email !== footer.contact?.email && (
@@ -107,8 +124,8 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                             <div className="mt-3 flex flex-col gap-2">
                                 {footerLinks.map((link) => (
                                     <Link
-                                        key={link.route}
-                                        href={route(link.route)}
+                                        key={link.route === 'pages.show' && link.slug ? `${link.route}:${link.slug}` : link.route}
+                                        href={footerLinkHref(link)}
                                         className="text-sm text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
                                     >
                                         {link.label}

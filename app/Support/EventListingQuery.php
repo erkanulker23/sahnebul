@@ -14,7 +14,7 @@ final class EventListingQuery
     {
         return Event::query()
             ->published()
-            ->whereHas('venue', fn ($q) => $q->approved());
+            ->whereHas('venue', fn ($q) => $q->listedPublicly());
     }
 
     public static function applyDefaultOrder(Builder $query): Builder
