@@ -125,4 +125,12 @@ return [
         'cookies_file' => env('YTDLP_COOKIES_FILE'),
     ],
 
+    /**
+     * yt-dlp DASH video + m4a sesi birleştirmek için (brew install ffmpeg).
+     */
+    'ffmpeg' => [
+        'binary' => env('FFMPEG_BINARY'),
+        'timeout' => (int) env('FFMPEG_TIMEOUT', 180),
+    ],
+
 ];

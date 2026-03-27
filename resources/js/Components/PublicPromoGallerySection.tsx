@@ -1,3 +1,4 @@
+import { InstagramPostBlock, instagramPermalinkForEmbed, useInstagramEmbedScript } from '@/Components/InstagramPostEmbed';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -123,22 +124,30 @@ function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
         }
         const embed = it.embed_url?.trim() ?? '';
         if (embed.includes('instagram.com')) {
-            return false;
+            return true;
         }
         return embed.length > 0;
     });
 }
 
-type PromoPostSlide = { src: string; kind: 'image' | 'video'; poster: string | null };
+type PromoPostSlide =
+    | { kind: 'video'; src: string; poster: string | null }
+    | { kind: 'image'; src: string; poster: string | null }
+    | { kind: 'instagram'; permalink: string; poster: string | null };
 
 function resolvePromoPostSlide(it: PromoGalleryItem, resolveStorageSrc: (path: string | null) => string | null): PromoPostSlide | null {
     const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
     const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+    const embed = it.embed_url?.trim() ?? '';
+    const isIg = embed.includes('instagram.com');
     if (videoSrc) {
-        return { src: videoSrc, kind: 'video', poster: posterSrc };
+        return { kind: 'video', src: videoSrc, poster: posterSrc };
+    }
+    if (isIg) {
+        return { kind: 'instagram', permalink: embed, poster: posterSrc };
     }
     if (posterSrc) {
-        return { src: posterSrc, kind: 'image', poster: posterSrc };
+        return { kind: 'image', src: posterSrc, poster: posterSrc };
     }
     return null;
 }
@@ -164,6 +173,25 @@ export function PublicPromoGallerySection({
         () => postItems.map((it) => resolvePromoPostSlide(it, resolveStorageSrc)),
         [postItems, resolveStorageSrc],
     );
+
+    const instagramEmbedSignatures = useMemo(() => {
+        const urls = new Set<string>();
+        for (const it of visible) {
+            const raw = it.embed_url?.trim() ?? '';
+            if (!raw.includes('instagram.com')) {
+                continue;
+            }
+            const localVideo = it.video_path?.trim()
+                ? Boolean(resolveStorageSrc(it.video_path))
+                : false;
+            if (localVideo) {
+                continue;
+            }
+            urls.add(instagramPermalinkForEmbed(raw));
+        }
+        return Array.from(urls).sort().join('|');
+    }, [visible, resolveStorageSrc]);
+    useInstagramEmbedScript(instagramEmbedSignatures);
 
     const closePostLightbox = useCallback(() => {
         setPostLightbox(null);
@@ -196,6 +224,13 @@ export function PublicPromoGallerySection({
             globalThis.removeEventListener('keydown', onKey);
         };
     }, [postLightbox, closePostLightbox, goPostLightbox]);
+
+    useEffect(() => {
+        if (postLightbox === null) return;
+        const w = globalThis.window as Window & { instgrm?: { Embeds: { process: () => void } } };
+        const id = globalThis.window.setTimeout(() => w.instgrm?.Embeds?.process(), 200);
+        return () => globalThis.window.clearTimeout(id);
+    }, [postLightbox]);
 
     const genericEmbedOnly = useMemo(
         () =>
@@ -284,10 +319,11 @@ export function PublicPromoGallerySection({
                             const slide = postSlides[idx];
                             const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
                             const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                            const igEmbed = it.embed_url?.trim().includes('instagram.com') ?? false;
                             const canOpen = Boolean(slide);
                             return (
                                 <li
-                                    key={`post-${videoSrc ?? ''}-${posterSrc ?? ''}-${idx}`}
+                                    key={`post-${videoSrc ?? ''}-${posterSrc ?? ''}-${it.embed_url ?? ''}-${idx}`}
                                     className={postCell}
                                 >
                                     {canOpen ? (
@@ -306,6 +342,17 @@ export function PublicPromoGallerySection({
                                                     className="pointer-events-none absolute inset-0 box-border h-full w-full max-h-full max-w-full object-cover transition group-hover:brightness-95"
                                                     poster={posterSrc ?? undefined}
                                                 />
+                                            ) : slide?.kind === 'instagram' && posterSrc ? (
+                                                <img
+                                                    src={posterSrc}
+                                                    alt=""
+                                                    className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-cover transition group-hover:brightness-95"
+                                                />
+                                            ) : slide?.kind === 'instagram' ? (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] px-2 text-center">
+                                                    <span className="text-[11px] font-bold text-white">Instagram</span>
+                                                    <span className="text-[9px] font-medium leading-tight text-white/90">Oynatmak için dokunun</span>
+                                                </div>
                                             ) : posterSrc ? (
                                                 <img
                                                     src={posterSrc}
@@ -314,7 +361,7 @@ export function PublicPromoGallerySection({
                                                 />
                                             ) : null}
                                             <span className="pointer-events-none absolute bottom-1 left-1 right-1 rounded bg-black/60 py-0.5 text-center text-[9px] font-medium text-white opacity-0 transition group-hover:opacity-100">
-                                                Büyüt
+                                                {igEmbed && !videoSrc ? 'Instagram’da oynat' : 'Büyüt'}
                                             </span>
                                         </button>
                                     ) : videoSrc ? (
@@ -402,6 +449,10 @@ export function PublicPromoGallerySection({
                                     >
                                         Tarayıcınız bu videoyu oynatamıyor.
                                     </video>
+                                ) : lbSlide.kind === 'instagram' ? (
+                                    <div className="max-h-[min(calc(100dvh-9.5rem),calc(100vh-9.5rem))] w-full max-w-full overflow-y-auto rounded-lg">
+                                        <InstagramPostBlock permalink={lbSlide.permalink} className="min-h-[min(480px,70dvh)] w-full justify-start py-2" />
+                                    </div>
                                 ) : (
                                     <img
                                         src={lbSlide.src}
@@ -439,7 +490,12 @@ export function PublicPromoGallerySection({
                                         : it.video_path
                                           ? resolveStorageSrc(it.video_path)
                                           : null;
-                                    if (!thumb) return null;
+                                    const igOnly =
+                                        !thumb &&
+                                        Boolean(it.embed_url?.trim().includes('instagram.com'));
+                                    if (!thumb && !igOnly) {
+                                        return null;
+                                    }
                                     return (
                                         <button
                                             key={`lb-thumb-${i}`}
@@ -448,11 +504,19 @@ export function PublicPromoGallerySection({
                                                 e.stopPropagation();
                                                 setPostLightbox(i);
                                             }}
-                                            className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 object-cover sm:h-16 sm:w-16 ${
+                                            className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 text-[10px] font-bold sm:h-16 sm:w-16 ${
+                                                igOnly
+                                                    ? 'border-transparent bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white'
+                                                    : ''
+                                            } ${
                                                 i === lbIndex ? 'border-amber-400' : 'border-transparent opacity-50 hover:opacity-90'
                                             }`}
                                         >
-                                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                            {thumb ? (
+                                                <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                            ) : (
+                                                'IG'
+                                            )}
                                         </button>
                                     );
                                 })}

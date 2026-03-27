@@ -834,6 +834,11 @@ export default function AdminEventEdit({
                                     Yol <code className="text-amber-200/90">.mp4</code> veya <code className="text-amber-200/90">.webm</code> ile
                                     bitsin; satır başına bir adres.
                                 </p>
+                                <p className="mt-1 text-xs text-zinc-400">
+                                    Instagram / reel sayfa adresi de buraya yapıştırılabilir (pembe kutu ile aynı içe aktarma).{' '}
+                                    <code className="text-amber-200/90">.mp4</code>/<code className="text-amber-200/90">.webm</code> şartı yalnızca
+                                    doğrudan dosya indirme kısayolu içindir.
+                                </p>
                                 <textarea
                                     id="admin-event-html5-promo-urls"
                                     value={html5PromoUrls}
