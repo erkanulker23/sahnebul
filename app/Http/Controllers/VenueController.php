@@ -10,6 +10,8 @@ use App\Models\Venue;
 use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
 use App\Support\DailyUniqueEntityView;
+use App\Support\HomeHeroSlideDefaults;
+use App\Support\HomeHeroSlides;
 use App\Support\VenuePageSeo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -118,18 +120,23 @@ class VenueController extends Controller
             || $user->venues()->exists()
         );
 
-        $homeHeroImageUrl = null;
-        if (! $request->is('mekanlar')) {
-            $site = $this->appSettings->getSitePublicSettings();
-            $heroPath = isset($site['home_hero_image_path']) && is_string($site['home_hero_image_path'])
-                ? trim($site['home_hero_image_path'])
-                : '';
-            $homeHeroImageUrl = $heroPath !== '' ? $this->appSettings->publicStorageUrl($heroPath) : null;
+        $site = $this->appSettings->getSitePublicSettings();
+        $heroImageUrls = [];
+        foreach (HomeHeroSlides::pathsFromSite($site) as $path) {
+            $u = $this->appSettings->publicStorageUrl($path);
+            if (is_string($u) && $u !== '') {
+                $heroImageUrls[] = $u;
+            }
         }
+
+        $rawHomeCopy = is_array($site['home_hero_slide_copy'] ?? null) ? $site['home_hero_slide_copy'] : null;
+        $rawVenuesCopy = is_array($site['venues_hero_slide_copy'] ?? null) ? $site['venues_hero_slide_copy'] : null;
 
         return Inertia::render('Venues/Index', [
             'isVenuesPage' => $request->is('mekanlar'),
-            'homeHeroImageUrl' => $homeHeroImageUrl,
+            'heroImageUrls' => $heroImageUrls,
+            'homeHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawHomeCopy, HomeHeroSlideDefaults::homeDefaults()),
+            'venuesHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawVenuesCopy, HomeHeroSlideDefaults::venuesDefaults()),
             'canAddVenue' => (bool) $canAddVenue,
             'venues' => $venues,
             'popularArtists' => $popularArtists,

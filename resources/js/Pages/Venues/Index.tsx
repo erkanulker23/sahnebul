@@ -1,4 +1,5 @@
 import { AdSlot } from '@/Components/AdSlot';
+import { cn } from '@/lib/cn';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import EventCarousel from '@/Components/EventCarousel';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
@@ -7,7 +8,7 @@ import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Star } from 'lucide-react';
 
 interface Artist {
@@ -77,13 +78,121 @@ interface PaginatorLink {
     active: boolean;
 }
 
-const DEFAULT_HOME_HERO_IMAGE =
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2400&auto=format&fit=crop';
+/** Admin slider boşken kullanılan varsayılan görseller (Unsplash). */
+const DEFAULT_HOME_HERO_SLIDES = [
+    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=85&w=2400&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=85&w=2400&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1506157786151-b8491531f063?q=85&w=2400&auto=format&fit=crop',
+];
+
+const HERO_SLIDE_MS = 7000;
+
+export type HeroSlideContent = {
+    eyebrow: string;
+    headline: string;
+    headline_accent: string;
+    body: string;
+};
+
+function HomeHeroCarousel({
+    imageUrls,
+    contents,
+}: Readonly<{
+    imageUrls: string[];
+    contents: HeroSlideContent[];
+}>) {
+    const slides = useMemo(() => {
+        const fromAdmin = imageUrls.map((u) => u.trim()).filter(Boolean);
+        if (fromAdmin.length > 0) {
+            return fromAdmin.slice(0, 3);
+        }
+        return DEFAULT_HOME_HERO_SLIDES;
+    }, [imageUrls]);
+
+    const n = slides.length;
+    const [active, setActive] = useState(0);
+
+    useEffect(() => {
+        setActive((a) => (n > 0 ? Math.min(a, n - 1) : 0));
+    }, [n]);
+
+    useEffect(() => {
+        if (n <= 1) {
+            return;
+        }
+        const t = window.setInterval(() => setActive((i) => (i + 1) % n), HERO_SLIDE_MS);
+        return () => window.clearInterval(t);
+    }, [n]);
+
+    const safeIdx = n > 0 ? Math.min(active, n - 1) : 0;
+    const copy = contents[safeIdx] ?? contents[0];
+
+    return (
+        <>
+            {slides.map((src, i) => (
+                <img
+                    key={`${src}-${i}`}
+                    src={src}
+                    alt=""
+                    aria-hidden={i !== safeIdx}
+                    className={cn(
+                        'absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-[900ms] ease-out',
+                        i === safeIdx ? 'opacity-100' : 'opacity-0',
+                    )}
+                    fetchPriority={i === 0 ? 'high' : 'low'}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                />
+            ))}
+            <div className="absolute inset-0 bg-zinc-900/55" />
+            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-900/40 to-zinc-950/20" />
+            <div className="relative z-[2] mx-auto max-w-7xl px-3 py-16 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
+                <div key={safeIdx} className="max-w-3xl transition-opacity duration-500">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/80">{copy.eyebrow}</p>
+                    <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+                        <span className="block">{copy.headline}</span>
+                        <span className="mt-2 block bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent sm:mt-3">
+                            {copy.headline_accent}
+                        </span>
+                    </h1>
+                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-300 sm:text-lg">{copy.body}</p>
+                </div>
+            </div>
+            {n > 1 ? (
+                <div
+                    className="absolute bottom-5 left-1/2 z-[3] flex -translate-x-1/2 gap-2 sm:bottom-7"
+                    role="tablist"
+                    aria-label="Hero slaytları"
+                >
+                    {slides.map((_, i) => (
+                        <button
+                            key={i}
+                            type="button"
+                            role="tab"
+                            aria-selected={i === safeIdx}
+                            tabIndex={i === safeIdx ? 0 : -1}
+                            aria-label={`Slayt ${i + 1}`}
+                            onClick={() => setActive(i)}
+                            className={cn(
+                                'h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400',
+                                i === safeIdx ? 'w-8 bg-amber-400' : 'w-2 bg-white/45 hover:bg-white/70',
+                            )}
+                        />
+                    ))}
+                </div>
+            ) : null}
+        </>
+    );
+}
 
 interface Props {
     isVenuesPage?: boolean;
-    /** Süper yönetici ayarlarından; yalnızca ana sayfa (/) için dolu gelir. */
-    homeHeroImageUrl?: string | null;
+    /** Admin yüklemeleri — boşsa varsayılan stok görseller */
+    heroImageUrls?: string[];
+    /** Ana sayfa (/) için slayt metinleri (3 adet, sunucu birleştirir) */
+    homeHeroSlideContents?: HeroSlideContent[];
+    /** /mekanlar listesi için slayt metinleri */
+    venuesHeroSlideContents?: HeroSlideContent[];
     canAddVenue?: boolean;
     venues?: {
         data: VenueListItem[];
@@ -103,7 +212,9 @@ interface Props {
 
 export default function VenuesIndex({
     isVenuesPage = false,
-    homeHeroImageUrl = null,
+    heroImageUrls = [],
+    homeHeroSlideContents = [],
+    venuesHeroSlideContents = [],
     canAddVenue = false,
     venues,
     cities = [],
@@ -253,6 +364,8 @@ export default function VenuesIndex({
         'Sahnebul ile Türkiye’deki konser mekanlarını, etkinlikleri ve sanatçıları keşfedin; ücretsiz mekân ve etkinlik yönetimi.';
     const venuesListDesc =
         'Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da.';
+    const heroContents = isVenuesPage ? venuesHeroSlideContents : homeHeroSlideContents;
+
     const homeJsonLd =
         appUrl !== ''
             ? {
@@ -276,32 +389,12 @@ export default function VenuesIndex({
                 jsonLd={isVenuesPage ? null : homeJsonLd}
             />
 
-            {/* Hero Section — tam viewport genişliği (görsel: Admin → Ayarlar → Ana sayfa banner) */}
-            <section className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden">
-                <img
-                    src={homeHeroImageUrl?.trim() ? homeHeroImageUrl.trim() : DEFAULT_HOME_HERO_IMAGE}
-                    alt="Konser mekanı"
-                    className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-zinc-900/60" />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/80 via-zinc-900/35 to-transparent" />
-                <div className="relative mx-auto max-w-7xl px-3 py-16 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
-                    <div className="max-w-3xl">
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/70">
-                            Türkiye&apos;nin Etkinlik Mekanları
-                        </p>
-                        <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
-                            Mekanınızı
-                            {' '}
-                            <span className="mt-2 block bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
-                                keşfedin
-                            </span>
-                        </h1>
-                        <p className="mt-5 max-w-xl text-lg leading-relaxed text-zinc-400">
-                            Konser alanları, barlar, açık hava mekanları ve daha fazlası. En iyi mekanlar tek bir platformda.
-                        </p>
-                    </div>
-                </div>
+            {/* Hero — Admin → Ayarlar → Ana sayfa slider */}
+            <section
+                className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden"
+                aria-label={isVenuesPage ? 'Mekân listesi hero' : 'Sahnebul ana sayfa hero'}
+            >
+                <HomeHeroCarousel imageUrls={heroImageUrls} contents={heroContents} />
             </section>
 
             <AdSlot slotKey="home_below_hero" />

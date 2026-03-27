@@ -137,13 +137,6 @@ export default function LoginPortal({
                     kullanılır.
                 </p>
             )}
-            {portal === 'organizasyon' && (
-                <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-zinc-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-zinc-400">
-                    <strong className="font-medium text-zinc-900 dark:text-zinc-300">Not:</strong> Bu sayfa organizasyon / ajans firması hesapları içindir. Platformun tamamını yöneten{' '}
-                    <strong className="font-medium text-zinc-900 dark:text-zinc-300">site yönetimi</strong> hesabı değildir; site yönetimi{' '}
-                    <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/yonetim/giris</code> adresinden giriş yapar.
-                </p>
-            )}
 
             <form onSubmit={submit} className="mt-8 space-y-6">
                 <div>

@@ -9,6 +9,8 @@ use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use App\Support\HomeHeroSlideDefaults;
+use App\Support\HomeHeroSlides;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
@@ -38,7 +40,16 @@ class SettingsController extends Controller
         $logoPath = isset($site['logo_path']) && is_string($site['logo_path']) ? trim($site['logo_path']) : '';
         $faviconPath = isset($site['favicon_path']) && is_string($site['favicon_path']) ? trim($site['favicon_path']) : '';
         $ogPath = isset($seo['default_og_image_path']) && is_string($seo['default_og_image_path']) ? trim($seo['default_og_image_path']) : '';
-        $homeHeroPath = isset($site['home_hero_image_path']) && is_string($site['home_hero_image_path']) ? trim($site['home_hero_image_path']) : '';
+        $heroSlidePaths = HomeHeroSlides::pathsFromSite($site);
+        $homeHeroSlideUrls = [null, null, null];
+        foreach ($heroSlidePaths as $i => $path) {
+            if ($i < HomeHeroSlides::MAX_SLIDES) {
+                $homeHeroSlideUrls[$i] = $this->appSettings->publicStorageUrl($path);
+            }
+        }
+
+        $homeCopyForm = self::heroSlideCopyFormRows($site['home_hero_slide_copy'] ?? null);
+        $venuesCopyForm = self::heroSlideCopyFormRows($site['venues_hero_slide_copy'] ?? null);
 
         $socialRaw = is_array($site['social_links'] ?? null) ? $site['social_links'] : [];
         $socialLinks = [
@@ -74,7 +85,9 @@ class SettingsController extends Controller
                 'logo_url' => $logoPath !== '' ? $this->appSettings->publicStorageUrl($logoPath) : null,
                 'favicon_url' => $faviconPath !== '' ? $this->appSettings->publicStorageUrl($faviconPath) : null,
                 'seo_og_image_url' => $ogPath !== '' ? $this->appSettings->publicStorageUrl($ogPath) : null,
-                'home_hero_url' => $homeHeroPath !== '' ? $this->appSettings->publicStorageUrl($homeHeroPath) : null,
+                'home_hero_slide_urls' => $homeHeroSlideUrls,
+                'home_hero_slide_copy_form' => $homeCopyForm,
+                'venues_hero_slide_copy_form' => $venuesCopyForm,
                 'social_links' => $socialLinks,
             ],
             'canManageSiteIdentity' => $request->user()?->isSuperAdmin() ?? false,
@@ -117,7 +130,16 @@ class SettingsController extends Controller
             }
         }
 
-        $validated = $request->validate([
+        $heroTextRules = [];
+        $heroFieldMax = ['eyebrow' => 200, 'headline' => 320, 'headline_accent' => 320, 'body' => 4000];
+        for ($i = 0; $i < HomeHeroSlideDefaults::MAX_SLIDES; $i++) {
+            foreach ($heroFieldMax as $field => $len) {
+                $heroTextRules['hero_home_'.$i.'_'.$field] = 'nullable|string|max:'.$len;
+                $heroTextRules['hero_venues_'.$i.'_'.$field] = 'nullable|string|max:'.$len;
+            }
+        }
+
+        $validated = $request->validate(array_merge([
             'site_name' => 'nullable|string|max:120',
             'contact_email' => UserContactValidation::emailNullable(),
             'support_email' => UserContactValidation::emailNullable(),
@@ -133,8 +155,12 @@ class SettingsController extends Controller
             'logo' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp,svg',
             'favicon' => 'nullable|file|max:1024|mimes:ico,png,jpg,jpeg,svg,webp',
             'seo_og_image' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp',
-            'home_hero' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
-            'remove_home_hero' => 'sometimes|boolean',
+            'home_hero_slide_0' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
+            'home_hero_slide_1' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
+            'home_hero_slide_2' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
+            'remove_home_hero_slide_0' => 'sometimes|boolean',
+            'remove_home_hero_slide_1' => 'sometimes|boolean',
+            'remove_home_hero_slide_2' => 'sometimes|boolean',
             'google_maps_api_key' => 'nullable|string|max:512',
             'remove_google_maps_api_key' => 'sometimes|boolean',
             'social_instagram' => 'nullable|url|max:500',
@@ -143,7 +169,7 @@ class SettingsController extends Controller
             'social_youtube' => 'nullable|url|max:500',
             'social_linkedin' => 'nullable|url|max:500',
             'social_tiktok' => 'nullable|url|max:500',
-        ]);
+        ], $heroTextRules));
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
 
@@ -155,9 +181,13 @@ class SettingsController extends Controller
         $ogPath = isset($currentSeo['default_og_image_path']) && is_string($currentSeo['default_og_image_path'])
             ? trim($currentSeo['default_og_image_path'])
             : '';
-        $homeHeroPath = isset($current['home_hero_image_path']) && is_string($current['home_hero_image_path'])
-            ? trim($current['home_hero_image_path'])
-            : '';
+        $currentHeroPaths = HomeHeroSlides::pathsFromSite($current);
+        $heroSlots = ['', '', ''];
+        foreach (array_values($currentHeroPaths) as $i => $p) {
+            if ($i < HomeHeroSlides::MAX_SLIDES) {
+                $heroSlots[$i] = $p;
+            }
+        }
 
         if ($request->boolean('remove_logo')) {
             $this->deletePublicSiteAsset($logoPath);
@@ -183,19 +213,36 @@ class SettingsController extends Controller
             $ogPath = $request->file('seo_og_image')->store('site', 'public');
         }
 
-        if ($request->boolean('remove_home_hero')) {
-            $this->deletePublicSiteAsset($homeHeroPath);
-            $homeHeroPath = '';
-        } elseif ($request->hasFile('home_hero')) {
-            $this->deletePublicSiteAsset($homeHeroPath);
-            $homeHeroPath = $request->file('home_hero')->store('site', 'public');
+        for ($i = 0; $i < HomeHeroSlides::MAX_SLIDES; $i++) {
+            if ($request->boolean('remove_home_hero_slide_'.$i)) {
+                if ($heroSlots[$i] !== '') {
+                    $this->deletePublicSiteAsset($heroSlots[$i]);
+                }
+                $heroSlots[$i] = '';
+            } elseif ($request->hasFile('home_hero_slide_'.$i)) {
+                if ($heroSlots[$i] !== '') {
+                    $this->deletePublicSiteAsset($heroSlots[$i]);
+                }
+                $heroSlots[$i] = $request->file('home_hero_slide_'.$i)->store('site', 'public');
+            }
         }
+
+        $newHeroPaths = array_values(array_filter($heroSlots, fn (string $p) => $p !== ''));
+        if (count($newHeroPaths) > HomeHeroSlides::MAX_SLIDES) {
+            $newHeroPaths = array_slice($newHeroPaths, 0, HomeHeroSlides::MAX_SLIDES);
+        }
+
+        $homeHeroSlideCopy = self::heroSlideCopyFromRequest($request, 'hero_home_');
+        $venuesHeroSlideCopy = self::heroSlideCopyFromRequest($request, 'hero_venues_');
 
         $payload = [
             'site_name' => $this->nullableTrim($validated['site_name'] ?? null),
             'logo_path' => $logoPath !== '' ? $logoPath : null,
             'favicon_path' => $faviconPath !== '' ? $faviconPath : null,
-            'home_hero_image_path' => $homeHeroPath !== '' ? $homeHeroPath : null,
+            'home_hero_slide_paths' => $newHeroPaths !== [] ? $newHeroPaths : null,
+            'home_hero_slide_copy' => $homeHeroSlideCopy,
+            'venues_hero_slide_copy' => $venuesHeroSlideCopy,
+            'home_hero_image_path' => null,
             'contact_email' => $this->nullableTrim($validated['contact_email'] ?? null),
             'support_email' => $this->nullableTrim($validated['support_email'] ?? null),
             'phone' => $this->nullableTrim($validated['phone'] ?? null),
@@ -255,5 +302,51 @@ class SettingsController extends Controller
             return;
         }
         Storage::disk('public')->delete($path);
+    }
+
+    /**
+     * @return list<array{eyebrow: string, headline: string, headline_accent: string, body: string}>
+     */
+    private static function heroSlideCopyFormRows(mixed $raw): array
+    {
+        $out = [];
+        for ($i = 0; $i < HomeHeroSlideDefaults::MAX_SLIDES; $i++) {
+            $row = is_array($raw) && isset($raw[$i]) && is_array($raw[$i]) ? $raw[$i] : [];
+            $out[] = [
+                'eyebrow' => isset($row['eyebrow']) && is_string($row['eyebrow']) ? $row['eyebrow'] : '',
+                'headline' => isset($row['headline']) && is_string($row['headline']) ? $row['headline'] : '',
+                'headline_accent' => isset($row['headline_accent']) && is_string($row['headline_accent']) ? $row['headline_accent'] : '',
+                'body' => isset($row['body']) && is_string($row['body']) ? $row['body'] : '',
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{eyebrow: string, headline: string, headline_accent: string, body: string}>
+     */
+    private static function heroSlideCopyFromRequest(Request $request, string $prefix): array
+    {
+        $out = [];
+        for ($i = 0; $i < HomeHeroSlideDefaults::MAX_SLIDES; $i++) {
+            $out[] = [
+                'eyebrow' => self::heroTrimmedString($request->input($prefix.$i.'_eyebrow')),
+                'headline' => self::heroTrimmedString($request->input($prefix.$i.'_headline')),
+                'headline_accent' => self::heroTrimmedString($request->input($prefix.$i.'_headline_accent')),
+                'body' => self::heroTrimmedString($request->input($prefix.$i.'_body')),
+            ];
+        }
+
+        return $out;
+    }
+
+    private static function heroTrimmedString(mixed $v): string
+    {
+        if (! is_string($v)) {
+            return '';
+        }
+
+        return trim($v);
     }
 }

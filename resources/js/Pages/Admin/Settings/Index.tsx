@@ -11,6 +11,7 @@ import {
     BarChart3,
     FileText,
     ImageIcon,
+    Images,
     MapPin,
     Search,
     Share2,
@@ -29,6 +30,13 @@ interface SiteSocialLinks {
     tiktok: string;
 }
 
+interface HeroSlideCopyFormRow {
+    eyebrow: string;
+    headline: string;
+    headline_accent: string;
+    body: string;
+}
+
 interface SitePublicProps {
     site_name: string;
     contact_email: string;
@@ -43,8 +51,10 @@ interface SitePublicProps {
     logo_url: string | null;
     favicon_url: string | null;
     seo_og_image_url: string | null;
-    /** Ana sayfa (/) hero arka planı */
-    home_hero_url: string | null;
+    /** Ana sayfa (/) hero slider — 3 yuva (boş = null) */
+    home_hero_slide_urls?: (string | null)[];
+    home_hero_slide_copy_form?: HeroSlideCopyFormRow[];
+    venues_hero_slide_copy_form?: HeroSlideCopyFormRow[];
 }
 
 interface MapsApiProps {
@@ -74,18 +84,19 @@ const LEGAL_SLUGS: { slug: string; label: string; defaultTitle: string }[] = [
 
 type LegalEntry = { title: string; content: string };
 
-type SettingsTabId = 'overview' | 'brand' | 'seo' | 'contact' | 'maps' | 'content';
+type SettingsTabId = 'overview' | 'brand' | 'home_slider' | 'seo' | 'contact' | 'maps' | 'content';
 
 const TABS: { id: SettingsTabId; label: string; description: string; icon: LucideIcon }[] = [
     { id: 'overview', label: 'Özet', description: 'Sayılar ve kısayollar', icon: BarChart3 },
-    { id: 'brand', label: 'Marka & görseller', description: 'Logo, favicon, banner, site adı', icon: ImageIcon },
+    { id: 'brand', label: 'Marka & görseller', description: 'Logo, favicon, site adı', icon: ImageIcon },
+    { id: 'home_slider', label: 'Ana sayfa slider', description: 'Hero — en fazla 3 görsel', icon: Images },
     { id: 'seo', label: 'SEO', description: 'Meta, OG, doğrulama', icon: Search },
     { id: 'contact', label: 'İletişim & sosyal', description: 'E-posta, telefon, sosyal bağlantılar', icon: Share2 },
     { id: 'maps', label: 'Harita API', description: 'Google Maps anahtarı', icon: MapPin },
     { id: 'content', label: 'İçerik', description: 'Statik sayfalar ve footer', icon: FileText },
 ];
 
-const SITE_FORM_TABS: SettingsTabId[] = ['brand', 'seo', 'contact', 'maps'];
+const SITE_FORM_TABS: SettingsTabId[] = ['brand', 'home_slider', 'seo', 'contact', 'maps'];
 
 function buildLegalState(raw: string | undefined | null): Record<string, LegalEntry> {
     let parsed: Record<string, unknown> = {};
@@ -163,8 +174,24 @@ export default function AdminSettingsIndex({
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [faviconFile, setFaviconFile] = useState<File | null>(null);
     const [ogFile, setOgFile] = useState<File | null>(null);
-    const [removeHomeHero, setRemoveHomeHero] = useState(false);
-    const [homeHeroFile, setHomeHeroFile] = useState<File | null>(null);
+    const [removeHomeHeroSlide, setRemoveHomeHeroSlide] = useState(() => [false, false, false]);
+    const [homeHeroSlideFiles, setHomeHeroSlideFiles] = useState<(File | null)[]>(() => [null, null, null]);
+    const emptyHeroCopy = (): HeroSlideCopyFormRow => ({
+        eyebrow: '',
+        headline: '',
+        headline_accent: '',
+        body: '',
+    });
+    const [homeHeroCopy, setHomeHeroCopy] = useState<HeroSlideCopyFormRow[]>(() => [
+        emptyHeroCopy(),
+        emptyHeroCopy(),
+        emptyHeroCopy(),
+    ]);
+    const [venuesHeroCopy, setVenuesHeroCopy] = useState<HeroSlideCopyFormRow[]>(() => [
+        emptyHeroCopy(),
+        emptyHeroCopy(),
+        emptyHeroCopy(),
+    ]);
     const [mapsApiKeyInput, setMapsApiKeyInput] = useState('');
     const [removeMapsKey, setRemoveMapsKey] = useState(false);
     const [siteFormBusy, setSiteFormBusy] = useState(false);
@@ -194,11 +221,29 @@ export default function AdminSettingsIndex({
         setRemoveLogo(false);
         setRemoveFavicon(false);
         setRemoveOg(false);
-        setRemoveHomeHero(false);
+        setRemoveHomeHeroSlide([false, false, false]);
         setLogoFile(null);
         setFaviconFile(null);
         setOgFile(null);
-        setHomeHeroFile(null);
+        setHomeHeroSlideFiles([null, null, null]);
+        const hc = sp?.home_hero_slide_copy_form;
+        const vc = sp?.venues_hero_slide_copy_form;
+        setHomeHeroCopy(
+            [0, 1, 2].map((i) => ({
+                eyebrow: hc?.[i]?.eyebrow ?? '',
+                headline: hc?.[i]?.headline ?? '',
+                headline_accent: hc?.[i]?.headline_accent ?? '',
+                body: hc?.[i]?.body ?? '',
+            })),
+        );
+        setVenuesHeroCopy(
+            [0, 1, 2].map((i) => ({
+                eyebrow: vc?.[i]?.eyebrow ?? '',
+                headline: vc?.[i]?.headline ?? '',
+                headline_accent: vc?.[i]?.headline_accent ?? '',
+                body: vc?.[i]?.body ?? '',
+            })),
+        );
     }, [
         sp?.site_name,
         sp?.contact_email,
@@ -218,7 +263,9 @@ export default function AdminSettingsIndex({
         sp?.logo_url,
         sp?.favicon_url,
         sp?.seo_og_image_url,
-        sp?.home_hero_url,
+        sp?.home_hero_slide_urls,
+        sp?.home_hero_slide_copy_form,
+        sp?.venues_hero_slide_copy_form,
     ]);
 
     const legalPagesJson = useMemo(() => legalStateToJson(legalBySlug), [legalBySlug]);
@@ -267,11 +314,30 @@ export default function AdminSettingsIndex({
         if (removeLogo) fd.append('remove_logo', '1');
         if (removeFavicon) fd.append('remove_favicon', '1');
         if (removeOg) fd.append('remove_seo_og_image', '1');
-        if (removeHomeHero) fd.append('remove_home_hero', '1');
         if (logoFile) fd.append('logo', logoFile);
         if (faviconFile) fd.append('favicon', faviconFile);
         if (ogFile) fd.append('seo_og_image', ogFile);
-        if (homeHeroFile) fd.append('home_hero', homeHeroFile);
+        for (let i = 0; i < 3; i++) {
+            if (removeHomeHeroSlide[i]) {
+                fd.append(`remove_home_hero_slide_${i}`, '1');
+            }
+            const f = homeHeroSlideFiles[i];
+            if (f) {
+                fd.append(`home_hero_slide_${i}`, f);
+            }
+        }
+        for (let i = 0; i < 3; i++) {
+            const h = homeHeroCopy[i] ?? emptyHeroCopy();
+            const v = venuesHeroCopy[i] ?? emptyHeroCopy();
+            fd.append(`hero_home_${i}_eyebrow`, h.eyebrow);
+            fd.append(`hero_home_${i}_headline`, h.headline);
+            fd.append(`hero_home_${i}_headline_accent`, h.headline_accent);
+            fd.append(`hero_home_${i}_body`, h.body);
+            fd.append(`hero_venues_${i}_eyebrow`, v.eyebrow);
+            fd.append(`hero_venues_${i}_headline`, v.headline);
+            fd.append(`hero_venues_${i}_headline_accent`, v.headline_accent);
+            fd.append(`hero_venues_${i}_body`, v.body);
+        }
         if (removeMapsKey) fd.append('remove_google_maps_api_key', '1');
         if (mapsApiKeyInput.trim() !== '') fd.append('google_maps_api_key', mapsApiKeyInput.trim());
         router.post(route('admin.settings.site'), fd, {
@@ -300,7 +366,9 @@ export default function AdminSettingsIndex({
             'logo',
             'favicon',
             'seo_og_image',
-            'home_hero',
+            'home_hero_slide_0',
+            'home_hero_slide_1',
+            'home_hero_slide_2',
             'google_maps_api_key',
             'remove_google_maps_api_key',
             'social_instagram',
@@ -310,7 +378,12 @@ export default function AdminSettingsIndex({
             'social_linkedin',
             'social_tiktok',
         ];
-        return keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
+        const fromKeys = keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
+        const heroExtra = Object.keys(errors).filter(
+            (k) => k.startsWith('hero_home_') || k.startsWith('hero_venues_'),
+        );
+        const heroMsgs = heroExtra.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
+        return [...fromKeys, ...heroMsgs];
     }, [errors]);
 
     const inputClass = cn('mt-1 max-w-xl', inputBaseClass, 'disabled:cursor-not-allowed disabled:opacity-60');
@@ -482,7 +555,15 @@ export default function AdminSettingsIndex({
                         >
                             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Marka ve görseller</h3>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Logo, favicon, ana sayfa banner’ı ve sitede görünen marka adı. Üst çubuk ve footer bu bilgilerle güncellenir.
+                                Logo, favicon ve sitede görünen marka adı. Ana sayfa üst görselleri için{' '}
+                                <button
+                                    type="button"
+                                    className="font-medium text-amber-700 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-600 dark:text-amber-400"
+                                    onClick={() => setActiveTab('home_slider')}
+                                >
+                                    Ana sayfa slider
+                                </button>{' '}
+                                sekmesini kullanın.
                             </p>
 
                             <div>
@@ -534,36 +615,6 @@ export default function AdminSettingsIndex({
                             </div>
 
                             <div>
-                                <span className={labelClass}>Ana sayfa banner (hero)</span>
-                                <p className="mt-1 max-w-xl text-xs text-zinc-500">
-                                    Yalnızca ana sayfa (
-                                    <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/</code>) üst bölümü. Öneri: geniş yatay (ör. 21:9), en
-                                    fazla 6 MB, JPEG/PNG/WebP.
-                                </p>
-                                {sp?.home_hero_url && !removeHomeHero && (
-                                    <div className="mt-3 max-w-xl overflow-hidden rounded-lg border border-zinc-700">
-                                        <img
-                                            src={sp.home_hero_url}
-                                            alt="Mevcut ana sayfa banner önizlemesi"
-                                            className="max-h-40 w-full object-cover object-center"
-                                        />
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
-                                    onChange={(ev) => setHomeHeroFile(ev.target.files?.[0] ?? null)}
-                                />
-                                {sp?.home_hero_url && (
-                                    <label className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
-                                        <input type="checkbox" checked={removeHomeHero} onChange={(e) => setRemoveHomeHero(e.target.checked)} />
-                                        Banner’ı kaldır
-                                    </label>
-                                )}
-                            </div>
-
-                            <div>
                                 <label htmlFor="site-name" className={labelClass}>
                                     Site adı
                                 </label>
@@ -576,6 +627,251 @@ export default function AdminSettingsIndex({
                                 />
                                 <p className="mt-1 text-xs text-zinc-500">Sekme başlığı son eki, üst bar ve footer marka adı.</p>
                             </div>
+                        </div>
+
+                        {/* Ana sayfa hero slider */}
+                        <div
+                            id="settings-panel-home_slider"
+                            role="tabpanel"
+                            aria-labelledby="settings-tab-home_slider"
+                            hidden={activeTab !== 'home_slider'}
+                            className="space-y-6"
+                        >
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Ana sayfa slider (hero)</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                Yalnızca ana sayfa (
+                                <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/</code>
+                                ) üst bölümü. En fazla <strong className="font-medium text-zinc-800 dark:text-zinc-200">3</strong> görsel yükleyin; dosyalar{' '}
+                                <code className="rounded bg-zinc-800/80 px-1 text-zinc-200">storage/app/public/site/</code> altında saklanır (projede). Öneri: geniş
+                                yatay (ör. 21:9 veya 16:9), JPEG/PNG/WebP, dosya başına en fazla 6 MB.
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                                Slayt yoksa sitede üç varsayılan stok görsel döner. Her slayt için ayrı metin girebilirsiniz; alan boş bırakılırsa site
+                                varsayılan metni kullanır. Tek görsel yüklerseniz otomatik geçiş olmaz.
+                            </p>
+                            {[0, 1, 2].map((slot) => {
+                                const url = sp?.home_hero_slide_urls?.[slot] ?? null;
+                                const showPreview = Boolean(url && !removeHomeHeroSlide[slot]);
+                                const hRow = homeHeroCopy[slot] ?? emptyHeroCopy();
+                                const vRow = venuesHeroCopy[slot] ?? emptyHeroCopy();
+                                return (
+                                    <div
+                                        key={slot}
+                                        className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-950/40"
+                                    >
+                                        <span className={labelClass}>
+                                            Slayt {slot + 1}
+                                            {slot === 0 ? ' (ilk görsel — öncelikli yüklenir)' : ''}
+                                        </span>
+                                        {showPreview ? (
+                                            <div className="mt-3 max-w-2xl overflow-hidden rounded-lg border border-zinc-700">
+                                                <img
+                                                    src={url ?? ''}
+                                                    alt=""
+                                                    className="max-h-44 w-full object-cover object-center"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <p className="mt-2 text-xs text-zinc-500">Henüz görsel yok.</p>
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            className="mt-3 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
+                                            onChange={(ev) => {
+                                                const f = ev.target.files?.[0] ?? null;
+                                                setHomeHeroSlideFiles((prev) => {
+                                                    const next = [...prev];
+                                                    next[slot] = f;
+                                                    return next;
+                                                });
+                                            }}
+                                        />
+                                        {url ? (
+                                            <label className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={removeHomeHeroSlide[slot]}
+                                                    onChange={(e) => {
+                                                        const on = e.target.checked;
+                                                        setRemoveHomeHeroSlide((prev) => {
+                                                            const next = [...prev];
+                                                            next[slot] = on;
+                                                            return next;
+                                                        });
+                                                        if (on) {
+                                                            setHomeHeroSlideFiles((prev) => {
+                                                                const next = [...prev];
+                                                                next[slot] = null;
+                                                                return next;
+                                                            });
+                                                        }
+                                                    }}
+                                                />
+                                                Bu slaytı kaldır
+                                            </label>
+                                        ) : null}
+
+                                        <div className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-400/90">
+                                                Ana sayfa (/) — bu slayt metni
+                                            </p>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-home-${slot}-eyebrow`}>
+                                                    Üst etiket (küçük, altın)
+                                                </label>
+                                                <input
+                                                    id={`hero-home-${slot}-eyebrow`}
+                                                    value={hRow.eyebrow}
+                                                    onChange={(e) =>
+                                                        setHomeHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, eyebrow: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-home-${slot}-headline`}>
+                                                    Ana başlık (beyaz satır)
+                                                </label>
+                                                <input
+                                                    id={`hero-home-${slot}-headline`}
+                                                    value={hRow.headline}
+                                                    onChange={(e) =>
+                                                        setHomeHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, headline: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-home-${slot}-accent`}>
+                                                    Vurgu satırı (gradient)
+                                                </label>
+                                                <input
+                                                    id={`hero-home-${slot}-accent`}
+                                                    value={hRow.headline_accent}
+                                                    onChange={(e) =>
+                                                        setHomeHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, headline_accent: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-home-${slot}-body`}>
+                                                    Açıklama paragrafı
+                                                </label>
+                                                <textarea
+                                                    id={`hero-home-${slot}-body`}
+                                                    value={hRow.body}
+                                                    onChange={(e) =>
+                                                        setHomeHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, body: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    rows={3}
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+                                                Mekân listesi (/mekanlar) — bu slayt metni
+                                            </p>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-venues-${slot}-eyebrow`}>
+                                                    Üst etiket
+                                                </label>
+                                                <input
+                                                    id={`hero-venues-${slot}-eyebrow`}
+                                                    value={vRow.eyebrow}
+                                                    onChange={(e) =>
+                                                        setVenuesHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, eyebrow: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-venues-${slot}-headline`}>
+                                                    Ana başlık
+                                                </label>
+                                                <input
+                                                    id={`hero-venues-${slot}-headline`}
+                                                    value={vRow.headline}
+                                                    onChange={(e) =>
+                                                        setVenuesHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, headline: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-venues-${slot}-accent`}>
+                                                    Vurgu satırı
+                                                </label>
+                                                <input
+                                                    id={`hero-venues-${slot}-accent`}
+                                                    value={vRow.headline_accent}
+                                                    onChange={(e) =>
+                                                        setVenuesHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, headline_accent: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass} htmlFor={`hero-venues-${slot}-body`}>
+                                                    Açıklama
+                                                </label>
+                                                <textarea
+                                                    id={`hero-venues-${slot}-body`}
+                                                    value={vRow.body}
+                                                    onChange={(e) =>
+                                                        setVenuesHeroCopy((prev) =>
+                                                            prev.map((row, i) =>
+                                                                i === slot ? { ...row, body: e.target.value } : row,
+                                                            ),
+                                                        )
+                                                    }
+                                                    rows={3}
+                                                    className={inputClass}
+                                                    placeholder="Boş = varsayılan"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {/* SEO */}

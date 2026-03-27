@@ -54,8 +54,10 @@ return [
         'site_name' => null,
         'logo_path' => null,
         'favicon_path' => null,
-        /** Ana sayfa (/) hero arka planı — public storage `site/` altında. */
+        /** @deprecated Tek görsel; yerine home_hero_slide_paths kullanılır (okuma için hâlâ desteklenir). */
         'home_hero_image_path' => null,
+        /** Ana sayfa hero slider — en fazla 3 yol, public storage `site/` altında. */
+        'home_hero_slide_paths' => null,
         'seo' => [
             'default_description' => null,
             'default_og_image_path' => null,

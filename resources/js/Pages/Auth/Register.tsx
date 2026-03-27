@@ -220,7 +220,7 @@ export default function Register({
     const isOrganization = data.membership_type === 'organization';
 
     return (
-        <GuestLayout>
+        <GuestLayout wide>
             <SeoHead
                 title="Kayıt Ol - Sahnebul"
                 description="Sanatçı veya mekân yönetimi için ücretsiz hesap oluşturun; onaylı profil ve panel erişimi."
@@ -255,7 +255,10 @@ export default function Register({
             <div
                 role="tablist"
                 aria-label="Üyelik türü"
-                className="mt-6 flex w-full flex-wrap rounded-xl border border-zinc-200 bg-zinc-100 p-1 shadow-inner dark:border-white/20 dark:bg-black/50 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
+                className={cn(
+                    'mt-6 grid w-full grid-cols-1 gap-2 rounded-xl border border-zinc-200 bg-zinc-100 p-1.5 shadow-inner sm:gap-1 sm:p-1 dark:border-white/20 dark:bg-black/50 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]',
+                    claimFlow ? 'sm:grid-cols-2' : 'sm:grid-cols-3',
+                )}
             >
                 <button
                     ref={venueTabRef}
@@ -271,7 +274,7 @@ export default function Register({
                         }))
                     }
                     onKeyDown={(e) => handleTabKeyDown(e, 'venue')}
-                    className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium transition sm:px-3 sm:text-sm ${
+                    className={`flex min-h-11 w-full items-center justify-center rounded-lg px-3 py-2.5 text-center text-sm font-medium leading-snug transition ${
                         data.membership_type === 'venue'
                             ? 'bg-amber-500 text-zinc-950 shadow-sm'
                             : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
@@ -294,7 +297,7 @@ export default function Register({
                         }))
                     }
                     onKeyDown={(e) => handleTabKeyDown(e, 'artist')}
-                    className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium transition sm:px-3 sm:text-sm ${
+                    className={`flex min-h-11 w-full items-center justify-center rounded-lg px-3 py-2.5 text-center text-sm font-medium leading-snug transition ${
                         data.membership_type === 'artist'
                             ? 'bg-amber-500 text-zinc-950 shadow-sm'
                             : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
@@ -317,7 +320,7 @@ export default function Register({
                             }))
                         }
                         onKeyDown={(e) => handleTabKeyDown(e, 'organization')}
-                        className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium leading-tight transition sm:px-3 sm:text-sm ${
+                        className={`flex min-h-11 w-full items-center justify-center rounded-lg px-3 py-2.5 text-center text-sm font-medium leading-snug transition ${
                             data.membership_type === 'organization'
                                 ? 'bg-amber-500 text-zinc-950 shadow-sm'
                                 : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
