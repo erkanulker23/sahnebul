@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CatalogEntityNew;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,6 +29,18 @@ class Venue extends Model
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    protected $appends = [
+        'is_new_on_platform',
+    ];
+
+    public function getIsNewOnPlatformAttribute(): bool
+    {
+        return CatalogEntityNew::isWithinBadgeWindow(
+            $this->created_at,
+            CatalogEntityNew::venueEligible((string) $this->status, (bool) $this->is_active),
+        );
+    }
 
     public function user(): BelongsTo
     {

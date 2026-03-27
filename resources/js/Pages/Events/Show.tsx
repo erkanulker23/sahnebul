@@ -5,6 +5,7 @@ import {
 } from '@/Components/PublicPromoGallerySection';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
+import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEventList';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -18,7 +19,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ExternalLink, MessageCircle, Navigation, Ticket } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -144,6 +145,111 @@ function UpcomingEventsSection({
     );
 }
 
+/** Sanatçı profilindeki “Etkinlikleri Listele” ile aynı satır / ay gruplu düzen */
+function ArtistOtherUpcomingOnEventShow({
+    description,
+    items,
+    artistNamesLine,
+    imageSrc,
+}: Readonly<{
+    description?: string;
+    items: PublicEventTicketCardEvent[];
+    artistNamesLine: string;
+    imageSrc: (path: string | null | undefined) => string | null;
+}>) {
+    const [selectedCity, setSelectedCity] = useState('Tümü');
+    const cityOptions = useMemo(() => {
+        const set = new Set<string>();
+        items.forEach((ev) => {
+            const n = ev.venue?.city?.name?.trim();
+            if (n) set.add(n);
+        });
+        return ['Tümü', ...Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'))];
+    }, [items]);
+    const filtered = useMemo(
+        () => items.filter((ev) => selectedCity === 'Tümü' || ev.venue?.city?.name === selectedCity),
+        [items, selectedCity],
+    );
+    const detailItems: DetailEventListItem[] = useMemo(
+        () =>
+            filtered.map((ev) => ({
+                id: ev.id,
+                slug: ev.slug,
+                title: ev.title,
+                start_date: ev.start_date,
+                cover_image: ev.cover_image,
+                listing_image: ev.listing_image,
+                status: ev.status,
+                is_full: ev.is_full,
+                ticket_acquisition_mode: ev.ticket_acquisition_mode,
+                sahnebul_reservation_enabled: ev.sahnebul_reservation_enabled,
+                venue: {
+                    name: ev.venue.name,
+                    slug: ev.venue.slug,
+                    city: ev.venue.city,
+                    district: ev.venue.district,
+                },
+                artists: ev.artists.map((a) => ({
+                    id: a.id,
+                    name: a.name,
+                    slug: a.slug,
+                    avatar: a.avatar,
+                })),
+            })),
+        [filtered],
+    );
+    const showCityFilter = cityOptions.length > 1;
+
+    return (
+        <section className="scroll-mt-24">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+                <div className="min-w-0">
+                    <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white sm:text-xl">
+                        Sanatçıların diğer yaklaşan etkinlikleri
+                    </h2>
+                    <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+                        {artistNamesLine}
+                        {' '}
+                        — yaklaşan etkinlikler (ay ay)
+                    </p>
+                    {description ? (
+                        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{description}</p>
+                    ) : null}
+                </div>
+                {showCityFilter ? (
+                    <div className="flex items-center gap-2">
+                        <label
+                            htmlFor="event-show-artist-other-city"
+                            className="shrink-0 text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                        >
+                            Şehir
+                        </label>
+                        <select
+                            id="event-show-artist-other-city"
+                            value={selectedCity}
+                            onChange={(e) => setSelectedCity(e.target.value)}
+                            className="max-w-[min(100vw-6rem,14rem)] rounded-md border border-zinc-300 bg-white py-1.5 pr-8 pl-2.5 text-sm text-zinc-900 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100"
+                        >
+                            {cityOptions.map((city) => (
+                                <option key={city} value={city}>
+                                    {city}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                ) : null}
+            </div>
+            {detailItems.length > 0 ? (
+                <DetailEventList events={detailItems} imageSrc={imageSrc} context="artist" showHeading={false} />
+            ) : (
+                <p className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center text-sm text-zinc-600 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-400">
+                    Seçilen şehir için yaklaşan etkinlik yok. Farklı bir şehir seçin veya &quot;Tümü&quot;ne dönün.
+                </p>
+            )}
+        </section>
+    );
+}
+
 export default function EventShow({
     event,
     documentStructuredData = null,
@@ -166,7 +272,7 @@ export default function EventShow({
     const seo = (page.props as { seo?: SharedSeo }).seo;
     const appUrl = (seo?.appUrl ?? '').replace(/\/$/, '');
     const canonicalUrl = appUrl ? `${appUrl}/etkinlikler/${eventShowParam(event)}` : undefined;
-    const imageSrc = (path: string | null) => {
+    const imageSrc = (path: string | null | undefined) => {
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
@@ -1099,11 +1205,18 @@ export default function EventShow({
                             description="Aynı mekânda, bugünden sonra gerçekleşecek diğer yayında etkinlikler (farklı sanatçılar dahil)."
                             items={venueUpcomingEvents}
                         />
-                        <UpcomingEventsSection
-                            title="Sanatçıların diğer yaklaşan etkinlikleri"
-                            description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
-                            items={artistUpcomingEvents}
-                        />
+                        {artistUpcomingEvents.length > 0 ? (
+                            <ArtistOtherUpcomingOnEventShow
+                                description="Bu etkinlikte sahne alan sanatçıların, başka mekânlarda planlanan yakın tarihli yayınları."
+                                items={artistUpcomingEvents}
+                                artistNamesLine={
+                                    event.artists.length > 0
+                                        ? event.artists.map((a) => a.name).join(', ')
+                                        : 'İlgili sanatçılar'
+                                }
+                                imageSrc={imageSrc}
+                            />
+                        ) : null}
                     </div>
                 </div>
             </div>

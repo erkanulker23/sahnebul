@@ -1,4 +1,5 @@
 import ArtistsWeekSlider from '@/Components/ArtistsWeekSlider';
+import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
 import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
@@ -19,6 +20,7 @@ interface Artist {
     monthly_events_count?: number;
     /** Bağlı kullanıcının e-postası doğrulanmış, profil sahiplenilmiş. */
     is_verified_profile?: boolean;
+    is_new_on_platform?: boolean;
 }
 
 interface Props {
@@ -44,6 +46,7 @@ interface Props {
         is_verified_profile?: boolean;
         week_first_show: string | null;
         week_events_count?: number;
+        is_new_on_platform?: boolean;
     }>;
     weekRange?: { start: string; end: string };
 }
@@ -288,6 +291,11 @@ export default function ArtistsIndex({
                                             </div>
                                         )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-90 dark:from-zinc-900 dark:opacity-80" />
+                                        {artist.is_new_on_platform ? (
+                                            <div className="pointer-events-none absolute right-2 top-2 z-[15] sm:right-3 sm:top-3">
+                                                <CatalogNewBadge />
+                                            </div>
+                                        ) : null}
                                         <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
                                             <span className="inline-block max-w-full truncate rounded-md bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-zinc-950 backdrop-blur-sm sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs dark:bg-amber-500/20 dark:text-amber-200">
                                                 {artist.genre ?? 'Sanatçı'}

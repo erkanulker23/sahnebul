@@ -12,6 +12,10 @@ export type PublicEventTicketCardEvent = {
     start_date: string;
     cover_image?: string | null;
     listing_image?: string | null;
+    status?: string | null;
+    is_full?: boolean | null;
+    ticket_acquisition_mode?: string | null;
+    sahnebul_reservation_enabled?: boolean | null;
     venue: {
         name: string;
         slug: string;

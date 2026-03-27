@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CatalogEntityNew;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -55,6 +56,18 @@ class Artist extends Model
         'music_genres' => 'array',
         'promo_gallery' => 'array',
     ];
+
+    protected $appends = [
+        'is_new_on_platform',
+    ];
+
+    public function getIsNewOnPlatformAttribute(): bool
+    {
+        return CatalogEntityNew::isWithinBadgeWindow(
+            $this->created_at,
+            CatalogEntityNew::artistEligible((string) $this->status),
+        );
+    }
 
     public function getRouteKeyName(): string
     {

@@ -1,4 +1,5 @@
 import { AdSlot } from '@/Components/AdSlot';
+import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import { cn } from '@/lib/cn';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import EventCarousel from '@/Components/EventCarousel';
@@ -18,6 +19,7 @@ interface Artist {
     genre: string | null;
     avatar: string | null;
     view_count?: number;
+    is_new_on_platform?: boolean;
 }
 
 interface HomeEvent {
@@ -51,6 +53,7 @@ interface NearbyVenue {
     address: string;
     distance_km?: number;
     is_featured?: boolean | number | null;
+    is_new_on_platform?: boolean;
     city?: { name: string } | null;
     district?: { name: string } | null;
     category?: { name: string } | null;
@@ -63,6 +66,7 @@ interface VenueListItem {
     cover_image: string | null;
     address: string;
     is_featured?: boolean;
+    is_new_on_platform?: boolean;
     rating_avg?: number;
     review_count?: number;
     weekly_events_count?: number;
@@ -427,6 +431,11 @@ export default function VenuesIndex({
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent dark:from-zinc-900/90" />
+                                    {artist.is_new_on_platform ? (
+                                        <div className="pointer-events-none absolute right-2 top-2 z-[2]">
+                                            <CatalogNewBadge />
+                                        </div>
+                                    ) : null}
                                 </div>
                                 <p className="mt-3 text-center font-semibold text-zinc-900 group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-400">{artist.name}</p>
                                 {artist.genre && <p className="text-xs text-zinc-600 dark:text-zinc-500">{artist.genre}</p>}
@@ -617,6 +626,15 @@ export default function VenuesIndex({
                                                             </span>
                                                         </div>
                                                     ) : null}
+                                                    {venue.is_new_on_platform ? (
+                                                        <div
+                                                            className={`pointer-events-none absolute left-2 z-[4] sm:left-3 ${
+                                                                featured ? 'top-11 sm:top-12' : 'top-2 sm:top-3'
+                                                            }`}
+                                                        >
+                                                            <CatalogNewBadge />
+                                                        </div>
+                                                    ) : null}
                                                     {locLine !== '' ? (
                                                         <div
                                                             className={`pointer-events-none absolute z-[2] max-w-[calc(100%-4.5rem)] sm:max-w-[calc(100%-5rem)] ${
@@ -743,6 +761,15 @@ export default function VenuesIndex({
                                                                 <Star className="h-3 w-3 fill-zinc-950 sm:h-3.5 sm:w-3.5" strokeWidth={2} aria-hidden />
                                                                 Öne çıkan
                                                             </span>
+                                                        </div>
+                                                    ) : null}
+                                                    {venue.is_new_on_platform ? (
+                                                        <div
+                                                            className={`pointer-events-none absolute left-2 z-[13] sm:left-3 ${
+                                                                featured ? 'top-11 sm:top-12' : 'top-2 sm:top-3'
+                                                            }`}
+                                                        >
+                                                            <CatalogNewBadge />
                                                         </div>
                                                     ) : null}
                                                     {showVenueLocation ? (

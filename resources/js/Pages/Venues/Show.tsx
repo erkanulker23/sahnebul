@@ -5,6 +5,7 @@ import {
 } from '@/Components/PublicPromoGallerySection';
 import PhoneInput from '@/Components/PhoneInput';
 import { AdSlot } from '@/Components/AdSlot';
+import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import DetailEventList from '@/Components/DetailEventList';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SuggestEditModal from '@/Components/SuggestEditModal';
@@ -78,6 +79,8 @@ interface Venue {
         artists?: { id: number; name: string; slug: string; avatar?: string | null }[];
     }[];
     reviews?: Review[];
+    /** Oluşturulma tarihinden itibaren 3 gün, yayındayken */
+    is_new_on_platform?: boolean;
 }
 
 interface VenuePageSeo {
@@ -377,6 +380,7 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                             <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">{venue.name}</h1>
                             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                                 <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
+                                {venue.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/30" /> : null}
                                 {venue.capacity != null && venue.capacity > 0 && (
                                     <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
                                         <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

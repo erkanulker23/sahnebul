@@ -69,14 +69,14 @@ class SearchController extends Controller
             ->where('name', 'like', $like)
             ->orderBy('name')
             ->limit(8)
-            ->get(['id', 'name', 'slug', 'avatar', 'genre']);
+            ->get(['id', 'name', 'slug', 'avatar', 'genre', 'created_at', 'status']);
 
         $venues = Venue::query()
             ->listedPublicly()
             ->where('name', 'like', $like)
             ->orderBy('name')
             ->limit(8)
-            ->get(['id', 'name', 'slug', 'cover_image']);
+            ->get(['id', 'name', 'slug', 'cover_image', 'created_at', 'status', 'is_active']);
 
         $events = Event::query()
             ->published()

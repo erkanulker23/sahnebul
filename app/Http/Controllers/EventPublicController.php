@@ -95,7 +95,10 @@ class EventPublicController extends Controller
 
         $artistIds = $event->artists->pluck('id')->all();
 
-        $upcomingColumns = ['id', 'slug', 'title', 'start_date', 'ticket_price', 'entry_is_paid', 'venue_id', 'is_full', 'cover_image', 'listing_image'];
+        $upcomingColumns = [
+            'id', 'slug', 'title', 'start_date', 'ticket_price', 'entry_is_paid', 'venue_id', 'is_full',
+            'cover_image', 'listing_image', 'status', 'ticket_acquisition_mode', 'sahnebul_reservation_enabled',
+        ];
 
         $upcomingRelations = [
             'venue' => fn ($q) => $q
@@ -130,7 +133,7 @@ class EventPublicController extends Controller
                 ->where('start_date', '>=', now())
                 ->whereHas('artists', fn ($q) => $q->whereIn('artists.id', $artistIds))
                 ->orderBy('start_date')
-                ->limit(8)
+                ->limit(24)
                 ->with($upcomingRelations)
                 ->get($upcomingColumns);
         }

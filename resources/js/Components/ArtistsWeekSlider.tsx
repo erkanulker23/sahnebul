@@ -1,3 +1,4 @@
+import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
@@ -10,6 +11,7 @@ export type WeekSliderArtist = {
     avatar: string | null;
     genre: string | null;
     is_verified_profile?: boolean;
+    is_new_on_platform?: boolean;
     week_first_show: string | null;
     week_events_count?: number;
 };
@@ -143,6 +145,11 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                         )}
                                         {/** PublicEventTicketCard ile aynı üst gölge */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 opacity-90 transition group-hover:opacity-100" />
+                                        {artist.is_new_on_platform ? (
+                                            <div className="pointer-events-none absolute left-2 top-2 z-[4] sm:left-3 sm:top-3">
+                                                <CatalogNewBadge />
+                                            </div>
+                                        ) : null}
                                         {/** sm+: görsel alt şerit — etkinlik kartındaki konum/tarih bandı */}
                                         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] hidden bg-gradient-to-t from-black/85 from-[18%] via-black/45 via-[55%] to-transparent px-2 pb-2 pt-10 sm:block sm:px-3 sm:pb-2.5 sm:pt-12">
                                             <div className="flex min-w-0 flex-col gap-0.5">

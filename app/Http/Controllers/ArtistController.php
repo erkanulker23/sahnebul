@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
+use App\Support\CatalogEntityNew;
 use App\Support\DailyUniqueEntityView;
 use App\Support\InertiaDocumentMeta;
 use App\Support\PublicStructuredData;
@@ -142,7 +143,7 @@ class ArtistController extends Controller
 
         $loaded = Artist::query()
             ->whereIn('id', $idsOrdered)
-            ->select(['id', 'name', 'slug', 'avatar', 'genre'])
+            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'created_at', 'status'])
             ->withExists([
                 'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
             ])
@@ -166,6 +167,10 @@ class ArtistController extends Controller
                     'avatar' => $artist->avatar,
                     'genre' => $artist->genre,
                     'is_verified_profile' => (bool) $artist->is_verified_profile,
+                    'is_new_on_platform' => CatalogEntityNew::isWithinBadgeWindow(
+                        $artist->created_at,
+                        CatalogEntityNew::artistEligible((string) $artist->status),
+                    ),
                     'week_first_show' => $first ? (string) $first : null,
                     'week_events_count' => $weekCount,
                 ];

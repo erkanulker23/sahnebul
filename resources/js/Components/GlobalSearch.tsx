@@ -1,3 +1,4 @@
+import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import { cn } from '@/lib/cn';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -8,8 +9,15 @@ import { Calendar, MapPin, Mic2, Search, Tag, TrendingUp, X } from 'lucide-react
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-type ArtistHit = { id: number; name: string; slug: string; avatar: string | null; genre: string | null };
-type VenueHit = { id: number; name: string; slug: string; cover_image: string | null };
+type ArtistHit = {
+    id: number;
+    name: string;
+    slug: string;
+    avatar: string | null;
+    genre: string | null;
+    is_new_on_platform?: boolean;
+};
+type VenueHit = { id: number; name: string; slug: string; cover_image: string | null; is_new_on_platform?: boolean };
 type EventHit = {
     id: number;
     slug: string;
@@ -430,8 +438,9 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                             fallback={<Mic2 className="h-4 w-4 text-amber-600" aria-hidden />}
                                                         />
                                                         <span className="min-w-0 flex-1">
-                                                            <span className="block truncate font-medium text-zinc-900 dark:text-white">
-                                                                {a.name}
+                                                            <span className="flex min-w-0 items-center gap-2">
+                                                                <span className="truncate font-medium text-zinc-900 dark:text-white">{a.name}</span>
+                                                                {a.is_new_on_platform ? <CatalogNewBadge className="!text-[8px] sm:!text-[9px]" /> : null}
                                                             </span>
                                                             {a.genre ? (
                                                                 <span className="block truncate text-xs text-zinc-500">{a.genre}</span>
@@ -460,8 +469,9 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                             src={v.cover_image}
                                                             fallback={<MapPin className="h-4 w-4 text-rose-500" aria-hidden />}
                                                         />
-                                                        <span className="min-w-0 flex-1 truncate font-medium text-zinc-900 dark:text-white">
-                                                            {v.name}
+                                                        <span className="flex min-w-0 flex-1 items-center gap-2">
+                                                            <span className="truncate font-medium text-zinc-900 dark:text-white">{v.name}</span>
+                                                            {v.is_new_on_platform ? <CatalogNewBadge className="!text-[8px] sm:!text-[9px]" /> : null}
                                                         </span>
                                                     </Link>
                                                 </li>
