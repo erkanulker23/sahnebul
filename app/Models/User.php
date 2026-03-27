@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'email', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active'])]
+#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'organization_tax_office', 'organization_tax_number', 'email', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
@@ -145,6 +145,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
             return false;
         }
 
+        return ! $this->isAdmin();
+    }
+
+    /** Sanatçıyı favorilere ekle/çıkar (e-posta doğrulaması gerekmez; admin hesapları hariç). */
+    public function canFavoriteArtists(): bool
+    {
         return ! $this->isAdmin();
     }
 

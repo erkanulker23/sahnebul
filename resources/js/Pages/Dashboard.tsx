@@ -3,7 +3,8 @@ import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime, formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import { reservationStatusTr } from '@/lib/statusLabels';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Link } from '@inertiajs/react';
+import { PageProps } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 
 interface Reservation {
     id: number;
@@ -52,6 +53,7 @@ export default function Dashboard({
     favoriteArtists = [],
     reminderEvents = [],
 }: Readonly<Props>) {
+    const panelTitle = usePage<PageProps>().props.auth.stage_panel_title ?? 'Panel';
     const imageSrc = (path: string | null) => {
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
@@ -61,7 +63,7 @@ export default function Dashboard({
         <AuthenticatedLayout
             header={
                 <h2 className="font-display text-xl font-semibold leading-tight text-white">
-                    Panel
+                    {panelTitle}
                 </h2>
             }
         >

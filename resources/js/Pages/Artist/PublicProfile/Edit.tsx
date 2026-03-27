@@ -11,6 +11,7 @@ interface ArtistPayload {
     id: number;
     slug: string;
     name: string;
+    banner_image?: string | null;
     bio: string | null;
     genre?: string | null;
     music_genres?: string[] | null;
@@ -93,7 +94,7 @@ export default function PublicArtistProfileEdit({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadBusy, setUploadBusy] = useState(false);
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, put, processing, errors, progress } = useForm({
         bio: artist?.bio ?? '',
         website: artist?.website ?? '',
         music_genres: artist
@@ -118,12 +119,28 @@ export default function PublicArtistProfileEdit({
             phone: pub.phone ?? '',
             note: pub.note ?? '',
         },
+        banner_upload: null as File | null,
+        remove_banner: false,
     });
+
+    const bannerPreview = (() => {
+        const p = artist?.banner_image?.trim();
+        if (!p) return null;
+        if (p.startsWith('http://') || p.startsWith('https://')) return p;
+        return `/storage/${p.replace(/^\//, '')}`;
+    })();
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!artist) return;
-        put(route('artist.public-profile.update'), { preserveScroll: true });
+        put(route('artist.public-profile.update'), {
+            preserveScroll: true,
+            forceFormData: data.banner_upload instanceof File || data.remove_banner,
+            onSuccess: () => {
+                setData('banner_upload', null);
+                setData('remove_banner', false);
+            },
+        });
     };
 
     const onPickPhotos = () => {
@@ -201,6 +218,50 @@ export default function PublicArtistProfileEdit({
                     Sayfayı sitede aç →
                 </Link>
             </div>
+
+            <section className="mb-10 max-w-3xl rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
+                <h2 className="font-display text-lg font-semibold text-white">Kapak görseli (banner)</h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                    İsteğe bağlı geniş üst görsel. Yüklemezseniz sanatçı sayfasında banner alanı gösterilmez.
+                </p>
+                {bannerPreview && !data.remove_banner ? (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+                        <img src={bannerPreview} alt="" className="aspect-[21/9] max-h-48 w-full object-cover" />
+                    </div>
+                ) : null}
+                <div className="mt-4">
+                    <label htmlFor="artist-banner-upload" className="block text-sm font-medium text-zinc-400">
+                        Yeni görsel yükle
+                    </label>
+                    <input
+                        id="artist-banner-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                            setData('banner_upload', e.target.files?.[0] ?? null);
+                            if (e.target.files?.[0]) setData('remove_banner', false);
+                        }}
+                        className="mt-1 w-full text-sm text-zinc-300"
+                    />
+                    {progress && (
+                        <p className="mt-1 text-xs text-amber-400">Kaydediliyor… {Math.round(progress.percentage ?? 0)}%</p>
+                    )}
+                </div>
+                {bannerPreview ? (
+                    <label className="mt-4 flex items-center gap-2 text-sm text-zinc-300">
+                        <input
+                            type="checkbox"
+                            checked={data.remove_banner}
+                            onChange={(e) => {
+                                setData('remove_banner', e.target.checked);
+                                if (e.target.checked) setData('banner_upload', null);
+                            }}
+                            className="rounded border-zinc-600 text-amber-500"
+                        />
+                        Kapak görselini kaldır
+                    </label>
+                ) : null}
+            </section>
 
             {profileAnalytics ? (
                 <section className="mb-8 max-w-3xl rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-zinc-900/50 to-zinc-900/60 p-6">

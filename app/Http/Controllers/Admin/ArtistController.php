@@ -96,6 +96,7 @@ class ArtistController extends Controller
         $request->merge([
             'bio' => $request->input('bio') ?: null,
             'avatar' => $request->input('avatar') ?: null,
+            'banner_image' => $request->input('banner_image') ?: null,
             'website' => $request->input('website') ?: null,
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
             'manager_info' => ArtistProfileInputs::normalizeStringMap($request->input('manager_info'), ['name', 'company', 'phone', 'email']),
@@ -111,6 +112,7 @@ class ArtistController extends Controller
             'music_genres.*' => ['string', Rule::in($allowedTypes)],
             'bio' => 'nullable|string',
             'avatar' => 'nullable|string|max:2048',
+            'banner_image' => 'nullable|string|max:2048',
             'website' => 'nullable|url|max:255',
             'status' => 'required|in:pending,approved,rejected',
             'social_links' => 'nullable|array',
@@ -125,6 +127,7 @@ class ArtistController extends Controller
             'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
             'avatar_upload' => 'nullable|image|max:10240',
+            'banner_upload' => 'nullable|image|max:15360',
             'managed_by_user_id' => [
                 'nullable',
                 'integer',
@@ -133,9 +136,12 @@ class ArtistController extends Controller
             'spotify_auto_link_disabled' => 'boolean',
         ]);
 
-        unset($validated['avatar_upload']);
+        unset($validated['avatar_upload'], $validated['banner_upload']);
         if ($request->hasFile('avatar_upload')) {
             $validated['avatar'] = $request->file('avatar_upload')->store('artist-avatars', 'public');
+        }
+        if ($request->hasFile('banner_upload')) {
+            $validated['banner_image'] = $request->file('banner_upload')->store('artist-banners', 'public');
         }
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, [
@@ -169,6 +175,7 @@ class ArtistController extends Controller
         $request->merge([
             'bio' => $request->input('bio') ?: null,
             'avatar' => $request->input('avatar') ?: null,
+            'banner_image' => $request->input('banner_image') ?: null,
             'website' => $request->input('website') ?: null,
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
             'manager_info' => ArtistProfileInputs::normalizeStringMap($request->input('manager_info'), ['name', 'company', 'phone', 'email']),
@@ -184,6 +191,7 @@ class ArtistController extends Controller
             'music_genres.*' => ['string', Rule::in($allowedTypes)],
             'bio' => 'nullable|string',
             'avatar' => 'nullable|string|max:2048',
+            'banner_image' => 'nullable|string|max:2048',
             'website' => 'nullable|url|max:255',
             'status' => 'required|in:pending,approved,rejected',
             'social_links' => 'nullable|array',
@@ -198,6 +206,7 @@ class ArtistController extends Controller
             'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
             'avatar_upload' => 'nullable|image|max:10240',
+            'banner_upload' => 'nullable|image|max:15360',
             'managed_by_user_id' => [
                 'nullable',
                 'integer',
@@ -211,7 +220,7 @@ class ArtistController extends Controller
             'public_contact.phone',
         ]);
 
-        unset($validated['avatar_upload']);
+        unset($validated['avatar_upload'], $validated['banner_upload']);
         if ($request->hasFile('avatar_upload')) {
             if ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($artist->avatar);
@@ -221,6 +230,18 @@ class ArtistController extends Controller
             $newAvatar = $validated['avatar'] ?? null;
             if ($newAvatar === null || $newAvatar === '' || $newAvatar !== $artist->avatar) {
                 Storage::disk('public')->delete($artist->avatar);
+            }
+        }
+
+        if ($request->hasFile('banner_upload')) {
+            if ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
+                Storage::disk('public')->delete($artist->banner_image);
+            }
+            $validated['banner_image'] = $request->file('banner_upload')->store('artist-banners', 'public');
+        } elseif ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
+            $newBanner = $validated['banner_image'] ?? null;
+            if ($newBanner === null || $newBanner === '' || $newBanner !== $artist->banner_image) {
+                Storage::disk('public')->delete($artist->banner_image);
             }
         }
 
@@ -410,6 +431,9 @@ class ArtistController extends Controller
         }
         if ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
             Storage::disk('public')->delete($artist->avatar);
+        }
+        if ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
+            Storage::disk('public')->delete($artist->banner_image);
         }
         $artist->delete();
     }

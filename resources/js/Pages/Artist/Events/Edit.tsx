@@ -21,6 +21,7 @@ interface Event {
     venue_id: number;
     artists?: EventArtistLineup[];
     title: string;
+    event_type?: string | null;
     description: string | null;
     event_rules: string | null;
     start_date: string;
@@ -56,6 +57,7 @@ interface Props {
     artists: CatalogArtist[];
     venueReviews: PanelReviewRow[];
     eventReviews: PanelReviewRow[];
+    eventTypeOptions: { slug: string; label: string }[];
 }
 
 function storageSrc(path: string | null | undefined): string | null {
@@ -127,11 +129,13 @@ export default function ArtistEventEdit({
     artists,
     venueReviews,
     eventReviews,
+    eventTypeOptions,
 }: Readonly<Props>) {
     const { data, setData, put, processing, errors, transform } = useForm({
         venue_id: String(event.venue_id),
         artist_ids: (event.artists ?? []).map((a) => a.id),
         title: event.title,
+        event_type: event.event_type ?? '',
         description: event.description ?? '',
         event_rules: event.event_rules ?? '',
         start_date: event.start_date.slice(0, 16),
@@ -268,6 +272,25 @@ export default function ArtistEventEdit({
                         required
                         className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
                     />
+                </div>
+                <div>
+                    <label htmlFor="artist-event-type-edit" className="block text-sm font-medium text-zinc-400">
+                        Etkinlik türü (isteğe bağlı)
+                    </label>
+                    <select
+                        id="artist-event-type-edit"
+                        value={data.event_type}
+                        onChange={(e) => setData('event_type', e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    >
+                        <option value="">Seçin</option>
+                        {eventTypeOptions.map((o) => (
+                            <option key={o.slug} value={o.slug}>
+                                {o.label}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.event_type && <p className="mt-2 text-sm text-red-400">{errors.event_type}</p>}
                 </div>
                 <div>
                     <label htmlFor="start_date" className="block text-sm font-medium text-zinc-400">

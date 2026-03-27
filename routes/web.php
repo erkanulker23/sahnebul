@@ -77,6 +77,7 @@ Route::get('/robots.txt', function () {
 
 Route::middleware(['throttle:search-quick', 'json.same-site'])->group(function () {
     Route::get('/search/quick', [SearchController::class, 'quick'])->name('search.quick');
+    Route::get('/search/trending', [SearchController::class, 'trending'])->name('search.trending');
 });
 
 Route::middleware(['throttle:reverse-geocode', 'json.same-site'])->group(function () {
@@ -223,6 +224,9 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::post('/organizasyon/sanatcilar/{artist:slug}/birak', [OrganizationArtistController::class, 'detach'])
         ->middleware('throttle:40,1')
         ->name('organization.artists.detach');
+    Route::post('/organizasyon/sanatcilar/{artist:slug}/duzenme-oneri', [OrganizationArtistController::class, 'proposeUpdate'])
+        ->middleware('throttle:20,1')
+        ->name('organization.artists.propose-update');
 
     Route::get('/organizasyon/musaitlik', [ManagerArtistAvailabilityController::class, 'index'])->name('manager-availability.index');
     Route::get('/organizasyon/musaitlik/{artist:slug}', [ManagerArtistAvailabilityController::class, 'show'])->name('manager-availability.show');
@@ -237,7 +241,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/kullanicilar', [AdminUserController::class, 'index'])->name('users.index');
     Route::post('/kullanicilar', [AdminUserController::class, 'store'])->name('users.store');
+    Route::get('/kullanicilar/{user}/duzenle', [AdminUserController::class, 'edit'])->name('users.edit');
     Route::put('/kullanicilar/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::post('/kullanicilar/{user}/sifre-sifirlama', [AdminUserController::class, 'sendPasswordReset'])
+        ->middleware('throttle:12,1')
+        ->name('users.sendPasswordReset');
     Route::post('/kullanicilar/{user}/aktif', [AdminUserController::class, 'toggleActive'])->name('users.toggleActive');
     Route::delete('/kullanicilar/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 

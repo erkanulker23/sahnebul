@@ -1,8 +1,9 @@
 import SeoHead from '@/Components/SeoHead';
 import ArtistLayout from '@/Layouts/ArtistLayout';
+import OrganizationArtistProposalModal from '@/Pages/Artist/Organization/OrganizationArtistProposalModal';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
 
 interface RosterRow {
     id: number;
@@ -62,6 +63,7 @@ function PaginationNav({ paginated, label }: Readonly<{ paginated: Paginated<unk
 }
 
 export default function OrganizationArtistsIndex({ roster, catalog, filters }: Readonly<Props>) {
+    const [proposalArtist, setProposalArtist] = useState<RosterRow | null>(null);
     const createForm = useForm({ name: '', bio: '' });
     const catalogSearchForm = useForm({ catalog_search: filters.catalog_search ?? '' });
 
@@ -84,23 +86,33 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
     return (
         <ArtistLayout>
             <SeoHead
-                title="Bünyemdeki sanatçılar - Sahnebul"
-                description="Organizasyon firması: sanatçı ekleyin veya katalogdan bünyenize alın."
+                title="Sanatçı kadrosu - Sahnebul"
+                description="Organizasyon firması: sanatçı kaydı ve kadro yönetimi; düzenlemeler site yönetimi onayından geçer."
                 noindex
             />
 
+            <OrganizationArtistProposalModal
+                key={proposalArtist?.slug ?? 'closed'}
+                open={proposalArtist !== null}
+                onClose={() => setProposalArtist(null)}
+                artist={proposalArtist}
+            />
+
             <div className="mb-8">
-                <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Bünyemdeki sanatçılar</h1>
+                <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı kadrosu</h1>
                 <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-                    Yeni sanatçı kaydı oluşturabilir (site yönetimi onayından sonra yayınlanır) veya sitede kayıtlı, henüz bir organizasyona bağlı olmayan{' '}
-                    <strong className="font-medium text-zinc-800 dark:text-zinc-200">onaylı</strong> sanatçıları bünyenize ekleyebilirsiniz.
+                    Yeni sanatçı kaydı oluşturabilir veya sitede kayıtlı, henüz bir organizasyona atanmamış{' '}
+                    <strong className="font-medium text-zinc-800 dark:text-zinc-200">onaylı</strong> sanatçıları kadronuza ekleyebilirsiniz.
+                    Kadrodaki profil düzenlemeleri <strong className="font-medium text-zinc-800 dark:text-zinc-200">düzenleme önerisi</strong> olarak site
+                    yönetimine gider; yayınlanan içerik onay sonrası güncellenir.
                 </p>
             </div>
 
             <section className="mb-10 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50 sm:p-6">
                 <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Yeni sanatçı kaydı</h2>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    İsim benzersiz olmalıdır. Kayıt <span className="font-medium">onay bekleyen</span> durumda oluşur; yayın ve düzenleme site yönetiminde tamamlanır.
+                    İsim benzersiz olmalıdır. Kayıt <span className="font-medium">onay bekleyen</span> durumda oluşur; yayın ve detaylar site yönetiminde
+                    tamamlanır.
                 </p>
                 <form onSubmit={submitCreate} className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2">
@@ -143,7 +155,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
             </section>
 
             <section className="mb-10">
-                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Bünyemde listelenenler</h2>
+                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Kadrom</h2>
                 {roster.data.length === 0 ? (
                     <p className="mt-3 rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400">
                         Henüz kayıt yok. Yukarıdan yeni sanatçı ekleyin veya aşağıdan katalogdan seçin.
@@ -176,31 +188,40 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
                                         ) : null}
                                     </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (
-                                            !confirm(
-                                                'Bu sanatçıyı bünyenizden çıkarmak istediğinize emin misiniz? (Onaylı profiller sitede kalır; yalnızca organizasyon bağlantısı kalkar.)',
-                                            )
-                                        ) {
-                                            return;
-                                        }
-                                        router.post(route('artist.organization.artists.detach', a.slug), {}, { preserveScroll: true });
-                                    }}
-                                    className="shrink-0 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    Bünyeden çıkar
-                                </button>
+                                <div className="flex shrink-0 flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setProposalArtist(a)}
+                                        className="rounded-lg bg-amber-500/15 px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-500/25 dark:text-amber-200"
+                                    >
+                                        Düzenleme önerisi
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (
+                                                !confirm(
+                                                    'Bu sanatçıyı kadronuzdan çıkarmak istediğinize emin misiniz? (Onaylı profiller sitede kalır; yalnızca organizasyon bağlantısı kalkar.)',
+                                                )
+                                            ) {
+                                                return;
+                                            }
+                                            router.post(route('artist.organization.artists.detach', a.slug), {}, { preserveScroll: true });
+                                        }}
+                                        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    >
+                                        Kadrodan çıkar
+                                    </button>
+                                </div>
                             </li>
                         ))}
                     </ul>
                 )}
-                <PaginationNav paginated={roster} label="Bünye sayfaları" />
+                <PaginationNav paginated={roster} label="Kadro sayfaları" />
             </section>
 
             <section>
-                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Katalogdan bünyeye ekle</h2>
+                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Katalogdan kadroya ekle</h2>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Henüz bir organizasyona atanmamış, onaylı sanatçılar. Eklediğinizde profilde organizasyon bilginiz görünür.
                 </p>
@@ -249,7 +270,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
                                     }
                                     className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-zinc-900 hover:bg-amber-400"
                                 >
-                                    Bünyeme ekle
+                                    Kadroya ekle
                                 </button>
                             </li>
                         ))}

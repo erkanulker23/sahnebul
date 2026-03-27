@@ -40,8 +40,7 @@ const inputClass =
 export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
     const isOrganizationFirmsList = filters.role === 'manager_organization';
     const currentUserId = (usePage().props.auth as { user?: { id: number } })?.user?.id;
-    const [editingUserId, setEditingUserId] = useState<number | null>(null);
-    const [form, setForm] = useState({
+    const [newUserForm, setNewUserForm] = useState({
         name: '',
         email: '',
         password: '',
@@ -130,33 +129,36 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                 />
 
                 <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 sm:p-6">
-                    <h2 className="mb-4 text-base font-semibold text-zinc-900 dark:text-white">{editingUserId ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Ekle'}</h2>
+                    <h2 className="mb-4 text-base font-semibold text-zinc-900 dark:text-white">Yeni kullanıcı ekle</h2>
+                    <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+                        Mevcut hesapları düzenlemek için listeden <strong className="font-medium text-zinc-800 dark:text-zinc-200">Düzenle</strong> ile ayrı sayfaya gidin.
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <input
-                            value={form.name}
-                            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                            value={newUserForm.name}
+                            onChange={(e) => setNewUserForm((f) => ({ ...f, name: e.target.value }))}
                             placeholder="Ad Soyad"
                             className={inputClass}
                             autoComplete="name"
                         />
                         <input
-                            value={form.email}
-                            onChange={(e) => setForm((f) => ({ ...f, email: sanitizeEmailInput(e.target.value) }))}
+                            value={newUserForm.email}
+                            onChange={(e) => setNewUserForm((f) => ({ ...f, email: sanitizeEmailInput(e.target.value) }))}
                             placeholder="E-posta"
                             className={inputClass}
                             autoComplete="email"
                         />
                         <input
                             type="password"
-                            value={form.password}
-                            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                            placeholder={editingUserId ? 'Yeni şifre (opsiyonel)' : 'Şifre'}
+                            value={newUserForm.password}
+                            onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))}
+                            placeholder="Şifre"
                             className={inputClass}
                             autoComplete="new-password"
                         />
                         <select
-                            value={form.role}
-                            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                            value={newUserForm.role}
+                            onChange={(e) => setNewUserForm((f) => ({ ...f, role: e.target.value }))}
                             className={inputClass}
                         >
                             <option value="customer">Müşteri</option>
@@ -167,31 +169,19 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                             <option value="super_admin">Süper admin</option>
                         </select>
                         <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:col-span-2 lg:col-span-1">
-                            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} className="rounded border-zinc-400 text-amber-600 focus:ring-amber-500" />
+                            <input
+                                type="checkbox"
+                                checked={newUserForm.is_active}
+                                onChange={(e) => setNewUserForm((f) => ({ ...f, is_active: e.target.checked }))}
+                                className="rounded border-zinc-400 text-amber-600 focus:ring-amber-500"
+                            />
                             Aktif hesap
                         </label>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                        {editingUserId ? (
-                            <>
-                                <AdminButton size="md" onClick={() => router.put(route('admin.users.update', editingUserId), form)}>
-                                    Güncelle
-                                </AdminButton>
-                                <AdminButton
-                                    variant="secondary"
-                                    onClick={() => {
-                                        setEditingUserId(null);
-                                        setForm({ name: '', email: '', password: '', role: 'customer', is_active: true });
-                                    }}
-                                >
-                                    İptal
-                                </AdminButton>
-                            </>
-                        ) : (
-                            <AdminButton size="md" onClick={() => router.post(route('admin.users.store'), form)}>
-                                Kullanıcı Ekle
-                            </AdminButton>
-                        )}
+                        <AdminButton size="md" onClick={() => router.post(route('admin.users.store'), newUserForm)}>
+                            Kullanıcı Ekle
+                        </AdminButton>
                     </div>
                 </div>
 
@@ -245,22 +235,12 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                     actions={(user) =>
                         !['admin', 'super_admin'].includes(user.role) && user.id !== currentUserId ? (
                             <>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingUserId(user.id);
-                                        setForm({
-                                            name: user.name,
-                                            email: user.email,
-                                            password: '',
-                                            role: user.role,
-                                            is_active: user.is_active,
-                                        });
-                                    }}
+                                <Link
+                                    href={route('admin.users.edit', user.id)}
                                     className="text-sm font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400"
                                 >
                                     Düzenle
-                                </button>
+                                </Link>
                                 {user.role === 'artist' && user.linked_artist_id != null ? (
                                     <Link
                                         href={route('admin.artists.edit', user.linked_artist_id)}

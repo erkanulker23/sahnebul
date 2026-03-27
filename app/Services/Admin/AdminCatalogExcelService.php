@@ -12,6 +12,7 @@ use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\ArtistProfileInputs;
+use App\Support\EventListingTypes;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Carbon\Carbon;
@@ -326,6 +327,7 @@ final class AdminCatalogExcelService
                 (string) $e->venue_id,
                 $e->title,
                 $e->slug,
+                self::scalar($e->event_type),
                 self::scalar($e->description),
                 self::scalar($e->event_rules),
                 self::dt($e->start_date),
@@ -400,10 +402,16 @@ final class AdminCatalogExcelService
                 }
                 $outlets = Event::normalizeTicketOutletsInput($outlets);
 
+                $eventTypeCell = trim((string) ($row['event_type'] ?? ''));
+                $eventType = $eventTypeCell !== '' && in_array($eventTypeCell, EventListingTypes::slugs(), true)
+                    ? $eventTypeCell
+                    : null;
+
                 $payload = [
                     'venue_id' => (int) ($row['venue_id'] ?? 0),
                     'title' => $row['title'] ?? '',
                     'slug' => $row['slug'] ?? '',
+                    'event_type' => $eventType,
                     'description' => $row['description'] ?? null,
                     'event_rules' => $row['event_rules'] ?? null,
                     'start_date' => $row['start_date'] ?? '',
@@ -426,6 +434,7 @@ final class AdminCatalogExcelService
                     'venue_id' => ['required', 'integer', Rule::exists('venues', 'id')->where(fn ($q) => $q->where('status', 'approved'))],
                     'title' => ['required', 'string', 'max:255'],
                     'slug' => ['required', 'string', 'max:255'],
+                    'event_type' => EventListingTypes::nullableSlugRule(),
                     'description' => ['nullable', 'string'],
                     'event_rules' => ['nullable', 'string', 'max:5000'],
                     'start_date' => ['required', 'date'],

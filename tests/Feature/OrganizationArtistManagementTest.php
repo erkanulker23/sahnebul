@@ -87,4 +87,46 @@ class OrganizationArtistManagementTest extends TestCase
 
         $this->assertNull($artist->fresh()->managed_by_user_id);
     }
+
+    public function test_manager_can_submit_edit_proposal_for_managed_approved_artist(): void
+    {
+        $org = User::factory()->create(['role' => 'manager_organization']);
+        $artist = Artist::query()->create([
+            'name' => 'Onaylı Kadro',
+            'slug' => 'onayli-kadro-'.uniqid(),
+            'status' => 'approved',
+            'managed_by_user_id' => $org->id,
+        ]);
+
+        $this->actingAs($org)
+            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
+                'bio' => 'Organizasyon tarafından önerilen güncel biyografi metni.',
+                'message' => '',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('public_edit_suggestions', [
+            'suggestable_id' => $artist->id,
+            'user_id' => $org->id,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_manager_cannot_submit_proposal_for_artist_not_on_roster(): void
+    {
+        $org = User::factory()->create(['role' => 'manager_organization']);
+        $other = User::factory()->create(['role' => 'manager_organization']);
+        $artist = Artist::query()->create([
+            'name' => 'Başka Org',
+            'slug' => 'baska-org-'.uniqid(),
+            'status' => 'approved',
+            'managed_by_user_id' => $other->id,
+        ]);
+
+        $this->actingAs($org)
+            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
+                'bio' => 'Yetkisiz deneme metni burada yeterince uzun olsun.',
+            ])
+            ->assertForbidden();
+    }
 }

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Services\VenueRemoteCoverImporter;
+use App\Support\EventListingTypes;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -69,9 +70,13 @@ class ArtistEventProposalApprovalService
             }
 
             $ticketTiers = is_array($ep['ticket_tiers'] ?? null) ? $ep['ticket_tiers'] : [];
+            $typeRaw = isset($ep['event_type']) ? trim((string) $ep['event_type']) : '';
+            $eventType = $typeRaw !== '' && in_array($typeRaw, EventListingTypes::slugs(), true) ? $typeRaw : null;
+
             $eventAttrs = [
                 'venue_id' => $venue->id,
                 'title' => (string) $ep['title'],
+                'event_type' => $eventType,
                 'description' => isset($ep['description']) ? (string) $ep['description'] : null,
                 'event_rules' => isset($ep['event_rules']) ? (string) $ep['event_rules'] : null,
                 'entry_is_paid' => (bool) ($ep['entry_is_paid'] ?? true),

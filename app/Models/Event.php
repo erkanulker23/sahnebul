@@ -30,8 +30,8 @@ class Event extends Model
     }
 
     protected $fillable = [
-        'venue_id', 'title', 'slug', 'description', 'start_date', 'end_date',
-        'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'status',
+        'venue_id', 'title', 'slug', 'event_type', 'description', 'start_date', 'end_date',
+        'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'promo_gallery', 'status',
         'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
     ];
 
@@ -44,6 +44,7 @@ class Event extends Model
         'view_count' => 'integer',
         'sahnebul_reservation_enabled' => 'boolean',
         'ticket_outlets' => 'array',
+        'promo_gallery' => 'array',
     ];
 
     public function venue(): BelongsTo

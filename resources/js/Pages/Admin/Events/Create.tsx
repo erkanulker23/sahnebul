@@ -14,6 +14,7 @@ interface Props {
     artists: { id: number; name: string; avatar?: string | null }[];
     venuePickerCategories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
+    eventTypeOptions: { slug: string; label: string }[];
 }
 
 export default function AdminEventCreate({
@@ -21,6 +22,7 @@ export default function AdminEventCreate({
     artists,
     venuePickerCategories,
     googleMapsBrowserKey = null,
+    eventTypeOptions,
 }: Readonly<Props>) {
     const [venueOptions, setVenueOptions] = useState(venues);
     useEffect(() => {
@@ -29,6 +31,7 @@ export default function AdminEventCreate({
     const { data, setData, post, processing, errors, progress, transform } = useForm({
         venue_id: venues[0]?.id?.toString() ?? '',
         title: '',
+        event_type: '' as string,
         description: '',
         event_rules: '',
         start_date: '',
@@ -143,6 +146,25 @@ export default function AdminEventCreate({
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                             {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="admin-event-type" className="block text-sm font-medium text-zinc-400">
+                                Etkinlik türü (isteğe bağlı)
+                            </label>
+                            <select
+                                id="admin-event-type"
+                                value={data.event_type}
+                                onChange={(e) => setData('event_type', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            >
+                                <option value="">Seçin</option>
+                                {eventTypeOptions.map((o) => (
+                                    <option key={o.slug} value={o.slug}>
+                                        {o.label}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.event_type && <p className="mt-1 text-sm text-red-400">{errors.event_type}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Başlangıç (isteğe bağlı)</label>

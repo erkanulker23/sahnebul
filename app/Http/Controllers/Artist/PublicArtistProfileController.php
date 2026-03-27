@@ -92,12 +92,28 @@ class PublicArtistProfileController extends Controller
             'public_contact.email' => UserContactValidation::emailNullable(),
             'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
+            'banner_upload' => 'nullable|image|max:15360',
+            'remove_banner' => 'sometimes|boolean',
         ]);
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, [
             'manager_info.phone',
             'public_contact.phone',
         ]);
+
+        unset($validated['banner_upload']);
+        if ($request->boolean('remove_banner')) {
+            if ($artist->banner_image && ! str_starts_with((string) $artist->banner_image, 'http://') && ! str_starts_with((string) $artist->banner_image, 'https://')) {
+                Storage::disk('public')->delete($artist->banner_image);
+            }
+            $validated['banner_image'] = null;
+        } elseif ($request->hasFile('banner_upload')) {
+            if ($artist->banner_image && ! str_starts_with((string) $artist->banner_image, 'http://') && ! str_starts_with((string) $artist->banner_image, 'https://')) {
+                Storage::disk('public')->delete($artist->banner_image);
+            }
+            $validated['banner_image'] = $request->file('banner_upload')->store('artist-banners', 'public');
+        }
+        unset($validated['remove_banner']);
 
         $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));
         $validated['music_genres'] = $mg === [] ? null : $mg;

@@ -9,7 +9,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ExternalLink, MessageCircle, Ticket } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -29,6 +29,12 @@ interface TicketTier {
     price: string;
     sort_order: number;
 }
+
+type PromoGalleryItem = {
+    embed_url?: string | null;
+    video_path?: string | null;
+    poster_path?: string | null;
+};
 
 interface Event {
     id: number;
@@ -64,6 +70,7 @@ interface Event {
     ticket_purchase_note?: string | null;
     promo_video_path?: string | null;
     promo_embed_url?: string | null;
+    promo_gallery?: PromoGalleryItem[] | null;
 }
 
 interface EventReviewRow {
@@ -101,79 +108,191 @@ function eventReviewStars(rating: number): string {
     return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
 }
 
+function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
+    if (!raw || typeof raw !== 'object') {
+        return { embed_url: null, video_path: null, poster_path: null };
+    }
+    const o = raw as Record<string, unknown>;
+    const s = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+    return {
+        embed_url: s(o.embed_url),
+        video_path: s(o.video_path),
+        poster_path: s(o.poster_path),
+    };
+}
+
+function eventPromoItemsFromEvent(event: Event): PromoGalleryItem[] {
+    const g = event.promo_gallery;
+    if (Array.isArray(g) && g.length > 0) {
+        return g.map(normalizePromoGalleryItem);
+    }
+    if (event.promo_video_path?.trim() || event.promo_embed_url?.trim()) {
+        return [
+            normalizePromoGalleryItem({
+                video_path: event.promo_video_path,
+                embed_url: event.promo_embed_url,
+                poster_path: null,
+            }),
+        ];
+    }
+    return [];
+}
+
+function instagramPermalinkForEmbed(url: string): string {
+    return url.includes('instagram.com') ? (url.endsWith('/') ? url : `${url}/`) : url;
+}
+
 function EventPromoSection({
-    promoVideoPath,
-    promoEmbedUrl,
+    items,
     resolveStorageSrc,
 }: Readonly<{
-    promoVideoPath: string | null | undefined;
-    promoEmbedUrl: string | null | undefined;
+    items: PromoGalleryItem[];
     resolveStorageSrc: (path: string | null) => string | null;
 }>) {
-    const videoSrc = promoVideoPath ? resolveStorageSrc(promoVideoPath) : null;
-    const embed = promoEmbedUrl?.trim() ?? '';
+    const visualItems = useMemo(
+        () =>
+            items.filter((it) => {
+                const v = it.video_path ? resolveStorageSrc(it.video_path) : null;
+                const p = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                return Boolean(v || p);
+            }),
+        [items, resolveStorageSrc],
+    );
+
+    const embedOnlyItems = useMemo(
+        () =>
+            items.filter((it) => {
+                const v = it.video_path ? resolveStorageSrc(it.video_path) : null;
+                const p = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                const e = it.embed_url?.trim() ?? '';
+                return !v && !p && e.length > 0;
+            }),
+        [items, resolveStorageSrc],
+    );
+
+    const instagramEmbedSignatures = useMemo(
+        () =>
+            embedOnlyItems
+                .filter((it) => (it.embed_url ?? '').includes('instagram.com'))
+                .map((it) => instagramPermalinkForEmbed(it.embed_url!))
+                .join('|'),
+        [embedOnlyItems],
+    );
 
     useEffect(() => {
-        if (!embed || !embed.includes('instagram.com')) {
+        if (!instagramEmbedSignatures) {
             return;
         }
         const w = window as Window & { instgrm?: { Embeds: { process: () => void } } };
         const scriptSrc = 'https://www.instagram.com/embed.js';
         const existing = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement | null;
-        const runProcess = () => w.instgrm?.Embeds?.process();
+        const runProcess = () => {
+            w.instgrm?.Embeds?.process();
+        };
         if (!existing) {
             const script = document.createElement('script');
             script.src = scriptSrc;
             script.async = true;
             script.addEventListener('load', runProcess);
             document.body.appendChild(script);
-        } else {
-            runProcess();
+            return undefined;
         }
-    }, [embed]);
+        const t = window.setTimeout(runProcess, 0);
+        return () => window.clearTimeout(t);
+    }, [instagramEmbedSignatures]);
 
-    if (!videoSrc && !embed) {
+    if (items.length === 0) {
         return null;
     }
-
-    const permalink = embed && embed.includes('instagram.com') ? (embed.endsWith('/') ? embed : `${embed}/`) : embed;
 
     return (
         <section className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
             <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Tanıtım videosu</h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Etkinlik için eklenen tanıtım görüntüsü.</p>
-            <div className="mt-5 space-y-6">
-                {videoSrc ? (
-                    <video src={videoSrc} controls playsInline className="mx-auto w-full max-w-3xl rounded-xl bg-black" />
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Etkinlik için eklenen tanıtım görüntüleri{items.length > 1 ? ` (${items.length})` : ''}.
+            </p>
+            <div className="mt-5 space-y-8">
+                {visualItems.length > 0 ? (
+                    <ul className="grid list-none grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {visualItems.map((it, idx) => {
+                            const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
+                            const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                            const embed = it.embed_url?.trim() ?? '';
+                            const ig = embed.includes('instagram.com');
+                            return (
+                                <li
+                                    key={`${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
+                                    className="relative aspect-[9/16] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 dark:border-white/10"
+                                >
+                                    {videoSrc ? (
+                                        <video
+                                            src={videoSrc}
+                                            controls
+                                            playsInline
+                                            className="absolute inset-0 h-full w-full object-cover"
+                                            poster={posterSrc ?? undefined}
+                                        />
+                                    ) : posterSrc ? (
+                                        <>
+                                            <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                            {ig ? (
+                                                <a
+                                                    href={embed}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent pb-4 text-center text-sm font-semibold text-white"
+                                                >
+                                                    <span className="rounded-full bg-white/15 px-3 py-1 backdrop-blur-sm">Instagram&apos;da izle</span>
+                                                </a>
+                                            ) : null}
+                                        </>
+                                    ) : null}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 ) : null}
-                {embed && embed.includes('instagram.com') ? (
-                    <div className="flex justify-center overflow-x-auto">
-                        <blockquote
-                            className="instagram-media"
-                            data-instgrm-captioned
-                            data-instgrm-permalink={permalink}
-                            data-instgrm-version="14"
-                            style={{
-                                background: 'transparent',
-                                border: 0,
-                                borderRadius: 12,
-                                margin: 0,
-                                maxWidth: 540,
-                                minWidth: 280,
-                                padding: 0,
-                                width: '100%',
-                            }}
-                        />
+
+                {embedOnlyItems.length > 0 ? (
+                    <div className="space-y-6">
+                        {embedOnlyItems.map((it, idx) => {
+                            const embed = it.embed_url?.trim() ?? '';
+                            if (embed.includes('instagram.com')) {
+                                const permalink = instagramPermalinkForEmbed(embed);
+                                return (
+                                    <div key={`${permalink}-${idx}`} className="flex justify-center overflow-x-auto">
+                                        <blockquote
+                                            className="instagram-media"
+                                            data-instgrm-captioned
+                                            data-instgrm-permalink={permalink}
+                                            data-instgrm-version="14"
+                                            style={{
+                                                background: 'transparent',
+                                                border: 0,
+                                                borderRadius: 12,
+                                                margin: 0,
+                                                maxWidth: 540,
+                                                minWidth: 280,
+                                                padding: 0,
+                                                width: '100%',
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            }
+                            return (
+                                <a
+                                    key={`${embed}-${idx}`}
+                                    href={embed}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-amber-600 underline dark:text-amber-400"
+                                >
+                                    Tanıtım bağlantısını aç
+                                </a>
+                            );
+                        })}
                     </div>
-                ) : embed ? (
-                    <a
-                        href={embed}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-amber-600 underline dark:text-amber-400"
-                    >
-                        Tanıtım bağlantısını aç
-                    </a>
                 ) : null}
             </div>
         </section>
@@ -483,11 +602,7 @@ export default function EventShow({
             <div className="mx-auto w-full max-w-6xl -mx-2.5 px-3 py-8 sm:mx-auto sm:px-5 sm:py-10 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-10">
                     <div className="space-y-8 lg:col-span-2">
-                        <EventPromoSection
-                            promoVideoPath={event.promo_video_path}
-                            promoEmbedUrl={event.promo_embed_url}
-                            resolveStorageSrc={imageSrc}
-                        />
+                        <EventPromoSection items={eventPromoItemsFromEvent(event)} resolveStorageSrc={imageSrc} />
                         <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
                             {event.description?.trim() && (
                                 <RichOrPlainContent

@@ -64,8 +64,27 @@ class ManagerArtistAvailabilityController extends Controller
             ->where('artist_id', $artist->id)
             ->with(['availabilityDay'])
             ->orderByDesc('created_at')
-            ->limit(80)
+            ->limit(200)
             ->get();
+
+        $myRequestsPayload = $myRequests->map(static function (ArtistManagerAvailabilityRequest $r): array {
+            $day = $r->availabilityDay;
+
+            return [
+                'id' => $r->id,
+                'message' => $r->message,
+                'status' => $r->status,
+                'requested_date' => $r->requested_date->format('Y-m-d'),
+                'created_at' => $r->created_at?->toIso8601String(),
+                'availability_day' => $day !== null
+                    ? [
+                        'id' => $day->id,
+                        'date' => $day->date->format('Y-m-d'),
+                        'note' => $day->note,
+                    ]
+                    : null,
+            ];
+        })->values()->all();
 
         return Inertia::render('Artist/ManagerAvailability/Show', [
             'artist' => [
@@ -74,7 +93,7 @@ class ManagerArtistAvailabilityController extends Controller
                 'slug' => $artist->slug,
             ],
             'days' => $days,
-            'myRequests' => $myRequests,
+            'myRequests' => $myRequestsPayload,
         ]);
     }
 

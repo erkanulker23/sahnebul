@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Artist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
+use App\Models\PublicEditSuggestion;
+use App\Services\SahnebulMail;
+use App\Support\ArtistEditSuggestionPayload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -58,7 +62,7 @@ class OrganizationArtistController extends Controller
         $normalizedName = mb_strtolower(trim($validated['name']));
         if ($normalizedName !== '' && Artist::query()->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])->exists()) {
             throw ValidationException::withMessages([
-                'name' => 'Bu isimde bir sanatçı zaten kayıtlı. Listeden bünyenize ekleyebilir veya farklı bir ad kullanabilirsiniz.',
+                'name' => 'Bu isimde bir sanatçı zaten kayıtlı. Katalogdan kadronuza ekleyebilir veya farklı bir ad kullanabilirsiniz.',
             ]);
         }
 
@@ -76,7 +80,7 @@ class OrganizationArtistController extends Controller
 
         return redirect()
             ->route('artist.organization.artists.index')
-            ->with('success', 'Sanatçı kaydı oluşturuldu. Site yönetimi onayından sonra yayında görünür.');
+            ->with('success', 'Sanatçı kaydı oluşturuldu. Site yönetimi onayından sonra yayında görünür ve kadronuzda kalır.');
     }
 
     public function attach(Request $request, Artist $artist): RedirectResponse
@@ -84,12 +88,12 @@ class OrganizationArtistController extends Controller
         $this->assertManager($request);
 
         if ($artist->status !== 'approved') {
-            return back()->with('error', 'Yalnızca onaylı sanatçılar bünyeye eklenebilir.');
+            return back()->with('error', 'Yalnızca onaylı sanatçılar kadroya eklenebilir.');
         }
 
         if ($artist->managed_by_user_id !== null) {
             if ((int) $artist->managed_by_user_id === (int) $request->user()->id) {
-                return back()->with('success', 'Bu sanatçı zaten bünyenizde.');
+                return back()->with('success', 'Bu sanatçı zaten kadronuzda.');
             }
 
             return back()->with('error', 'Bu sanatçı başka bir organizasyona bağlı. Önce mevcut bağlantının kaldırılması gerekir.');
@@ -97,7 +101,7 @@ class OrganizationArtistController extends Controller
 
         $artist->update(['managed_by_user_id' => $request->user()->id]);
 
-        return back()->with('success', 'Sanatçı bünyenize eklendi.');
+        return back()->with('success', 'Sanatçı kadronuza eklendi.');
     }
 
     public function detach(Request $request, Artist $artist): RedirectResponse
@@ -110,7 +114,76 @@ class OrganizationArtistController extends Controller
 
         $artist->update(['managed_by_user_id' => null]);
 
-        return back()->with('success', 'Sanatçı bünyenizden çıkarıldı.');
+        return back()->with('success', 'Sanatçı kadronuzdan çıkarıldı.');
+    }
+
+    /**
+     * Kadrodaki sanatçı için site yönetimine düzenleme önerisi (PublicEditSuggestion — admin inceler).
+     */
+    public function proposeUpdate(Request $request, Artist $artist): RedirectResponse
+    {
+        $this->assertManager($request);
+
+        if ((int) $artist->managed_by_user_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        if ($artist->status === 'approved') {
+            $payload = ArtistEditSuggestionPayload::validateAndNormalize($request);
+        } else {
+            $payload = $this->validatePendingManagedArtistProposal($request);
+        }
+
+        $row = PublicEditSuggestion::create([
+            'suggestable_type' => $artist->getMorphClass(),
+            'suggestable_id' => $artist->getKey(),
+            'user_id' => $request->user()->id,
+            'guest_name' => null,
+            'guest_email' => null,
+            'message' => $payload['message'],
+            'proposed_changes' => $payload['proposed_changes'],
+            'status' => 'pending',
+        ]);
+
+        $row->load(['user', 'suggestable']);
+        SahnebulMail::publicEditSuggestionSubmitted($row);
+
+        return back()->with(
+            'success',
+            'Düzenleme öneriniz site yönetimine iletildi. Onaylandığında profil güncellenir.'
+        );
+    }
+
+    /**
+     * @return array{message: string, proposed_changes: array<string, mixed>|null}
+     */
+    private function validatePendingManagedArtistProposal(Request $request): array
+    {
+        $validated = Validator::make($request->all(), [
+            'message' => ['nullable', 'string', 'max:5000'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:12000'],
+        ])->validate();
+
+        $name = isset($validated['name']) && is_string($validated['name']) ? trim($validated['name']) : '';
+        $bio = isset($validated['bio']) && is_string($validated['bio']) ? trim($validated['bio']) : '';
+        $message = isset($validated['message']) && is_string($validated['message']) ? trim($validated['message']) : '';
+
+        $proposed = array_filter([
+            'name' => $name !== '' ? $name : null,
+            'bio' => $bio !== '' ? $bio : null,
+        ], fn ($v) => $v !== null);
+
+        if ($proposed === [] && mb_strlen($message) < 20) {
+            throw ValidationException::withMessages([
+                'message' => 'İsim veya biyografi girin ya da en az 20 karakterlik bir not yazın.',
+            ]);
+        }
+
+        return [
+            'message' => $message,
+            'proposed_changes' => $proposed === [] ? null : $proposed,
+        ];
     }
 
     private function assertManager(Request $request): void

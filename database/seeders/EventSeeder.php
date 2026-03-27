@@ -22,7 +22,7 @@ class EventSeeder extends Seeder
         $ifHall = Venue::where('slug', 'if-performance-hall')->first();
         $mebAnkara = Venue::where('slug', 'meb-sura-salonu')->first();
 
-        if (!$babylon || !$zorlu || !$nardis) {
+        if (! $babylon || ! $zorlu || ! $nardis) {
             return;
         }
 
@@ -96,6 +96,30 @@ class EventSeeder extends Seeder
                 'description' => 'maNga 25. kuruluş yılını dev konserle kutluyor.',
                 'artists' => ['manga'],
                 'days_from_now' => 90,
+            ],
+            [
+                'venue' => $babylon,
+                'title' => 'Stand-up: Gece Kuşağı',
+                'description' => 'Yerli komedyenlerle tek perde.',
+                'artists' => ['teoman'],
+                'days_from_now' => 11,
+                'event_type' => 'stand-up',
+            ],
+            [
+                'venue' => $mebAnkara ?? $zorlu,
+                'title' => 'Hamlet — Modern Uyarlaması',
+                'description' => 'Klasik metin, çağdaş yorum.',
+                'artists' => ['cem-adrian'],
+                'days_from_now' => 19,
+                'event_type' => 'tiyatro',
+            ],
+            [
+                'venue' => $kucukciftlik ?? $zorlu,
+                'title' => 'Yaz Müzik Festivali — 1. Gün',
+                'description' => 'Çok sahneli gün boyu festival programı.',
+                'artists' => ['manga'],
+                'days_from_now' => 95,
+                'event_type' => 'festival',
             ],
             [
                 'venue' => $nardis,
@@ -459,11 +483,12 @@ class EventSeeder extends Seeder
             $event = Event::updateOrCreate(
                 [
                     'venue_id' => $e['venue']->id,
-                    'slug' => Str::slug($e['title']) . '-' . abs((int) $e['days_from_now']),
+                    'slug' => Str::slug($e['title']).'-'.abs((int) $e['days_from_now']),
                 ],
                 [
                     'title' => $e['title'],
                     'description' => $e['description'],
+                    'event_type' => $e['event_type'] ?? 'konser',
                     'event_rules' => "Etkinlik alanına girişte bilet ve kimlik kontrolü yapılır.\nDışarıdan yiyecek ve içecek getirilmesine izin verilmez.\nProfesyonel kamera ve kayıt ekipmanları için organizatör onayı gerekir.\nEtkinlik başlangıcından sonra iade/değişim organizatör kurallarına tabidir.",
                     'start_date' => $start,
                     'end_date' => $end,

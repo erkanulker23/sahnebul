@@ -85,8 +85,11 @@ interface Props {
     defaultArtistId?: number | null;
     lockArtistsToSelf?: boolean;
     linkedArtistName?: string | null;
+    /** Organizasyon: yalnızca kadrodaki onaylı sanatçılar seçilebilir */
+    managedRosterArtistPicker?: boolean;
     categories?: Category[];
     googleMapsBrowserKey?: string | null;
+    eventTypeOptions: { slug: string; label: string }[];
 }
 
 export default function ArtistEventCreate({
@@ -97,8 +100,10 @@ export default function ArtistEventCreate({
     defaultArtistId = null,
     lockArtistsToSelf = false,
     linkedArtistName = null,
+    managedRosterArtistPicker = false,
     categories = [],
     googleMapsBrowserKey = null,
+    eventTypeOptions,
 }: Readonly<Props>) {
     const [searchDraft, setSearchDraft] = useState(venueSearch);
     const [proposeNewVenue, setProposeNewVenue] = useState(false);
@@ -117,6 +122,7 @@ export default function ArtistEventCreate({
         venue_id: venues.length ? String(venues[0].id) : '',
         artist_ids: defaultArtistId ? [defaultArtistId] : ([] as number[]),
         title: '',
+        event_type: '' as string,
         description: '',
         event_rules: '18 yaş altı katılımcılar ebeveyn eşliğinde giriş yapabilir.\nEtkinlik alanına dışarıdan yiyecek-içecek alınmaz.\nProfesyonel kamera ve kayıt ekipmanı izinsiz kullanılamaz.\nBilet iadesi organizatör kurallarına tabidir.',
         start_date: '',
@@ -457,7 +463,11 @@ export default function ArtistEventCreate({
                         artists={artists}
                         value={data.artist_ids}
                         onChange={(artist_ids) => setData('artist_ids', artist_ids)}
-                        helperText="Katalogdaki onaylı sanatçılar. Etkinlik bu kişilerin profillerinde de listelenir. İlk sıra headliner."
+                        helperText={
+                            managedRosterArtistPicker
+                                ? 'Yalnızca kadronuzdaki onaylı sanatçılar. Etkinlik bu kişilerin profillerinde de listelenir. İlk sıra headliner.'
+                                : 'Katalogdaki onaylı sanatçılar. Etkinlik bu kişilerin profillerinde de listelenir. İlk sıra headliner.'
+                        }
                         showOrderControls
                     />
                 )}
@@ -475,6 +485,25 @@ export default function ArtistEventCreate({
                         required
                         className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
                     />
+                </div>
+                <div>
+                    <label htmlFor="artist-event-type-create" className="block text-sm font-medium text-zinc-400">
+                        Etkinlik türü (isteğe bağlı)
+                    </label>
+                    <select
+                        id="artist-event-type-create"
+                        value={data.event_type}
+                        onChange={(e) => setData('event_type', e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                    >
+                        <option value="">Seçin</option>
+                        {eventTypeOptions.map((o) => (
+                            <option key={o.slug} value={o.slug}>
+                                {o.label}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.event_type && <p className="mt-2 text-sm text-red-400">{errors.event_type}</p>}
                 </div>
                 <div>
                     <label htmlFor="start_date" className="block text-sm font-medium text-zinc-400">

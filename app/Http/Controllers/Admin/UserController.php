@@ -96,6 +96,10 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if ($user->isAdmin()) {
+            abort(403, 'Admin hesapları bu ekrandan düzenlenemez.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email,'.$user->id]),
@@ -117,6 +121,8 @@ class UserController extends Controller
 
         $user->update($payload);
 
-        return back()->with('success', 'Kullanıcı güncellendi.');
+        return redirect()
+            ->route('admin.users.edit', $user)
+            ->with('success', 'Kullanıcı güncellendi.');
     }
 }

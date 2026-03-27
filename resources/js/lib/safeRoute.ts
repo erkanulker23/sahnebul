@@ -80,6 +80,14 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/sahne/organizasyon/sanatcilar';
         }
+        case 'artist.organization.artists.propose-update': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/duzenme-oneri`;
+            }
+
+            return '/sahne/organizasyon/sanatcilar';
+        }
         default:
             return '/';
     }

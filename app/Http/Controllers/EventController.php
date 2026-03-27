@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Services\TurkeyProvincesSync;
 use App\Support\EventListingQuery;
+use App\Support\EventListingTypes;
 use App\Support\InertiaDocumentMeta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,13 @@ class EventController extends Controller
                 $query->whereDate('start_date', today()->addDay());
             } elseif ($period === 'week') {
                 $query->whereBetween('start_date', [now()->startOfWeek(), now()->copy()->endOfWeek()]);
+            }
+        }
+
+        if ($request->filled('event_type')) {
+            $type = (string) $request->string('event_type');
+            if (in_array($type, EventListingTypes::slugs(), true)) {
+                $query->where('events.event_type', $type);
             }
         }
 
@@ -96,11 +104,12 @@ class EventController extends Controller
                 $appUrl,
             ),
             'categories' => $categories,
+            'eventTypes' => EventListingTypes::options(),
             'genres' => $genres,
             'provinces' => $provinces,
             'tickerItems' => $tickerItems,
             'tickerFallback' => 'Yakında yayınlanacak etkinlikler için bizi takip edin.',
-            'filters' => $request->only(['search', 'category', 'period', 'genre', 'city_id', 'district_id']),
+            'filters' => $request->only(['search', 'category', 'period', 'genre', 'event_type', 'city_id', 'district_id']),
         ]);
     }
 

@@ -20,6 +20,7 @@ class Artist extends Model
         'slug',
         'bio',
         'avatar',
+        'banner_image',
         'genre',
         'music_genres',
         'website',

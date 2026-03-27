@@ -14,11 +14,13 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Support\ArtistProfileInputs;
+use App\Support\EventListingTypes;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -87,7 +89,8 @@ class EventController extends Controller
         });
 
         $canCreateEvent = $user->venues()->where('status', 'approved')->exists()
-            || Artist::query()->where('user_id', $user->id)->where('status', 'approved')->exists();
+            || Artist::query()->where('user_id', $user->id)->where('status', 'approved')->exists()
+            || $this->managedApprovedArtistIds($user)->isNotEmpty();
 
         return Inertia::render('Artist/Events/Index', [
             'events' => $events,
@@ -101,17 +104,26 @@ class EventController extends Controller
     {
         $venueIds = $user->venues()->pluck('id');
         $artistIds = Artist::query()->where('user_id', $user->id)->pluck('id');
+        $managedArtistIds = $this->managedApprovedArtistIds($user);
 
         return Event::query()
-            ->where(function ($q) use ($venueIds, $artistIds) {
+            ->where(function ($q) use ($venueIds, $artistIds, $managedArtistIds) {
+                $has = false;
                 if ($venueIds->isNotEmpty()) {
                     $q->whereIn('venue_id', $venueIds);
+                    $has = true;
                 }
                 if ($artistIds->isNotEmpty()) {
-                    $method = $venueIds->isNotEmpty() ? 'orWhereHas' : 'whereHas';
+                    $method = $has ? 'orWhereHas' : 'whereHas';
                     $q->{$method}('artists', fn ($a) => $a->whereIn('artists.id', $artistIds));
+                    $has = true;
                 }
-                if ($venueIds->isEmpty() && $artistIds->isEmpty()) {
+                if ($managedArtistIds->isNotEmpty()) {
+                    $method = $has ? 'orWhereHas' : 'whereHas';
+                    $q->{$method}('artists', fn ($a) => $a->whereIn('artists.id', $managedArtistIds));
+                    $has = true;
+                }
+                if (! $has) {
                     $q->whereRaw('0 = 1');
                 }
             });
@@ -127,15 +139,21 @@ class EventController extends Controller
             $venuePickerMode = 'own';
             $venueSearch = '';
         } else {
-            $hasLinkedArtist = Artist::query()
+            $linkedArtist = Artist::query()
                 ->where('user_id', $user->id)
                 ->where('status', 'approved')
-                ->exists();
+                ->first(['id', 'name']);
 
-            if (! $hasLinkedArtist) {
+            $managedArtists = Artist::query()
+                ->where('managed_by_user_id', $user->id)
+                ->where('status', 'approved')
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            if ($linkedArtist === null && $managedArtists->isEmpty()) {
                 return redirect()
                     ->route('artist.events.index')
-                    ->with('error', 'Etkinlik oluşturmak için onaylı bir mekânınız veya onaylı bir sanatçı profiliniz olmalıdır.');
+                    ->with('error', 'Etkinlik oluşturmak için onaylı bir mekânınız, onaylı bir sanatçı profiliniz veya kadronuzda onaylı bir sanatçınız olmalıdır.');
             }
 
             $search = $request->string('venue_search')->trim()->toString();
@@ -149,31 +167,49 @@ class EventController extends Controller
             $venueSearch = $search;
         }
 
-        $linkedArtist = Artist::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->first(['id', 'name']);
+        if ($ownVenues->isNotEmpty()) {
+            $linkedArtist = Artist::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->first(['id', 'name']);
+        }
 
         $hasOwnApprovedVenue = $ownVenues->isNotEmpty();
+        $managedArtistsForPicker = Artist::query()
+            ->where('managed_by_user_id', $user->id)
+            ->where('status', 'approved')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         $lockArtistsToSelf = $linkedArtist !== null && ! $hasOwnApprovedVenue;
+        $useManagedRosterOnly = ! $hasOwnApprovedVenue && $linkedArtist === null && $managedArtistsForPicker->isNotEmpty();
         $artists = $lockArtistsToSelf
             ? Artist::approved()->notIntlImport()->whereRaw('0 = 1')->get(['id', 'name'])
-            : Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);
+            : (
+                $useManagedRosterOnly
+                    ? $managedArtistsForPicker
+                    : Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name'])
+            );
+
+        $defaultArtistId = $linkedArtist?->id ?? $managedArtistsForPicker->first()?->id;
 
         $props = [
             'venues' => $venues,
             'venuePickerMode' => $venuePickerMode,
             'venueSearch' => $venueSearch,
             'artists' => $artists,
-            'defaultArtistId' => $linkedArtist?->id,
+            'defaultArtistId' => $defaultArtistId,
             'lockArtistsToSelf' => $lockArtistsToSelf,
             'linkedArtistName' => $linkedArtist?->name,
+            'managedRosterArtistPicker' => $useManagedRosterOnly,
         ];
 
         if ($venuePickerMode === 'catalog') {
             $props['categories'] = Category::orderBy('order')->get(['id', 'name']);
             $props['googleMapsBrowserKey'] = app(AppSettingsService::class)->getGoogleMapsBrowserKey();
         }
+
+        $props['eventTypeOptions'] = EventListingTypes::options();
 
         return Inertia::render('Artist/Events/Create', $props);
     }
@@ -195,10 +231,18 @@ class EventController extends Controller
             ->where('status', 'approved')
             ->first();
 
+        if ($linkedArtist === null && $user->isManagerOrganization()) {
+            $linkedArtist = Artist::query()
+                ->where('managed_by_user_id', $user->id)
+                ->where('status', 'approved')
+                ->orderBy('name')
+                ->first();
+        }
+
         if ($linkedArtist === null) {
             return redirect()
                 ->route('artist.events.index')
-                ->with('error', 'Yeni mekân önerisi için onaylı sanatçı profiliniz olmalıdır.');
+                ->with('error', 'Yeni mekân önerisi için onaylı sanatçı profiliniz veya kadronuzda onaylı bir sanatçınız olmalıdır.');
         }
 
         $pv = $request->input('proposed_venue', []);
@@ -215,6 +259,7 @@ class EventController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
+            'event_type' => $request->input('event_type') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -243,6 +288,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
+            'event_type' => EventListingTypes::nullableSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -294,6 +340,9 @@ class EventController extends Controller
             ? trim((string) $eventPart['ticket_purchase_note'])
             : null;
         $eventPart = Event::applyTicketAcquisitionToValidatedArray($eventPart);
+        $eventPart['event_type'] = isset($eventPart['event_type']) && $eventPart['event_type'] !== ''
+            ? (string) $eventPart['event_type']
+            : null;
 
         $artistIds = $eventPart['artist_ids'] ?? [];
         unset($eventPart['artist_ids']);
@@ -337,6 +386,7 @@ class EventController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
+            'event_type' => $request->input('event_type') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -363,7 +413,8 @@ class EventController extends Controller
                     $canPickForeignVenue = Artist::query()
                         ->where('user_id', $user->id)
                         ->where('status', 'approved')
-                        ->exists();
+                        ->exists()
+                        || $this->managedApprovedArtistIds($user)->isNotEmpty();
                     if (! $canPickForeignVenue) {
                         $fail('Etkinlik yalnızca kendi onaylı mekânınızda oluşturulabilir.');
                     }
@@ -375,6 +426,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
+            'event_type' => EventListingTypes::nullableSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -416,6 +468,9 @@ class EventController extends Controller
         [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         $validated['is_full'] = $request->boolean('is_full');
+        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
+            ? (string) $validated['event_type']
+            : null;
         $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(4);
         $validated['status'] = 'draft';
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''
@@ -431,6 +486,8 @@ class EventController extends Controller
             ->where('status', 'approved')
             ->value('id');
 
+        $managedApprovedIds = $this->managedApprovedArtistIds($request->user())->all();
+
         $hasOwnApprovedVenue = $request->user()->venues()->where('status', 'approved')->exists();
 
         if ($linkedArtistId !== null && ! $hasOwnApprovedVenue) {
@@ -440,6 +497,14 @@ class EventController extends Controller
             $ids = array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
             $ids = array_values(array_diff($ids, [(int) $linkedArtistId]));
             array_unshift($ids, (int) $linkedArtistId);
+            $artistIds = $ids;
+        } elseif ($linkedArtistId === null && $managedApprovedIds !== []) {
+            $ids = is_array($artistIds) ? array_map('intval', $artistIds) : [];
+            $ids = array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
+            $ids = array_values(array_intersect($ids, $managedApprovedIds));
+            if ($ids === []) {
+                $ids = [(int) $managedApprovedIds[0]];
+            }
             $artistIds = $ids;
         } else {
             $artistIds = is_array($artistIds) ? array_map('intval', $artistIds) : [];
@@ -530,6 +595,7 @@ class EventController extends Controller
             'artists' => $artists,
             'venueReviews' => $venueReviews,
             'eventReviews' => $eventReviews,
+            'eventTypeOptions' => EventListingTypes::options(),
         ]);
     }
 
@@ -545,6 +611,7 @@ class EventController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
+            'event_type' => $request->input('event_type') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -573,6 +640,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
+            'event_type' => EventListingTypes::nullableSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -615,6 +683,9 @@ class EventController extends Controller
         [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         $validated['is_full'] = $request->boolean('is_full');
+        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
+            ? (string) $validated['event_type']
+            : null;
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''
             ? trim((string) $validated['ticket_purchase_note'])
             : null;
@@ -630,5 +701,18 @@ class EventController extends Controller
         });
 
         return back()->with('success', 'Etkinlik güncellendi.');
+    }
+
+    /** @return Collection<int, int> */
+    private function managedApprovedArtistIds(User $user): Collection
+    {
+        if (! $user->isManagerOrganization()) {
+            return collect();
+        }
+
+        return Artist::query()
+            ->where('managed_by_user_id', $user->id)
+            ->where('status', 'approved')
+            ->pluck('id');
     }
 }

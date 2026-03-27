@@ -23,6 +23,7 @@ interface Artist {
     music_genres?: string[] | null;
     bio: string | null;
     avatar: string | null;
+    banner_image?: string | null;
     website: string | null;
     status: string;
     social_links?: Record<string, string> | null;
@@ -105,6 +106,7 @@ export default function AdminArtistEdit({
         music_genres: initialMusicGenres(artist.music_genres, artist.genre, musicGenreOptions),
         bio: artist.bio ?? '',
         avatar: artist.avatar ?? '',
+        banner_image: artist.banner_image ?? '',
         website: artist.website ?? '',
         status: artist.status,
         managed_by_user_id: artist.managed_by_user_id != null ? String(artist.managed_by_user_id) : '',
@@ -129,15 +131,19 @@ export default function AdminArtistEdit({
             note: pub.note ?? '',
         },
         avatar_upload: null as File | null,
+        banner_upload: null as File | null,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('admin.artists.update', artist.id), {
             // Yalnızca dosya yüklenirken FormData kullan; aksi halde JSON gövde iç içe social_links’i güvenilir iletir.
-            forceFormData: data.avatar_upload instanceof File,
+            forceFormData: data.avatar_upload instanceof File || data.banner_upload instanceof File,
             preserveScroll: true,
-            onSuccess: () => setData('avatar_upload', null),
+            onSuccess: () => {
+                setData('avatar_upload', null);
+                setData('banner_upload', null);
+            },
         });
     };
 
@@ -337,6 +343,47 @@ export default function AdminArtistEdit({
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
                         )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak / banner (URL, isteğe bağlı)</label>
+                        <input
+                            value={data.banner_image}
+                            onChange={(e) => setData('banner_image', e.target.value)}
+                            placeholder="https://... veya boş"
+                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                        />
+                        {storageUrl(data.banner_image) && (
+                            <div className="mt-2 overflow-hidden rounded-lg border border-zinc-700">
+                                <img
+                                    src={storageUrl(data.banner_image) ?? ''}
+                                    alt=""
+                                    className="aspect-[21/9] max-h-40 w-full object-cover"
+                                />
+                            </div>
+                        )}
+                        {(data.banner_image?.trim() || artist.banner_image) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setData('banner_image', '');
+                                    setData('banner_upload', null);
+                                }}
+                                className="mt-2 rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm font-medium text-red-300 transition hover:border-red-400 hover:bg-red-950/60"
+                            >
+                                Banner URL&apos;sini kaldır
+                            </button>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-400">Kapak / banner (dosya)</label>
+                        <p className="mt-0.5 text-xs text-zinc-500">Geniş yatay görsel; sanatçı sayfasında yalnızca yüklüyse gösterilir.</p>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setData('banner_upload', e.target.files?.[0] ?? null)}
+                            className="mt-1 w-full text-sm text-zinc-300"
+                        />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">

@@ -22,6 +22,7 @@ interface EventModel {
     id: number;
     slug: string;
     title: string;
+    event_type?: string | null;
     description: string | null;
     event_rules: string | null;
     start_date: string | null;
@@ -42,6 +43,7 @@ interface EventModel {
     ticket_purchase_note?: string | null;
     promo_video_path?: string | null;
     promo_embed_url?: string | null;
+    promo_gallery?: { embed_url?: string | null; video_path?: string | null; poster_path?: string | null }[] | null;
 }
 
 interface Props {
@@ -50,6 +52,7 @@ interface Props {
     artists: { id: number; name: string; avatar?: string | null }[];
     venuePickerCategories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
+    eventTypeOptions: { slug: string; label: string }[];
 }
 
 function storageUrl(path: string | null | undefined): string | null {
@@ -80,11 +83,13 @@ export default function AdminEventEdit({
     artists,
     venuePickerCategories,
     googleMapsBrowserKey = null,
+    eventTypeOptions,
 }: Readonly<Props>) {
     const page = usePage();
     const flash = (page.props as { flash?: FlashProps }).flash;
     const [mediaImportUrl, setMediaImportUrl] = useState('');
     const [mediaImportMode, setMediaImportMode] = useState<'image_cover' | 'image_listing' | 'promo_video'>('image_listing');
+    const [appendPromoToGallery, setAppendPromoToGallery] = useState(true);
     const [mediaImporting, setMediaImporting] = useState(false);
     const [venueOptions, setVenueOptions] = useState(venues);
     const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +100,7 @@ export default function AdminEventEdit({
     const { data, setData, put, processing, errors, progress, transform } = useForm({
         venue_id: String(event.venue_id),
         title: event.title,
+        event_type: event.event_type ?? '',
         description: event.description ?? '',
         event_rules: event.event_rules ?? '',
         start_date: event.start_date != null && event.start_date !== '' ? event.start_date.slice(0, 16) : '',
@@ -177,7 +183,11 @@ export default function AdminEventEdit({
         setMediaImporting(true);
         router.post(
             route('admin.events.import-media', event.id),
-            { url, mode: mediaImportMode },
+            {
+                url,
+                mode: mediaImportMode,
+                append_promo: mediaImportMode === 'promo_video' ? appendPromoToGallery : true,
+            },
             {
                 preserveScroll: true,
                 onFinish: () => setMediaImporting(false),
@@ -187,9 +197,30 @@ export default function AdminEventEdit({
     };
 
     const clearPromoFromServer = () => {
-        if (!confirm('Tanıtım videosu ve Instagram gömülü bağlantısı kaldırılsın mı?')) return;
+        if (!confirm('Tüm tanıtım videoları, önizleme görselleri ve Instagram gömüleri kaldırılsın mı?')) return;
         router.post(route('admin.events.clear-promo-media', event.id), {}, { preserveScroll: true });
     };
+
+    const adminPromoPreviewItems = useMemo(() => {
+        const g = event.promo_gallery;
+        if (Array.isArray(g) && g.length > 0) {
+            return g.map((row) => ({
+                video_path: row.video_path?.trim() || null,
+                poster_path: row.poster_path?.trim() || null,
+                embed_url: row.embed_url?.trim() || null,
+            }));
+        }
+        if (event.promo_video_path?.trim() || event.promo_embed_url?.trim()) {
+            return [
+                {
+                    video_path: event.promo_video_path?.trim() || null,
+                    poster_path: null,
+                    embed_url: event.promo_embed_url?.trim() || null,
+                },
+            ];
+        }
+        return [];
+    }, [event.promo_gallery, event.promo_video_path, event.promo_embed_url]);
 
     const validationSummary = useMemo(() => {
         const e = errors as Record<string, string | string[] | undefined>;
@@ -289,6 +320,25 @@ export default function AdminEventEdit({
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                             {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="admin-event-type-edit" className="block text-sm font-medium text-zinc-400">
+                                Etkinlik türü (isteğe bağlı)
+                            </label>
+                            <select
+                                id="admin-event-type-edit"
+                                value={data.event_type}
+                                onChange={(e) => setData('event_type', e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            >
+                                <option value="">Seçin</option>
+                                {eventTypeOptions.map((o) => (
+                                    <option key={o.slug} value={o.slug}>
+                                        {o.label}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.event_type && <p className="mt-1 text-sm text-red-400">{errors.event_type}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Başlangıç (isteğe bağlı)</label>
@@ -511,9 +561,10 @@ export default function AdminEventEdit({
                     <div className="rounded-lg border border-zinc-700/80 bg-zinc-950/40 p-4">
                         <h2 className="text-sm font-semibold text-zinc-200">Bağlantıdan içe aktar</h2>
                         <p className="mt-1 text-xs text-zinc-500">
-                            Instagram veya etkinlik sayfası bağlantısı yapıştırın. Kapak / liste için sayfadaki önizleme görseli (og:image)
-                            indirilir; tanıtım modunda mümkünse video kaydedilir — Instagram çoğu zaman yalnızca gömülü oynatıcı bağlantısı
-                            verir.
+                            Instagram <code className="text-zinc-400">/p/…</code> veya <code className="text-zinc-400">/reel/…</code>{' '}
+                            bağlantılarında önizleme görseli sunucuya indirilir (og:image gerekmez). Tanıtım modunda mümkünse doğrudan video
+                            dosyası da kaydedilir; aksi halde gömülü oynatıcı ve ızgara için poster kullanılır. Aynı gönderiyi tekrar
+                            eklemek kaydı günceller.
                         </p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                             <div className="sm:col-span-2">
@@ -555,28 +606,66 @@ export default function AdminEventEdit({
                                 {mediaImporting ? 'İndiriliyor…' : 'İçe aktar'}
                             </button>
                         </div>
-                        {(event.promo_video_path?.trim() || event.promo_embed_url?.trim()) && (
+                        {mediaImportMode === 'promo_video' ? (
+                            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
+                                <input
+                                    type="checkbox"
+                                    checked={appendPromoToGallery}
+                                    onChange={(e) => setAppendPromoToGallery(e.target.checked)}
+                                    className="rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                                />
+                                Mevcut tanıtımların yanına ekle (işaretli değilse hepsi silinip yalnızca bu bağlantı kalır)
+                            </label>
+                        ) : null}
+                        {adminPromoPreviewItems.length > 0 && (
                             <div className="mt-4 border-t border-zinc-700/60 pt-4">
-                                <p className="text-xs text-zinc-500">Kayıtlı tanıtım</p>
-                                {storageUrl(event.promo_video_path) ? (
-                                    <video
-                                        src={storageUrl(event.promo_video_path) ?? ''}
-                                        controls
-                                        playsInline
-                                        className="mt-2 h-40 max-w-md rounded-lg bg-black"
-                                    />
-                                ) : null}
-                                {event.promo_embed_url?.trim() ? (
-                                    <p className="mt-2 truncate text-xs text-amber-400/90" title={event.promo_embed_url}>
-                                        Gömülü: {event.promo_embed_url}
+                                <p className="text-xs text-zinc-500">
+                                    Kayıtlı tanıtım{adminPromoPreviewItems.length > 1 ? `lar (${adminPromoPreviewItems.length})` : ''}
+                                </p>
+                                <ul className="mt-3 grid list-none grid-cols-2 gap-2 sm:grid-cols-4">
+                                    {adminPromoPreviewItems.map((row, idx) => (
+                                        <li
+                                            key={`${row.embed_url ?? ''}-${row.poster_path ?? ''}-${idx}`}
+                                            className="relative aspect-[9/16] overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950"
+                                        >
+                                            {storageUrl(row.video_path) ? (
+                                                <video
+                                                    src={storageUrl(row.video_path) ?? ''}
+                                                    controls
+                                                    playsInline
+                                                    className="h-full w-full object-cover"
+                                                    poster={storageUrl(row.poster_path) ?? undefined}
+                                                />
+                                            ) : storageUrl(row.poster_path) ? (
+                                                <img
+                                                    src={storageUrl(row.poster_path) ?? ''}
+                                                    alt=""
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center p-2 text-center text-[10px] text-zinc-500">
+                                                    {row.embed_url?.includes('instagram.com') ? 'Instagram gömüsü' : 'Bağlantı'}
+                                                </div>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {adminPromoPreviewItems.some((r) => r.embed_url) ? (
+                                    <p className="mt-2 text-[10px] text-zinc-500">
+                                        {adminPromoPreviewItems
+                                            .map((r) => r.embed_url)
+                                            .filter(Boolean)
+                                            .slice(0, 3)
+                                            .join(' · ')}
+                                        {adminPromoPreviewItems.filter((r) => r.embed_url).length > 3 ? '…' : ''}
                                     </p>
                                 ) : null}
                                 <button
                                     type="button"
                                     onClick={clearPromoFromServer}
-                                    className="mt-2 text-sm font-medium text-red-400 hover:text-red-300"
+                                    className="mt-3 text-sm font-medium text-red-400 hover:text-red-300"
                                 >
-                                    Tanıtımı kaldır
+                                    Tüm tanıtımları kaldır
                                 </button>
                             </div>
                         )}

@@ -193,7 +193,9 @@ class ArtistController extends Controller
             'media' => fn ($q) => $q->where('moderation_status', ArtistMedia::MODERATION_APPROVED),
         ]);
 
-        if ($artist->spotify_auto_link_disabled) {
+        $hideSpotifyPublic = (bool) $artist->spotify_auto_link_disabled;
+
+        if ($hideSpotifyPublic) {
             $artist->setAttribute('spotify_id', null);
             $artist->setAttribute('spotify_url', null);
             $artist->setAttribute('spotify_genres', null);
@@ -236,47 +238,52 @@ class ArtistController extends Controller
         ];
 
         $latestTracks = [];
-        $spotifyId = is_string($artist->spotify_id) ? trim($artist->spotify_id) : '';
-        $hasSpotifyCreds = (bool) (config('services.spotify.client_id') && config('services.spotify.client_secret'));
 
-        if ($spotifyId !== '' && $hasSpotifyCreds) {
-            $cacheKey = 'artist_latest_tracks:spotify:'.$artist->id;
-            $cached = Cache::get($cacheKey);
-            if (is_array($cached) && count($cached) > 0) {
-                $latestTracks = $cached;
-            } elseif ($cached === null) {
-                try {
-                    $fromSpotify = $this->spotify->latestTracksByArtistName($artist->name, 15, $spotifyId);
-                    if (count($fromSpotify) > 0) {
-                        Cache::put($cacheKey, $fromSpotify, now()->addMinutes(45));
-                        $latestTracks = $fromSpotify;
+        if (! $hideSpotifyPublic) {
+            $spotifyId = is_string($artist->spotify_id) ? trim($artist->spotify_id) : '';
+            $hasSpotifyCreds = (bool) (config('services.spotify.client_id') && config('services.spotify.client_secret'));
+
+            if ($spotifyId !== '' && $hasSpotifyCreds) {
+                $cacheKey = 'artist_latest_tracks:spotify:'.$artist->id;
+                $cached = Cache::get($cacheKey);
+                if (is_array($cached) && count($cached) > 0) {
+                    $latestTracks = $cached;
+                } elseif ($cached === null) {
+                    try {
+                        $fromSpotify = $this->spotify->latestTracksByArtistName($artist->name, 15, $spotifyId);
+                        if (count($fromSpotify) > 0) {
+                            Cache::put($cacheKey, $fromSpotify, now()->addMinutes(45));
+                            $latestTracks = $fromSpotify;
+                        }
+                    } catch (\Throwable $e) {
+                        Log::debug('Spotify latest tracks failed', [
+                            'artist_id' => $artist->id,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
-                } catch (\Throwable $e) {
-                    Log::debug('Spotify latest tracks failed', [
-                        'artist_id' => $artist->id,
-                        'error' => $e->getMessage(),
-                    ]);
                 }
             }
-        }
 
-        if (count($latestTracks) === 0) {
-            $latestTracks = $this->itunesSearch->latestTracksByArtistName($artist->name, 15);
+            if (count($latestTracks) === 0) {
+                $latestTracks = $this->itunesSearch->latestTracksByArtistName($artist->name, 15);
+            }
+
+            $albumsPreview = [];
+            if (is_array($artist->spotify_albums) && $artist->spotify_albums !== []) {
+                $albumsPreview = $artist->spotify_albums;
+            }
+            if ($albumsPreview === []) {
+                $albumsPreview = $this->itunesSearch->albumsByArtistName($artist->name, 20);
+            }
+            $albumsPreview = array_values($albumsPreview);
+
+            $artist->setAttribute('spotify_albums', $albumsPreview);
+        } else {
+            $artist->setAttribute('spotify_albums', []);
         }
 
         app(TurkeyProvincesSync::class)->sync();
         $provinceNames = City::query()->turkiyeProvinces()->pluck('name')->values()->all();
-
-        $albumsPreview = [];
-        if (is_array($artist->spotify_albums) && $artist->spotify_albums !== []) {
-            $albumsPreview = $artist->spotify_albums;
-        }
-        if ($albumsPreview === []) {
-            $albumsPreview = $this->itunesSearch->albumsByArtistName($artist->name, 20);
-        }
-        $albumsPreview = array_values($albumsPreview);
-
-        $artist->setAttribute('spotify_albums', $albumsPreview);
         $artist->setAttribute('spotify_artist_image_url', null);
 
         $artist->loadExists([
@@ -286,7 +293,7 @@ class ArtistController extends Controller
 
         $u = $request->user();
         $isFavorited = $u !== null
-            && $u->canUsePublicEngagementFeatures()
+            && $u->canFavoriteArtists()
             && $u->favoriteArtists()->whereKey($artist->id)->exists();
 
         $organizationAffiliation = null;
@@ -311,7 +318,7 @@ class ArtistController extends Controller
                 ? ArtistClaimRequest::where('artist_id', $artist->id)->where('user_id', auth()->id())->value('status')
                 : null,
             'artistFavorite' => [
-                'canToggle' => $u !== null && $u->canUsePublicEngagementFeatures(),
+                'canToggle' => $u !== null && $u->canFavoriteArtists(),
                 'isFavorited' => $isFavorited,
             ],
         ]);

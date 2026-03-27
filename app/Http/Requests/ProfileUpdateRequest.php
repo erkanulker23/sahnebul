@@ -17,7 +17,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => array_merge(
                 UserContactValidation::emailRequired(),
@@ -28,5 +28,13 @@ class ProfileUpdateRequest extends FormRequest
             'interests.*' => ['string', 'max:50'],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ];
+
+        if ($this->user()?->isManagerOrganization()) {
+            $rules['organization_display_name'] = ['nullable', 'string', 'max:255'];
+            $rules['organization_tax_office'] = ['nullable', 'string', 'max:120'];
+            $rules['organization_tax_number'] = ['nullable', 'string', 'max:32'];
+        }
+
+        return $rules;
     }
 }

@@ -297,6 +297,10 @@ final class PublicStructuredData
             is_string($artist->avatar) ? $artist->avatar : null,
             $appUrl,
         );
+        $banner = SeoFormatting::absoluteMediaUrl(
+            is_string($artist->banner_image ?? null) ? (string) $artist->banner_image : null,
+            $appUrl,
+        );
 
         $sameAs = self::collectArtistSameAs($artist);
 
@@ -310,8 +314,9 @@ final class PublicStructuredData
         if ($genre !== '') {
             $musicGroup['genre'] = $genre;
         }
-        if ($avatar !== null) {
-            $musicGroup['image'] = [$avatar];
+        $images = array_values(array_filter([$banner, $avatar]));
+        if ($images !== []) {
+            $musicGroup['image'] = $images;
         }
         if ($sameAs !== []) {
             $musicGroup['sameAs'] = $sameAs;
@@ -358,9 +363,11 @@ final class PublicStructuredData
         if ($website !== '' && preg_match('#^https?://#i', $website) === 1) {
             $out[] = $website;
         }
-        $spotifyUrl = isset($artist->spotify_url) ? trim((string) $artist->spotify_url) : '';
-        if ($spotifyUrl !== '' && preg_match('#^https?://#i', $spotifyUrl) === 1) {
-            $out[] = $spotifyUrl;
+        if (! (bool) ($artist->spotify_auto_link_disabled ?? false)) {
+            $spotifyUrl = isset($artist->spotify_url) ? trim((string) $artist->spotify_url) : '';
+            if ($spotifyUrl !== '' && preg_match('#^https?://#i', $spotifyUrl) === 1) {
+                $out[] = $spotifyUrl;
+            }
         }
         $links = is_array($artist->social_links) ? $artist->social_links : [];
         foreach ($links as $url) {

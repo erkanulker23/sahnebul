@@ -10,6 +10,7 @@ use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Services\EventMediaImportFromUrlService;
 use App\Services\SahnebulMail;
+use App\Support\EventListingTypes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,7 @@ class EventController extends Controller
             'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']),
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
+            'eventTypeOptions' => EventListingTypes::options(),
         ]);
     }
 
@@ -90,6 +92,7 @@ class EventController extends Controller
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
             'listing_image' => $request->input('listing_image') ?: null,
+            'event_type' => $request->input('event_type') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -98,6 +101,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
+            'event_type' => EventListingTypes::nullableSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -158,6 +162,10 @@ class EventController extends Controller
 
         $validated = Event::applyTicketAcquisitionToValidatedArray($validated);
 
+        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
+            ? (string) $validated['event_type']
+            : null;
+
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
 
@@ -188,6 +196,7 @@ class EventController extends Controller
             'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']),
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
+            'eventTypeOptions' => EventListingTypes::options(),
         ]);
     }
 
@@ -205,6 +214,7 @@ class EventController extends Controller
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
             'listing_image' => $request->input('listing_image') ?: null,
+            'event_type' => $request->input('event_type') ?: null,
         ]);
 
         $validated = $request->validate([
@@ -213,6 +223,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
+            'event_type' => EventListingTypes::nullableSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -293,6 +304,10 @@ class EventController extends Controller
             : null;
 
         $validated = Event::applyTicketAcquisitionToValidatedArray($validated);
+
+        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
+            ? (string) $validated['event_type']
+            : null;
 
         if ($event->title !== $validated['title']) {
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::lower(Str::random(4));
@@ -422,9 +437,11 @@ class EventController extends Controller
         $validated = $request->validate([
             'url' => ['required', 'string', 'max:2048'],
             'mode' => ['required', 'string', 'in:image_cover,image_listing,promo_video'],
+            'append_promo' => ['sometimes', 'boolean'],
         ]);
 
-        $result = $importer->import($event->fresh(), $validated['url'], $validated['mode']);
+        $appendPromo = (bool) ($validated['append_promo'] ?? true);
+        $result = $importer->import($event->fresh(), $validated['url'], $validated['mode'], $appendPromo);
 
         if (! $result['success']) {
             return back()->with('error', $result['message']);
@@ -435,15 +452,28 @@ class EventController extends Controller
 
     public function clearPromoMedia(Event $event)
     {
+        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
+        foreach ($gallery as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            foreach (['video_path', 'poster_path'] as $key) {
+                $path = $item[$key] ?? null;
+                if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+        }
         if (is_string($event->promo_video_path) && $event->promo_video_path !== '' && ! Str::startsWith($event->promo_video_path, ['http://', 'https://'])) {
             Storage::disk('public')->delete($event->promo_video_path);
         }
         $event->update([
             'promo_video_path' => null,
             'promo_embed_url' => null,
+            'promo_gallery' => null,
         ]);
 
-        return back()->with('success', 'Tanıtım videosu ve gömülü bağlantı kaldırıldı.');
+        return back()->with('success', 'Tanıtım medyası kaldırıldı.');
     }
 
     private function performEventDelete(Event $event): void
@@ -454,6 +484,18 @@ class EventController extends Controller
             $path = $event->{$field} ?? null;
             if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($path);
+            }
+        }
+        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
+        foreach ($gallery as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            foreach (['video_path', 'poster_path'] as $key) {
+                $path = $item[$key] ?? null;
+                if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
+                    Storage::disk('public')->delete($path);
+                }
             }
         }
         $event->delete();

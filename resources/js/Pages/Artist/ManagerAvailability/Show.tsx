@@ -14,6 +14,7 @@ interface AvailabilityDay {
 interface AvailabilityDayRef {
     id: number;
     date: string;
+    note: string | null;
 }
 
 interface MyRequest {
@@ -21,6 +22,7 @@ interface MyRequest {
     message: string;
     status: string;
     requested_date: string;
+    created_at?: string;
     availability_day: AvailabilityDayRef | null;
 }
 
@@ -69,7 +71,50 @@ export default function ManagerAvailabilityShow({ artist, days, myRequests }: Pr
             </Link>
 
             <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{artist.name}</h1>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Aşağıdaki günlere organizasyon talebinizi iletebilirsiniz.</p>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                Gönderdiğiniz müsaitlik taleplerini aşağıda görebilirsiniz; yeni talep için müsait gün seçip mesaj gönderin.
+            </p>
+
+            <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <h2 className="font-semibold text-zinc-900 dark:text-white">Gönderdiğim talepler</h2>
+                {myRequests.length === 0 ? (
+                    <p className="mt-4 text-sm text-zinc-500">Henüz bu sanatçı için talep göndermediniz.</p>
+                ) : (
+                    <ul className="mt-4 space-y-4">
+                        {myRequests.map((r) => (
+                            <li key={r.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                                            {formatTurkishDateTime(r.requested_date, { withTime: false })}
+                                        </p>
+                                        {r.availability_day?.note ? (
+                                            <p className="mt-0.5 text-xs text-zinc-500">Müsaitlik notu: {r.availability_day.note}</p>
+                                        ) : null}
+                                        {r.created_at ? (
+                                            <p className="mt-0.5 text-xs text-zinc-500">
+                                                Gönderim: {formatTurkishDateTime(r.created_at, { withTime: true })}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <span
+                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                            r.status === 'pending'
+                                                ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300'
+                                                : r.status === 'accepted'
+                                                  ? 'bg-green-500/20 text-green-800 dark:text-green-300'
+                                                  : 'bg-zinc-500/20 text-zinc-700 dark:text-zinc-300'
+                                        }`}
+                                    >
+                                        {statusTr(r.status)}
+                                    </span>
+                                </div>
+                                <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">{r.message}</p>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
 
             <div className="mt-8 grid gap-8 lg:grid-cols-2">
                 <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -107,7 +152,7 @@ export default function ManagerAvailabilityShow({ artist, days, myRequests }: Pr
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">
                             {requestForm.data.artist_availability_day_id
                                 ? 'Seçili güne mesajınızı yazın.'
-                                : 'Önce soldan bir müsait gün seçin.'}
+                                : 'Önce soldan bir müsait gün seçin (üstte gönderilen talepler listelenir).'}
                         </p>
                         <div>
                             <label htmlFor="req-msg" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -138,37 +183,6 @@ export default function ManagerAvailabilityShow({ artist, days, myRequests }: Pr
                         </button>
                     </form>
                 </div>
-            </div>
-
-            <div className="mt-10 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <h2 className="font-semibold text-zinc-900 dark:text-white">Bu sanatçıya gönderdiğim talepler</h2>
-                {myRequests.length === 0 ? (
-                    <p className="mt-4 text-sm text-zinc-500">Henüz talep yok.</p>
-                ) : (
-                    <ul className="mt-4 space-y-4">
-                        {myRequests.map((r) => (
-                            <li key={r.id} className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                                        {formatTurkishDateTime(r.requested_date, { withTime: false })}
-                                    </p>
-                                    <span
-                                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                            r.status === 'pending'
-                                                ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300'
-                                                : r.status === 'accepted'
-                                                  ? 'bg-green-500/20 text-green-800 dark:text-green-300'
-                                                  : 'bg-zinc-500/20 text-zinc-700 dark:text-zinc-300'
-                                        }`}
-                                    >
-                                        {statusTr(r.status)}
-                                    </span>
-                                </div>
-                                <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">{r.message}</p>
-                            </li>
-                        ))}
-                    </ul>
-                )}
             </div>
         </ArtistLayout>
     );

@@ -13,7 +13,7 @@ import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge'
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Music2, Pause, PenLine, Play } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
     name: string;
@@ -198,7 +198,11 @@ interface Artist {
     spotify_followers?: number | null;
     /** Ayrılmış; profil görseli yalnızca `avatar`. */
     spotify_artist_image_url?: string | null;
+    /** Geniş üst görsel; yalnızca doluysa gösterilir. */
+    banner_image?: string | null;
     spotify_albums?: SpotifyAlbumPreview[] | null;
+    /** Admin: Spotify bölümü ve yedek (iTunes) müzik önizlemesi kapalı */
+    spotify_auto_link_disabled?: boolean;
     media?: ArtistMediaItem[];
 }
 
@@ -326,6 +330,7 @@ export default function ArtistShow({
     const [claimEmail, setClaimEmail] = useState('');
     const [claimLoading, setClaimLoading] = useState(false);
     const [playingTrackKey, setPlayingTrackKey] = useState<string | null>(null);
+    const [shareCopied, setShareCopied] = useState(false);
     const hasEvents = upcomingEvents.length > 0 || pastEvents.length > 0;
     const nextEvent = upcomingEvents[0];
     const cityOptions = useMemo(() => {
@@ -425,7 +430,22 @@ export default function ArtistShow({
         return () => window.clearTimeout(t);
     }, [artist.slug]);
 
+    const bannerPhoto = imageSrc(artist.banner_image ?? null);
     const avatarUrl = profilePhoto;
+    const shareUrlForSocial = canonicalUrl ?? '';
+    const copyShareLink = useCallback(async () => {
+        const u = shareUrlForSocial || (typeof window !== 'undefined' ? window.location.href : '');
+        if (!u || !navigator.clipboard?.writeText) return;
+        try {
+            await navigator.clipboard.writeText(u);
+            setShareCopied(true);
+            window.setTimeout(() => setShareCopied(false), 2000);
+        } catch {
+            /* ignore */
+        }
+    }, [shareUrlForSocial]);
+    const shareBtnClass =
+        'rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-amber-400 hover:bg-amber-50 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/50 dark:hover:bg-zinc-800/80';
     const seoKeywordLead = `${artist.name} konserleri, performansları ve etkinlikleri`;
     const bioPlain = metaDescriptionFromContent(artist.bio, '');
     const seoGenreSuffix = artist.genre ? ` Tür: ${artist.genre}.` : '';
@@ -456,6 +476,14 @@ export default function ArtistShow({
                         Tüm Sanatçılar
                     </Link>
                 </div>
+
+                {bannerPhoto ? (
+                    <div className="mx-auto mt-4 max-w-7xl px-0 sm:mt-6 sm:px-4 lg:px-8">
+                        <div className="relative aspect-[21/9] min-h-[140px] max-h-[min(42vw,22rem)] w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md dark:border-white/[0.08] dark:bg-zinc-900 sm:max-h-[min(36vw,20rem)] sm:rounded-3xl">
+                            <img src={bannerPhoto} alt="" className="h-full w-full object-cover" />
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="relative mx-auto mt-4 max-w-7xl px-0 sm:mt-6 sm:px-4 lg:px-8">
                     <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
@@ -707,6 +735,48 @@ export default function ArtistShow({
                                     Düzenleme öner
                                 </button>
                             </div>
+                            {shareUrlForSocial ? (
+                                <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10">
+                                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Sosyal medyada paylaş</p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <a
+                                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(artist.name)}&url=${encodeURIComponent(shareUrlForSocial)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={shareBtnClass}
+                                        >
+                                            X (Twitter)
+                                        </a>
+                                        <a
+                                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrlForSocial)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={shareBtnClass}
+                                        >
+                                            Facebook
+                                        </a>
+                                        <a
+                                            href={`https://wa.me/?text=${encodeURIComponent(`${artist.name} — ${shareUrlForSocial}`)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={shareBtnClass}
+                                        >
+                                            WhatsApp
+                                        </a>
+                                        <a
+                                            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrlForSocial)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={shareBtnClass}
+                                        >
+                                            LinkedIn
+                                        </a>
+                                        <button type="button" onClick={() => void copyShareLink()} className={shareBtnClass}>
+                                            {shareCopied ? 'Bağlantı kopyalandı' : 'Bağlantıyı kopyala'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
                             {organizationAffiliation ? (
                                 <p className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
                                     <span className="font-semibold text-amber-700 dark:text-amber-400">{organizationAffiliation.label}</span>{' '}
@@ -910,6 +980,7 @@ export default function ArtistShow({
                                 </div>
                             )}
 
+                            {artist.spotify_auto_link_disabled !== true && (
                             <div className="mt-8 rounded-2xl border border-zinc-800 bg-[#121212] p-6 shadow-xl sm:p-8">
                                 <div className="mb-2">
                                     <h2 className="font-display text-lg font-bold tracking-tight text-white sm:text-xl">Spotify</h2>
@@ -1120,6 +1191,7 @@ export default function ArtistShow({
                                     </a>
                                 </div>
                             </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -55,11 +55,11 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
         }
     };
 
-    const navLabel = showVenueNav === true ? 'Mekan ve etkinlik yönetimi' : 'Sanatçı paneli';
+    const navBadge = auth.stage_sidebar_nav_badge ?? (showVenueNav === true ? 'Mekân ve etkinlik' : 'Sanatçı paneli');
 
     const NavLinks = (
         <>
-            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200/90">{navLabel}</p>
+            <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200/90">{navBadge}</p>
             {coreNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -141,7 +141,7 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                     )}
                 >
                     <Mic className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
-                    Bünyemdeki sanatçılar
+                    Sanatçı kadrosu
                 </Link>
             )}
             {isManagerOrganization && (
@@ -214,7 +214,9 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                     >
                         <Menu className="h-6 w-6 stroke-[1.75]" aria-hidden />
                     </button>
-                    <span className="min-w-0 flex-1 text-sm text-zinc-600 dark:text-zinc-400">Sahne yönetimi</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-600 dark:text-zinc-400">
+                        {auth.stage_panel_title ?? 'Sahne yönetimi'}
+                    </span>
                     <button
                         type="button"
                         onClick={toggleTheme}

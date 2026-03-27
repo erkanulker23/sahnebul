@@ -50,15 +50,9 @@ export default function UpdateProfileInformation({
     omitInterestsField?: boolean;
 }>) {
     const { auth } = usePage<PageProps>().props;
-    const user = auth.user as {
-        name: string;
-        email: string;
-        city?: string;
-        interests?: string[];
-        avatar?: string | null;
-        email_verified_at?: string | null;
-    };
+    const user = auth.user;
     const linkedArtist = auth.linkedArtist;
+    const isManagerOrganization = auth.is_manager_organization === true;
     const [interestInput, setInterestInput] = useState('');
 
     const initialName = useMemo(() => {
@@ -79,6 +73,9 @@ export default function UpdateProfileInformation({
             city: user.city ?? '',
             interests: (user.interests as string[]) ?? [],
             avatar: null as File | null,
+            organization_display_name: user.organization_display_name ?? '',
+            organization_tax_office: user.organization_tax_office ?? '',
+            organization_tax_number: user.organization_tax_number ?? '',
         });
 
     const storedOrArtistPhotoUrl = userPhotoUrl ?? artistPhotoUrl ?? null;
@@ -166,6 +163,48 @@ export default function UpdateProfileInformation({
                     />
                     <InputError className="mt-2" message={errors.email} />
                 </div>
+
+                {isManagerOrganization && (
+                    <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <p className="text-sm font-medium text-amber-200/90">Organizasyon / firma bilgileri</p>
+                        <p className="text-xs text-zinc-500">
+                            Firma unvanı ve vergi alanları yalnızca hesabınız ve yönetim kayıtları için kullanılır; herkese açık sanatçı sayfalarından ayrıdır.
+                        </p>
+                        <div>
+                            <InputLabel htmlFor="organization_display_name" value="Firma / organizasyon adı" />
+                            <TextInput
+                                id="organization_display_name"
+                                className="mt-1 block w-full"
+                                value={data.organization_display_name}
+                                onChange={(e) => setData('organization_display_name', e.target.value)}
+                                autoComplete="organization"
+                            />
+                            <InputError className="mt-2" message={errors.organization_display_name} />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="organization_tax_office" value="Vergi dairesi" />
+                            <TextInput
+                                id="organization_tax_office"
+                                className="mt-1 block w-full"
+                                value={data.organization_tax_office}
+                                onChange={(e) => setData('organization_tax_office', e.target.value)}
+                            />
+                            <InputError className="mt-2" message={errors.organization_tax_office} />
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="organization_tax_number" value="Vergi numarası (VKN)" />
+                            <TextInput
+                                id="organization_tax_number"
+                                className="mt-1 block w-full"
+                                value={data.organization_tax_number}
+                                onChange={(e) => setData('organization_tax_number', e.target.value)}
+                                inputMode="numeric"
+                                autoComplete="off"
+                            />
+                            <InputError className="mt-2" message={errors.organization_tax_number} />
+                        </div>
+                    </div>
+                )}
 
                 {!omitCityField && (
                     <div>

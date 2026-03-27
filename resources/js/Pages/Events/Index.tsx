@@ -50,6 +50,7 @@ interface Props {
     events: { data: EventItem[]; links: PaginatorLink[]; total?: number; from?: number | null; to?: number | null };
     listingStructuredData?: Record<string, unknown> | null;
     categories: { id: number; name: string; slug: string }[];
+    eventTypes: { slug: string; label: string }[];
     genres: string[];
     provinces: LocationOption[];
     /** Üst kırmızı şerit: mevcut filtrelerle aynı sorgudan gelen etkinlikler */
@@ -60,6 +61,7 @@ interface Props {
         category?: string;
         period?: string;
         genre?: string;
+        event_type?: string;
         city_id?: string | number;
         district_id?: string | number;
     };
@@ -78,6 +80,7 @@ export default function EventsIndex({
     events,
     listingStructuredData = null,
     categories,
+    eventTypes,
     genres,
     provinces: provincesFromServer,
     tickerItems,
@@ -87,6 +90,7 @@ export default function EventsIndex({
     const [search, setSearch] = useState(filters.search ?? '');
     const [category, setCategory] = useState(filters.category ?? '');
     const [period, setPeriod] = useState(filters.period ?? '');
+    const [eventType, setEventType] = useState(filters.event_type ?? '');
     const [genre, setGenre] = useState(filters.genre ?? '');
     const [cityId, setCityId] = useState(filters.city_id != null ? String(filters.city_id) : '');
     const [districtId, setDistrictId] = useState(filters.district_id != null ? String(filters.district_id) : '');
@@ -96,8 +100,24 @@ export default function EventsIndex({
     const [loadingDistricts, setLoadingDistricts] = useState(false);
     const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const filtersRef = useRef({ search, category, period, genre, city_id: cityId, district_id: districtId });
-    filtersRef.current = { search, category, period, genre, city_id: cityId, district_id: districtId };
+    const filtersRef = useRef({
+        search,
+        category,
+        period,
+        event_type: eventType,
+        genre,
+        city_id: cityId,
+        district_id: districtId,
+    });
+    filtersRef.current = {
+        search,
+        category,
+        period,
+        event_type: eventType,
+        genre,
+        city_id: cityId,
+        district_id: districtId,
+    };
 
     const applyQuery = useCallback(
         (
@@ -105,6 +125,7 @@ export default function EventsIndex({
                 search: string;
                 category: string;
                 period: string;
+                event_type: string;
                 genre: string;
                 city_id: string;
                 district_id: string;
@@ -117,6 +138,7 @@ export default function EventsIndex({
                     search: q.search || undefined,
                     category: q.category || undefined,
                     period: q.period || undefined,
+                    event_type: q.event_type || undefined,
                     genre: q.genre || undefined,
                     city_id: q.city_id || undefined,
                     district_id: q.district_id || undefined,
@@ -179,10 +201,19 @@ export default function EventsIndex({
         setSearch(filters.search ?? '');
         setCategory(filters.category ?? '');
         setPeriod(filters.period ?? '');
+        setEventType(filters.event_type ?? '');
         setGenre(filters.genre ?? '');
         setCityId(filters.city_id != null ? String(filters.city_id) : '');
         setDistrictId(filters.district_id != null ? String(filters.district_id) : '');
-    }, [filters.search, filters.category, filters.period, filters.genre, filters.city_id, filters.district_id]);
+    }, [
+        filters.search,
+        filters.category,
+        filters.period,
+        filters.event_type,
+        filters.genre,
+        filters.city_id,
+        filters.district_id,
+    ]);
 
     useEffect(() => {
         if (searchDebounce.current) clearTimeout(searchDebounce.current);
@@ -205,6 +236,7 @@ export default function EventsIndex({
             patch: Partial<{
                 category: string;
                 period: string;
+                event_type: string;
                 genre: string;
                 city_id: string;
                 district_id: string;
@@ -212,6 +244,7 @@ export default function EventsIndex({
         ) => {
             if (patch.category !== undefined) setCategory(patch.category);
             if (patch.period !== undefined) setPeriod(patch.period);
+            if (patch.event_type !== undefined) setEventType(patch.event_type);
             if (patch.genre !== undefined) setGenre(patch.genre);
             if (patch.city_id !== undefined) {
                 setCityId(patch.city_id);
@@ -237,8 +270,19 @@ export default function EventsIndex({
         [districts, districtId]
     );
 
+    const eventTypeLabel = useMemo(
+        () => eventTypes.find((t) => t.slug === eventType)?.label,
+        [eventTypes, eventType]
+    );
+
     const hasQueryFilters = Boolean(
-        filters.search || filters.category || filters.period || filters.genre || filters.city_id || filters.district_id,
+        filters.search ||
+            filters.category ||
+            filters.period ||
+            filters.genre ||
+            filters.event_type ||
+            filters.city_id ||
+            filters.district_id,
     );
 
     const activeChips = useMemo(() => {
@@ -248,6 +292,13 @@ export default function EventsIndex({
                 key: 'cat',
                 label: categoryName,
                 clear: () => clearChipAndNavigate({ category: '' }),
+            });
+        }
+        if (eventType && eventTypeLabel) {
+            chips.push({
+                key: 'etype',
+                label: eventTypeLabel,
+                clear: () => clearChipAndNavigate({ event_type: '' }),
             });
         }
         if (genre) {
@@ -277,6 +328,8 @@ export default function EventsIndex({
     }, [
         category,
         categoryName,
+        eventType,
+        eventTypeLabel,
         genre,
         period,
         cityId,
@@ -342,7 +395,7 @@ export default function EventsIndex({
                                         Konser ve etkinlikleri keşfedin
                                     </h1>
                                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
-                                        Tarih, müzik tarzı, kategori ve şehre göre filtreleyin; yaklaşan gösterileri tek yerde listeleyin.
+                                        Tarih, etkinlik türü, müzik tarzı, mekân kategorisi ve şehre göre filtreleyin; yaklaşan gösterileri tek yerde listeleyin.
                                     </p>
                                 </div>
                                 <div className="w-full shrink-0 lg:max-w-md">
@@ -362,7 +415,7 @@ export default function EventsIndex({
 
                             <div className="mt-8 border-t border-zinc-100 pt-6 dark:border-white/[0.06]">
                                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">Filtreler</p>
-                                <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+                                <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4">
                                 <label className="relative block min-w-0">
                                     <span className="sr-only">Zaman</span>
                                     <select
@@ -383,7 +436,28 @@ export default function EventsIndex({
                                 </label>
 
                                 <label className="relative block min-w-0">
-                                    <span className="sr-only">Tarz</span>
+                                    <span className="sr-only">Etkinlik türü</span>
+                                    <select
+                                        value={eventType}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setEventType(v);
+                                            applyQuery({ event_type: v });
+                                        }}
+                                        className={FILTER_SELECT_CLASS}
+                                    >
+                                        <option value="">Etkinlik türü</option>
+                                        {eventTypes.map((t) => (
+                                            <option key={t.slug} value={t.slug}>
+                                                {t.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
+                                </label>
+
+                                <label className="relative block min-w-0">
+                                    <span className="sr-only">Müzik tarzı</span>
                                     <select
                                         value={genre}
                                         onChange={(e) => {
@@ -393,7 +467,7 @@ export default function EventsIndex({
                                         }}
                                         className={FILTER_SELECT_CLASS}
                                     >
-                                        <option value="">Tarz</option>
+                                        <option value="">Müzik tarzı</option>
                                         {genres.map((g) => (
                                             <option key={g} value={g}>
                                                 {g}

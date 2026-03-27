@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Models\Artist;
+use App\Models\MusicGenre;
 use App\Services\AppSettingsService;
 use App\Support\AuthPortalUrls;
+use App\Support\EventListingTypes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -60,6 +62,34 @@ class HandleInertiaRequests extends Middleware
         $twitterHandle = isset($seoBlock['twitter_handle']) ? trim((string) $seoBlock['twitter_handle']) : '';
         $googleSiteVerification = isset($seoBlock['google_site_verification']) ? trim((string) $seoBlock['google_site_verification']) : '';
 
+        $linkedArtist = null;
+        if ($user !== null) {
+            $linkedArtist = Artist::query()->where('user_id', $user->id)->first(['id', 'name', 'slug', 'avatar']);
+        }
+        $firstVenueName = null;
+        if ($user !== null && ! $user->isManagerOrganization() && $linkedArtist === null && ($user->venues_count ?? 0) > 0) {
+            $firstVenueName = $user->venues()->orderBy('name')->value('name');
+        }
+        $stagePanelTitle = 'Sahne yönetimi';
+        $stageSidebarNavBadge = 'Sahne paneli';
+        if ($user !== null) {
+            if ($user->isManagerOrganization()) {
+                $orgName = trim((string) ($user->organization_display_name ?? ''));
+                $display = $orgName !== '' ? $orgName : $user->name;
+                $stagePanelTitle = $display.' Yönetim Paneli';
+                $stageSidebarNavBadge = $display.' — Organizasyon';
+            } elseif ($linkedArtist !== null) {
+                $stagePanelTitle = $linkedArtist->name.' Yönetim Paneli';
+                $stageSidebarNavBadge = $linkedArtist->name.' — Sanatçı';
+            } elseif (is_string($firstVenueName) && trim($firstVenueName) !== '') {
+                $stagePanelTitle = $firstVenueName.' Yönetim Paneli';
+                $stageSidebarNavBadge = $firstVenueName.' — Mekân';
+            } else {
+                $stagePanelTitle = $user->name.' Yönetim paneli';
+                $stageSidebarNavBadge = $user->name.' — Hesap';
+            }
+        }
+
         return [
             ...parent::share($request),
             'seo' => [
@@ -78,9 +108,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 /** Hesaba bağlı onaylı sanatçı kaydı (sahne paneli — sanatçı sayfası düzenleme) */
-                'linkedArtist' => $user !== null
-                    ? Artist::query()->where('user_id', $user->id)->first(['id', 'name', 'slug', 'avatar'])
-                    : null,
+                'linkedArtist' => $linkedArtist,
+                /** Üst çubuk / kenar çubuğu için kişiselleştirilmiş başlık */
+                'stage_panel_title' => $stagePanelTitle,
+                'stage_sidebar_nav_badge' => $stageSidebarNavBadge,
                 /** Aktif Gold (aylık/yıllık mekan paketi) — /sahne rotalarına giriş */
                 'has_active_gold' => $user !== null && $user->hasActiveGoldSubscription(),
                 /**
@@ -104,6 +135,10 @@ class HandleInertiaRequests extends Middleware
                     || (is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '')
                 ),
                 'email_verification_banner' => $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail(),
+            ],
+            'globalSearch' => [
+                'event_type_tags' => EventListingTypes::options(),
+                'music_genre_tags' => array_values(array_slice(MusicGenre::optionNamesOrdered(), 0, 8)),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
