@@ -1030,10 +1030,10 @@ export default function ArtistShow({
                             )}
 
                             {artist.spotify_auto_link_disabled !== true && (
-                            <div className="mt-8 rounded-2xl border border-zinc-800 bg-[#121212] p-6 shadow-xl sm:p-8">
+                            <div className="mt-8 rounded-2xl border border-zinc-800 bg-[#121212] p-4 shadow-xl sm:p-5">
                                 <div className="mb-2">
-                                    <h2 className="font-display text-lg font-bold tracking-tight text-white sm:text-xl">Spotify</h2>
-                                    <p className="mt-1 text-sm text-zinc-500">
+                                    <h2 className="font-display text-base font-bold tracking-tight text-white sm:text-lg">Spotify</h2>
+                                    <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
                                         Popüler şarkılar; önizlemesi olan parçalar burada dinlenebilir (30 sn). Tam çalma Spotify uygulamasında.
                                     </p>
                                 </div>
@@ -1041,7 +1041,7 @@ export default function ArtistShow({
                                 {(artist.spotify_genres?.length ||
                                     artist.spotify_followers != null ||
                                     artist.spotify_popularity != null) && (
-                                    <div className="mb-6 mt-4 border-b border-white/[0.08] pb-6">
+                                    <div className="mb-4 mt-3 border-b border-white/[0.08] pb-4 sm:mb-5 sm:pb-5">
                                         <div className="flex flex-col gap-4">
                                             <div className="min-w-0 flex-1 space-y-3">
                                                 {artist.spotify_genres && artist.spotify_genres.length > 0 && (
@@ -1083,20 +1083,22 @@ export default function ArtistShow({
                                 )}
 
                                 {artist.spotify_id && (
-                                    <div className="relative z-[1] mb-8 isolate">
-                                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                                    <div className="relative z-[1] mb-5 isolate sm:mb-6">
+                                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 sm:mb-3 sm:text-sm">
                                             Çalar
                                         </h3>
-                                        <iframe
-                                            title={`${artist.name} — Spotify`}
-                                            src={`https://open.spotify.com/embed/artist/${artist.spotify_id}?utm_source=generator&theme=0`}
-                                            className="h-[380px] w-full max-w-full rounded-xl border-0"
-                                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share"
-                                            allowFullScreen
-                                            loading="eager"
-                                            referrerPolicy="strict-origin-when-cross-origin"
-                                        />
-                                        <p className="mt-2 text-xs text-zinc-500">
+                                        <div className="overflow-hidden rounded-xl ring-1 ring-white/[0.06]">
+                                            <iframe
+                                                title={`${artist.name} — Spotify`}
+                                                src={`https://open.spotify.com/embed/artist/${artist.spotify_id}?utm_source=generator&theme=0`}
+                                                className="h-[200px] w-full max-w-full border-0 sm:h-[240px] lg:h-[268px]"
+                                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share"
+                                                allowFullScreen
+                                                loading="lazy"
+                                                referrerPolicy="strict-origin-when-cross-origin"
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
                                             Gömülü çalar bazı tarayıcılarda (reklam engelleyici, gizlilik modu) yanıt vermeyebilir; tam dinleme için sayfanın altındaki Spotify&apos;da aç bağlantısını kullanın.
                                         </p>
                                     </div>

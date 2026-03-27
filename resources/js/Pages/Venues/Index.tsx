@@ -755,9 +755,9 @@ export default function VenuesIndex({
                     </section>
 
                     <section className="border-t border-amber-500/15 bg-gradient-to-r from-amber-500/[0.12] via-amber-400/[0.06] to-transparent dark:from-amber-500/10 dark:via-amber-600/5">
-                        <div className="mx-auto max-w-7xl px-0 py-8 sm:px-4 lg:px-8">
-                            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="max-w-2xl">
+                        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-4 lg:px-8">
+                            <div className="flex flex-col items-center gap-6 text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
+                                <div className="w-full max-w-2xl lg:w-auto">
                                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">
                                         Mekanınız burada listelenmiyor mu?
                                     </h2>
@@ -765,18 +765,18 @@ export default function VenuesIndex({
                                         Ücretsiz hesapla mekânınızı ekleyin; admin onayı sonrası bu listede görünür.
                                     </p>
                                 </div>
-                                <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+                                <div className="flex w-full max-w-md shrink-0 flex-col items-stretch gap-3 sm:max-w-lg sm:flex-row sm:items-center sm:justify-center lg:w-auto lg:max-w-none lg:justify-end">
                                     {!isLoggedIn && (
                                         <>
                                             <Link
                                                 href={route('register', { uyelik: 'mekan' })}
-                                                className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                                className="inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 sm:w-auto"
                                             >
                                                 Üye ol, mekânını ekle
                                             </Link>
                                             <Link
                                                 href={route('login.mekan')}
-                                                className="inline-flex items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 py-3 text-center text-sm font-medium text-zinc-800 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/15 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
+                                                className="inline-flex w-full items-center justify-center rounded-xl border border-zinc-300 bg-white px-6 py-3 text-center text-sm font-medium text-zinc-800 transition hover:border-amber-400 hover:text-amber-700 dark:border-white/15 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300 sm:w-auto"
                                             >
                                                 Zaten üye misiniz? Giriş
                                             </Link>
@@ -785,7 +785,7 @@ export default function VenuesIndex({
                                     {isLoggedIn && canAddVenue && (
                                         <Link
                                             href={route('artist.venues.create')}
-                                            className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                            className="inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 sm:w-auto"
                                         >
                                             Mekanınızı ekleyin
                                         </Link>
@@ -793,7 +793,7 @@ export default function VenuesIndex({
                                     {isLoggedIn && !canAddVenue && (
                                         <Link
                                             href={route('register', { uyelik: 'mekan' })}
-                                            className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400"
+                                            className="inline-flex w-full items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-400 sm:w-auto"
                                         >
                                             Mekân eklemek için kayıt
                                         </Link>

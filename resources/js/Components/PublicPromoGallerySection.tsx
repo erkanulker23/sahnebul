@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type PromoGalleryItem = {
     embed_url?: string | null;
@@ -341,121 +342,125 @@ export function PublicPromoGallerySection({
                 </section>
             ) : null}
 
-            {postLightbox !== null && lbSlide ? (
-                <div
-                    className="fixed inset-0 z-[70] flex flex-col bg-black/92 backdrop-blur-sm"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Tanıtım galerisi"
-                >
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
-                        <p className="text-sm font-medium text-white">
-                            {lbIndex + 1} / {nPosts}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={closePostLightbox}
-                            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                        >
-                            Kapat
-                        </button>
-                    </div>
-
+            {postLightbox !== null &&
+                lbSlide &&
+                typeof document !== 'undefined' &&
+                createPortal(
                     <div
-                        className="relative flex min-h-0 flex-1 cursor-default items-center justify-center px-2 py-4 sm:px-4"
-                        onClick={closePostLightbox}
-                        role="presentation"
+                        className="fixed inset-0 z-[200] flex flex-col bg-black/94 backdrop-blur-md"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Tanıtım galerisi"
                     >
-                        {nPosts > 1 ? (
+                        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
+                            <p className="text-sm font-medium text-white">
+                                {lbIndex + 1} / {nPosts}
+                            </p>
                             <button
                                 type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    goPostLightbox(-1);
-                                }}
-                                className="absolute left-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:left-4"
-                                aria-label="Önceki"
+                                onClick={closePostLightbox}
+                                className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                             >
-                                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
+                                Kapat
                             </button>
-                        ) : null}
+                        </div>
 
                         <div
-                            className="relative z-10 flex max-h-full max-w-full flex-col items-center"
-                            onClick={(e) => e.stopPropagation()}
+                            className="relative flex min-h-0 flex-1 cursor-default items-center justify-center px-2 py-3 sm:px-6 lg:px-16"
+                            onClick={closePostLightbox}
                             role="presentation"
                         >
-                            {lbSlide.kind === 'video' ? (
-                                <video
-                                    src={lbSlide.src}
-                                    controls
-                                    playsInline
-                                    autoPlay
-                                    className="max-h-[calc(100vh-8rem)] max-w-full rounded-lg object-contain shadow-2xl"
-                                    poster={lbSlide.poster ?? undefined}
+                            {nPosts > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        goPostLightbox(-1);
+                                    }}
+                                    className="absolute left-1 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:left-3 lg:left-6"
+                                    aria-label="Önceki"
                                 >
-                                    Tarayıcınız bu videoyu oynatamıyor.
-                                </video>
-                            ) : (
-                                <img
-                                    src={lbSlide.src}
-                                    alt=""
-                                    className="max-h-[calc(100vh-8rem)] max-w-full rounded-lg object-contain shadow-2xl"
-                                />
-                            )}
-                            <p className="mt-3 hidden text-center text-xs text-zinc-500 sm:block">
-                                ← → ile gezin • Esc ile kapat
-                            </p>
+                                    <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                            ) : null}
+
+                            <div
+                                className="relative z-10 flex max-h-full w-full max-w-[min(100vw-1rem,64rem)] flex-col items-center"
+                                onClick={(e) => e.stopPropagation()}
+                                role="presentation"
+                            >
+                                {lbSlide.kind === 'video' ? (
+                                    <video
+                                        src={lbSlide.src}
+                                        controls
+                                        playsInline
+                                        autoPlay
+                                        className="max-h-[min(calc(100dvh-9.5rem),calc(100vh-9.5rem))] w-full max-w-full rounded-lg object-contain shadow-2xl"
+                                        poster={lbSlide.poster ?? undefined}
+                                    >
+                                        Tarayıcınız bu videoyu oynatamıyor.
+                                    </video>
+                                ) : (
+                                    <img
+                                        src={lbSlide.src}
+                                        alt=""
+                                        className="max-h-[min(calc(100dvh-9.5rem),calc(100vh-9.5rem))] w-full max-w-full rounded-lg object-contain shadow-2xl"
+                                    />
+                                )}
+                                <p className="mt-3 hidden text-center text-xs text-zinc-500 sm:block">
+                                    ← → ile gezin • Esc ile kapat
+                                </p>
+                            </div>
+
+                            {nPosts > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        goPostLightbox(1);
+                                    }}
+                                    className="absolute right-1 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:right-3 lg:right-6"
+                                    aria-label="Sonraki"
+                                >
+                                    <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            ) : null}
                         </div>
 
                         {nPosts > 1 ? (
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    goPostLightbox(1);
-                                }}
-                                className="absolute right-2 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:right-4"
-                                aria-label="Sonraki"
-                            >
-                                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
+                            <div className="flex shrink-0 justify-center gap-2 overflow-x-auto border-t border-white/10 px-4 py-3 sm:px-6">
+                                {postItems.map((it, i) => {
+                                    const thumb = it.poster_path
+                                        ? resolveStorageSrc(it.poster_path)
+                                        : it.video_path
+                                          ? resolveStorageSrc(it.video_path)
+                                          : null;
+                                    if (!thumb) return null;
+                                    return (
+                                        <button
+                                            key={`lb-thumb-${i}`}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPostLightbox(i);
+                                            }}
+                                            className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 object-cover sm:h-16 sm:w-16 ${
+                                                i === lbIndex ? 'border-amber-400' : 'border-transparent opacity-50 hover:opacity-90'
+                                            }`}
+                                        >
+                                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         ) : null}
-                    </div>
-
-                    {nPosts > 1 ? (
-                        <div className="flex shrink-0 gap-2 overflow-x-auto border-t border-white/10 px-4 py-3 sm:px-6">
-                            {postItems.map((it, i) => {
-                                const thumb = it.poster_path
-                                    ? resolveStorageSrc(it.poster_path)
-                                    : it.video_path
-                                      ? resolveStorageSrc(it.video_path)
-                                      : null;
-                                if (!thumb) return null;
-                                return (
-                                    <button
-                                        key={`lb-thumb-${i}`}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setPostLightbox(i);
-                                        }}
-                                        className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 object-cover sm:h-16 sm:w-16 ${
-                                            i === lbIndex ? 'border-amber-400' : 'border-transparent opacity-50 hover:opacity-90'
-                                        }`}
-                                    >
-                                        <img src={thumb} alt="" className="h-full w-full object-cover" />
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ) : null}
-                </div>
-            ) : null}
+                    </div>,
+                    document.body,
+                )}
 
             {genericEmbedOnly.length > 0 ? (
                 <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">

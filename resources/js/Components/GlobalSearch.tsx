@@ -5,11 +5,20 @@ import type { PageProps } from '@/types';
 import axios from 'axios';
 import { Link, usePage } from '@inertiajs/react';
 import { Calendar, MapPin, Mic2, Search, Tag, TrendingUp, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 type ArtistHit = { id: number; name: string; slug: string; avatar: string | null; genre: string | null };
 type VenueHit = { id: number; name: string; slug: string; cover_image: string | null };
-type EventHit = { id: number; slug: string; title: string; start_date: string; venue_name?: string | null };
+type EventHit = {
+    id: number;
+    slug: string;
+    title: string;
+    start_date: string;
+    venue_name?: string | null;
+    /** listing_image veya cover_image */
+    image?: string | null;
+};
 
 type SearchPayload = {
     artists: ArtistHit[];
@@ -62,6 +71,34 @@ const storageUrl = (path: string | null | undefined) => {
 const tagPillClass =
     'inline-flex shrink-0 items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-800 transition hover:border-amber-400/60 hover:bg-amber-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/50 dark:hover:bg-zinc-700/80 sm:text-sm';
 
+const quickThumbClass =
+    'relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-zinc-100 ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:ring-white/10';
+
+function QuickSearchThumb({
+    src,
+    fallback,
+    className,
+}: Readonly<{ src: string | null | undefined; fallback: ReactNode; className?: string }>) {
+    const url = storageUrl(src ?? null);
+    if (url) {
+        return (
+            <span className={cn(quickThumbClass, className)}>
+                <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+            </span>
+        );
+    }
+    return (
+        <span
+            className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 ring-1 ring-zinc-200/60 dark:bg-zinc-800 dark:ring-white/10',
+                className,
+            )}
+        >
+            {fallback}
+        </span>
+    );
+}
+
 export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
     const page = usePage<PageProps>();
     const globalSearch = page.props.globalSearch ?? { event_type_tags: [], music_genre_tags: [] };
@@ -74,7 +111,9 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
     const [trendingLoading, setTrendingLoading] = useState(false);
     const [trendingFetched, setTrendingFetched] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
+    const panelSurfaceRef = useRef<HTMLDivElement>(null);
     const tRef = useRef<ReturnType<typeof setTimeout>>();
+    const [panelBox, setPanelBox] = useState<{ top: number; left: number; width: number } | null>(null);
 
     const fetchResults = useCallback(async (query: string) => {
         if (query.trim().length < 2) {
@@ -129,11 +168,59 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
         };
     }, [open, q, trendingFetched]);
 
+    useLayoutEffect(() => {
+        if (!open) {
+            setPanelBox(null);
+            return;
+        }
+        const measure = () => {
+            const el = rootRef.current;
+            if (!el) {
+                return;
+            }
+            const r = el.getBoundingClientRect();
+            const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
+            const pad = 12;
+            if (narrow) {
+                setPanelBox({
+                    top: r.bottom + 6,
+                    left: pad,
+                    width: globalThis.innerWidth - pad * 2,
+                });
+            } else {
+                setPanelBox({
+                    top: r.bottom + 6,
+                    left: r.left,
+                    width: r.width,
+                });
+            }
+        };
+        measure();
+        const w = globalThis;
+        w.addEventListener('resize', measure);
+        w.addEventListener('scroll', measure, true);
+        const vv = w.visualViewport;
+        if (vv) {
+            vv.addEventListener('resize', measure);
+            vv.addEventListener('scroll', measure);
+        }
+        return () => {
+            w.removeEventListener('resize', measure);
+            w.removeEventListener('scroll', measure, true);
+            if (vv) {
+                vv.removeEventListener('resize', measure);
+                vv.removeEventListener('scroll', measure);
+            }
+        };
+    }, [open]);
+
     useEffect(() => {
         const onDoc = (e: MouseEvent) => {
-            if (!rootRef.current?.contains(e.target as Node)) {
-                setOpen(false);
+            const t = e.target as Node;
+            if (rootRef.current?.contains(t) || panelSurfaceRef.current?.contains(t)) {
+                return;
             }
+            setOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
@@ -157,6 +244,21 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
     const showIdlePanel = open && q.trim().length < 2;
     const hasTagRow =
         globalSearch.event_type_tags.length > 0 || globalSearch.music_genre_tags.length > 0;
+
+    const viewportH =
+        typeof globalThis.window !== 'undefined'
+            ? globalThis.window.visualViewport?.height ?? globalThis.window.innerHeight
+            : 600;
+    const panelMaxHeight =
+        panelBox !== null
+            ? Math.max(
+                  168,
+                  Math.min(
+                      viewportH - panelBox.top - 16,
+                      showSearchPanel ? 340 : 460,
+                  ),
+              )
+            : undefined;
 
     return (
         <div ref={rootRef} className={cn('relative w-full min-w-0', className)}>
@@ -190,192 +292,221 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                 )}
             </div>
 
-            {showIdlePanel && (
-                <div
-                    className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-[70] max-h-[min(85vh,32rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] dark:border-zinc-700 dark:bg-zinc-900 sm:p-5"
-                    role="dialog"
-                    aria-label="Öne çıkan etkinlikler ve etiketler"
-                >
-                    <div className="mb-5">
-                        <div className="mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                            <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">
-                                Trendler
-                            </span>
-                        </div>
-                        {trendingLoading && (
-                            <p className="py-6 text-center text-sm text-zinc-500">Yükleniyor…</p>
+            {open &&
+                panelBox &&
+                typeof document !== 'undefined' &&
+                (showIdlePanel || showSearchPanel) &&
+                createPortal(
+                    <div
+                        ref={panelSurfaceRef}
+                        style={{
+                            position: 'fixed',
+                            top: panelBox.top,
+                            left: panelBox.left,
+                            width: panelBox.width,
+                            zIndex: 130,
+                            maxHeight: panelMaxHeight,
+                            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                        }}
+                        className={cn(
+                            'overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-zinc-700 dark:bg-zinc-900',
+                            showSearchPanel && 'rounded-xl shadow-ds-lg',
                         )}
-                        {!trendingLoading && trending.length === 0 && (
-                            <p className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
-                                Yaklaşan etkinlik bulunamadı. Arama kutusunu kullanarak keşfedin.
-                            </p>
-                        )}
-                        {!trendingLoading && trending.length > 0 && (
-                            <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pt-0.5">
-                                {trending.map((ev) => {
-                                    const href = route('events.show', eventShowParam(ev));
-                                    const src = storageUrl(ev.image);
-                                    return (
-                                        <Link
-                                            key={ev.id}
-                                            href={href}
-                                            onClick={() => setOpen(false)}
-                                            className="group flex w-[7.25rem] shrink-0 flex-col sm:w-[8.25rem]"
-                                        >
-                                            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-zinc-100 ring-1 ring-zinc-200/80 transition group-hover:ring-amber-400/50 dark:bg-zinc-800 dark:ring-zinc-700">
-                                                {src ? (
-                                                    <img
-                                                        src={src}
-                                                        alt=""
-                                                        className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-2xl dark:from-zinc-700 dark:to-zinc-800">
-                                                        🎫
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-snug text-zinc-900 dark:text-white sm:text-[13px]">
-                                                {ev.title}
-                                            </p>
-                                            {ev.venue_name ? (
-                                                <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500 dark:text-zinc-400">
-                                                    {ev.venue_name}
-                                                </p>
-                                            ) : null}
-                                            <p className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500">
-                                                {formatTrendDateLine(ev.start_date, ev.end_date)}
-                                            </p>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                    >
+                        {showIdlePanel ? (
+                            <div className="p-4 sm:p-5" role="dialog" aria-label="Öne çıkan etkinlikler ve etiketler">
+                                <div className="mb-5">
+                                    <div className="mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                        <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
+                                        <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">
+                                            Trendler
+                                        </span>
+                                    </div>
+                                    {trendingLoading && (
+                                        <p className="py-6 text-center text-sm text-zinc-500">Yükleniyor…</p>
+                                    )}
+                                    {!trendingLoading && trending.length === 0 && (
+                                        <p className="rounded-xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
+                                            Yaklaşan etkinlik bulunamadı. Arama kutusunu kullanarak keşfedin.
+                                        </p>
+                                    )}
+                                    {!trendingLoading && trending.length > 0 && (
+                                        <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-pb-2 scroll-pl-1 scroll-pr-3 pb-2 pt-0.5 [-webkit-overflow-scrolling:touch]">
+                                            {trending.map((ev) => {
+                                                const href = route('events.show', eventShowParam(ev));
+                                                const src = storageUrl(ev.image);
+                                                return (
+                                                    <Link
+                                                        key={ev.id}
+                                                        href={href}
+                                                        onClick={() => setOpen(false)}
+                                                        className="group flex w-[6.5rem] shrink-0 snap-start flex-col sm:w-[7.5rem] lg:w-[8.25rem]"
+                                                    >
+                                                        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-zinc-100 ring-1 ring-zinc-200/80 transition group-hover:ring-amber-400/50 dark:bg-zinc-800 dark:ring-zinc-700">
+                                                            {src ? (
+                                                                <img
+                                                                    src={src}
+                                                                    alt=""
+                                                                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-2xl dark:from-zinc-700 dark:to-zinc-800">
+                                                                    🎫
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-zinc-900 dark:text-white sm:text-xs">
+                                                            {ev.title}
+                                                        </p>
+                                                        {ev.venue_name ? (
+                                                            <p className="mt-0.5 line-clamp-1 text-[10px] text-zinc-500 dark:text-zinc-400 sm:text-[11px]">
+                                                                {ev.venue_name}
+                                                            </p>
+                                                        ) : null}
+                                                        <p className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500 sm:text-[11px]">
+                                                            {formatTrendDateLine(ev.start_date, ev.end_date)}
+                                                        </p>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
 
-                    {hasTagRow && (
-                        <div className="border-t border-zinc-100 pt-5 dark:border-zinc-800">
-                            <div className="mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                                <Tag className="h-4 w-4 shrink-0" aria-hidden />
-                                <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">
-                                    Etiketler
-                                </span>
+                                {hasTagRow && (
+                                    <div className="border-t border-zinc-100 pt-5 dark:border-zinc-800">
+                                        <div className="mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                            <Tag className="h-4 w-4 shrink-0" aria-hidden />
+                                            <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">
+                                                Etiketler
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {globalSearch.event_type_tags.map((t) => (
+                                                <Link
+                                                    key={t.slug}
+                                                    href={route('events.index', { event_type: t.slug })}
+                                                    onClick={() => setOpen(false)}
+                                                    className={tagPillClass}
+                                                >
+                                                    # {t.label}
+                                                </Link>
+                                            ))}
+                                            {globalSearch.music_genre_tags.map((name) => (
+                                                <Link
+                                                    key={name}
+                                                    href={route('events.index', { genre: name })}
+                                                    onClick={() => setOpen(false)}
+                                                    className={tagPillClass}
+                                                >
+                                                    # {name}
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                                {globalSearch.event_type_tags.map((t) => (
-                                    <Link
-                                        key={t.slug}
-                                        href={route('events.index', { event_type: t.slug })}
-                                        onClick={() => setOpen(false)}
-                                        className={tagPillClass}
-                                    >
-                                        # {t.label}
-                                    </Link>
-                                ))}
-                                {globalSearch.music_genre_tags.map((name) => (
-                                    <Link
-                                        key={name}
-                                        href={route('events.index', { genre: name })}
-                                        onClick={() => setOpen(false)}
-                                        className={tagPillClass}
-                                    >
-                                        # {name}
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
+                        ) : null}
 
-            {showSearchPanel && (
-                <div
-                    className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-[70] max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-ds-lg dark:border-zinc-700 dark:bg-zinc-900"
-                    role="listbox"
-                >
-                    {loading && <p className="px-4 py-3 text-sm text-zinc-500">Aranıyor…</p>}
-                    {!loading && total === 0 && <p className="px-4 py-3 text-sm text-zinc-500">Sonuç yok.</p>}
-                    {!loading && data.artists.length > 0 && (
-                        <div className="border-b border-zinc-100 py-2 dark:border-zinc-800">
-                            <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                                Sanatçılar
-                            </p>
-                            <ul>
-                                {data.artists.map((a) => (
-                                    <li key={`a-${a.id}`}>
-                                        <Link
-                                            href={route('artists.show', a.slug)}
-                                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                            onClick={() => setOpen(false)}
-                                        >
-                                            <Mic2 className="h-4 w-4 shrink-0 text-amber-600" />
-                                            <span className="min-w-0 truncate font-medium text-zinc-900 dark:text-white">
-                                                {a.name}
-                                            </span>
-                                            {a.genre && (
-                                                <span className="truncate text-xs text-zinc-500">{a.genre}</span>
-                                            )}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                    {!loading && data.venues.length > 0 && (
-                        <div className="border-b border-zinc-100 py-2 dark:border-zinc-800">
-                            <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                                Mekanlar
-                            </p>
-                            <ul>
-                                {data.venues.map((v) => (
-                                    <li key={`v-${v.id}`}>
-                                        <Link
-                                            href={route('venues.show', v.slug)}
-                                            className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                            onClick={() => setOpen(false)}
-                                        >
-                                            <MapPin className="h-4 w-4 shrink-0 text-rose-500" />
-                                            <span className="min-w-0 truncate font-medium text-zinc-900 dark:text-white">
-                                                {v.name}
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                    {!loading && data.events.length > 0 && (
-                        <div className="py-2">
-                            <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                                Etkinlikler
-                            </p>
-                            <ul>
-                                {data.events.map((ev) => (
-                                    <li key={`e-${ev.id}`}>
-                                        <Link
-                                            href={route('events.show', eventShowParam(ev))}
-                                            className="flex items-start gap-3 px-4 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                            onClick={() => setOpen(false)}
-                                        >
-                                            <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate font-medium text-zinc-900 dark:text-white">
-                                                    {ev.title}
-                                                </span>
-                                                <span className="block text-xs text-zinc-500">
-                                                    {formatTurkishDateTime(ev.start_date)}
-                                                    {ev.venue_name ? ` · ${ev.venue_name}` : ''}
-                                                </span>
-                                            </span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </div>
-            )}
+                        {showSearchPanel ? (
+                            <div role="listbox">
+                                {loading && <p className="px-4 py-3 text-sm text-zinc-500">Aranıyor…</p>}
+                                {!loading && total === 0 && <p className="px-4 py-3 text-sm text-zinc-500">Sonuç yok.</p>}
+                                {!loading && data.artists.length > 0 && (
+                                    <div className="border-b border-zinc-100 py-2 dark:border-zinc-800">
+                                        <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                            Sanatçılar
+                                        </p>
+                                        <ul>
+                                            {data.artists.map((a) => (
+                                                <li key={`a-${a.id}`}>
+                                                    <Link
+                                                        href={route('artists.show', a.slug)}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                        onClick={() => setOpen(false)}
+                                                    >
+                                                        <QuickSearchThumb
+                                                            src={a.avatar}
+                                                            fallback={<Mic2 className="h-4 w-4 text-amber-600" aria-hidden />}
+                                                        />
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block truncate font-medium text-zinc-900 dark:text-white">
+                                                                {a.name}
+                                                            </span>
+                                                            {a.genre ? (
+                                                                <span className="block truncate text-xs text-zinc-500">{a.genre}</span>
+                                                            ) : null}
+                                                        </span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {!loading && data.venues.length > 0 && (
+                                    <div className="border-b border-zinc-100 py-2 dark:border-zinc-800">
+                                        <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                            Mekanlar
+                                        </p>
+                                        <ul>
+                                            {data.venues.map((v) => (
+                                                <li key={`v-${v.id}`}>
+                                                    <Link
+                                                        href={route('venues.show', v.slug)}
+                                                        className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                        onClick={() => setOpen(false)}
+                                                    >
+                                                        <QuickSearchThumb
+                                                            src={v.cover_image}
+                                                            fallback={<MapPin className="h-4 w-4 text-rose-500" aria-hidden />}
+                                                        />
+                                                        <span className="min-w-0 flex-1 truncate font-medium text-zinc-900 dark:text-white">
+                                                            {v.name}
+                                                        </span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {!loading && data.events.length > 0 && (
+                                    <div className="py-2">
+                                        <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                                            Etkinlikler
+                                        </p>
+                                        <ul>
+                                            {data.events.map((ev) => (
+                                                <li key={`e-${ev.id}`}>
+                                                    <Link
+                                                        href={route('events.show', eventShowParam(ev))}
+                                                        className="flex items-start gap-3 px-4 py-2.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                        onClick={() => setOpen(false)}
+                                                    >
+                                                        <QuickSearchThumb
+                                                            src={ev.image}
+                                                            fallback={<Calendar className="h-4 w-4 text-violet-500" aria-hidden />}
+                                                            className="mt-0.5"
+                                                        />
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block truncate font-medium text-zinc-900 dark:text-white">
+                                                                {ev.title}
+                                                            </span>
+                                                            <span className="block text-xs text-zinc-500">
+                                                                {formatTurkishDateTime(ev.start_date)}
+                                                                {ev.venue_name ? ` · ${ev.venue_name}` : ''}
+                                                            </span>
+                                                        </span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }

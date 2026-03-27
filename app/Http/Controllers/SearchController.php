@@ -85,7 +85,7 @@ class SearchController extends Controller
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(8)
-            ->get(['id', 'slug', 'title', 'start_date', 'venue_id']);
+            ->get(['id', 'slug', 'title', 'start_date', 'venue_id', 'listing_image', 'cover_image']);
 
         return response()->json([
             'artists' => $artists,
@@ -96,6 +96,7 @@ class SearchController extends Controller
                 'title' => $e->title,
                 'start_date' => $e->start_date,
                 'venue_name' => $e->venue?->name,
+                'image' => $e->listing_image ?: $e->cover_image,
             ]),
         ]);
     }
