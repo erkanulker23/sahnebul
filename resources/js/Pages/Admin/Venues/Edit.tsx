@@ -8,6 +8,8 @@ import SeoHead from '@/Components/SeoHead';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import { isRichTextProbablyEmpty } from '@/lib/buildVenuePayloadFromGooglePlace';
 import { formatTrPhoneInput } from '@/lib/trPhoneInput';
+import { AdminFormTabList, AdminFormTabPanel } from '@/Components/Admin/AdminFormTabs';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { Link, router, useForm } from '@inertiajs/react';
 import axios from 'axios';
@@ -41,6 +43,14 @@ interface Venue {
     website: string | null;
     social_links?: Record<string, string> | null;
     cover_image: string | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: {
+        embed_url?: string | null;
+        video_path?: string | null;
+        poster_path?: string | null;
+        promo_kind?: 'story' | 'post' | null;
+    }[] | null;
     status: string;
     is_featured?: boolean;
     is_active?: boolean;
@@ -102,6 +112,7 @@ export default function AdminVenueEdit({
     const [coverImportError, setCoverImportError] = useState<string | null>(null);
     const [googleGalleryImporting, setGoogleGalleryImporting] = useState(false);
     const [googleGalleryError, setGoogleGalleryError] = useState<string | null>(null);
+    const [editTab, setEditTab] = useState<'genel' | 'icerik' | 'tanitim' | 'galeri'>('genel');
     const sl = venue.social_links ?? {};
     const { data, setData, put, processing, errors, progress, transform } = useForm({
         name: venue.name,
@@ -234,7 +245,19 @@ export default function AdminVenueEdit({
                     ownerSubscription={venueOwnerSubscription}
                 />
 
-                <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60">
+                    <AdminFormTabList
+                        activeId={editTab}
+                        onChange={(id) => setEditTab(id as typeof editTab)}
+                        tabs={[
+                            { id: 'genel', label: 'Genel ve konum' },
+                            { id: 'icerik', label: 'İçerik ve sosyal' },
+                            { id: 'tanitim', label: 'Kapak ve tanıtım' },
+                            { id: 'galeri', label: 'Galeri' },
+                        ]}
+                    />
+                    <form id="admin-venue-edit-form" onSubmit={submit} className="space-y-6 p-6 pt-4">
+                        <AdminFormTabPanel id="genel" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-zinc-400">Mekan adı *</label>
@@ -557,7 +580,9 @@ export default function AdminVenueEdit({
                             />
                         </div>
                     </div>
+                        </AdminFormTabPanel>
 
+                        <AdminFormTabPanel id="icerik" activeId={editTab} className="space-y-6">
                     <div>
                         <h3 className="text-sm font-semibold text-zinc-300">Sosyal medya</h3>
                         <p className="mt-1 text-xs text-zinc-500">Tam URL (https://…). Boş bırakılanlar sitede gösterilmez.</p>
@@ -589,7 +614,9 @@ export default function AdminVenueEdit({
                         />
                         <InputError message={errors.description} className="mt-1" />
                     </div>
+                        </AdminFormTabPanel>
 
+                        <AdminFormTabPanel id="tanitim" activeId={editTab} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Kapak görseli (URL)</label>
                         <p className="mt-0.5 text-xs text-zinc-500">
@@ -623,38 +650,22 @@ export default function AdminVenueEdit({
                         )}
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="rounded-lg bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
-                        >
-                            Kaydet
-                        </button>
-                        {venue.status === 'pending' && (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => router.post(route('admin.venues.approve', { venue: venue.id }), {}, { preserveScroll: true })}
-                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-                                >
-                                    Onayla
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => router.post(route('admin.venues.reject', { venue: venue.id }), {}, { preserveScroll: true })}
-                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    Reddet
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </form>
+                    <AdminEntityPromoGalleryPanel
+                        entity={venue}
+                        variant="venue"
+                        routes={{
+                            importMedia: route('admin.venues.import-promo-media', venue.id),
+                            appendPromoFiles: route('admin.venues.append-promo-files', venue.id),
+                            clearPromoMedia: route('admin.venues.clear-promo-media', venue.id),
+                            removePromoItem: route('admin.venues.remove-promo-item', venue.id),
+                        }}
+                    />
+                        </AdminFormTabPanel>
+                    </form>
 
-                <section className="mt-10 max-w-3xl rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
-                    <p className="mt-1 text-sm text-zinc-500">Birden fazla fotoğraf seçebilirsiniz (aynı anda toplu yükleme).</p>
+                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-700/80 p-6">
+                    <h2 className="text-lg font-semibold text-zinc-100">Mekân galerisi</h2>
+                    <p className="text-sm text-zinc-500">Birden fazla fotoğraf seçebilirsiniz (aynı anda toplu yükleme). Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
                     <input
                         type="file"
                         accept="image/*"
@@ -688,7 +699,42 @@ export default function AdminVenueEdit({
                             </div>
                         ))}
                     </div>
-                </section>
+                    </AdminFormTabPanel>
+
+                    <div className="flex flex-wrap gap-3 border-t border-zinc-700/80 bg-zinc-950/30 px-6 py-4">
+                        <button
+                            type="submit"
+                            form="admin-venue-edit-form"
+                            disabled={processing}
+                            className="rounded-lg bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                        >
+                            Kaydet
+                        </button>
+                        {venue.status === 'pending' && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.venues.approve', { venue: venue.id }), {}, { preserveScroll: true })}
+                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                                >
+                                    Onayla
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.venues.reject', { venue: venue.id }), {}, { preserveScroll: true })}
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                >
+                                    Reddet
+                                </button>
+                            </>
+                        )}
+                        {editTab === 'galeri' ? (
+                            <p className="w-full text-xs text-zinc-500 sm:w-auto sm:flex-1 sm:text-right">
+                                Üst sekmelerde yaptığınız değişiklikleri kaydetmek için «Kaydet»e basın.
+                            </p>
+                        ) : null}
+                    </div>
+                </div>
             </div>
         </AdminLayout>
     );

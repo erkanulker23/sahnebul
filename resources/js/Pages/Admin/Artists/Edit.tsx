@@ -6,9 +6,12 @@ import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
+import { AdminFormTabList, AdminFormTabPanel } from '@/Components/Admin/AdminFormTabs';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { cn } from '@/lib/cn';
 import { Link, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface MediaItem {
     id: number;
@@ -35,6 +38,14 @@ interface Artist {
     spotify_id?: string | null;
     spotify_url?: string | null;
     spotify_auto_link_disabled?: boolean;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: {
+        embed_url?: string | null;
+        video_path?: string | null;
+        poster_path?: string | null;
+        promo_kind?: 'story' | 'post' | null;
+    }[] | null;
 }
 
 function initialSpotifyField(artist: Artist): string {
@@ -100,6 +111,7 @@ export default function AdminArtistEdit({
     artistSubscriptionPlans = [],
     artistOwnerSubscription = null,
 }: Readonly<Props>) {
+    const [editTab, setEditTab] = useState<'genel' | 'gorsel' | 'sosyal' | 'icerik' | 'galeri'>('genel');
     const sl = artist.social_links ?? {};
     const mgr = artist.manager_info ?? {};
     const pub = artist.public_contact ?? {};
@@ -252,7 +264,20 @@ export default function AdminArtistEdit({
                     ownerSubscription={artistOwnerSubscription}
                 />
 
-                <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60">
+                    <AdminFormTabList
+                        activeId={editTab}
+                        onChange={(id) => setEditTab(id as typeof editTab)}
+                        tabs={[
+                            { id: 'genel', label: 'Genel' },
+                            { id: 'gorsel', label: 'Profil görselleri' },
+                            { id: 'sosyal', label: 'Sosyal ve iletişim' },
+                            { id: 'icerik', label: 'Biyografi ve tanıtım' },
+                            { id: 'galeri', label: 'Galeri' },
+                        ]}
+                    />
+                    <form id="admin-artist-edit-form" onSubmit={submit} className="space-y-6 p-6 pt-4">
+                        <AdminFormTabPanel id="genel" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Ad *</label>
@@ -316,7 +341,9 @@ export default function AdminArtistEdit({
                         onToggle={toggleMusicGenre}
                         error={errors.music_genres}
                     />
+                        </AdminFormTabPanel>
 
+                        <AdminFormTabPanel id="gorsel" activeId={editTab} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Profil görseli (URL)</label>
                         <input
@@ -399,7 +426,9 @@ export default function AdminArtistEdit({
                             className="mt-1 w-full text-sm text-zinc-300"
                         />
                     </div>
+                        </AdminFormTabPanel>
 
+                        <AdminFormTabPanel id="sosyal" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Instagram</label>
@@ -583,7 +612,9 @@ export default function AdminArtistEdit({
                             />
                         </div>
                     </div>
+                        </AdminFormTabPanel>
 
+                        <AdminFormTabPanel id="icerik" activeId={editTab} className="space-y-6">
                     <div>
                         <span className="block text-sm font-medium text-zinc-400">Biyografi</span>
                         <RichTextEditor
@@ -594,38 +625,22 @@ export default function AdminArtistEdit({
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="rounded-lg bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
-                        >
-                            Kaydet
-                        </button>
-                        {artist.status === 'pending' && (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => router.post(route('admin.artists.approve', artist.id), {}, { preserveScroll: true })}
-                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-                                >
-                                    Onayla
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => router.post(route('admin.artists.reject', artist.id), {}, { preserveScroll: true })}
-                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    Reddet
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </form>
+                    <AdminEntityPromoGalleryPanel
+                        entity={artist}
+                        variant="artist"
+                        routes={{
+                            importMedia: route('admin.artists.import-promo-media', artist.id),
+                            appendPromoFiles: route('admin.artists.append-promo-files', artist.id),
+                            clearPromoMedia: route('admin.artists.clear-promo-media', artist.id),
+                            removePromoItem: route('admin.artists.remove-promo-item', artist.id),
+                        }}
+                    />
+                        </AdminFormTabPanel>
+                    </form>
 
-                <section className="mt-10 max-w-3xl rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
-                    <p className="mt-1 text-sm text-zinc-500">Fotoğraf ekleyin veya silin.</p>
+                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-700/80 p-6">
+                    <h2 className="text-lg font-semibold text-zinc-100">Fotoğraf galerisi</h2>
+                    <p className="text-sm text-zinc-500">Fotoğraf ekleyin veya silin. Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
                     <input
                         type="file"
                         accept="image/*"
@@ -654,7 +669,42 @@ export default function AdminArtistEdit({
                             </div>
                         ))}
                     </div>
-                </section>
+                    </AdminFormTabPanel>
+
+                    <div className="flex flex-wrap gap-3 border-t border-zinc-700/80 bg-zinc-950/30 px-6 py-4">
+                        <button
+                            type="submit"
+                            form="admin-artist-edit-form"
+                            disabled={processing}
+                            className="rounded-lg bg-amber-500 px-6 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                        >
+                            Kaydet
+                        </button>
+                        {artist.status === 'pending' && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.artists.approve', artist.id), {}, { preserveScroll: true })}
+                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                                >
+                                    Onayla
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.post(route('admin.artists.reject', artist.id), {}, { preserveScroll: true })}
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                >
+                                    Reddet
+                                </button>
+                            </>
+                        )}
+                        {editTab === 'galeri' ? (
+                            <p className="w-full text-xs text-zinc-500 sm:w-auto sm:flex-1 sm:text-right">
+                                Diğer sekmelerdeki değişiklikleri kaydetmek için «Kaydet»e basın.
+                            </p>
+                        ) : null}
+                    </div>
+                </div>
             </div>
         </AdminLayout>
     );

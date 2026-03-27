@@ -647,4 +647,33 @@ final class SahnebulMail
             footnote: 'Tam metin yönetim panelinde listelenir.',
         ), $admins);
     }
+
+    /**
+     * Onaylı bir sanatçı katalogdan organizasyon kadrosuna alındığında adminlere bilgi (bekleyen kayıt oluşmaz, e-posta ile izlenebilir).
+     */
+    public static function organizationArtistRosterAttached(Artist $artist, User $organization): void
+    {
+        $admins = self::adminNotificationEmails();
+        if ($admins === []) {
+            return;
+        }
+
+        $orgDisplay = trim((string) ($organization->organization_display_name ?? ''));
+        $orgLabel = $orgDisplay !== '' ? $orgDisplay : $organization->name;
+
+        self::safeSend(new SahnebulTemplateMail(
+            emailSubject: 'Organizasyon kadrosuna sanatçı eklendi — '.e($artist->name),
+            title: 'Organizasyon sanatçı kadrosu',
+            introLines: [
+                'Bir organizasyon firması hesabı, onaylı katalogdan kendi kadrosuna sanatçı ekledi.',
+            ],
+            detailLines: [
+                'Sanatçı: <strong>'.e($artist->name).'</strong> (slug: '.e($artist->slug).')',
+                'Organizasyon hesabı: <strong>'.e($orgLabel).'</strong> — '.e($organization->email),
+            ],
+            actionUrl: route('admin.artists.edit', $artist, absolute: true),
+            actionLabel: 'Sanatçı kaydını admin panelinde aç',
+            footnote: 'Profilde organizasyon bilgisi bu bağlantıyla güncellenmiş olabilir; gerekirse kaydı kontrol edin.',
+        ), $admins);
+    }
 }

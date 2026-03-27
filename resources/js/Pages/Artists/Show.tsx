@@ -1,3 +1,8 @@
+import {
+    PublicPromoGallerySection,
+    artistPromoLabels,
+    promoGalleryItemsFromEntity,
+} from '@/Components/PublicPromoGallerySection';
 import { InstagramPostBlock, instagramPermalinkForEmbed, useInstagramEmbedScript } from '@/Components/InstagramPostEmbed';
 import PhoneInput from '@/Components/PhoneInput';
 import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
@@ -203,6 +208,9 @@ interface Artist {
     spotify_artist_image_url?: string | null;
     /** Geniş üst görsel; yalnızca doluysa gösterilir. */
     banner_image?: string | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: unknown;
     spotify_albums?: SpotifyAlbumPreview[] | null;
     /** Admin: Spotify bölümü ve yedek (iTunes) müzik önizlemesi kapalı */
     spotify_auto_link_disabled?: boolean;
@@ -854,6 +862,19 @@ export default function ArtistShow({
                                     <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200">{formatTurkishDateTime(nextEvent.start_date)}</p>
                                 </div>
                             )}
+
+                            <div className="mt-10">
+                                <PublicPromoGallerySection
+                                    items={promoGalleryItemsFromEntity(artist)}
+                                    resolveStorageSrc={(path) => {
+                                        if (!path) return null;
+                                        return path.startsWith('http://') || path.startsWith('https://')
+                                            ? path
+                                            : `/storage/${path}`;
+                                    }}
+                                    labels={artistPromoLabels}
+                                />
+                            </div>
 
                             <div className="mt-10 space-y-12">
                                 {upcomingEvents.length > 0 && (

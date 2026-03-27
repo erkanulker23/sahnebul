@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Artist;
 
+use App\Http\Controllers\Concerns\PromoGalleryImportActions;
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\ArtistMedia;
 use App\Models\MusicGenre;
 use App\Services\AppSettingsService;
+use App\Services\EventMediaImportFromUrlService;
 use App\Support\ArtistProfileInputs;
 use App\Support\InstagramPostUrl;
 use App\Support\TurkishPhone;
@@ -19,6 +21,8 @@ use Inertia\Response;
 
 class PublicArtistProfileController extends Controller
 {
+    use PromoGalleryImportActions;
+
     public function edit(Request $request): Response
     {
         $artist = Artist::query()
@@ -277,5 +281,52 @@ class PublicArtistProfileController extends Controller
         }
 
         return back()->with('success', 'Görsel kaldırıldı.');
+    }
+
+    public function importPromoMediaFromUrl(Request $request, EventMediaImportFromUrlService $importer)
+    {
+        $artist = $this->artistForProfileUser($request);
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        return $this->promoImportMediaFromUrlResponse($request, $artist, $importer, true);
+    }
+
+    public function appendPromoFiles(Request $request, EventMediaImportFromUrlService $importer)
+    {
+        $artist = $this->artistForProfileUser($request);
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        return $this->promoAppendFilesResponse($request, $artist, $importer);
+    }
+
+    public function clearPromoMedia(Request $request, EventMediaImportFromUrlService $importer)
+    {
+        $artist = $this->artistForProfileUser($request);
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        return $this->promoClearResponse($artist, $importer);
+    }
+
+    public function removePromoGalleryItem(Request $request, EventMediaImportFromUrlService $importer)
+    {
+        $artist = $this->artistForProfileUser($request);
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        return $this->promoRemoveItemResponse($request, $artist, $importer);
+    }
+
+    private function artistForProfileUser(Request $request): ?Artist
+    {
+        return Artist::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
     }
 }

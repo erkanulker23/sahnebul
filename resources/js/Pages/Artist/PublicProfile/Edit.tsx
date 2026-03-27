@@ -1,4 +1,5 @@
 import PhoneInput from '@/Components/PhoneInput';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
@@ -29,6 +30,14 @@ interface ArtistPayload {
         phone?: string;
         note?: string;
     } | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: {
+        embed_url?: string | null;
+        video_path?: string | null;
+        poster_path?: string | null;
+        promo_kind?: 'story' | 'post' | null;
+    }[] | null;
 }
 
 interface ProfileAnalytics {
@@ -410,6 +419,21 @@ export default function PublicArtistProfileEdit({
                         <p className="mt-4 text-sm text-zinc-500">Henüz galeri fotoğrafı yok.</p>
                     )}
                 </section>
+            ) : null}
+
+            {artist ? (
+                <div className="mb-10 max-w-3xl">
+                    <AdminEntityPromoGalleryPanel
+                        entity={artist}
+                        variant="artist"
+                        routes={{
+                            importMedia: route('artist.public-profile.promo.import-media'),
+                            appendPromoFiles: route('artist.public-profile.promo.append-files'),
+                            clearPromoMedia: route('artist.public-profile.promo.clear-media'),
+                            removePromoItem: route('artist.public-profile.promo.remove-item'),
+                        }}
+                    />
+                </div>
             ) : null}
 
             <form onSubmit={submit} className="max-w-3xl space-y-10">

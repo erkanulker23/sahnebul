@@ -1,3 +1,8 @@
+import {
+    PublicPromoGallerySection,
+    promoGalleryItemsFromEntity,
+    venuePromoLabels,
+} from '@/Components/PublicPromoGallerySection';
 import PhoneInput from '@/Components/PhoneInput';
 import { AdSlot } from '@/Components/AdSlot';
 import DetailEventList from '@/Components/DetailEventList';
@@ -49,6 +54,9 @@ interface Venue {
     website: string | null;
     social_links?: Record<string, string> | null;
     cover_image: string | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: unknown;
     rating_avg: number;
     review_count: number;
     reviews_count: number;
@@ -472,6 +480,19 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                             {galleryPhotos.length > 0 && (
                                 <VenuePhotoGallery key={venue.slug} photos={galleryPhotos} venueName={venue.name} />
                             )}
+
+                            <div className="mt-8">
+                                <PublicPromoGallerySection
+                                    items={promoGalleryItemsFromEntity(venue)}
+                                    resolveStorageSrc={(path) => {
+                                        if (!path) return null;
+                                        return path.startsWith('http://') || path.startsWith('https://')
+                                            ? path
+                                            : `/storage/${path}`;
+                                    }}
+                                    labels={venuePromoLabels}
+                                />
+                            </div>
 
                             <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/5 dark:bg-zinc-900/30">
                                 <h2 className="font-display mb-2 text-xl font-bold text-zinc-900 dark:text-white">Değerlendirmeler</h2>

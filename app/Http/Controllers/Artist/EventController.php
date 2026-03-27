@@ -37,7 +37,8 @@ class EventController extends Controller
             $filter = 'all';
         }
 
-        $base = $this->eventsQueryForUser($user);
+        $ownedVenueIds = $user->venues()->pluck('id');
+        $base = $this->eventsQueryForUser($user, $ownedVenueIds);
         $stats = [
             'total' => (clone $base)->count(),
             'upcoming' => (clone $base)->whereNotNull('start_date')->where('start_date', '>=', now())->count(),
@@ -97,25 +98,25 @@ class EventController extends Controller
             'canCreateEvent' => $canCreateEvent,
             'stats' => $stats,
             'filter' => $filter,
+            /** Hesabına kayıtlı en az bir mekân satırı varsa liste yalnızca bu mekânlardaki etkinlikleri kapsar (başka mekânlarda kadroda olunanlar gösterilmez). */
+            'listsOnlyOwnedVenueEvents' => $ownedVenueIds->isNotEmpty(),
         ]);
     }
 
-    private function eventsQueryForUser(User $user): Builder
+    private function eventsQueryForUser(User $user, Collection $ownedVenueIds): Builder
     {
-        $venueIds = $user->venues()->pluck('id');
         $artistIds = Artist::query()->where('user_id', $user->id)->pluck('id');
         $managedArtistIds = $this->managedApprovedArtistIds($user);
 
+        if ($ownedVenueIds->isNotEmpty()) {
+            return Event::query()->whereIn('venue_id', $ownedVenueIds);
+        }
+
         return Event::query()
-            ->where(function ($q) use ($venueIds, $artistIds, $managedArtistIds) {
+            ->where(function ($q) use ($artistIds, $managedArtistIds) {
                 $has = false;
-                if ($venueIds->isNotEmpty()) {
-                    $q->whereIn('venue_id', $venueIds);
-                    $has = true;
-                }
                 if ($artistIds->isNotEmpty()) {
-                    $method = $has ? 'orWhereHas' : 'whereHas';
-                    $q->{$method}('artists', fn ($a) => $a->whereIn('artists.id', $artistIds));
+                    $q->whereHas('artists', fn ($a) => $a->whereIn('artists.id', $artistIds));
                     $has = true;
                 }
                 if ($managedArtistIds->isNotEmpty()) {

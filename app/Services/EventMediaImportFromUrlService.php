@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -34,9 +35,8 @@ final class EventMediaImportFromUrlService
     private const MAX_BATCH_URLS = 20;
 
     /** @param  list<string>  $urls */
-    public function importMany(Event $event, array $urls, string $mode, bool $appendPromoGallery, string $promoKind = 'story'): array
+    public function importMany(Model $model, array $urls, string $mode, bool $appendPromoGallery): array
     {
-        $promoKind = $this->normalizePromoKind($promoKind);
         $urls = array_values(array_unique(array_filter(array_map('trim', $urls), fn (string $u) => $u !== '')));
         if ($urls === []) {
             return ['success' => false, 'message' => 'Geçerli bağlantı satırı yok.'];
@@ -49,15 +49,15 @@ final class EventMediaImportFromUrlService
         }
 
         if ($mode === 'promo_video' && ! $appendPromoGallery) {
-            $this->purgePromoGallery($event);
-            $event->refresh();
+            $this->purgePromoGallery($model);
+            $model->refresh();
         }
 
         $ok = 0;
         /** @var list<string> $failures */
         $failures = [];
         foreach ($urls as $u) {
-            $r = $this->import($event->fresh(), $u, $mode, true, $promoKind);
+            $r = $this->import($model->fresh(), $u, $mode, true);
             if ($r['success']) {
                 $ok++;
             } else {
@@ -81,9 +81,51 @@ final class EventMediaImportFromUrlService
         ];
     }
 
-    public function purgePromoGallery(Event $event): void
+    /**
+     * @return array{success: bool, message: string}
+     */
+    public function removePromoGalleryItemAtIndex(Model $model, int $index): array
     {
-        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
+        $raw = $model->promo_gallery;
+        $gallery = is_array($raw) ? array_values($raw) : [];
+        if ($gallery === []) {
+            $hasLegacy = trim((string) ($model->promo_video_path ?? '')) !== ''
+                || trim((string) ($model->promo_embed_url ?? '')) !== '';
+            if ($index === 0 && $hasLegacy) {
+                $this->deleteStoredPathIfOwned($model->promo_video_path);
+                $model->forceFill([
+                    'promo_gallery' => null,
+                    'promo_video_path' => null,
+                    'promo_embed_url' => null,
+                ])->save();
+
+                return ['success' => true, 'message' => 'Tanıtım öğesi kaldırıldı.'];
+            }
+
+            return ['success' => false, 'message' => 'Tanıtım galerisi boş.'];
+        }
+        if ($index < 0 || $index >= count($gallery)) {
+            return ['success' => false, 'message' => 'Öğe bulunamadı. Sayfayı yenileyip tekrar deneyin.'];
+        }
+        $removed = $gallery[$index];
+        if (is_array($removed)) {
+            $safe = $this->sanitizePromoGallery([$removed])[0] ?? null;
+            if (is_array($safe)) {
+                $this->deleteGalleryItemFiles($safe);
+            }
+        }
+        array_splice($gallery, $index, 1);
+        $clean = $this->sanitizePromoGallery($gallery);
+        $model->promo_gallery = $clean === [] ? null : $clean;
+        $this->syncLegacyPromoFieldsFromGallery($model, $clean);
+        $model->save();
+
+        return ['success' => true, 'message' => 'Tanıtım öğesi kaldırıldı.'];
+    }
+
+    public function purgePromoGallery(Model $model): void
+    {
+        $gallery = is_array($model->promo_gallery) ? $model->promo_gallery : [];
         foreach ($gallery as $item) {
             if (! is_array($item)) {
                 continue;
@@ -91,8 +133,8 @@ final class EventMediaImportFromUrlService
             $this->deleteStoredPathIfOwned($item['video_path'] ?? null);
             $this->deleteStoredPathIfOwned($item['poster_path'] ?? null);
         }
-        $this->deleteStoredPathIfOwned($event->promo_video_path);
-        $event->forceFill([
+        $this->deleteStoredPathIfOwned($model->promo_video_path);
+        $model->forceFill([
             'promo_video_path' => null,
             'promo_embed_url' => null,
             'promo_gallery' => null,
@@ -102,16 +144,15 @@ final class EventMediaImportFromUrlService
     /**
      * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
-    public function appendPromoFromUploads(Event $event, ?UploadedFile $video, ?UploadedFile $poster, bool $append, string $promoKind = 'story'): array
+    public function appendPromoFromUploads(Model $model, ?UploadedFile $video, ?UploadedFile $poster, bool $append): array
     {
-        $promoKind = $this->normalizePromoKind($promoKind);
         if (($video === null || ! $video->isValid()) && ($poster === null || ! $poster->isValid())) {
             return ['success' => false, 'message' => 'Video veya görsel dosyası seçin.'];
         }
 
         if (! $append) {
-            $this->purgePromoGallery($event);
-            $event->refresh();
+            $this->purgePromoGallery($model);
+            $model->refresh();
         }
 
         $videoPath = null;
@@ -144,7 +185,7 @@ final class EventMediaImportFromUrlService
             $posterPath = $poster->store('event-promo-posters', 'public');
         }
 
-        $gallery = $this->currentPromoGallery($event);
+        $gallery = $this->currentPromoGallery($model);
         if (count($gallery) >= self::MAX_PROMO_GALLERY_ITEMS) {
             if ($videoPath !== null) {
                 Storage::disk('public')->delete($videoPath);
@@ -163,11 +204,11 @@ final class EventMediaImportFromUrlService
             'embed_url' => null,
             'video_path' => $videoPath,
             'poster_path' => $posterPath,
-            'promo_kind' => $promoKind,
+            'promo_kind' => $videoPath !== null ? 'story' : 'post',
         ];
-        $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
-        $event->promo_gallery = $gallery;
-        $event->save();
+        $this->syncLegacyPromoFieldsFromGallery($model, $gallery);
+        $model->promo_gallery = $gallery;
+        $model->save();
 
         $parts = [];
         if ($videoPath !== null) {
@@ -185,9 +226,8 @@ final class EventMediaImportFromUrlService
     }
 
     /** @return array{success: bool, message: string, details?: array<string, mixed>} */
-    public function import(Event $event, string $url, string $mode, bool $appendPromoGallery = true, string $promoKind = 'story'): array
+    public function import(Model $model, string $url, string $mode, bool $appendPromoGallery = true): array
     {
-        $promoKind = $this->normalizePromoKind($promoKind);
         try {
             $normalized = $this->assertSafeUrl($url);
         } catch (ValidationException $e) {
@@ -197,7 +237,7 @@ final class EventMediaImportFromUrlService
         }
 
         if ($mode === 'promo_video') {
-            $direct = $this->tryImportDirectVideoUrl($event, $normalized, $appendPromoGallery, $promoKind);
+            $direct = $this->tryImportDirectVideoUrl($model, $normalized, $appendPromoGallery);
             if ($direct !== null) {
                 return $direct;
             }
@@ -250,6 +290,12 @@ final class EventMediaImportFromUrlService
         }
 
         if ($mode === 'image_cover' || $mode === 'image_listing') {
+            if (! $model instanceof Event) {
+                return [
+                    'success' => false,
+                    'message' => 'Kapak / liste görseli içe aktarma yalnızca etkinlik kayıtları için kullanılabilir.',
+                ];
+            }
             $imageUrl = null;
             if ($ogImage !== null && trim((string) $ogImage) !== '') {
                 try {
@@ -268,8 +314,8 @@ final class EventMediaImportFromUrlService
                     ];
                 }
                 $field = $mode === 'image_cover' ? 'cover_image' : 'listing_image';
-                $this->deleteStoredPathIfOwned($event->{$field} ?? null);
-                $event->update([$field => $path]);
+                $this->deleteStoredPathIfOwned($model->{$field} ?? null);
+                $model->update([$field => $path]);
 
                 return [
                     'success' => true,
@@ -287,8 +333,8 @@ final class EventMediaImportFromUrlService
                 return ['success' => false, 'message' => 'Görsel indirilemedi veya geçerli bir resim dosyası değil.'];
             }
             $field = $mode === 'image_cover' ? 'cover_image' : 'listing_image';
-            $this->deleteStoredPathIfOwned($event->{$field} ?? null);
-            $event->update([$field => $path]);
+            $this->deleteStoredPathIfOwned($model->{$field} ?? null);
+            $model->update([$field => $path]);
 
             return [
                 'success' => true,
@@ -302,14 +348,13 @@ final class EventMediaImportFromUrlService
         }
 
         return $this->importPromoVideo(
-            $event,
+            $model,
             $normalized,
             $ogImage !== null ? trim((string) $ogImage) : null,
             $ogVideo !== null ? trim((string) $ogVideo) : null,
             $isInstagram,
             $shortcode,
             $appendPromoGallery,
-            $promoKind
         );
     }
 
@@ -318,7 +363,7 @@ final class EventMediaImportFromUrlService
      *
      * @return array{success: bool, message: string, details?: array<string, mixed>}|null Başarı, hata veya «bu mod değil» için null
      */
-    private function tryImportDirectVideoUrl(Event $event, string $url, bool $appendPromoGallery, string $promoKind = 'story'): ?array
+    private function tryImportDirectVideoUrl(Model $model, string $url, bool $appendPromoGallery): ?array
     {
         $pathOnly = parse_url($url, PHP_URL_PATH);
         if (! is_string($pathOnly) || ! preg_match('/\.(mp4|webm)$/i', $pathOnly)) {
@@ -334,11 +379,11 @@ final class EventMediaImportFromUrlService
         }
 
         if (! $appendPromoGallery) {
-            $this->purgePromoGallery($event);
-            $event->refresh();
+            $this->purgePromoGallery($model);
+            $model->refresh();
         }
 
-        $gallery = $this->currentPromoGallery($event);
+        $gallery = $this->currentPromoGallery($model);
         if (count($gallery) >= self::MAX_PROMO_GALLERY_ITEMS) {
             Storage::disk('public')->delete($videoPath);
 
@@ -352,11 +397,11 @@ final class EventMediaImportFromUrlService
             'embed_url' => null,
             'video_path' => $videoPath,
             'poster_path' => null,
-            'promo_kind' => $this->normalizePromoKind($promoKind),
+            'promo_kind' => 'story',
         ];
-        $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
-        $event->promo_gallery = $gallery;
-        $event->save();
+        $this->syncLegacyPromoFieldsFromGallery($model, $gallery);
+        $model->promo_gallery = $gallery;
+        $model->save();
 
         return [
             'success' => true,
@@ -365,25 +410,18 @@ final class EventMediaImportFromUrlService
         ];
     }
 
-    private function normalizePromoKind(string $kind): string
-    {
-        return $kind === 'post' ? 'post' : 'story';
-    }
-
     /**
      * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
     private function importPromoVideo(
-        Event $event,
+        Model $model,
         string $normalized,
         ?string $ogImage,
         ?string $ogVideo,
         bool $isInstagram,
         ?string $shortcode,
-        bool $appendPromoGallery,
-        string $promoKind = 'story'
+        bool $appendPromoGallery
     ): array {
-        $promoKind = $this->normalizePromoKind($promoKind);
         $messages = [];
         $videoSaved = false;
         $videoPath = null;
@@ -433,36 +471,41 @@ final class EventMediaImportFromUrlService
             $messages[] = 'Doğrudan indirilebilir video bulunamadı (og:video yok veya erişim engellendi).';
         }
 
-        if ($ogImage !== null && $ogImage !== '' && ($event->listing_image === null || trim((string) $event->listing_image) === '')) {
-            try {
-                $imageUrl = $this->assertSafeUrl($this->resolveUrl($normalized, $ogImage));
-                $path = $this->downloadImageToStorage($imageUrl, 'event-listings');
-                if ($path !== null) {
-                    $this->deleteStoredPathIfOwned($event->listing_image);
-                    $event->listing_image = $path;
-                    $messages[] = 'Önizleme görseli liste görseli olarak kaydedildi.';
+        if ($model instanceof Event) {
+            if ($ogImage !== null && $ogImage !== '' && ($model->listing_image === null || trim((string) $model->listing_image) === '')) {
+                try {
+                    $imageUrl = $this->assertSafeUrl($this->resolveUrl($normalized, $ogImage));
+                    $path = $this->downloadImageToStorage($imageUrl, 'event-listings');
+                    if ($path !== null) {
+                        $this->deleteStoredPathIfOwned($model->listing_image);
+                        $model->listing_image = $path;
+                        $messages[] = 'Önizleme görseli liste görseli olarak kaydedildi.';
+                    }
+                } catch (ValidationException) {
+                    // skip
                 }
-            } catch (ValidationException) {
-                // skip
-            }
-        } elseif (($event->listing_image === null || trim((string) $event->listing_image) === '') && $posterPath !== null) {
-            $listingCopy = 'event-listings/'.Str::uuid().'.jpg';
-            if (Storage::disk('public')->copy($posterPath, $listingCopy)) {
-                $this->deleteStoredPathIfOwned($event->listing_image);
-                $event->listing_image = $listingCopy;
-                $messages[] = 'Liste görseli Instagram önizlemesinden oluşturuldu.';
+            } elseif (($model->listing_image === null || trim((string) $model->listing_image) === '') && $posterPath !== null) {
+                $listingCopy = 'event-listings/'.Str::uuid().'.jpg';
+                if (Storage::disk('public')->copy($posterPath, $listingCopy)) {
+                    $this->deleteStoredPathIfOwned($model->listing_image);
+                    $model->listing_image = $listingCopy;
+                    $messages[] = 'Liste görseli Instagram önizlemesinden oluşturuldu.';
+                }
             }
         }
 
+        $hasStoredVideo = is_string($videoPath) && trim($videoPath) !== '';
+        // Sunucuya inen MP4/WebM = hikaye; yalnızca afiş / gömülü bağlantı (video dosyası yok) = gönderi. İstekteki promo_kind güvenilmez (varsayılan story).
+        $resolvedKind = $hasStoredVideo ? 'story' : 'post';
         $newItem = [
             'embed_url' => $canonicalEmbed,
             'video_path' => $videoPath,
             'poster_path' => $posterPath,
-            'promo_kind' => $promoKind,
+            'promo_kind' => $resolvedKind,
         ];
 
         if (! $videoSaved && ! $isInstagram) {
-            $event->save();
+            $model->save();
 
             return [
                 'success' => true,
@@ -472,7 +515,7 @@ final class EventMediaImportFromUrlService
         }
 
         if ($isInstagram && ! $shortcode) {
-            $event->save();
+            $model->save();
 
             return [
                 'success' => false,
@@ -481,7 +524,7 @@ final class EventMediaImportFromUrlService
         }
 
         if (! $videoSaved && $isInstagram && $shortcode && $posterPath === null) {
-            $event->save();
+            $model->save();
 
             return [
                 'success' => false,
@@ -497,11 +540,11 @@ final class EventMediaImportFromUrlService
         }
 
         if (! $appendPromoGallery) {
-            $this->purgePromoGallery($event);
-            $event->refresh();
+            $this->purgePromoGallery($model);
+            $model->refresh();
         }
 
-        $gallery = $this->currentPromoGallery($event);
+        $gallery = $this->currentPromoGallery($model);
 
         if ($shortcode) {
             foreach ($gallery as $idx => $item) {
@@ -523,9 +566,9 @@ final class EventMediaImportFromUrlService
         }
 
         $gallery[] = $newItem;
-        $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
-        $event->promo_gallery = $gallery;
-        $event->save();
+        $this->syncLegacyPromoFieldsFromGallery($model, $gallery);
+        $model->promo_gallery = $gallery;
+        $model->save();
 
         return [
             'success' => true,
@@ -539,17 +582,17 @@ final class EventMediaImportFromUrlService
     }
 
     /** @return list<array{embed_url: ?string, video_path: ?string, poster_path: ?string, promo_kind?: string}> */
-    private function currentPromoGallery(Event $event): array
+    private function currentPromoGallery(Model $model): array
     {
-        $raw = $event->promo_gallery;
+        $raw = $model->promo_gallery;
         $gallery = is_array($raw) ? array_values($raw) : [];
         if ($gallery !== []) {
             return $this->sanitizePromoGallery($gallery);
         }
-        if (trim((string) ($event->promo_embed_url ?? '')) !== '' || trim((string) ($event->promo_video_path ?? '')) !== '') {
+        if (trim((string) ($model->promo_embed_url ?? '')) !== '' || trim((string) ($model->promo_video_path ?? '')) !== '') {
             return $this->sanitizePromoGallery([[
-                'embed_url' => $event->promo_embed_url,
-                'video_path' => $event->promo_video_path,
+                'embed_url' => $model->promo_embed_url,
+                'video_path' => $model->promo_video_path,
                 'poster_path' => null,
             ]]);
         }
@@ -579,11 +622,7 @@ final class EventMediaImportFromUrlService
                     ? trim($item['poster_path'])
                     : null,
             ];
-            if (isset($item['promo_kind']) && $item['promo_kind'] === 'post') {
-                $row['promo_kind'] = 'post';
-            } elseif (isset($item['promo_kind']) && $item['promo_kind'] === 'story') {
-                $row['promo_kind'] = 'story';
-            }
+            $row['promo_kind'] = $row['video_path'] !== null ? 'story' : 'post';
             $out[] = $row;
         }
 
@@ -593,11 +632,11 @@ final class EventMediaImportFromUrlService
     /**
      * @param  list<array<string, mixed>>  $gallery
      */
-    private function syncLegacyPromoFieldsFromGallery(Event $event, array $gallery): void
+    private function syncLegacyPromoFieldsFromGallery(Model $model, array $gallery): void
     {
         if ($gallery === []) {
-            $event->promo_embed_url = null;
-            $event->promo_video_path = null;
+            $model->promo_embed_url = null;
+            $model->promo_video_path = null;
 
             return;
         }
@@ -630,13 +669,13 @@ final class EventMediaImportFromUrlService
             $pick = $gallery[0];
         }
         if (! is_array($pick)) {
-            $event->promo_embed_url = null;
-            $event->promo_video_path = null;
+            $model->promo_embed_url = null;
+            $model->promo_video_path = null;
 
             return;
         }
-        $event->promo_embed_url = isset($pick['embed_url']) && is_string($pick['embed_url']) ? $pick['embed_url'] : null;
-        $event->promo_video_path = isset($pick['video_path']) && is_string($pick['video_path']) ? $pick['video_path'] : null;
+        $model->promo_embed_url = isset($pick['embed_url']) && is_string($pick['embed_url']) ? $pick['embed_url'] : null;
+        $model->promo_video_path = isset($pick['video_path']) && is_string($pick['video_path']) ? $pick['video_path'] : null;
     }
 
     /** @param  array{embed_url: ?string, video_path: ?string, poster_path: ?string, promo_kind?: string}  $item */

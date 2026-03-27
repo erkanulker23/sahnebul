@@ -1,4 +1,5 @@
 import PhoneInput from '@/Components/PhoneInput';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import LocationSelect from '@/Components/LocationSelect';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
@@ -33,6 +34,14 @@ interface Venue {
     neighborhood_id: number | null;
     category_id: number;
     media?: VenueMedia[];
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: {
+        embed_url?: string | null;
+        video_path?: string | null;
+        poster_path?: string | null;
+        promo_kind?: 'story' | 'post' | null;
+    }[] | null;
 }
 
 interface Category {
@@ -288,6 +297,19 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
                     Güncelle
                 </button>
             </form>
+
+            <div className="mt-10 max-w-2xl">
+                <AdminEntityPromoGalleryPanel
+                    entity={venue}
+                    variant="venue"
+                    routes={{
+                        importMedia: route('artist.venues.import-promo-media', venue.id),
+                        appendPromoFiles: route('artist.venues.append-promo-files', venue.id),
+                        clearPromoMedia: route('artist.venues.clear-promo-media', venue.id),
+                        removePromoItem: route('artist.venues.remove-promo-item', venue.id),
+                    }}
+                />
+            </div>
 
             <section className="mt-12 max-w-2xl rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Mekan galerisi</h2>

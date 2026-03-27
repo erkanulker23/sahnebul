@@ -115,6 +115,9 @@ Route::get('/iletisim', [ContactController::class, 'create'])->name('contact');
 Route::post('/iletisim', [ContactController::class, 'store'])
     ->middleware('throttle:8,1')
     ->name('contact.store');
+
+require __DIR__.'/auth.php';
+
 Route::get('/sayfalar/{slug}', [PageController::class, 'show'])->name('pages.show');
 Route::get('/sehir-sec', SehirSecController::class)->name('sehir-sec');
 Route::get('/sehir-sec/etkinlik/{externalEvent}', function (ExternalEvent $externalEvent) {
@@ -186,6 +189,17 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
         ->name('public-profile.gallery.instagram.store');
     Route::delete('/sanatci-sayfam/galeri/{media}', [PublicArtistProfileController::class, 'destroyGallery'])
         ->name('public-profile.gallery.destroy');
+    Route::post('/sanatci-sayfam/adresten-tanitim-medya', [PublicArtistProfileController::class, 'importPromoMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('public-profile.promo.import-media');
+    Route::post('/sanatci-sayfam/tanitim-dosya-yukle', [PublicArtistProfileController::class, 'appendPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('public-profile.promo.append-files');
+    Route::post('/sanatci-sayfam/tanitim-medya-temizle', [PublicArtistProfileController::class, 'clearPromoMedia'])
+        ->name('public-profile.promo.clear-media');
+    Route::post('/sanatci-sayfam/tanitim-galeri-oge-sil', [PublicArtistProfileController::class, 'removePromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('public-profile.promo.remove-item');
     Route::get('/mekanlarim', [ArtistVenueController::class, 'index'])->name('venues.index');
     Route::get('/mekanlarim/ekle', [ArtistVenueController::class, 'create'])->name('venues.create');
     Route::post('/mekanlarim', [ArtistVenueController::class, 'store'])->name('venues.store');
@@ -194,6 +208,17 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::post('/mekanlarim/{venue}/google-galeri-url', [ArtistVenueController::class, 'importRemoteGoogleGallery'])->name('venues.google-gallery-import');
     Route::post('/mekanlarim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlarim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
+    Route::post('/mekanlarim/{venue}/adresten-tanitim-medya', [ArtistVenueController::class, 'importPromoMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('venues.import-promo-media');
+    Route::post('/mekanlarim/{venue}/tanitim-dosya-yukle', [ArtistVenueController::class, 'appendPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('venues.append-promo-files');
+    Route::post('/mekanlarim/{venue}/tanitim-medya-temizle', [ArtistVenueController::class, 'clearPromoMedia'])
+        ->name('venues.clear-promo-media');
+    Route::post('/mekanlarim/{venue}/tanitim-galeri-oge-sil', [ArtistVenueController::class, 'removePromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('venues.remove-promo-item');
     Route::get('/etkinlikler', [ArtistEventController::class, 'index'])->name('events.index');
     Route::get('/etkinlikler/ekle', [ArtistEventController::class, 'create'])->name('events.create');
     Route::post('/etkinlikler', [ArtistEventController::class, 'store'])->name('events.store');
@@ -266,6 +291,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/mekanlar/{venue}/galeri', [AdminVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlar/{venue}/galeri/{media}', [AdminVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::put('/mekanlar/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
+    Route::post('/mekanlar/{venue}/adresten-tanitim-medya', [AdminVenueController::class, 'importPromoMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('venues.import-promo-media');
+    Route::post('/mekanlar/{venue}/tanitim-dosya-yukle', [AdminVenueController::class, 'appendPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('venues.append-promo-files');
+    Route::post('/mekanlar/{venue}/tanitim-medya-temizle', [AdminVenueController::class, 'clearPromoMedia'])
+        ->name('venues.clear-promo-media');
+    Route::post('/mekanlar/{venue}/tanitim-galeri-oge-sil', [AdminVenueController::class, 'removePromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('venues.remove-promo-item');
     Route::post('/mekanlar/{venue}/uyelik-paketi', [AdminManagedSubscriptionController::class, 'updateForVenue'])->name('venues.subscription.update');
     Route::post('/mekanlar/{venue}/onayla', [AdminVenueController::class, 'approve'])->name('venues.approve');
     Route::post('/mekanlar/{venue}/reddet', [AdminVenueController::class, 'reject'])->name('venues.reject');
@@ -288,6 +324,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('events.append-promo-files');
     Route::post('/etkinlikler/{event}/tanitim-medya-temizle', [AdminEventController::class, 'clearPromoMedia'])
         ->name('events.clear-promo-media');
+    Route::post('/etkinlikler/{event}/tanitim-galeri-oge-sil', [AdminEventController::class, 'removePromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('events.remove-promo-item');
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');
@@ -311,6 +350,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/sanatcilar/{artist:id}/galeri', [AdminArtistController::class, 'storeMedia'])->name('artists.media.store');
     Route::delete('/sanatcilar/{artist:id}/galeri/{media}', [AdminArtistController::class, 'destroyMedia'])->name('artists.media.destroy');
     Route::put('/sanatcilar/{artist:id}', [AdminArtistController::class, 'update'])->name('artists.update');
+    Route::post('/sanatcilar/{artist:id}/adresten-tanitim-medya', [AdminArtistController::class, 'importPromoMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('artists.import-promo-media');
+    Route::post('/sanatcilar/{artist:id}/tanitim-dosya-yukle', [AdminArtistController::class, 'appendPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('artists.append-promo-files');
+    Route::post('/sanatcilar/{artist:id}/tanitim-medya-temizle', [AdminArtistController::class, 'clearPromoMedia'])
+        ->name('artists.clear-promo-media');
+    Route::post('/sanatcilar/{artist:id}/tanitim-galeri-oge-sil', [AdminArtistController::class, 'removePromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('artists.remove-promo-item');
     Route::post('/sanatcilar/{artist:id}/uyelik-paketi', [AdminManagedSubscriptionController::class, 'updateForArtist'])->name('artists.subscription.update');
     Route::post('/sanatcilar/{artist:id}/onayla', [AdminArtistController::class, 'approve'])->name('artists.approve');
     Route::post('/sanatcilar/{artist:id}/reddet', [AdminArtistController::class, 'reject'])->name('artists.reject');
@@ -392,5 +442,3 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/sanatci-sahiplenme/{claim}/onayla', [AdminArtistClaimController::class, 'approve'])->name('artist-claims.approve');
     Route::post('/sanatci-sahiplenme/{claim}/reddet', [AdminArtistClaimController::class, 'reject'])->name('artist-claims.reject');
 });
-
-require __DIR__.'/auth.php';

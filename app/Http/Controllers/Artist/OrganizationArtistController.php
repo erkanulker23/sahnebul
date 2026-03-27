@@ -101,6 +101,8 @@ class OrganizationArtistController extends Controller
 
         $artist->update(['managed_by_user_id' => $request->user()->id]);
 
+        SahnebulMail::organizationArtistRosterAttached($artist->fresh(), $request->user());
+
         return back()->with('success', 'Sanatçı kadronuza eklendi.');
     }
 

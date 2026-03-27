@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Artist;
 
+use App\Http\Controllers\Concerns\PromoGalleryImportActions;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueMedia;
 use App\Services\AppSettingsService;
+use App\Services\EventMediaImportFromUrlService;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use App\Support\TurkishPhone;
@@ -18,6 +20,8 @@ use Inertia\Inertia;
 
 class VenueController extends Controller
 {
+    use PromoGalleryImportActions;
+
     public function index(Request $request)
     {
         $venues = $request->user()
@@ -228,5 +232,41 @@ class VenueController extends Controller
         $media->delete();
 
         return back()->with('success', 'Görsel kaldırıldı.');
+    }
+
+    public function importPromoMediaFromUrl(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        if ($venue->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        return $this->promoImportMediaFromUrlResponse($request, $venue, $importer, true);
+    }
+
+    public function appendPromoFiles(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        if ($venue->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        return $this->promoAppendFilesResponse($request, $venue, $importer);
+    }
+
+    public function clearPromoMedia(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        if ($venue->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        return $this->promoClearResponse($venue, $importer);
+    }
+
+    public function removePromoGalleryItem(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        if ($venue->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        return $this->promoRemoveItemResponse($request, $venue, $importer);
     }
 }

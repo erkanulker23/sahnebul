@@ -13,7 +13,9 @@ class Venue extends Model
     protected $fillable = [
         'user_id', 'category_id', 'city_id', 'district_id', 'neighborhood_id',
         'name', 'slug', 'description', 'address', 'latitude', 'longitude', 'google_maps_url',
-        'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image', 'status', 'is_featured', 'is_active',
+        'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image',
+        'promo_video_path', 'promo_embed_url', 'promo_gallery',
+        'status', 'is_featured', 'is_active',
         'rating_avg', 'review_count', 'view_count',
     ];
 
@@ -22,6 +24,7 @@ class Venue extends Model
         'longitude' => 'decimal:8',
         'view_count' => 'integer',
         'social_links' => 'array',
+        'promo_gallery' => 'array',
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
     ];

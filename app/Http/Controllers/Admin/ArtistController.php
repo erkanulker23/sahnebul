@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\PromoGalleryImportActions;
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\ArtistMedia;
 use App\Models\MusicGenre;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\EventMediaImportFromUrlService;
 use App\Support\ArtistProfileInputs;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
@@ -21,6 +23,8 @@ use Inertia\Inertia;
 
 class ArtistController extends Controller
 {
+    use PromoGalleryImportActions;
+
     public function create()
     {
         return Inertia::render('Admin/Artists/Create', [
@@ -319,6 +323,26 @@ class ArtistController extends Controller
         return back()->with('success', 'Sanatçı reddedildi.');
     }
 
+    public function importPromoMediaFromUrl(Request $request, Artist $artist, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoImportMediaFromUrlResponse($request, $artist, $importer, true);
+    }
+
+    public function appendPromoFiles(Request $request, Artist $artist, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoAppendFilesResponse($request, $artist, $importer);
+    }
+
+    public function clearPromoMedia(Artist $artist, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoClearResponse($artist, $importer);
+    }
+
+    public function removePromoGalleryItem(Request $request, Artist $artist, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoRemoveItemResponse($request, $artist, $importer);
+    }
+
     public function destroy(Request $request, Artist $artist)
     {
         $this->performArtistDelete($artist, $request->boolean('delete_related_events'));
@@ -410,6 +434,9 @@ class ArtistController extends Controller
 
     private function performArtistDelete(Artist $artist, bool $deleteRelatedEvents): void
     {
+        app(EventMediaImportFromUrlService::class)->purgePromoGallery($artist);
+        $artist->refresh();
+
         if ($deleteRelatedEvents) {
             $artist->loadMissing('events');
             foreach ($artist->events as $event) {

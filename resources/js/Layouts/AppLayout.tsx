@@ -109,7 +109,6 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                                 <p className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{footer.brand ?? 'SAHNEBUL'}</p>
                             </div>
                             <p className="mt-3 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">{footer.description}</p>
-                            <p className="mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Kurucu: Erkan Ülker</p>
                             <div className="mt-4 space-y-1 text-sm text-zinc-600 dark:text-zinc-500">
                                 {footer.contact?.email && <p>{footer.contact.email}</p>}
                                 {footer.support_email && footer.support_email !== footer.contact?.email && (

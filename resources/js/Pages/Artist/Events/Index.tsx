@@ -46,6 +46,8 @@ interface Props {
     canCreateEvent?: boolean;
     stats: { total: number; upcoming: number; past: number; drafts: number };
     filter: ListFilter;
+    /** Backend: hesapta mekân satırı varsa liste yalnızca bu mekânlara ait etkinlikleri gösterir. */
+    listsOnlyOwnedVenueEvents?: boolean;
 }
 
 function formatInt(n: number | undefined): string {
@@ -108,6 +110,7 @@ export default function ArtistEventsIndex({
     canCreateEvent = false,
     stats,
     filter,
+    listsOnlyOwnedVenueEvents = false,
 }: Readonly<Props>) {
     const [openReportForId, setOpenReportForId] = useState<number | null>(null);
     const [reportMessage, setReportMessage] = useState('');
@@ -141,8 +144,9 @@ export default function ArtistEventsIndex({
                 <div className="min-w-0">
                     <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">Etkinlikler</h1>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
-                        Mekânınıza ait etkinlikleri buradan yönetin; sanatçı olarak davet edildiğiniz etkinlikler de listelenir — düzenleme yetkisi
-                        yalnızca mekân sahibindedir.
+                        {listsOnlyOwnedVenueEvents
+                            ? 'Hesabınıza kayıtlı mekân(lar)ınızda yer alan etkinlikler burada listelenir. Başka mekânlarda kadroda olduğunuz etkinlikler bu sayfada gösterilmez.'
+                            : 'Mekânınıza ait etkinlikleri buradan yönetin; sanatçı olarak davet edildiğiniz etkinlikler de listelenir — düzenleme yetkisi yalnızca mekân sahibindedir.'}
                     </p>
                 </div>
                 {canCreateEvent ? (

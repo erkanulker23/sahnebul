@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Artist;
 use App\Models\MusicGenre;
 use App\Services\AppSettingsService;
+use App\Services\PanelNotificationService;
 use App\Support\AuthPortalUrls;
 use App\Support\EventListingTypes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -155,6 +156,15 @@ class HandleInertiaRequests extends Middleware
                 }
 
                 return $appSettings->getAdminNotificationCounts();
+            },
+            /** Müşteri + sahne panelleri: bekleyen rezervasyon, taslak, müsaitlik vb. (admin hariç). */
+            'panelNotifications' => function () use ($request) {
+                $u = $request->user();
+                if ($u === null || $u->isAdmin()) {
+                    return null;
+                }
+
+                return app(PanelNotificationService::class)->forUser($u);
             },
         ];
     }

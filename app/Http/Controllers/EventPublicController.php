@@ -146,6 +146,11 @@ class EventPublicController extends Controller
 
         $futureStart = $event->start_date !== null && $event->start_date->isFuture();
 
+        if ($event->promo_gallery !== null && ! is_array($event->promo_gallery)) {
+            $decoded = json_decode(json_encode($event->promo_gallery), true);
+            $event->setAttribute('promo_gallery', is_array($decoded) ? array_values($decoded) : null);
+        }
+
         return Inertia::render('Events/Show', [
             'event' => $event,
             'documentStructuredData' => PublicStructuredData::eventShowGraph($event),

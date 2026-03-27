@@ -1,5 +1,6 @@
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import FlashMessage from '@/Components/FlashMessage';
+import PanelNotificationsMenu from '@/Components/PanelNotificationsMenu';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
@@ -217,6 +218,7 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                     <span className="min-w-0 flex-1 truncate text-sm text-zinc-600 dark:text-zinc-400">
                         {auth.stage_panel_title ?? 'Sahne yönetimi'}
                     </span>
+                    <PanelNotificationsMenu />
                     <button
                         type="button"
                         onClick={toggleTheme}

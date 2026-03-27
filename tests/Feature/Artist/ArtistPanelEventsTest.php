@@ -62,7 +62,76 @@ class ArtistPanelEventsTest extends TestCase
             ->where('events.data.0.title', 'Pivot Konser')
             ->where('events.data.0.panel_can_edit', false)
             ->where('events.data.0.artist_report', null)
-            ->where('canCreateEvent', true));
+            ->where('canCreateEvent', true)
+            ->where('listsOnlyOwnedVenueEvents', false));
+    }
+
+    public function test_venue_owner_does_not_see_lineup_events_at_other_venues(): void
+    {
+        $category = Category::query()->create(['name' => 'Bar', 'slug' => 'bar-'.uniqid(), 'order' => 1]);
+        $city = City::query()->create(['name' => 'Ankara', 'slug' => 'ankara-'.uniqid()]);
+        $foreignOwner = User::factory()->create(['role' => 'customer']);
+        $foreignVenue = Venue::query()->create([
+            'user_id' => $foreignOwner->id,
+            'category_id' => $category->id,
+            'city_id' => $city->id,
+            'name' => 'Başka Şehir Sahnesi',
+            'slug' => 'baska-sahne-'.uniqid(),
+            'address' => 'Adres',
+            'status' => 'approved',
+        ]);
+
+        $venueOwner = User::factory()->create(['role' => 'customer']);
+        $ownVenue = Venue::query()->create([
+            'user_id' => $venueOwner->id,
+            'category_id' => $category->id,
+            'city_id' => $city->id,
+            'name' => 'Kendi Mekânım',
+            'slug' => 'kendi-mekan-'.uniqid(),
+            'address' => 'Adres 2',
+            'status' => 'approved',
+        ]);
+
+        $artist = Artist::query()->create([
+            'user_id' => $venueOwner->id,
+            'name' => 'Sahip Sanatçı',
+            'slug' => 'sahip-sanatci-'.uniqid(),
+            'bio' => 'Bio',
+            'status' => 'approved',
+            'country_code' => 'TR',
+        ]);
+
+        $ownEvent = Event::query()->create([
+            'venue_id' => $ownVenue->id,
+            'title' => 'Kendi Mekânda Konser',
+            'slug' => 'kendi-konser-'.uniqid(),
+            'start_date' => now()->addWeek(),
+            'end_date' => now()->addWeek()->addHours(2),
+            'status' => 'published',
+            'ticket_acquisition_mode' => 'sahnebul',
+            'sahnebul_reservation_enabled' => true,
+        ]);
+
+        $foreignLineupEvent = Event::query()->create([
+            'venue_id' => $foreignVenue->id,
+            'title' => 'Yabancı Mekânda Kadro',
+            'slug' => 'yabanci-konser-'.uniqid(),
+            'start_date' => now()->addWeeks(2),
+            'end_date' => now()->addWeeks(2)->addHours(2),
+            'status' => 'published',
+            'ticket_acquisition_mode' => 'sahnebul',
+            'sahnebul_reservation_enabled' => true,
+        ]);
+        $foreignLineupEvent->artists()->attach($artist->id, ['is_headliner' => true, 'order' => 0]);
+
+        $response = $this->actingAs($venueOwner)->get('/sahne/etkinlikler');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Artist/Events/Index')
+            ->has('events.data', 1)
+            ->where('events.data.0.title', 'Kendi Mekânda Konser')
+            ->where('listsOnlyOwnedVenueEvents', true));
     }
 
     public function test_venue_owner_can_mark_event_free_entry_and_drop_prices(): void

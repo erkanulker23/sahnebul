@@ -18,6 +18,11 @@ class AuthenticationTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_artist_login_portal_screen_can_be_rendered(): void
+    {
+        $this->get('/giris/sanatci')->assertOk();
+    }
+
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create(['role' => 'customer']);

@@ -1,9 +1,11 @@
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
+import PanelNotificationsMenu from '@/Components/PanelNotificationsMenu';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { useTheme } from '@/contexts/ThemeContext';
+import { type PageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
@@ -12,7 +14,9 @@ export default function Authenticated({
     header,
     children,
 }: Readonly<PropsWithChildren<{ header?: ReactNode }>>) {
-    const user = usePage().props.auth.user;
+    const page = usePage<PageProps>();
+    const user = page.props.auth.user;
+    const hidePanelNotif = page.props.auth.is_platform_admin === true;
     const { theme, toggleTheme } = useTheme();
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
@@ -47,6 +51,7 @@ export default function Authenticated({
                             >
                                 {theme === 'dark' ? <Sun className="h-4 w-4 stroke-[1.75]" /> : <Moon className="h-4 w-4 stroke-[1.75]" />}
                             </button>
+                            {!hidePanelNotif ? <PanelNotificationsMenu /> : null}
                             <div className="relative ms-3">
                                 <Dropdown>
                                     <Dropdown.Trigger>

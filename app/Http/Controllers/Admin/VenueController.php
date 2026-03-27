@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\PromoGalleryImportActions;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\SubscriptionPlan;
@@ -10,6 +11,7 @@ use App\Models\Venue;
 use App\Models\VenueMedia;
 use App\Services\Admin\VenueMergeService;
 use App\Services\AppSettingsService;
+use App\Services\EventMediaImportFromUrlService;
 use App\Services\SahnebulMail;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
@@ -28,6 +30,8 @@ use Inertia\Inertia;
 
 class VenueController extends Controller
 {
+    use PromoGalleryImportActions;
+
     public function __construct(
         private readonly VenueRemoteCoverImporter $remoteCoverImporter,
         private readonly VenueMergeService $venueMergeService,
@@ -530,6 +534,26 @@ class VenueController extends Controller
         return back()->with('success', 'Mekan reddedildi.');
     }
 
+    public function importPromoMediaFromUrl(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoImportMediaFromUrlResponse($request, $venue, $importer, true);
+    }
+
+    public function appendPromoFiles(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoAppendFilesResponse($request, $venue, $importer);
+    }
+
+    public function clearPromoMedia(Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoClearResponse($venue, $importer);
+    }
+
+    public function removePromoGalleryItem(Request $request, Venue $venue, EventMediaImportFromUrlService $importer)
+    {
+        return $this->promoRemoveItemResponse($request, $venue, $importer);
+    }
+
     public function destroy(Venue $venue)
     {
         $this->performVenueDelete($venue);
@@ -582,6 +606,9 @@ class VenueController extends Controller
         if ($venue->status === 'approved' && $venue->user) {
             SahnebulMail::venueDeletedNotifyOwner($venue->user, $venue->name);
         }
+
+        app(EventMediaImportFromUrlService::class)->purgePromoGallery($venue);
+        $venue->refresh();
 
         $venue->loadMissing('events');
         foreach ($venue->events as $event) {

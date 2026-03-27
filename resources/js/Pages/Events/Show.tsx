@@ -1,3 +1,8 @@
+import {
+    PublicPromoGallerySection,
+    type PromoGalleryItem,
+    promoGalleryItemsFromEntity,
+} from '@/Components/PublicPromoGallerySection';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
@@ -13,7 +18,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { ExternalLink, MessageCircle, Navigation, Ticket } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -33,14 +38,6 @@ interface TicketTier {
     price: string;
     sort_order: number;
 }
-
-type PromoGalleryItem = {
-    embed_url?: string | null;
-    video_path?: string | null;
-    poster_path?: string | null;
-    /** story: dikey şerit (hikaye); post: kare ızgara (gönderi) */
-    promo_kind?: 'story' | 'post' | null;
-};
 
 interface Event {
     id: number;
@@ -118,227 +115,6 @@ type SharedSeo = { appUrl: string };
 function eventReviewStars(rating: number): string {
     const n = Math.min(5, Math.max(1, Math.round(rating)));
     return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`;
-}
-
-function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
-    if (!raw || typeof raw !== 'object') {
-        return { embed_url: null, video_path: null, poster_path: null, promo_kind: null };
-    }
-    const o = raw as Record<string, unknown>;
-    const s = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
-    const pk = o.promo_kind;
-    const promo_kind = pk === 'post' || pk === 'story' ? pk : null;
-    return {
-        embed_url: s(o.embed_url),
-        video_path: s(o.video_path),
-        poster_path: s(o.poster_path),
-        promo_kind,
-    };
-}
-
-function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
-    if (it.promo_kind === 'post') {
-        return 'post';
-    }
-    if (it.promo_kind === 'story') {
-        return 'story';
-    }
-    if (it.video_path?.trim()) {
-        return 'story';
-    }
-    if (it.embed_url?.includes('instagram.com')) {
-        return 'post';
-    }
-    if (it.poster_path?.trim()) {
-        return 'post';
-    }
-    return 'story';
-}
-
-function eventPromoItemsFromEvent(event: Event): PromoGalleryItem[] {
-    const g = event.promo_gallery;
-    if (Array.isArray(g) && g.length > 0) {
-        return g.map(normalizePromoGalleryItem);
-    }
-    if (event.promo_video_path?.trim() || event.promo_embed_url?.trim()) {
-        return [
-            normalizePromoGalleryItem({
-                video_path: event.promo_video_path,
-                embed_url: event.promo_embed_url,
-                poster_path: null,
-            }),
-        ];
-    }
-    return [];
-}
-
-/** Video veya poster yoksa (yalnızca boş IG gömü URL’si) gizlenir; poster indirildiyse gösterilir. */
-function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
-    return items.filter((it) => {
-        const hasVideo = Boolean(it.video_path?.trim());
-        if (hasVideo) {
-            return true;
-        }
-        const poster = Boolean(it.poster_path?.trim());
-        if (poster) {
-            return true;
-        }
-        const embed = it.embed_url?.trim() ?? '';
-        if (embed.includes('instagram.com')) {
-            return false;
-        }
-        return embed.length > 0;
-    });
-}
-
-function EventPromoSection({
-    items,
-    resolveStorageSrc,
-}: Readonly<{
-    items: PromoGalleryItem[];
-    resolveStorageSrc: (path: string | null) => string | null;
-}>) {
-    const visible = useMemo(() => filterPublicPromoItems(items), [items]);
-
-    const storyItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'story'), [visible]);
-
-    const postItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'post'), [visible]);
-
-    const genericEmbedOnly = useMemo(
-        () =>
-            visible.filter((it) => {
-                const hasVideo = Boolean(it.video_path && resolveStorageSrc(it.video_path));
-                const poster = Boolean(it.poster_path && resolveStorageSrc(it.poster_path));
-                const embed = it.embed_url?.trim() ?? '';
-                return !hasVideo && !poster && embed.length > 0 && !embed.includes('instagram.com');
-            }),
-        [visible, resolveStorageSrc],
-    );
-
-    if (items.length === 0) {
-        return null;
-    }
-
-    if (visible.length === 0 && genericEmbedOnly.length === 0) {
-        return null;
-    }
-
-    const storyStripCard =
-        'relative aspect-[9/16] w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 shadow-sm dark:border-white/10';
-
-    return (
-        <div className="scroll-mt-24 space-y-10">
-            {storyItems.length > 0 ? (
-                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
-                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik hikayeleri</h2>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        Dikey tanıtımlar — yana kaydırarak tümünü görün ({storyItems.length}).
-                    </p>
-                    <div className="mt-4 -mx-1 px-1">
-                        <ul className="flex list-none gap-2 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] sm:gap-3">
-                            {storyItems.map((it, idx) => {
-                                const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
-                                const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                                const embed = it.embed_url?.trim() ?? '';
-                                return (
-                                    <li
-                                        key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
-                                        className="w-[9.25rem] flex-none snap-start sm:w-40"
-                                    >
-                                        {videoSrc ? (
-                                            <div className={storyStripCard}>
-                                                <video
-                                                    src={videoSrc}
-                                                    controls
-                                                    playsInline
-                                                    preload="metadata"
-                                                    className="absolute inset-0 h-full w-full object-cover"
-                                                    poster={posterSrc ?? undefined}
-                                                >
-                                                    Tarayıcınız bu videoyu oynatamıyor.
-                                                </video>
-                                            </div>
-                                        ) : posterSrc ? (
-                                            <div className={storyStripCard}>
-                                                <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                            </div>
-                                        ) : null}
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </div>
-                </section>
-            ) : null}
-
-            {postItems.length > 0 ? (
-                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
-                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik gönderileri</h2>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        Gönderi tarzı tanıtımlar ({postItems.length}).
-                    </p>
-                    <ul className="mt-5 grid list-none grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
-                        {postItems.map((it, idx) => {
-                            const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
-                            const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                            const embed = it.embed_url?.trim() ?? '';
-                            const ig = embed.includes('instagram.com');
-                            return (
-                                <li
-                                    key={`post-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
-                                    className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 dark:border-white/10"
-                                >
-                                    {videoSrc ? (
-                                        <video
-                                            src={videoSrc}
-                                            controls
-                                            playsInline
-                                            preload="metadata"
-                                            className="absolute inset-0 h-full w-full object-cover"
-                                            poster={posterSrc ?? undefined}
-                                        >
-                                            Tarayıcınız bu videoyu oynatamıyor.
-                                        </video>
-                                    ) : posterSrc && ig && embed ? (
-                                        <a href={embed} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
-                                            <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                            <span className="absolute bottom-1 left-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-center text-[10px] font-medium text-white">
-                                                Instagram’da aç
-                                            </span>
-                                        </a>
-                                    ) : posterSrc ? (
-                                        <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                    ) : null}
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </section>
-            ) : null}
-
-            {genericEmbedOnly.length > 0 ? (
-                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
-                    <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Tanıtım bağlantıları</h2>
-                    <div className="mt-3 space-y-2">
-                        {genericEmbedOnly.map((it, idx) => {
-                            const embed = it.embed_url?.trim() ?? '';
-                            return (
-                                <a
-                                    key={`${embed}-${idx}`}
-                                    href={embed}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-amber-600 underline dark:text-amber-400"
-                                >
-                                    Tanıtım bağlantısını aç
-                                </a>
-                            );
-                        })}
-                    </div>
-                </section>
-            ) : null}
-        </div>
-    );
 }
 
 function UpcomingEventsSection({
@@ -674,8 +450,8 @@ export default function EventShow({
             <div className="mx-auto w-full max-w-6xl -mx-2.5 px-3 py-8 sm:mx-auto sm:px-5 sm:py-10 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-10">
                     <div className="space-y-8 lg:col-span-2">
-                        <EventPromoSection
-                            items={filterPublicPromoItems(eventPromoItemsFromEvent(event))}
+                        <PublicPromoGallerySection
+                            items={promoGalleryItemsFromEntity(event)}
                             resolveStorageSrc={imageSrc}
                         />
                         <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">

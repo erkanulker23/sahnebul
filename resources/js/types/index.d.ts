@@ -20,6 +20,12 @@ export interface LinkedArtistSummary {
     avatar?: string | null;
 }
 
+/** Müşteri / sahne panelleri bekleyen işlem özeti (admin `adminNotifications` ile ayrı). */
+export type PanelNotificationsPayload = {
+    total: number;
+    items: { key: string; label: string; count: number; href: string }[];
+};
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
@@ -28,6 +34,7 @@ export type PageProps<
         event_type_tags: { slug: string; label: string }[];
         music_genre_tags: string[];
     };
+    panelNotifications?: PanelNotificationsPayload | null;
     auth: {
         user: User;
         /** Hesaba bağlı sanatçı profili (varsa /sahne/sanatci-sayfam) */
@@ -40,6 +47,10 @@ export type PageProps<
         stage_panel_title?: string;
         /** Kenar çubuğundaki kısa rozet metni */
         stage_sidebar_nav_badge?: string;
+        /** Mekân satırı / Gold — üst menüde sahne paneli kısayolu */
+        sahne_compact_nav?: boolean;
+        /** Site yöneticisi — müşteri rezervasyon menüsü gizli */
+        is_platform_admin?: boolean;
         /** E-posta doğrulanmadı — panellerde üst şerit */
         email_verification_banner?: boolean;
     };

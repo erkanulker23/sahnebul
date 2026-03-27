@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Mail\SahnebulTemplateMail;
 use App\Models\Artist;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class OrganizationArtistManagementTest extends TestCase
@@ -51,6 +53,38 @@ class OrganizationArtistManagementTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame($org->id, $artist->fresh()->managed_by_user_id);
+    }
+
+    public function test_attach_sends_admin_mail_when_admin_exists(): void
+    {
+        Mail::fake();
+
+        User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin-roster@example.com',
+            'is_active' => true,
+        ]);
+
+        $org = User::factory()->create([
+            'role' => 'manager_organization',
+            'organization_display_name' => 'Test Ajans A.Ş.',
+        ]);
+        $artist = Artist::query()->create([
+            'name' => 'Mail Sanatçı',
+            'slug' => 'mail-sanatci-'.uniqid(),
+            'status' => 'approved',
+            'managed_by_user_id' => null,
+            'country_code' => 'TR',
+        ]);
+
+        $this->actingAs($org)
+            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/kat')
+            ->assertRedirect();
+
+        Mail::assertSent(SahnebulTemplateMail::class, function (SahnebulTemplateMail $mail): bool {
+            return str_contains($mail->emailSubject, 'Organizasyon kadrosuna sanatçı eklendi')
+                && str_contains($mail->emailSubject, 'Mail Sanatçı');
+        });
     }
 
     public function test_manager_cannot_attach_artist_managed_by_other_org(): void

@@ -38,6 +38,7 @@ class Artist extends Model
         'spotify_albums',
         'spotify_auto_link_disabled',
         'availability_visible_to_managers',
+        'promo_video_path', 'promo_embed_url', 'promo_gallery',
     ];
 
     protected $casts = [
@@ -52,6 +53,7 @@ class Artist extends Model
         'spotify_popularity' => 'integer',
         'spotify_followers' => 'integer',
         'music_genres' => 'array',
+        'promo_gallery' => 'array',
     ];
 
     public function getRouteKeyName(): string

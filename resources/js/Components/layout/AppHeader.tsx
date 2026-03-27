@@ -1,3 +1,4 @@
+import PanelNotificationsMenu from '@/Components/PanelNotificationsMenu';
 import { SahnebulWordmark } from '@/Components/brand/SahnebulWordmark';
 import { GlobalSearch } from '@/Components/GlobalSearch';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -145,7 +146,7 @@ export function AppHeader() {
                                     </Link>
                                     {!user ? (
                                         <>
-                                            <Link href={route('login.mekan')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                            <Link href={safeRoute('login.mekan')} className={flyoutItemClass} onClick={close} role="menuitem">
                                                 <LogIn className="h-4 w-4 opacity-70" aria-hidden />
                                                 Mekan girişi
                                             </Link>
@@ -158,7 +159,7 @@ export function AppHeader() {
                                                 <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
                                                 Mekan kaydı
                                             </Link>
-                                            <Link href={route('login.organizasyon')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                            <Link href={safeRoute('login.organizasyon')} className={flyoutItemClass} onClick={close} role="menuitem">
                                                 <LogIn className="h-4 w-4 opacity-70" aria-hidden />
                                                 Organizasyon girişi
                                             </Link>
@@ -188,7 +189,7 @@ export function AppHeader() {
                                     </Link>
                                     {!user ? (
                                         <>
-                                            <Link href={route('login.sanatci')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                            <Link href={safeRoute('login.sanatci')} className={flyoutItemClass} onClick={close} role="menuitem">
                                                 <LogIn className="h-4 w-4 opacity-70" aria-hidden />
                                                 Sanatçı girişi
                                             </Link>
@@ -220,6 +221,11 @@ export function AppHeader() {
                         >
                             {theme === 'dark' ? <Sun className={iconClass.sm} /> : <Moon className={iconClass.sm} />}
                         </button>
+                        {user && !hideCustomerReservations ? (
+                            <div className="hidden md:block">
+                                <PanelNotificationsMenu />
+                            </div>
+                        ) : null}
                         {user ? (
                             <>
                                 {!sahneCompactNav && !hideCustomerReservations && (
@@ -255,7 +261,7 @@ export function AppHeader() {
                             </>
                         ) : (
                             <>
-                                <Link href={route('login')} className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                <Link href={safeRoute('login')} className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Kullanıcı girişi
                                 </Link>
                                 <Link
@@ -282,6 +288,11 @@ export function AppHeader() {
                             >
                                 {theme === 'dark' ? <Sun className={iconClass.md} /> : <Moon className={iconClass.md} />}
                             </button>
+                            {user && !hideCustomerReservations ? (
+                                <div className="flex items-center md:hidden">
+                                    <PanelNotificationsMenu />
+                                </div>
+                            ) : null}
                             <button
                                 type="button"
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-600"
@@ -332,7 +343,7 @@ export function AppHeader() {
                             {!user ? (
                                 <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
                                     <Link
-                                        href={route('login.mekan')}
+                                        href={safeRoute('login.mekan')}
                                         className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
                                         onClick={closeDrawer}
                                     >
@@ -348,7 +359,7 @@ export function AppHeader() {
                                         Mekan kaydı
                                     </Link>
                                     <Link
-                                        href={route('login.organizasyon')}
+                                        href={safeRoute('login.organizasyon')}
                                         className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
                                         onClick={closeDrawer}
                                     >
@@ -384,7 +395,7 @@ export function AppHeader() {
                             {!user ? (
                                 <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">
                                     <Link
-                                        href={route('login.sanatci')}
+                                        href={safeRoute('login.sanatci')}
                                         className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
                                         onClick={closeDrawer}
                                     >
@@ -443,7 +454,7 @@ export function AppHeader() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2">
-                                    <Link href={route('login')} className="rounded-lg px-3 py-2.5" onClick={closeDrawer}>
+                                    <Link href={safeRoute('login')} className="rounded-lg px-3 py-2.5" onClick={closeDrawer}>
                                         Kullanıcı girişi
                                     </Link>
                                     <Link
