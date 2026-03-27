@@ -578,24 +578,28 @@ export default function ArtistShow({
                         {/* Sol: Fotoğraf + sosyal */}
                         <div className="shrink-0 lg:w-80">
                             <div className="sticky top-24">
-                                <div className="flex justify-center lg:justify-start">
+                                <div className="flex w-full justify-center">
                                     <div
-                                        className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-[3px] border-zinc-200 bg-zinc-100 shadow-xl ring-2 ring-amber-500/15 dark:border-white/10 dark:bg-zinc-900 dark:ring-amber-500/20 sm:h-44 sm:w-44 md:h-48 md:w-48"
+                                        className="inline-flex shrink-0 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] p-[3px] shadow-[0_10px_40px_-10px_rgba(238,42,123,0.45)] dark:shadow-[0_12px_42px_-12px_rgba(98,40,215,0.5)]"
                                         title={artist.name}
                                     >
-                                        {profilePhoto ? (
-                                            <img
-                                                src={profilePhoto ?? ''}
-                                                alt={artist.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                                                <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
-                                                    🎤
-                                                </span>
+                                        <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
+                                            <div className="relative h-40 w-40 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-900 sm:h-44 sm:w-44 md:h-48 md:w-48">
+                                                {profilePhoto ? (
+                                                    <img
+                                                        src={profilePhoto ?? ''}
+                                                        alt={artist.name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                        <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
+                                                            🎤
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
 
