@@ -535,7 +535,6 @@ export default function ArtistShow({
                                     <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">
                                         {artist.genre ?? 'Sanatçı'}
                                     </span>
-                                    {artist.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/35" /> : null}
                                     {artist.is_verified_profile ? (
                                         <VerifiedArtistProfileBadge size="md" className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100" />
                                     ) : null}
@@ -602,6 +601,11 @@ export default function ArtistShow({
                                                         </span>
                                                     </div>
                                                 )}
+                                                {artist.is_new_on_platform ? (
+                                                    <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-2">
+                                                        <CatalogNewBadge className="shadow-lg ring-2 ring-black/25 dark:ring-white/30" />
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>
@@ -803,7 +807,6 @@ export default function ArtistShow({
                                         <span className="inline-block rounded-full bg-amber-500/20 px-4 py-1.5 text-sm font-medium text-amber-400">
                                             {artist.genre ?? 'Sanatçı'}
                                         </span>
-                                        {artist.is_new_on_platform ? <CatalogNewBadge /> : null}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-3">
                                         <h1 className="font-display text-4xl font-bold text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">

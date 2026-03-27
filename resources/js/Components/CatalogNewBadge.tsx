@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-/** Kamuya açık katalog: kayıt oluşturulduktan sonraki ilk 3 gün (sunucu `is_new_on_platform`). */
+/** Kamuya açık katalog: oluşturulma takvim günü + 3 gün dahil (sunucu `is_new_on_platform`). */
 export function CatalogNewBadge({ className }: Readonly<{ className?: string }>) {
     return (
         <span

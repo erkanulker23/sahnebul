@@ -62,7 +62,7 @@ class ArtistController extends Controller
         }
 
         $artists = $query->orderBy('name')
-            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'bio', 'created_at'])
+            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'bio', 'created_at', 'status'])
             ->paginate(12)
             ->withQueryString();
 

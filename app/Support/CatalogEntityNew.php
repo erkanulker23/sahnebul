@@ -7,8 +7,11 @@ use Illuminate\Support\Carbon;
 
 final class CatalogEntityNew
 {
-    /** Kamu kataloğunda “yeni” rozeti: oluşturulmadan bu kadar gün içindeyse. */
-    public const BADGE_DAYS = 3;
+    /**
+     * Takvim günü (app.timezone): oluşturulma günü + bu kadar gün daha rozet gösterilir (dahil).
+     * Ör. 24 Mart’ta eklenen kayıt 27 Mart sonuna kadar (28 Mart’tan itibaren değil) “yeni” kalır.
+     */
+    public const BADGE_EXTRA_DAYS_AFTER_CREATE_DAY = 3;
 
     public static function isWithinBadgeWindow(mixed $createdAt, bool $eligible): bool
     {
@@ -19,11 +22,15 @@ final class CatalogEntityNew
             return false;
         }
 
-        $c = $createdAt instanceof CarbonInterface
-            ? $createdAt->copy()
-            : Carbon::parse($createdAt);
+        $tz = config('app.timezone');
+        $createdDay = $createdAt instanceof CarbonInterface
+            ? $createdAt->copy()->timezone($tz)->startOfDay()
+            : Carbon::parse($createdAt, $tz)->startOfDay();
 
-        return $c->addDays(self::BADGE_DAYS)->isFuture();
+        $lastBadgeDay = $createdDay->copy()->addDays(self::BADGE_EXTRA_DAYS_AFTER_CREATE_DAY);
+        $today = now($tz)->startOfDay();
+
+        return $today->lessThanOrEqualTo($lastBadgeDay);
     }
 
     public static function venueEligible(string $status, bool $isActive): bool
