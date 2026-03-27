@@ -45,7 +45,7 @@ export default function ArtistReservationsIndex({ reservations, stats }: Props) 
                 {reservations.data.map((r) => (
                     <div key={r.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/5 bg-zinc-900/50 p-6">
                         <div>
-                            <p className="font-semibold text-white">{r.user.name}</p>
+                            <p className="font-semibold text-zinc-900 dark:text-white">{r.user.name}</p>
                             {(r.guest_name || r.guest_phone) && (
                                 <p className="text-sm text-zinc-400">
                                     Form: {[r.guest_name, r.guest_phone].filter(Boolean).join(' · ')}

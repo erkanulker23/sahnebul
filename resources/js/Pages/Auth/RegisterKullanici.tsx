@@ -80,8 +80,8 @@ export default function RegisterKullanici() {
                 noindex
             />
 
-            <h2 className="font-display text-2xl font-bold text-white">Kullanıcı kaydı</h2>
-            <p className="mt-2 text-sm text-zinc-500">Favoriler ve hatırlatmalar için ücretsiz hesap oluşturun.</p>
+            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Kullanıcı kaydı</h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">Favoriler ve hatırlatmalar için ücretsiz hesap oluşturun.</p>
 
             <form onSubmit={submit} className="mt-8 space-y-6">
                 <div>

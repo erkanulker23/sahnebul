@@ -105,35 +105,43 @@ export default function LoginPortal({
             <SeoHead title={meta.title} description={meta.description} noindex />
 
             {status && (
-                <div className="mb-4 rounded-lg bg-green-500/20 p-3 text-sm text-green-400">{status}</div>
+                <div className="mb-4 rounded-lg bg-green-500/15 p-3 text-sm text-green-800 dark:bg-green-500/20 dark:text-green-400">
+                    {status}
+                </div>
             )}
 
-            <h2 className="font-display text-2xl font-bold text-white">{meta.headline}</h2>
-            <p className="mt-2 text-sm text-zinc-500">{meta.sub}</p>
+            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">{meta.headline}</h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">{meta.sub}</p>
             {portal === 'kullanici' && (
-                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
+                <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-zinc-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-zinc-400">
                     Bu sayfa bireysel kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya organizasyon firması hesabı için aşağıdaki «Diğer girişler» bağlantılarını kullanın.
                 </p>
             )}
             {portal === 'mekan' && (
-                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
-                    <strong className="font-medium text-zinc-300">Kimler?</strong> Mekân üyeliğiyle kayıt olduysanız (mekân sahibi hesabı) doğrudan buradan girin. Hesabınız
+                <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-zinc-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-zinc-400">
+                    <strong className="font-medium text-zinc-900 dark:text-zinc-300">Kimler?</strong> Mekân üyeliğiyle kayıt olduysanız (mekân sahibi hesabı) doğrudan buradan girin. Hesabınız
                     standart kullanıcıysa ve size ait mekân kaydı veya mekân üyeliği varsa yine bu sayfa uygundur. Sanatçı için{' '}
-                    <Link href={safeRoute('login.sanatci')} className="font-medium text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login.sanatci')}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Sanatçı paneli girişi
                     </Link>
                     , organizasyon firması için{' '}
-                    <Link href={safeRoute('login.organizasyon')} className="font-medium text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login.organizasyon')}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Organizasyon girişi
                     </Link>{' '}
                     kullanılır.
                 </p>
             )}
             {portal === 'organizasyon' && (
-                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
-                    <strong className="font-medium text-zinc-300">Not:</strong> Bu sayfa organizasyon / ajans firması hesapları içindir. Platformun tamamını yöneten{' '}
-                    <strong className="font-medium text-zinc-300">site yönetimi</strong> hesabı değildir; site yönetimi{' '}
-                    <code className="rounded bg-zinc-800 px-1 text-zinc-300">/yonetim/giris</code> adresinden giriş yapar.
+                <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-zinc-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-zinc-400">
+                    <strong className="font-medium text-zinc-900 dark:text-zinc-300">Not:</strong> Bu sayfa organizasyon / ajans firması hesapları içindir. Platformun tamamını yöneten{' '}
+                    <strong className="font-medium text-zinc-900 dark:text-zinc-300">site yönetimi</strong> hesabı değildir; site yönetimi{' '}
+                    <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/yonetim/giris</code> adresinden giriş yapar.
                 </p>
             )}
 
@@ -173,12 +181,14 @@ export default function LoginPortal({
                             name="remember"
                             checked={data.remember}
                             onChange={(e) => setData('remember', (e.target.checked || false) as false)}
-                            className="rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500"
                         />
-                        <span className="ms-2 text-sm text-zinc-400">Beni hatırla</span>
+                        <span className="ms-2 text-sm text-zinc-600 dark:text-zinc-400">Beni hatırla</span>
                     </label>
                     {canResetPassword && (
-                        <Link href={safeRoute('password.request')} className="text-sm text-amber-400 hover:text-amber-300">
+                        <Link
+                            href={safeRoute('password.request')}
+                            className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
                             Şifremi unuttum
                         </Link>
                     )}
@@ -189,52 +199,76 @@ export default function LoginPortal({
                 </PrimaryButton>
             </form>
 
-            <div className="mt-6 space-y-3 border-t border-white/10 pt-6 text-center text-sm text-zinc-500">
+            <div className="mt-6 space-y-3 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-500">
                 <p>Diğer girişler:</p>
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                    <Link href={safeRoute('login')} className="text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login')}
+                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Kullanıcı
                     </Link>
-                    <Link href={safeRoute('login.sanatci')} className="text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login.sanatci')}
+                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Sanatçı
                     </Link>
-                    <Link href={safeRoute('login.mekan')} className="text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login.mekan')}
+                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Mekan
                     </Link>
-                    <Link href={safeRoute('login.organizasyon')} className="text-amber-400 hover:text-amber-300">
+                    <Link
+                        href={safeRoute('login.organizasyon')}
+                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Organizasyon
                     </Link>
                 </div>
             </div>
 
             {portal === 'kullanici' && (
-                <p className="mt-4 text-center text-sm text-zinc-500">
+                <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">
                     Hesabınız yok mu?{' '}
-                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                    <a
+                        href={registerHref}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Kullanıcı kaydı
                     </a>
                 </p>
             )}
             {portal === 'sanatci' && (
-                <p className="mt-4 text-center text-sm text-zinc-500">
+                <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">
                     Hesabınız yok mu?{' '}
-                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                    <a
+                        href={registerHref}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Sanatçı kaydı
                     </a>
                 </p>
             )}
             {portal === 'mekan' && (
-                <p className="mt-4 text-center text-sm text-zinc-500">
+                <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">
                     Hesabınız yok mu?{' '}
-                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                    <a
+                        href={registerHref}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Mekan kaydı
                     </a>
                 </p>
             )}
             {portal === 'organizasyon' && (
-                <p className="mt-4 text-center text-sm text-zinc-500">
+                <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">
                     Hesabınız yok mu?{' '}
-                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                    <a
+                        href={registerHref}
+                        className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
                         Organizasyon kaydı
                     </a>
                 </p>

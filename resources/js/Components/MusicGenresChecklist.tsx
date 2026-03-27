@@ -15,13 +15,15 @@ const styles: Record<
     }
 > = {
     admin: {
-        label: 'block text-sm font-medium text-zinc-400',
+        label: 'block text-sm font-medium text-zinc-600 dark:text-zinc-400',
         helper: 'mt-0.5 text-xs text-zinc-500',
-        search: 'mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30',
+        search:
+            'mt-2 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-500',
         listWrap:
-            'mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 sm:max-h-[min(24rem,70vh)]',
-        row: 'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-200 hover:bg-zinc-700/60',
-        checkbox: 'rounded border-zinc-600 bg-zinc-800 text-amber-500 focus:ring-amber-500',
+            'mt-2 max-h-64 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50 sm:max-h-[min(24rem,70vh)]',
+        row: 'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700/60',
+        checkbox:
+            'rounded border-zinc-400 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-amber-500',
         empty: 'px-2 py-3 text-sm text-zinc-500',
     },
     adminCard: {
@@ -37,14 +39,15 @@ const styles: Record<
         empty: 'px-2 py-3 text-sm text-zinc-500',
     },
     artistPanel: {
-        label: 'block text-sm font-medium text-zinc-400',
+        label: 'block text-sm font-medium text-zinc-600 dark:text-zinc-400',
         helper: 'mt-1 text-xs text-zinc-500',
         search:
-            'mt-2 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/20',
+            'mt-2 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-amber-500/40',
         listWrap:
-            'mt-3 max-h-52 overflow-y-auto rounded-xl border border-white/10 bg-zinc-950/40 p-3 sm:max-h-[min(22rem,70vh)]',
-        row: 'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-zinc-200 hover:bg-white/5',
-        checkbox: 'rounded border-white/20 bg-zinc-900 text-amber-500 focus:ring-amber-500/40',
+            'mt-3 max-h-52 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-950/40 sm:max-h-[min(22rem,70vh)]',
+        row: 'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-white/5',
+        checkbox:
+            'rounded border-zinc-400 text-amber-600 focus:ring-amber-500 dark:border-white/20 dark:bg-zinc-900 dark:text-amber-500 dark:focus:ring-amber-500/40',
         empty: 'px-2 py-3 text-sm text-zinc-500',
     },
 };

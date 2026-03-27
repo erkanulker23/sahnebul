@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 /**
@@ -33,8 +34,9 @@ final class EventMediaImportFromUrlService
     private const MAX_BATCH_URLS = 20;
 
     /** @param  list<string>  $urls */
-    public function importMany(Event $event, array $urls, string $mode, bool $appendPromoGallery): array
+    public function importMany(Event $event, array $urls, string $mode, bool $appendPromoGallery, string $promoKind = 'story'): array
     {
+        $promoKind = $this->normalizePromoKind($promoKind);
         $urls = array_values(array_unique(array_filter(array_map('trim', $urls), fn (string $u) => $u !== '')));
         if ($urls === []) {
             return ['success' => false, 'message' => 'Geçerli bağlantı satırı yok.'];
@@ -55,7 +57,7 @@ final class EventMediaImportFromUrlService
         /** @var list<string> $failures */
         $failures = [];
         foreach ($urls as $u) {
-            $r = $this->import($event->fresh(), $u, $mode, true);
+            $r = $this->import($event->fresh(), $u, $mode, true, $promoKind);
             if ($r['success']) {
                 $ok++;
             } else {
@@ -100,8 +102,9 @@ final class EventMediaImportFromUrlService
     /**
      * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
-    public function appendPromoFromUploads(Event $event, ?UploadedFile $video, ?UploadedFile $poster, bool $append): array
+    public function appendPromoFromUploads(Event $event, ?UploadedFile $video, ?UploadedFile $poster, bool $append, string $promoKind = 'story'): array
     {
+        $promoKind = $this->normalizePromoKind($promoKind);
         if (($video === null || ! $video->isValid()) && ($poster === null || ! $poster->isValid())) {
             return ['success' => false, 'message' => 'Video veya görsel dosyası seçin.'];
         }
@@ -160,6 +163,7 @@ final class EventMediaImportFromUrlService
             'embed_url' => null,
             'video_path' => $videoPath,
             'poster_path' => $posterPath,
+            'promo_kind' => $promoKind,
         ];
         $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
         $event->promo_gallery = $gallery;
@@ -181,8 +185,9 @@ final class EventMediaImportFromUrlService
     }
 
     /** @return array{success: bool, message: string, details?: array<string, mixed>} */
-    public function import(Event $event, string $url, string $mode, bool $appendPromoGallery = true): array
+    public function import(Event $event, string $url, string $mode, bool $appendPromoGallery = true, string $promoKind = 'story'): array
     {
+        $promoKind = $this->normalizePromoKind($promoKind);
         try {
             $normalized = $this->assertSafeUrl($url);
         } catch (ValidationException $e) {
@@ -192,7 +197,7 @@ final class EventMediaImportFromUrlService
         }
 
         if ($mode === 'promo_video') {
-            $direct = $this->tryImportDirectVideoUrl($event, $normalized, $appendPromoGallery);
+            $direct = $this->tryImportDirectVideoUrl($event, $normalized, $appendPromoGallery, $promoKind);
             if ($direct !== null) {
                 return $direct;
             }
@@ -303,7 +308,8 @@ final class EventMediaImportFromUrlService
             $ogVideo !== null ? trim((string) $ogVideo) : null,
             $isInstagram,
             $shortcode,
-            $appendPromoGallery
+            $appendPromoGallery,
+            $promoKind
         );
     }
 
@@ -312,7 +318,7 @@ final class EventMediaImportFromUrlService
      *
      * @return array{success: bool, message: string, details?: array<string, mixed>}|null Başarı, hata veya «bu mod değil» için null
      */
-    private function tryImportDirectVideoUrl(Event $event, string $url, bool $appendPromoGallery): ?array
+    private function tryImportDirectVideoUrl(Event $event, string $url, bool $appendPromoGallery, string $promoKind = 'story'): ?array
     {
         $pathOnly = parse_url($url, PHP_URL_PATH);
         if (! is_string($pathOnly) || ! preg_match('/\.(mp4|webm)$/i', $pathOnly)) {
@@ -346,6 +352,7 @@ final class EventMediaImportFromUrlService
             'embed_url' => null,
             'video_path' => $videoPath,
             'poster_path' => null,
+            'promo_kind' => $this->normalizePromoKind($promoKind),
         ];
         $this->syncLegacyPromoFieldsFromGallery($event, $gallery);
         $event->promo_gallery = $gallery;
@@ -358,6 +365,11 @@ final class EventMediaImportFromUrlService
         ];
     }
 
+    private function normalizePromoKind(string $kind): string
+    {
+        return $kind === 'post' ? 'post' : 'story';
+    }
+
     /**
      * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
@@ -368,8 +380,10 @@ final class EventMediaImportFromUrlService
         ?string $ogVideo,
         bool $isInstagram,
         ?string $shortcode,
-        bool $appendPromoGallery
+        bool $appendPromoGallery,
+        string $promoKind = 'story'
     ): array {
+        $promoKind = $this->normalizePromoKind($promoKind);
         $messages = [];
         $videoSaved = false;
         $videoPath = null;
@@ -410,10 +424,10 @@ final class EventMediaImportFromUrlService
             : null;
 
         if (! $videoSaved && $isInstagram && $shortcode) {
-            $binary = config('services.ytdlp.binary');
-            $hint = (is_string($binary) && $binary !== '' && is_executable($binary))
-                ? 'Sunucuda yt-dlp çalıştırılamadı veya Instagram engelledi.'
-                : 'Sunucuda yt-dlp yok veya Instagram video URL’si alınamadı (.env içinde YTDLP_BINARY).';
+            $binary = $this->resolveYtDlpBinary();
+            $hint = $binary !== null
+                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi (güncel yt-dlp; gerekirse .env’de YTDLP_COOKIES_FILE ile oturum çerezi).'
+                : 'Sunucuda yt-dlp bulunamadı (Linux: apt install yt-dlp veya pipx install yt-dlp; macOS: brew install yt-dlp). PHP çalışan kullanıcı için kurun veya .env içinde YTDLP_BINARY=/tam/yol/yt-dlp.';
             $messages[] = 'Doğrudan video indirilemedi; '.$hint;
         } elseif (! $videoSaved && ! $isInstagram) {
             $messages[] = 'Doğrudan indirilebilir video bulunamadı (og:video yok veya erişim engellendi).';
@@ -444,6 +458,7 @@ final class EventMediaImportFromUrlService
             'embed_url' => $canonicalEmbed,
             'video_path' => $videoPath,
             'poster_path' => $posterPath,
+            'promo_kind' => $promoKind,
         ];
 
         if (! $videoSaved && ! $isInstagram) {
@@ -465,13 +480,20 @@ final class EventMediaImportFromUrlService
             ];
         }
 
-        if (! $videoSaved && $isInstagram && $shortcode) {
+        if (! $videoSaved && $isInstagram && $shortcode && $posterPath === null) {
             $event->save();
 
             return [
                 'success' => false,
-                'message' => 'Instagram gönderisi sitede gömülü gösterilmez. Videoyu MP4 veya WebM olarak indirip panelden «Tanıtım videosu (dosya)» ile yükleyin; veya doğrudan .mp4/.webm indirme bağlantısı yapıştırın. '.implode(' ', $messages),
+                'message' => 'Instagram gönderisi: video indirilemedi ve önizleme görseli de alınamadı. Bağlantıyı kontrol edin; veya MP4/WebM dosyası yükleyin. '.implode(' ', $messages),
             ];
+        }
+
+        if (! $videoSaved && $isInstagram && $shortcode && $posterPath !== null) {
+            array_unshift(
+                $messages,
+                'Tanıtım galerisine önizleme kaydedildi (video indirilemedi). Sitede oynatmak için panelden MP4/WebM yükleyin veya doğrudan video bağlantısı ekleyin.'
+            );
         }
 
         if (! $appendPromoGallery) {
@@ -516,7 +538,7 @@ final class EventMediaImportFromUrlService
         ];
     }
 
-    /** @return list<array{embed_url: ?string, video_path: ?string, poster_path: ?string}> */
+    /** @return list<array{embed_url: ?string, video_path: ?string, poster_path: ?string, promo_kind?: string}> */
     private function currentPromoGallery(Event $event): array
     {
         $raw = $event->promo_gallery;
@@ -537,7 +559,7 @@ final class EventMediaImportFromUrlService
 
     /**
      * @param  list<array<string, mixed>>  $items
-     * @return list<array{embed_url: ?string, video_path: ?string, poster_path: ?string}>
+     * @return list<array{embed_url: ?string, video_path: ?string, poster_path: ?string, promo_kind?: string}>
      */
     private function sanitizePromoGallery(array $items): array
     {
@@ -546,7 +568,7 @@ final class EventMediaImportFromUrlService
             if (! is_array($item)) {
                 continue;
             }
-            $out[] = [
+            $row = [
                 'embed_url' => isset($item['embed_url']) && is_string($item['embed_url']) && trim($item['embed_url']) !== ''
                     ? trim($item['embed_url'])
                     : null,
@@ -557,28 +579,67 @@ final class EventMediaImportFromUrlService
                     ? trim($item['poster_path'])
                     : null,
             ];
+            if (isset($item['promo_kind']) && $item['promo_kind'] === 'post') {
+                $row['promo_kind'] = 'post';
+            } elseif (isset($item['promo_kind']) && $item['promo_kind'] === 'story') {
+                $row['promo_kind'] = 'story';
+            }
+            $out[] = $row;
         }
 
         return $out;
     }
 
     /**
-     * @param  list<array{embed_url: ?string, video_path: ?string, poster_path: ?string}>  $gallery
+     * @param  list<array<string, mixed>>  $gallery
      */
     private function syncLegacyPromoFieldsFromGallery(Event $event, array $gallery): void
     {
-        $first = $gallery[0] ?? null;
-        if ($first === null) {
+        if ($gallery === []) {
             $event->promo_embed_url = null;
             $event->promo_video_path = null;
 
             return;
         }
-        $event->promo_embed_url = $first['embed_url'];
-        $event->promo_video_path = $first['video_path'];
+
+        $pick = null;
+        foreach ($gallery as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $kind = ($item['promo_kind'] ?? '') === 'post' ? 'post' : 'story';
+            $vp = isset($item['video_path']) && is_string($item['video_path']) ? trim($item['video_path']) : '';
+            if ($kind === 'story' && $vp !== '') {
+                $pick = $item;
+                break;
+            }
+        }
+        if ($pick === null) {
+            foreach ($gallery as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $vp = isset($item['video_path']) && is_string($item['video_path']) ? trim($item['video_path']) : '';
+                if ($vp !== '') {
+                    $pick = $item;
+                    break;
+                }
+            }
+        }
+        if ($pick === null) {
+            $pick = $gallery[0];
+        }
+        if (! is_array($pick)) {
+            $event->promo_embed_url = null;
+            $event->promo_video_path = null;
+
+            return;
+        }
+        $event->promo_embed_url = isset($pick['embed_url']) && is_string($pick['embed_url']) ? $pick['embed_url'] : null;
+        $event->promo_video_path = isset($pick['video_path']) && is_string($pick['video_path']) ? $pick['video_path'] : null;
     }
 
-    /** @param  array{embed_url: ?string, video_path: ?string, poster_path: ?string}  $item */
+    /** @param  array{embed_url: ?string, video_path: ?string, poster_path: ?string, promo_kind?: string}  $item */
     private function deleteGalleryItemFiles(array $item): void
     {
         $this->deleteStoredPathIfOwned($item['video_path'] ?? null);
@@ -865,10 +926,90 @@ final class EventMediaImportFromUrlService
         Storage::disk('public')->delete($path);
     }
 
+    /**
+     * Önce YTDLP_BINARY, sonra dosya yolu adayları (PATH parçaları, ~/.local/bin, posix ev dizini, snap vb.).
+     * PHP-FPM’de PATH kısıtlı veya boş olduğunda bile sistemde kurulu yt-dlp bulunabilsin diye.
+     */
+    private function resolveYtDlpBinary(): ?string
+    {
+        foreach ($this->ytDlpAbsolutePathCandidates() as $path) {
+            if (is_file($path) && is_executable($path)) {
+                return $path;
+            }
+        }
+
+        $finder = new ExecutableFinder;
+        $found = $finder->find('yt-dlp', null, $this->ytDlpSearchDirectories());
+
+        return (is_string($found) && $found !== '' && is_executable($found)) ? $found : null;
+    }
+
+    /** @return list<string> */
+    private function ytDlpSearchDirectories(): array
+    {
+        $dirs = [
+            '/usr/local/bin',
+            '/usr/bin',
+            '/bin',
+            '/opt/homebrew/bin',
+            '/snap/bin',
+            '/var/snap/bin',
+        ];
+
+        $home = getenv('HOME');
+        if (is_string($home) && $home !== '') {
+            $dirs[] = $home.DIRECTORY_SEPARATOR.'.local'.DIRECTORY_SEPARATOR.'bin';
+        }
+
+        if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
+            $pw = @posix_getpwuid(posix_geteuid());
+            if (is_array($pw) && isset($pw['dir']) && is_string($pw['dir']) && $pw['dir'] !== '') {
+                $dirs[] = rtrim($pw['dir'], '/').DIRECTORY_SEPARATOR.'.local'.DIRECTORY_SEPARATOR.'bin';
+            }
+        }
+
+        $pathEnv = getenv('PATH');
+        if (is_string($pathEnv) && $pathEnv !== '') {
+            foreach (explode(PATH_SEPARATOR, $pathEnv) as $segment) {
+                $segment = trim($segment);
+                if ($segment !== '') {
+                    $dirs[] = $segment;
+                }
+            }
+        }
+
+        /** @var list<string> $unique */
+        $unique = array_values(array_unique(array_filter($dirs, fn (string $d) => $d !== '')));
+
+        return $unique;
+    }
+
+    /**
+     * Tam yol adayları: yapılandırma + her arama dizininde yt-dlp (ve Windows’ta yt-dlp.exe).
+     *
+     * @return list<string>
+     */
+    private function ytDlpAbsolutePathCandidates(): array
+    {
+        $name = PHP_OS_FAMILY === 'Windows' ? 'yt-dlp.exe' : 'yt-dlp';
+        $out = [];
+
+        $configured = config('services.ytdlp.binary');
+        if (is_string($configured) && trim($configured) !== '') {
+            $out[] = trim($configured);
+        }
+
+        foreach ($this->ytDlpSearchDirectories() as $dir) {
+            $out[] = rtrim($dir, '/\\').DIRECTORY_SEPARATOR.$name;
+        }
+
+        return array_values(array_unique($out));
+    }
+
     private function tryDownloadInstagramVideoWithYtDlp(string $httpsInstagramUrl): ?string
     {
-        $binary = config('services.ytdlp.binary');
-        if (! is_string($binary) || $binary === '' || ! is_executable($binary)) {
+        $binary = $this->resolveYtDlpBinary();
+        if ($binary === null) {
             return null;
         }
         $timeout = (float) config('services.ytdlp.timeout', 300);

@@ -44,7 +44,7 @@ export default function ArtistVenuesIndex({ venues, analyticsTotals }: Readonly<
 
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="font-display text-2xl font-bold text-white">Mekanlarım</h1>
+                    <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Mekanlarım</h1>
                     <p className="mt-1 text-sm text-zinc-500">Görüntülenme ve etkileşim özeti (genel liste + mekan detay sayfası)</p>
                 </div>
                 <Link href={route('artist.venues.create')} className="rounded-xl bg-amber-500 px-6 py-2 font-medium text-zinc-950 hover:bg-amber-400">
@@ -74,7 +74,7 @@ export default function ArtistVenuesIndex({ venues, analyticsTotals }: Readonly<
                     >
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div className="min-w-0">
-                                <h3 className="font-semibold text-white">{v.name}</h3>
+                                <h3 className="font-semibold text-zinc-900 dark:text-white">{v.name}</h3>
                                 <p className="mt-1 text-sm text-zinc-500">
                                     {v.city.name} • {v.category.name}
                                 </p>

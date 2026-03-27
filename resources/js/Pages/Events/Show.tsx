@@ -38,6 +38,8 @@ type PromoGalleryItem = {
     embed_url?: string | null;
     video_path?: string | null;
     poster_path?: string | null;
+    /** story: dikey şerit (hikaye); post: kare ızgara (gönderi) */
+    promo_kind?: 'story' | 'post' | null;
 };
 
 interface Event {
@@ -120,15 +122,37 @@ function eventReviewStars(rating: number): string {
 
 function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
     if (!raw || typeof raw !== 'object') {
-        return { embed_url: null, video_path: null, poster_path: null };
+        return { embed_url: null, video_path: null, poster_path: null, promo_kind: null };
     }
     const o = raw as Record<string, unknown>;
     const s = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+    const pk = o.promo_kind;
+    const promo_kind = pk === 'post' || pk === 'story' ? pk : null;
     return {
         embed_url: s(o.embed_url),
         video_path: s(o.video_path),
         poster_path: s(o.poster_path),
+        promo_kind,
     };
+}
+
+function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
+    if (it.promo_kind === 'post') {
+        return 'post';
+    }
+    if (it.promo_kind === 'story') {
+        return 'story';
+    }
+    if (it.video_path?.trim()) {
+        return 'story';
+    }
+    if (it.embed_url?.includes('instagram.com')) {
+        return 'post';
+    }
+    if (it.poster_path?.trim()) {
+        return 'post';
+    }
+    return 'story';
 }
 
 function eventPromoItemsFromEvent(event: Event): PromoGalleryItem[] {
@@ -148,20 +172,20 @@ function eventPromoItemsFromEvent(event: Event): PromoGalleryItem[] {
     return [];
 }
 
-/** Eski kayıtlardaki yalnızca Instagram gömülüsü — sitede gösterilmez; MP4 yüklenene kadar bölüm gizlenir. */
+/** Video veya poster yoksa (yalnızca boş IG gömü URL’si) gizlenir; poster indirildiyse gösterilir. */
 function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
     return items.filter((it) => {
         const hasVideo = Boolean(it.video_path?.trim());
         if (hasVideo) {
             return true;
         }
-        const embed = it.embed_url?.trim() ?? '';
-        if (embed.includes('instagram.com')) {
-            return false;
-        }
         const poster = Boolean(it.poster_path?.trim());
         if (poster) {
             return true;
+        }
+        const embed = it.embed_url?.trim() ?? '';
+        if (embed.includes('instagram.com')) {
+            return false;
         }
         return embed.length > 0;
     });
@@ -174,78 +198,95 @@ function EventPromoSection({
     items: PromoGalleryItem[];
     resolveStorageSrc: (path: string | null) => string | null;
 }>) {
-    const playableItems = useMemo(
-        () => items.filter((it) => Boolean(it.video_path && resolveStorageSrc(it.video_path))),
-        [items, resolveStorageSrc],
-    );
+    const visible = useMemo(() => filterPublicPromoItems(items), [items]);
 
-    const primaryVideo = playableItems[0];
-    const extraPlayableVideos = playableItems.slice(1);
-    const primaryVideoSrc = primaryVideo?.video_path ? resolveStorageSrc(primaryVideo.video_path) : null;
-    const primaryPosterSrc = primaryVideo?.poster_path ? resolveStorageSrc(primaryVideo.poster_path) : null;
+    const storyItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'story'), [visible]);
 
-    const posterOnlyNonIg = useMemo(
-        () =>
-            items.filter((it) => {
-                const hasVideo = Boolean(it.video_path && resolveStorageSrc(it.video_path));
-                const poster = Boolean(it.poster_path && resolveStorageSrc(it.poster_path));
-                const embed = it.embed_url?.trim() ?? '';
-                if (hasVideo) return false;
-                if (embed.includes('instagram.com')) return false;
-                return poster;
-            }),
-        [items, resolveStorageSrc],
-    );
+    const postItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'post'), [visible]);
 
     const genericEmbedOnly = useMemo(
         () =>
-            items.filter((it) => {
+            visible.filter((it) => {
                 const hasVideo = Boolean(it.video_path && resolveStorageSrc(it.video_path));
                 const poster = Boolean(it.poster_path && resolveStorageSrc(it.poster_path));
                 const embed = it.embed_url?.trim() ?? '';
                 return !hasVideo && !poster && embed.length > 0 && !embed.includes('instagram.com');
             }),
-        [items, resolveStorageSrc],
+        [visible, resolveStorageSrc],
     );
 
     if (items.length === 0) {
         return null;
     }
 
-    return (
-        <section className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
-            <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Tanıtım videosu</h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Etkinlik için eklenen tanıtım görüntüleri{items.length > 1 ? ` (${items.length})` : ''}.
-            </p>
-            <div className="mt-5 space-y-8">
-                {primaryVideoSrc ? (
-                    <div className="mx-auto w-full max-w-4xl">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-zinc-200 bg-black dark:border-white/10">
-                            <video
-                                src={primaryVideoSrc}
-                                controls
-                                playsInline
-                                preload="metadata"
-                                className="absolute inset-0 h-full w-full object-contain"
-                                poster={primaryPosterSrc ?? undefined}
-                            >
-                                Tarayıcınız bu videoyu oynatamıyor.
-                            </video>
-                        </div>
-                    </div>
-                ) : null}
+    if (visible.length === 0 && genericEmbedOnly.length === 0) {
+        return null;
+    }
 
-                {extraPlayableVideos.length > 0 ? (
-                    <ul className="grid list-none grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-                        {extraPlayableVideos.map((it, idx) => {
+    const storyStripCard =
+        'relative aspect-[9/16] w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 shadow-sm dark:border-white/10';
+
+    return (
+        <div className="scroll-mt-24 space-y-10">
+            {storyItems.length > 0 ? (
+                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
+                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik hikayeleri</h2>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        Dikey tanıtımlar — yana kaydırarak tümünü görün ({storyItems.length}).
+                    </p>
+                    <div className="mt-4 -mx-1 px-1">
+                        <ul className="flex list-none gap-2 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] sm:gap-3">
+                            {storyItems.map((it, idx) => {
+                                const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
+                                const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                                const embed = it.embed_url?.trim() ?? '';
+                                return (
+                                    <li
+                                        key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
+                                        className="w-[9.25rem] flex-none snap-start sm:w-40"
+                                    >
+                                        {videoSrc ? (
+                                            <div className={storyStripCard}>
+                                                <video
+                                                    src={videoSrc}
+                                                    controls
+                                                    playsInline
+                                                    preload="metadata"
+                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                    poster={posterSrc ?? undefined}
+                                                >
+                                                    Tarayıcınız bu videoyu oynatamıyor.
+                                                </video>
+                                            </div>
+                                        ) : posterSrc ? (
+                                            <div className={storyStripCard}>
+                                                <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                            </div>
+                                        ) : null}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                </section>
+            ) : null}
+
+            {postItems.length > 0 ? (
+                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-8">
+                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik gönderileri</h2>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        Gönderi tarzı tanıtımlar ({postItems.length}).
+                    </p>
+                    <ul className="mt-5 grid list-none grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
+                        {postItems.map((it, idx) => {
                             const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
                             const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
                             const embed = it.embed_url?.trim() ?? '';
+                            const ig = embed.includes('instagram.com');
                             return (
                                 <li
-                                    key={`${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
-                                    className="relative aspect-[9/16] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 dark:border-white/10"
+                                    key={`post-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
+                                    className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 dark:border-white/10"
                                 >
                                     {videoSrc ? (
                                         <video
@@ -255,32 +296,30 @@ function EventPromoSection({
                                             preload="metadata"
                                             className="absolute inset-0 h-full w-full object-cover"
                                             poster={posterSrc ?? undefined}
-                                        />
+                                        >
+                                            Tarayıcınız bu videoyu oynatamıyor.
+                                        </video>
+                                    ) : posterSrc && ig && embed ? (
+                                        <a href={embed} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
+                                            <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                            <span className="absolute bottom-1 left-1 right-1 rounded bg-black/60 px-1.5 py-0.5 text-center text-[10px] font-medium text-white">
+                                                Instagram’da aç
+                                            </span>
+                                        </a>
+                                    ) : posterSrc ? (
+                                        <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
                                     ) : null}
                                 </li>
                             );
                         })}
                     </ul>
-                ) : null}
+                </section>
+            ) : null}
 
-                {posterOnlyNonIg.length > 0 ? (
-                    <ul className="grid list-none grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-                        {posterOnlyNonIg.map((it, idx) => {
-                            const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                            return posterSrc ? (
-                                <li
-                                    key={`${posterSrc}-${idx}`}
-                                    className="relative aspect-[9/16] overflow-hidden rounded-xl border border-zinc-200 bg-zinc-950 dark:border-white/10"
-                                >
-                                    <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                </li>
-                            ) : null;
-                        })}
-                    </ul>
-                ) : null}
-
-                {genericEmbedOnly.length > 0 ? (
-                    <div className="space-y-3">
+            {genericEmbedOnly.length > 0 ? (
+                <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
+                    <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Tanıtım bağlantıları</h2>
+                    <div className="mt-3 space-y-2">
                         {genericEmbedOnly.map((it, idx) => {
                             const embed = it.embed_url?.trim() ?? '';
                             return (
@@ -296,9 +335,9 @@ function EventPromoSection({
                             );
                         })}
                     </div>
-                ) : null}
-            </div>
-        </section>
+                </section>
+            ) : null}
+        </div>
     );
 }
 

@@ -54,7 +54,7 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
         <ArtistLayout>
             <SeoHead title="Mekan Ekle - Sahnebul" description="Yeni mekan kaydı oluşturun." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Yeni Mekan Ekle</h1>
+            <h1 className="font-display mb-8 text-2xl font-bold text-zinc-900 dark:text-white">Yeni Mekan Ekle</h1>
 
             <form onSubmit={submit} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>

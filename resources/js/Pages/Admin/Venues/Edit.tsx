@@ -1,4 +1,5 @@
 import PhoneInput from '@/Components/PhoneInput';
+import { inputBaseClass } from '@/Components/ui/Input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import InputError from '@/Components/InputError';
 import LocationSelect from '@/Components/LocationSelect';
@@ -11,6 +12,7 @@ import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscrip
 import { Link, router, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import { Star } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useState } from 'react';
 
 interface MediaItem {
@@ -139,6 +141,10 @@ export default function AdminVenueEdit({
         is_active: formData.is_active ? 1 : 0,
     }));
 
+    const field = cn('mt-1', inputBaseClass);
+    const fieldMono = cn('mt-1 font-mono text-sm', inputBaseClass);
+    const fieldMd = cn('mt-1 max-w-md', inputBaseClass);
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('admin.venues.update', { venue: venue.id }), {
@@ -184,10 +190,13 @@ export default function AdminVenueEdit({
             <div className="space-y-6">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <Link href={route('admin.venues.index')} className="text-sm text-amber-400 hover:text-amber-300">
+                        <Link
+                            href={route('admin.venues.index')}
+                            className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
                             ← Mekan listesi
                         </Link>
-                        <h1 className="mt-2 text-2xl font-bold text-white">Mekan düzenle</h1>
+                        <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Mekan düzenle</h1>
                         <p className="mt-1 text-sm text-zinc-500">
                             /{venue.slug}
                             <span className="ml-2 text-zinc-600">
@@ -200,7 +209,7 @@ export default function AdminVenueEdit({
                             href={route('venues.show', venue.slug)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
                             Sitede aç
                         </Link>
@@ -232,7 +241,7 @@ export default function AdminVenueEdit({
                             <input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                             {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                         </div>
@@ -242,7 +251,7 @@ export default function AdminVenueEdit({
                             <input
                                 value={data.slug}
                                 onChange={(e) => setData('slug', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-white"
+                                className={fieldMono}
                             />
                             {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
                         </div>
@@ -263,7 +272,7 @@ export default function AdminVenueEdit({
                                     <select
                                         value={data.status}
                                         onChange={(e) => setData('status', e.target.value)}
-                                        className="mt-1 w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                        className={fieldMd}
                                     >
                                         <option value="pending">Beklemede</option>
                                         <option value="approved">Onaylı</option>
@@ -326,7 +335,7 @@ export default function AdminVenueEdit({
                             <select
                                 value={data.user_id}
                                 onChange={(e) => setData('user_id', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             >
                                 <option value="">Atanmadı</option>
                                 {venueOwnerCandidates.map((c) => {
@@ -453,7 +462,7 @@ export default function AdminVenueEdit({
                             <input
                                 value={data.address}
                                 onChange={(e) => setData('address', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                             {errors.address && <p className="mt-1 text-sm text-red-400">{errors.address}</p>}
                         </div>
@@ -480,7 +489,7 @@ export default function AdminVenueEdit({
                             <select
                                 value={data.category_id}
                                 onChange={(e) => setData('category_id', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             >
                                 {categories.map((c) => (
                                     <option key={c.id} value={c.id}>
@@ -494,7 +503,7 @@ export default function AdminVenueEdit({
                             <input
                                 value={data.latitude}
                                 onChange={(e) => setData('latitude', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -502,7 +511,7 @@ export default function AdminVenueEdit({
                             <input
                                 value={data.longitude}
                                 onChange={(e) => setData('longitude', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -512,7 +521,7 @@ export default function AdminVenueEdit({
                                 min={1}
                                 value={data.capacity}
                                 onChange={(e) => setData('capacity', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -520,7 +529,7 @@ export default function AdminVenueEdit({
                             <PhoneInput
                                 value={data.phone ?? ''}
                                 onChange={(v) => setData('phone', v)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -535,7 +544,7 @@ export default function AdminVenueEdit({
                                     );
                                 }}
                                 placeholder="05XX XXX XX XX veya https://wa.me/…"
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div className="sm:col-span-2">
@@ -544,7 +553,7 @@ export default function AdminVenueEdit({
                                 type="url"
                                 value={data.website}
                                 onChange={(e) => setData('website', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                     </div>
@@ -562,7 +571,7 @@ export default function AdminVenueEdit({
                                         onChange={(e) =>
                                             setData('social_links', { ...data.social_links, [key]: e.target.value })
                                         }
-                                        className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                        className={field}
                                         placeholder="https://"
                                     />
                                 </div>
@@ -589,7 +598,7 @@ export default function AdminVenueEdit({
                         <input
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
-                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            className={field}
                         />
                         {coverImporting && <p className="mt-2 text-sm text-amber-400">Kapak görseli indiriliyor…</p>}
                         {googleGalleryImporting && (
@@ -634,7 +643,7 @@ export default function AdminVenueEdit({
                                 <button
                                     type="button"
                                     onClick={() => router.post(route('admin.venues.reject', { venue: venue.id }), {}, { preserveScroll: true })}
-                                    className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 >
                                     Reddet
                                 </button>
@@ -644,7 +653,7 @@ export default function AdminVenueEdit({
                 </form>
 
                 <section className="mt-10 max-w-3xl rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-                    <h2 className="text-lg font-semibold text-white">Galeri</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
                     <p className="mt-1 text-sm text-zinc-500">Birden fazla fotoğraf seçebilirsiniz (aynı anda toplu yükleme).</p>
                     <input
                         type="file"

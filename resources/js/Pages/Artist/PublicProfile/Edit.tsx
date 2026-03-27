@@ -201,7 +201,7 @@ export default function PublicArtistProfileEdit({
         return (
             <ArtistLayout>
                 <SeoHead title="Sanatçı sayfam - Mekan Paneli" description="Genel sanatçı profili." noindex />
-                <h1 className="font-display mb-2 text-2xl font-bold text-white">Sanatçı sayfam</h1>
+                <h1 className="font-display mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı sayfam</h1>
                 <p className="mb-6 max-w-xl text-sm text-zinc-400">
                     Bu bölüm, hesabınıza bağlı bir sanatçı profili olduğunda açılır. Önce bir sanatçı sayfasında
                     sahiplenme talebinde bulunun; yönetici onayından sonra menajer, iletişim ve sosyal medya
@@ -223,7 +223,7 @@ export default function PublicArtistProfileEdit({
 
             <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <h1 className="font-display text-2xl font-bold text-white">Sanatçı sayfam</h1>
+                    <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı sayfam</h1>
                     <p className="mt-1 text-sm text-zinc-500">
                         {artist.name} — sitede yalnızca doldurduğunuz alanlar gösterilir.
                     </p>
@@ -238,13 +238,13 @@ export default function PublicArtistProfileEdit({
                 </Link>
             </div>
 
-            <section className="mb-10 max-w-3xl rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                <h2 className="font-display text-lg font-semibold text-white">Kapak görseli (banner)</h2>
+            <section className="mb-10 max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Kapak görseli (banner)</h2>
                 <p className="mt-1 text-sm text-zinc-500">
                     İsteğe bağlı geniş üst görsel. Yüklemezseniz sanatçı sayfasında banner alanı gösterilmez.
                 </p>
                 {bannerPreview && !data.remove_banner ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+                    <div className="mt-4 overflow-hidden rounded-xl border border-zinc-200 dark:border-white/10">
                         <img src={bannerPreview} alt="" className="aspect-[21/9] max-h-48 w-full object-cover" />
                     </div>
                 ) : null}
@@ -284,21 +284,23 @@ export default function PublicArtistProfileEdit({
 
             {profileAnalytics ? (
                 <section className="mb-8 max-w-3xl rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-zinc-900/50 to-zinc-900/60 p-6">
-                    <h2 className="font-display text-lg font-semibold text-white">Profil performansı</h2>
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Profil performansı</h2>
                     <p className="mt-1 text-sm text-zinc-500">
                         Görüntülenme, kamu sanatçı sayfanız her açıldığında artar. Favori sayısı kullanıcı hesaplarından gelir; yayındaki
                         etkinlik sayısı sizin adınızın listelendiği yayınlanmış etkinlikleri kapsar.
                     </p>
                     <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-950/40">
                             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Sayfa görüntülenmesi</p>
                             <p className="mt-1 font-display text-2xl font-bold text-amber-300">{formatInt(profileAnalytics.profile_views)}</p>
                         </div>
-                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-950/40">
                             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Favorilere ekleyen</p>
-                            <p className="mt-1 font-display text-2xl font-bold text-white">{formatInt(profileAnalytics.favorites_count)}</p>
+                            <p className="mt-1 font-display text-2xl font-bold text-zinc-900 dark:text-white">
+                                {formatInt(profileAnalytics.favorites_count)}
+                            </p>
                         </div>
-                        <div className="rounded-xl border border-white/10 bg-zinc-950/40 p-4">
+                        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-950/40">
                             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Yayında, sizin adınızla</p>
                             <p className="mt-1 font-display text-2xl font-bold text-emerald-400/90">
                                 {formatInt(profileAnalytics.published_events_listed)}
@@ -310,8 +312,8 @@ export default function PublicArtistProfileEdit({
             ) : null}
 
             {artist ? (
-                <section className="mb-10 max-w-3xl rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">Galeri</h2>
+                <section className="mb-10 max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
                     <p className="mt-1 text-sm text-zinc-500">
                         Fotoğraf yükleyebilir, Instagram gönderi veya reel bağlantısı ekleyebilir veya öğeleri silebilirsiniz. Instagram
                         öğeleri etkinlik sayfalarındaki gibi sitede gömülü oynatıcı ile gösterilir (ayrıca Instagram&apos;a yönlendiren bir
@@ -347,7 +349,7 @@ export default function PublicArtistProfileEdit({
                                 value={instagramUrl}
                                 onChange={(e) => setInstagramUrl(e.target.value)}
                                 placeholder="https://www.instagram.com/reel/…"
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-3 py-2 text-sm text-white placeholder:text-zinc-500"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:placeholder:text-zinc-500 dark:focus:border-amber-500/40"
                             />
                         </div>
                         <button
@@ -361,7 +363,10 @@ export default function PublicArtistProfileEdit({
                     {gallery.length > 0 ? (
                         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             {gallery.map((g) => (
-                                <li key={g.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-zinc-950/60">
+                                <li
+                                    key={g.id}
+                                    className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60"
+                                >
                                     {g.embed_url?.includes('instagram.com') ? (
                                         <div className="flex aspect-square flex-col items-center justify-center gap-2 bg-gradient-to-br from-fuchsia-950/50 to-amber-950/40 p-3 text-center">
                                             <span className="text-2xl" aria-hidden>
@@ -388,7 +393,7 @@ export default function PublicArtistProfileEdit({
                                             {moderationLabel(g.moderation_status)}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between gap-2 border-t border-white/10 p-2">
+                                    <div className="flex items-center justify-between gap-2 border-t border-zinc-200 p-2 dark:border-white/10">
                                         <Link
                                             href={route('artist.public-profile.gallery.destroy', g.id)}
                                             method="delete"
@@ -408,8 +413,8 @@ export default function PublicArtistProfileEdit({
             ) : null}
 
             <form onSubmit={submit} className="max-w-3xl space-y-10">
-                <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">Hakkında ve web</h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Hakkında ve web</h2>
                     <p className="mt-1 text-sm text-zinc-500">Kısa tanıtım ve resmi site bağlantısı (opsiyonel).</p>
                     <div className="mt-6 space-y-4">
                         <div>
@@ -418,7 +423,7 @@ export default function PublicArtistProfileEdit({
                                 value={data.bio}
                                 onChange={(e) => setData('bio', e.target.value)}
                                 rows={5}
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-amber-500/40 dark:focus:ring-amber-500/20"
                                 placeholder="Kendinizi kısaca anlatın…"
                             />
                             {errors.bio && <p className="mt-1 text-sm text-red-400">{errors.bio}</p>}
@@ -430,15 +435,15 @@ export default function PublicArtistProfileEdit({
                                 value={data.website}
                                 onChange={(e) => setData('website', e.target.value)}
                                 placeholder="https://"
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white placeholder-zinc-600 focus:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:placeholder:text-zinc-600 dark:focus:border-amber-500/40 dark:focus:ring-amber-500/20"
                             />
                             {errors.website && <p className="mt-1 text-sm text-red-400">{errors.website}</p>}
                         </div>
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">Müzik türü</h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Müzik türü</h2>
                     <p className="mt-1 text-sm text-zinc-500">
                         Sitede görünen müzik türleri. Listeyi arama kutusu ile daraltabilirsiniz.
                     </p>
@@ -453,8 +458,8 @@ export default function PublicArtistProfileEdit({
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">İletişim (yayındaki sayfa)</h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">İletişim (yayındaki sayfa)</h2>
                     <p className="mt-1 text-sm text-zinc-500">
                         Booking veya basın için e-posta, telefon ve kısa not. Boş bıraktığınız alanlar sitede görünmez.
                     </p>
@@ -470,7 +475,7 @@ export default function PublicArtistProfileEdit({
                                         email: sanitizeEmailInput(e.target.value),
                                     })
                                 }
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                             {errors['public_contact.email'] && (
                                 <p className="mt-1 text-sm text-red-400">{errors['public_contact.email']}</p>
@@ -481,7 +486,7 @@ export default function PublicArtistProfileEdit({
                             <PhoneInput
                                 value={data.public_contact.phone ?? ''}
                                 onChange={(v) => setData('public_contact', { ...data.public_contact, phone: v })}
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                             {errors['public_contact.phone'] && (
                                 <p className="mt-1 text-sm text-red-400">{errors['public_contact.phone']}</p>
@@ -495,7 +500,7 @@ export default function PublicArtistProfileEdit({
                                     setData('public_contact', { ...data.public_contact, note: e.target.value })
                                 }
                                 rows={3}
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                                 placeholder="Örn. basın için …, booking saatleri …"
                             />
                             {errors['public_contact.note'] && (
@@ -505,8 +510,8 @@ export default function PublicArtistProfileEdit({
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">Menajer</h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Menajer</h2>
                     <p className="mt-1 text-sm text-zinc-500">Menajer veya temsilci bilgileri (opsiyonel).</p>
                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
                         <div>
@@ -516,7 +521,7 @@ export default function PublicArtistProfileEdit({
                                 onChange={(e) =>
                                     setData('manager_info', { ...data.manager_info, name: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                             {errors['manager_info.name'] && (
                                 <p className="mt-1 text-sm text-red-400">{errors['manager_info.name']}</p>
@@ -529,7 +534,7 @@ export default function PublicArtistProfileEdit({
                                 onChange={(e) =>
                                     setData('manager_info', { ...data.manager_info, company: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                         </div>
                         <div>
@@ -537,7 +542,7 @@ export default function PublicArtistProfileEdit({
                             <PhoneInput
                                 value={data.manager_info.phone ?? ''}
                                 onChange={(v) => setData('manager_info', { ...data.manager_info, phone: v })}
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                         </div>
                         <div>
@@ -551,7 +556,7 @@ export default function PublicArtistProfileEdit({
                                         email: sanitizeEmailInput(e.target.value),
                                     })
                                 }
-                                className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                             />
                             {errors['manager_info.email'] && (
                                 <p className="mt-1 text-sm text-red-400">{errors['manager_info.email']}</p>
@@ -560,8 +565,8 @@ export default function PublicArtistProfileEdit({
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
-                    <h2 className="font-display text-lg font-semibold text-white">Sosyal medya</h2>
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Sosyal medya</h2>
                     <p className="mt-1 text-sm text-zinc-500">Tam URL girin (ör. https://instagram.com/…).</p>
                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
                         {(Object.keys(emptySocial) as (keyof typeof emptySocial)[]).map((key) => (
@@ -575,7 +580,7 @@ export default function PublicArtistProfileEdit({
                                     onChange={(e) =>
                                         setData('social_links', { ...data.social_links, [key]: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
+                                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
                                     placeholder="https://"
                                 />
                             </div>

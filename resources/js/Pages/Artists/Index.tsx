@@ -253,9 +253,9 @@ export default function ArtistsIndex({
                 )}
 
                 {artists.data.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-zinc-900/30 py-24 text-center">
+                    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 py-24 text-center dark:border-white/10 dark:bg-zinc-900/30">
                         <div className="mb-4 text-6xl opacity-50">🎤</div>
-                        <h3 className="text-xl font-semibold text-white">Sanatçı bulunamadı</h3>
+                        <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">Sanatçı bulunamadı</h3>
                         <p className="mt-2 max-w-md text-zinc-500">Filtreleri değiştirmeyi deneyin.</p>
                     </div>
                 ) : (

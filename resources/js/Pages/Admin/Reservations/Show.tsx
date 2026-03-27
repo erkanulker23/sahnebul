@@ -34,63 +34,79 @@ export default function AdminReservationShow({ reservation }: Props) {
             <SeoHead title={`Rezervasyon #${reservation.id} - Admin | Sahnebul`} description="Rezervasyon detayı." noindex />
 
             <div className="space-y-6">
-                <Link href={route('admin.reservations.index')} className="mb-6 inline-block text-amber-400 hover:text-amber-300">← Rezervasyonlara Dön</Link>
-                <h1 className="mb-8 text-2xl font-bold text-white">Rezervasyon Detayı #{reservation.id}</h1>
+                <Link
+                    href={route('admin.reservations.index')}
+                    className="mb-6 inline-block text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                    ← Rezervasyonlara Dön
+                </Link>
+                <h1 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">Rezervasyon Detayı #{reservation.id}</h1>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-                        <h2 className="mb-4 font-semibold text-white">Bilgiler</h2>
+                    <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                        <h2 className="mb-4 font-semibold text-zinc-900 dark:text-white">Bilgiler</h2>
                         <dl className="space-y-3">
                             <div>
                                 <dt className="text-sm text-zinc-500">Hesap</dt>
-                                <dd className="text-white">{reservation.user.name} ({reservation.user.email})</dd>
+                                <dd className="text-zinc-900 dark:text-white">
+                                    {reservation.user.name} ({reservation.user.email})
+                                </dd>
                             </div>
                             {(reservation.guest_name || reservation.guest_phone) && (
                                 <div>
                                     <dt className="text-sm text-zinc-500">Form (ad / telefon)</dt>
-                                    <dd className="text-white">
+                                    <dd className="text-zinc-900 dark:text-white">
                                         {[reservation.guest_name, reservation.guest_phone].filter(Boolean).join(' · ')}
                                     </dd>
                                 </div>
                             )}
                             <div>
                                 <dt className="text-sm text-zinc-500">Sahne</dt>
-                                <dd className="text-white">{reservation.venue.name}</dd>
+                                <dd className="text-zinc-900 dark:text-white">{reservation.venue.name}</dd>
                             </div>
                             {reservation.event && (
                                 <div>
                                     <dt className="text-sm text-zinc-500">Etkinlik</dt>
-                                    <dd className="text-white">{reservation.event.title}</dd>
+                                    <dd className="text-zinc-900 dark:text-white">{reservation.event.title}</dd>
                                 </div>
                             )}
                             <div>
                                 <dt className="text-sm text-zinc-500">Tarih / Saat</dt>
-                                <dd className="text-white">{formatTurkishDateTimeFromParts(reservation.reservation_date, reservation.reservation_time)}</dd>
+                                <dd className="text-zinc-900 dark:text-white">
+                                    {formatTurkishDateTimeFromParts(reservation.reservation_date, reservation.reservation_time)}
+                                </dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-zinc-500">Tip</dt>
-                                <dd className="text-white">{reservation.reservation_type}</dd>
+                                <dd className="text-zinc-900 dark:text-white">{reservation.reservation_type}</dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-zinc-500">Misafir / Adet</dt>
-                                <dd className="text-white">{reservation.guest_count} / {reservation.quantity}</dd>
+                                <dd className="text-zinc-900 dark:text-white">
+                                    {reservation.guest_count} / {reservation.quantity}
+                                </dd>
                             </div>
                             <div>
                                 <dt className="text-sm text-zinc-500">Tutar</dt>
-                                <dd className="text-amber-400 font-medium">₺{Number(reservation.total_amount).toLocaleString('tr-TR')}</dd>
+                                <dd className="font-medium text-amber-700 dark:text-amber-400">
+                                    ₺{Number(reservation.total_amount).toLocaleString('tr-TR')}
+                                </dd>
                             </div>
                             {reservation.notes && (
                                 <div>
                                     <dt className="text-sm text-zinc-500">Not</dt>
-                                    <dd className="text-zinc-400">{reservation.notes}</dd>
+                                    <dd className="text-zinc-600 dark:text-zinc-400">{reservation.notes}</dd>
                                 </div>
                             )}
                         </dl>
                     </div>
 
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-                        <h2 className="mb-4 font-semibold text-white">Durum Güncelle</h2>
-                        <p className="mb-4 text-sm text-zinc-500">Mevcut durum: <span className="text-amber-400">{reservation.status}</span></p>
+                    <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                        <h2 className="mb-4 font-semibold text-zinc-900 dark:text-white">Durum Güncelle</h2>
+                        <p className="mb-4 text-sm text-zinc-500">
+                            Mevcut durum:{' '}
+                            <span className="text-amber-700 dark:text-amber-400">{reservation.status}</span>
+                        </p>
                         <div className="flex flex-wrap gap-2">
                             {['pending', 'confirmed', 'cancelled', 'completed'].map((s) => (
                                 <button
@@ -99,8 +115,8 @@ export default function AdminReservationShow({ reservation }: Props) {
                                     disabled={reservation.status === s}
                                     className={`rounded-lg px-4 py-2 text-sm ${
                                         reservation.status === s
-                                            ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
-                                            : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                            ? 'cursor-not-allowed bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'
+                                            : 'bg-amber-500/20 text-amber-800 hover:bg-amber-500/30 dark:text-amber-400'
                                     }`}
                                 >
                                     {s === 'pending' ? 'Bekleyen' : s === 'confirmed' ? 'Onayla' : s === 'cancelled' ? 'İptal' : 'Tamamlandı'}

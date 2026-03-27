@@ -707,31 +707,33 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
 
                             {mapsLoadError && <p className="text-xs text-red-400">{mapsLoadError}</p>}
                             {!mapsReady && !mapsLoadError && <p className="text-xs text-zinc-500">Haritalar yükleniyor…</p>}
-                            {searchMessage && <p className="text-xs text-amber-200/80">{searchMessage}</p>}
+                            {searchMessage && (
+                                <p className="text-xs text-amber-800 dark:text-amber-200/80">{searchMessage}</p>
+                            )}
 
                             {predictions.length > 0 && (
                                 <div>
                                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">Arama sonuçları</p>
-                                    <ul className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-zinc-900/40 p-1">
+                                    <ul className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-zinc-900/40">
                                         {predictions.map((p) => (
                                             <li
                                                 key={p.place_id}
-                                                className="flex items-start gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-white/10 hover:bg-zinc-800/60"
+                                                className="flex items-start gap-2 rounded-lg border border-transparent px-2 py-2 hover:border-zinc-200 hover:bg-zinc-50 dark:hover:border-white/10 dark:hover:bg-zinc-800/60"
                                             >
                                                 <span className="mt-0.5 text-zinc-500" aria-hidden>
                                                     📍
                                                 </span>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="text-sm font-semibold text-white">{p.main}</p>
+                                                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">{p.main}</p>
                                                     {p.secondary ? (
-                                                        <p className="text-xs text-zinc-400">{p.secondary}</p>
+                                                        <p className="text-xs text-zinc-500 dark:text-zinc-400">{p.secondary}</p>
                                                     ) : null}
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => void addPlaceById(p.place_id)}
                                                     disabled={detailPlaceId === p.place_id}
-                                                    className="shrink-0 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-lg font-medium leading-none text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50"
+                                                    className="shrink-0 rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 py-1.5 text-lg font-medium leading-none text-amber-800 transition hover:bg-amber-500/25 disabled:opacity-50 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
                                                     title="Forma ekle"
                                                     aria-label={`${p.main} konumunu forma ekle`}
                                                 >

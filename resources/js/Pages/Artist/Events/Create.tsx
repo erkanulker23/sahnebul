@@ -203,7 +203,7 @@ export default function ArtistEventCreate({
         <ArtistLayout>
             <SeoHead title="Etkinlik Ekle - Sahnebul" description="Yeni etkinlik oluşturun." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Yeni Etkinlik</h1>
+            <h1 className="font-display mb-8 text-2xl font-bold text-zinc-900 dark:text-white">Yeni Etkinlik</h1>
 
             <form onSubmit={submitMain} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>

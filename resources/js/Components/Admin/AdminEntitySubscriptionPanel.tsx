@@ -1,3 +1,5 @@
+import { inputBaseClass } from '@/Components/ui/Input';
+import { cn } from '@/lib/cn';
 import { router } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { FormEvent, useMemo, useState } from 'react';
@@ -66,6 +68,7 @@ export default function AdminEntitySubscriptionPanel({
     );
     const [endsAt, setEndsAt] = useState(defaultEndsAtLocal);
     const [submitting, setSubmitting] = useState(false);
+    const subField = cn('mt-1', inputBaseClass);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -89,8 +92,8 @@ export default function AdminEntitySubscriptionPanel({
 
     if (!owner) {
         return (
-            <div className="max-w-3xl rounded-xl border border-zinc-700 bg-zinc-900/40 p-6">
-                <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <div className="max-w-3xl rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900/40">
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{title}</h2>
                 <p className="mt-2 text-sm text-zinc-500">
                     Bu kayda bağlı kullanıcı yok. Üyelik paketi atamak için önce mekân/sanatçıyı bir kullanıcıya bağlayın.
                 </p>
@@ -99,20 +102,20 @@ export default function AdminEntitySubscriptionPanel({
     }
 
     return (
-        <div className="max-w-3xl rounded-xl border border-amber-500/25 bg-amber-500/5 p-6">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            {description ? <p className="mt-1 text-sm text-zinc-400">{description}</p> : null}
-            <p className="mt-3 text-sm text-zinc-300">
+        <div className="max-w-3xl rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 dark:border-amber-500/25 dark:bg-amber-500/5">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{title}</h2>
+            {description ? <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{description}</p> : null}
+            <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">
                 Kullanıcı:{' '}
-                <span className="font-medium text-white">
+                <span className="font-medium text-zinc-900 dark:text-white">
                     {owner.name} ({owner.email})
                 </span>
             </p>
             {ownerSubscription?.plan ? (
-                <div className="mt-3 rounded-lg border border-zinc-700 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-300">
+                <div className="mt-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
                     <p>
                         <span className="text-zinc-500">Güncel paket: </span>
-                        <span className="font-medium text-amber-200">{ownerSubscription.plan.name}</span>
+                        <span className="font-medium text-amber-800 dark:text-amber-200">{ownerSubscription.plan.name}</span>
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
                         {formatTurkishDateTime(ownerSubscription.starts_at, { withTime: false })} —{' '}
@@ -125,50 +128,50 @@ export default function AdminEntitySubscriptionPanel({
 
             <form onSubmit={submit} className="mt-5 space-y-4">
                 <fieldset className="space-y-2">
-                    <legend className="text-sm font-medium text-zinc-400">Atama</legend>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                    <legend className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Atama</legend>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                         <input
                             type="radio"
                             name="subscription_mode"
                             checked={subscriptionMode === 'remove'}
                             onChange={() => setSubscriptionMode('remove')}
-                            className="border-zinc-600 text-amber-500"
+                            className="border-zinc-300 text-amber-600 dark:border-zinc-600 dark:text-amber-500"
                         />
                         Paketi kaldır (aktif üyelikleri iptal et)
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                         <input
                             type="radio"
                             name="subscription_mode"
                             checked={subscriptionMode === 'complimentary'}
                             onChange={() => setSubscriptionMode('complimentary')}
-                            className="border-zinc-600 text-amber-500"
+                            className="border-zinc-300 text-amber-600 dark:border-zinc-600 dark:text-amber-500"
                         />
                         Sınırsız ücretsiz üyelik (yönetici, satış sayfasında görünmez)
                     </label>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                         <input
                             type="radio"
                             name="subscription_mode"
                             checked={subscriptionMode === 'plan'}
                             onChange={() => setSubscriptionMode('plan')}
-                            className="border-zinc-600 text-amber-500"
+                            className="border-zinc-300 text-amber-600 dark:border-zinc-600 dark:text-amber-500"
                         />
                         Mevcut paketlerden seç
                     </label>
                 </fieldset>
 
                 {subscriptionMode === 'plan' ? (
-                    <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-900/40 p-4">
+                    <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
                         <div>
-                            <label htmlFor="admin-sub-plan" className="block text-sm text-zinc-400">
+                            <label htmlFor="admin-sub-plan" className="block text-sm text-zinc-600 dark:text-zinc-400">
                                 Paket *
                             </label>
                             <select
                                 id="admin-sub-plan"
                                 value={planId}
                                 onChange={(e) => setPlanId(e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={subField}
                                 required={subscriptionMode === 'plan'}
                             >
                                 {plans.length === 0 ? <option value="">— Tanımlı paket yok —</option> : null}
@@ -180,7 +183,7 @@ export default function AdminEntitySubscriptionPanel({
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="admin-sub-ends" className="block text-sm text-zinc-400">
+                            <label htmlFor="admin-sub-ends" className="block text-sm text-zinc-600 dark:text-zinc-400">
                                 Bitiş tarihi *
                             </label>
                             <input
@@ -189,7 +192,7 @@ export default function AdminEntitySubscriptionPanel({
                                 value={endsAt}
                                 onChange={(e) => setEndsAt(e.target.value)}
                                 required={subscriptionMode === 'plan'}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={subField}
                             />
                         </div>
                     </div>

@@ -16,7 +16,7 @@ export default function ArtistProfileEdit({
         <ArtistLayout>
             <SeoHead title="Profil - Sahne Panel" description="Sahne paneli profil ayarları." noindex />
 
-            <h1 className="font-display mb-2 text-2xl font-bold text-white">Profil</h1>
+            <h1 className="font-display mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Profil</h1>
             <p className="mb-8 text-sm text-zinc-500">
                 {isOrg
                     ? 'Hesap bilgileri, organizasyon / firma ve vergi alanları, şifre ve hesap kapatma.'

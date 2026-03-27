@@ -227,16 +227,17 @@ export default function Register({
                 noindex
             />
 
-            <h2 className="font-display text-2xl font-bold text-white">Kayıt Ol</h2>
-            <p className="mt-2 text-sm text-zinc-500">Sanatçı veya mekân yönetimi için ücretsiz hesap oluşturun</p>
+            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Kayıt Ol</h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">Sanatçı veya mekân yönetimi için ücretsiz hesap oluşturun</p>
 
             {claimArtist && (
                 <div
                     role="status"
-                    className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+                    className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
                 >
-                    <span className="font-medium text-amber-200">Sahiplenme talebi:</span>{' '}
-                    <span className="text-white">{claimArtist.name}</span> profili seçili. Kayıt sonrası bu sayfada talep
+                    <span className="font-medium text-amber-900 dark:text-amber-200">Sahiplenme talebi:</span>{' '}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{claimArtist.name}</span> profili seçili. Kayıt sonrası bu
+                    sayfada talep
                     formunu doldurabilirsiniz.
                 </div>
             )}
@@ -244,17 +245,17 @@ export default function Register({
             {claimVenue && !claimArtist && (
                 <div
                     role="status"
-                    className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+                    className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100"
                 >
-                    <span className="font-medium text-amber-200">Sahiplenme talebi:</span> Mekan adı aşağıda{' '}
-                    <span className="text-white">{claimVenue.name}</span> olarak ayarlandı.
+                    <span className="font-medium text-amber-900 dark:text-amber-200">Sahiplenme talebi:</span> Mekan adı aşağıda{' '}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{claimVenue.name}</span> olarak ayarlandı.
                 </div>
             )}
 
             <div
                 role="tablist"
                 aria-label="Üyelik türü"
-                className="mt-6 flex w-full flex-wrap rounded-xl border border-white/20 bg-black/50 p-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
+                className="mt-6 flex w-full flex-wrap rounded-xl border border-zinc-200 bg-zinc-100 p-1 shadow-inner dark:border-white/20 dark:bg-black/50 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
             >
                 <button
                     ref={venueTabRef}
@@ -273,7 +274,7 @@ export default function Register({
                     className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium transition sm:px-3 sm:text-sm ${
                         data.membership_type === 'venue'
                             ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                            : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                            : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
                     }`}
                 >
                     Mekan Üyeliği
@@ -296,7 +297,7 @@ export default function Register({
                     className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium transition sm:px-3 sm:text-sm ${
                         data.membership_type === 'artist'
                             ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                            : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                            : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
                     }`}
                 >
                     Sanatçı Üyeliği
@@ -319,7 +320,7 @@ export default function Register({
                         className={`min-h-10 min-w-0 flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-xs font-medium leading-tight transition sm:px-3 sm:text-sm ${
                             data.membership_type === 'organization'
                                 ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                                : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                                : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
                         }`}
                     >
                         Organizasyon firması
@@ -435,7 +436,10 @@ export default function Register({
 
             <p className="mt-6 text-center text-sm text-zinc-500">
                 Zaten hesabınız var mı?{' '}
-                <a href={loginHref} className="font-medium text-amber-400 hover:text-amber-300">
+                <a
+                    href={loginHref}
+                    className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                >
                     Giriş yapın
                 </a>
             </p>

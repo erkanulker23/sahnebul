@@ -1,7 +1,8 @@
 import PhoneInput from '@/Components/PhoneInput';
-import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
+import { inputBaseClass } from '@/Components/ui/Input';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { cn } from '@/lib/cn';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { safeRoute } from '@/lib/safeRoute';
@@ -312,9 +313,9 @@ export default function AdminSettingsIndex({
         return keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
     }, [errors]);
 
-    const inputClass =
-        'mt-1 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60';
-    const labelClass = 'block text-sm font-medium text-zinc-400';
+    const inputClass = cn('mt-1 max-w-xl', inputBaseClass, 'disabled:cursor-not-allowed disabled:opacity-60');
+    const inputClassMd = cn('mt-1 max-w-md', inputBaseClass, 'disabled:cursor-not-allowed disabled:opacity-60');
+    const labelClass = 'block text-sm font-medium text-zinc-600 dark:text-zinc-400';
 
     const showSiteFormSave = superAdmin && SITE_FORM_TABS.includes(activeTab);
 
@@ -325,22 +326,22 @@ export default function AdminSettingsIndex({
             <div className="space-y-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Sistem ayarları</h1>
+                        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Sistem ayarları</h1>
                         <p className="mt-1 text-sm text-zinc-500">
                             Sekmelerden ilgili bölüme geçin. Site kimliği ve harita ayarlarını yalnızca süper yönetici kaydedebilir.
                         </p>
                     </div>
                     <Link
                         href={safeRoute('admin.seo-tools.index')}
-                        className="inline-flex items-center gap-2 self-start rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-200 transition hover:border-amber-500/40 hover:text-white"
+                        className="inline-flex items-center gap-2 self-start rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-sm text-zinc-800 transition hover:border-amber-500/50 hover:text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-white"
                     >
-                        <Search className="h-4 w-4 text-amber-400" />
+                        <Search className="h-4 w-4 text-amber-700 dark:text-amber-400" />
                         SEO / site haritası
                     </Link>
                 </div>
 
                 {/* Sekmeler */}
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-2">
+                <div className="rounded-xl border border-zinc-200 bg-white/90 p-2 dark:border-zinc-800 dark:bg-zinc-900/60">
                     <div
                         role="tablist"
                         aria-label="Ayarlar bölümleri"
@@ -360,17 +361,22 @@ export default function AdminSettingsIndex({
                                     className={cn(
                                         'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition',
                                         selected
-                                            ? 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/40'
-                                            : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200',
+                                            ? 'bg-amber-500/20 text-amber-900 ring-1 ring-amber-500/40 dark:bg-amber-500/15 dark:text-amber-300'
+                                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200',
                                     )}
                                 >
-                                    <Icon className={cn('h-4 w-4 shrink-0', selected ? 'text-amber-400' : 'text-zinc-500')} />
+                                    <Icon
+                                        className={cn(
+                                            'h-4 w-4 shrink-0',
+                                            selected ? 'text-amber-700 dark:text-amber-400' : 'text-zinc-500',
+                                        )}
+                                    />
                                     <span className="whitespace-nowrap">{label}</span>
                                 </button>
                             );
                         })}
                     </div>
-                    <p className="mt-2 border-t border-zinc-800/80 px-1 pt-2 text-xs text-zinc-500">
+                    <p className="mt-2 border-t border-zinc-200 px-1 pt-2 text-xs text-zinc-500 dark:border-zinc-800/80">
                         {TABS.find((t) => t.id === activeTab)?.description}
                     </p>
                 </div>
@@ -381,47 +387,47 @@ export default function AdminSettingsIndex({
                     role="tabpanel"
                     aria-labelledby="settings-tab-overview"
                     hidden={activeTab !== 'overview'}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900 p-6"
+                    className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
                 >
                     <h2 className="sr-only">Özet</h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-5">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950/50">
                             <p className="text-sm text-zinc-500">Toplam kullanıcı</p>
-                            <p className="mt-1 text-2xl font-bold text-white">{systemStats.total_users}</p>
+                            <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{systemStats.total_users}</p>
                         </div>
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-5">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950/50">
                             <p className="text-sm text-zinc-500">Toplam mekan</p>
-                            <p className="mt-1 text-2xl font-bold text-white">{systemStats.total_venues}</p>
+                            <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{systemStats.total_venues}</p>
                         </div>
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-5">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950/50">
                             <p className="text-sm text-zinc-500">Kategori sayısı</p>
-                            <p className="mt-1 text-2xl font-bold text-white">{systemStats.categories_count}</p>
+                            <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{systemStats.categories_count}</p>
                         </div>
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-5">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-950/50">
                             <p className="text-sm text-zinc-500">Şehir sayısı</p>
-                            <p className="mt-1 text-2xl font-bold text-white">{systemStats.cities_count}</p>
+                            <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-white">{systemStats.cities_count}</p>
                         </div>
                     </div>
                     <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <Link
                             href={route('admin.smtp.index')}
-                            className="rounded-lg border border-zinc-700 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/30 hover:text-white"
+                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 transition hover:border-amber-500/40 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-white"
                         >
-                            <span className="font-medium text-amber-400">SMTP / E-posta</span>
+                            <span className="font-medium text-amber-800 dark:text-amber-400">SMTP / E-posta</span>
                             <span className="mt-1 block text-xs text-zinc-500">Giden posta sunucusu (süper yönetici)</span>
                         </Link>
                         <Link
                             href={route('admin.ad-slots.index')}
-                            className="rounded-lg border border-zinc-700 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/30 hover:text-white"
+                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 transition hover:border-amber-500/40 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-white"
                         >
-                            <span className="font-medium text-amber-400">Reklam alanları</span>
+                            <span className="font-medium text-amber-800 dark:text-amber-400">Reklam alanları</span>
                             <span className="mt-1 block text-xs text-zinc-500">Banner ve yerleşimler</span>
                         </Link>
                         <Link
                             href={safeRoute('admin.seo-tools.index')}
-                            className="rounded-lg border border-zinc-700 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-200 transition hover:border-amber-500/30 hover:text-white"
+                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 transition hover:border-amber-500/40 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-white"
                         >
-                            <span className="font-medium text-amber-400">SEO / site haritası</span>
+                            <span className="font-medium text-amber-800 dark:text-amber-400">SEO / site haritası</span>
                             <span className="mt-1 block text-xs text-zinc-500">Search Console ve sitemap.xml</span>
                         </Link>
                     </div>
@@ -430,18 +436,18 @@ export default function AdminSettingsIndex({
                 {/* Site formu: marka, SEO, iletişim, harita — alanlar DOM’da kalır (dosya seçimleri korunur) */}
                 <form
                     onSubmit={submitSite}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900 p-6"
+                    className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
                     hidden={!SITE_FORM_TABS.includes(activeTab)}
                 >
                     <h2 className="sr-only">Site ve süper yönetici ayarları</h2>
 
                     {siteFormErrorList.length > 0 && (
                         <div
-                            className="mb-6 rounded-lg border border-rose-500/50 bg-rose-950/40 px-4 py-3 text-sm text-rose-100"
+                            className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/50 dark:bg-rose-950/40 dark:text-rose-100"
                             role="alert"
                         >
-                            <p className="font-semibold text-rose-200">Kayıt yapılamadı — lütfen alanları kontrol edin:</p>
-                            <ul className="mt-2 list-inside list-disc space-y-1 text-rose-100/95">
+                            <p className="font-semibold text-rose-900 dark:text-rose-200">Kayıt yapılamadı — lütfen alanları kontrol edin:</p>
+                            <ul className="mt-2 list-inside list-disc space-y-1 text-rose-800/95 dark:text-rose-100/95">
                                 {siteFormErrorList.map((msg, i) => (
                                     <li key={`${i}-${msg.slice(0, 40)}`}>{msg}</li>
                                 ))}
@@ -450,7 +456,7 @@ export default function AdminSettingsIndex({
                     )}
 
                     {!superAdmin && (
-                        <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                        <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
                             Hesabınız süper yönetici değil; aşağıdaki alanlar salt okunurdur.
                         </p>
                     )}
@@ -458,7 +464,7 @@ export default function AdminSettingsIndex({
                     {superAdmin && (
                         <p className="mb-6 text-sm text-zinc-500">
                             Giden posta için{' '}
-                            <Link href={route('admin.smtp.index')} className="font-medium text-amber-400 hover:underline">
+                            <Link href={route('admin.smtp.index')} className="font-medium text-amber-700 hover:text-amber-600 hover:underline dark:text-amber-400">
                                 SMTP / E-posta
                             </Link>{' '}
                             sayfasını kullanın.
@@ -474,8 +480,8 @@ export default function AdminSettingsIndex({
                             hidden={activeTab !== 'brand'}
                             className="space-y-5"
                         >
-                            <h3 className="text-lg font-semibold text-white">Marka ve görseller</h3>
-                            <p className="text-sm text-zinc-400">
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Marka ve görseller</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 Logo, favicon, ana sayfa banner’ı ve sitede görünen marka adı. Üst çubuk ve footer bu bilgilerle güncellenir.
                             </p>
 
@@ -484,7 +490,7 @@ export default function AdminSettingsIndex({
                                 {sp?.logo_url && !removeLogo && (
                                     <p className="mt-2 text-xs text-zinc-500">
                                         Mevcut:{' '}
-                                        <a href={sp.logo_url} className="text-amber-400 hover:underline" target="_blank" rel="noreferrer">
+                                        <a href={sp.logo_url} className="text-amber-700 hover:text-amber-600 hover:underline dark:text-amber-400" target="_blank" rel="noreferrer">
                                             görüntüle
                                         </a>
                                     </p>
@@ -492,7 +498,7 @@ export default function AdminSettingsIndex({
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950"
+                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
                                     onChange={(ev) => setLogoFile(ev.target.files?.[0] ?? null)}
                                 />
                                 {sp?.logo_url && (
@@ -508,7 +514,7 @@ export default function AdminSettingsIndex({
                                 {sp?.favicon_url && !removeFavicon && (
                                     <p className="mt-2 text-xs text-zinc-500">
                                         Mevcut:{' '}
-                                        <a href={sp.favicon_url} className="text-amber-400 hover:underline" target="_blank" rel="noreferrer">
+                                        <a href={sp.favicon_url} className="text-amber-700 hover:text-amber-600 hover:underline dark:text-amber-400" target="_blank" rel="noreferrer">
                                             görüntüle
                                         </a>
                                     </p>
@@ -516,7 +522,7 @@ export default function AdminSettingsIndex({
                                 <input
                                     type="file"
                                     accept=".ico,image/png,image/jpeg,image/webp,image/svg+xml"
-                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950"
+                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
                                     onChange={(ev) => setFaviconFile(ev.target.files?.[0] ?? null)}
                                 />
                                 {sp?.favicon_url && (
@@ -531,7 +537,7 @@ export default function AdminSettingsIndex({
                                 <span className={labelClass}>Ana sayfa banner (hero)</span>
                                 <p className="mt-1 max-w-xl text-xs text-zinc-500">
                                     Yalnızca ana sayfa (
-                                    <code className="rounded bg-zinc-800 px-1 text-zinc-300">/</code>) üst bölümü. Öneri: geniş yatay (ör. 21:9), en
+                                    <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/</code>) üst bölümü. Öneri: geniş yatay (ör. 21:9), en
                                     fazla 6 MB, JPEG/PNG/WebP.
                                 </p>
                                 {sp?.home_hero_url && !removeHomeHero && (
@@ -546,7 +552,7 @@ export default function AdminSettingsIndex({
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
-                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950"
+                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
                                     onChange={(ev) => setHomeHeroFile(ev.target.files?.[0] ?? null)}
                                 />
                                 {sp?.home_hero_url && (
@@ -580,8 +586,8 @@ export default function AdminSettingsIndex({
                             hidden={activeTab !== 'seo'}
                             className="space-y-4"
                         >
-                            <h3 className="text-lg font-semibold text-white">Arama ve paylaşım (SEO)</h3>
-                            <p className="text-sm text-zinc-400">
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Arama ve paylaşım (SEO)</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 Varsayılan meta açıklama, anahtar kelimeler, sosyal önizleme görseli ve arama konsolu doğrulaması.
                             </p>
 
@@ -619,7 +625,7 @@ export default function AdminSettingsIndex({
                                         Mevcut:{' '}
                                         <a
                                             href={sp.seo_og_image_url}
-                                            className="text-amber-400 hover:underline"
+                                            className="text-amber-700 hover:text-amber-600 hover:underline dark:text-amber-400"
                                             target="_blank"
                                             rel="noreferrer"
                                         >
@@ -630,7 +636,7 @@ export default function AdminSettingsIndex({
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
-                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950"
+                                    className="mt-2 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
                                     onChange={(ev) => setOgFile(ev.target.files?.[0] ?? null)}
                                 />
                                 {sp?.seo_og_image_url && (
@@ -675,7 +681,7 @@ export default function AdminSettingsIndex({
                             className="space-y-6"
                         >
                             <div>
-                                <h3 className="text-lg font-semibold text-white">İletişim bilgileri</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">İletişim bilgileri</h3>
                                 <p className="mt-1 text-sm text-zinc-400">Footer ve genel iletişim metinlerinde gösterilir.</p>
                                 <div className="mt-4 grid max-w-xl gap-4">
                                     <div>
@@ -716,10 +722,12 @@ export default function AdminSettingsIndex({
                                     </div>
                                 </div>
                             </div>
-                            <div className="border-t border-zinc-800 pt-6">
-                                <h3 className="text-lg font-semibold text-white">Sosyal medya</h3>
+                            <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Sosyal medya</h3>
                                 <p className="mt-1 text-xs text-zinc-500">
-                                    Tam URL (örn. <code className="rounded bg-zinc-800 px-1">https://instagram.com/…</code>). Boş bırakılanlar
+                                    Tam URL (örn. <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                                        https://instagram.com/…
+                                    </code>). Boş bırakılanlar
                                     listelenmez.
                                 </p>
                                 <div className="mt-4 grid max-w-xl gap-4">
@@ -813,22 +821,30 @@ export default function AdminSettingsIndex({
                             hidden={activeTab !== 'maps'}
                             className="space-y-4"
                         >
-                            <h3 className="text-lg font-semibold text-white">Google Maps (mekan adresi)</h3>
-                            <p className="text-sm text-zinc-400">
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Google Maps (mekan adresi)</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 Yönetici ve sanatçı mekan formlarında Places otomatik tamamlama. Maps JavaScript API ve Places açık olmalı; anahtarı
                                 referrer ile kısıtlayın.
                             </p>
                             <div className="flex flex-wrap gap-2 text-xs">
                                 {mapsApi?.key_set_in_db ? (
-                                    <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-emerald-300">Veritabanında anahtar kayıtlı</span>
+                                    <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-emerald-800 dark:text-emerald-300">
+                                        Veritabanında anahtar kayıtlı
+                                    </span>
                                 ) : (
-                                    <span className="rounded bg-zinc-800 px-2 py-0.5 text-zinc-400">Veritabanında anahtar yok</span>
+                                    <span className="rounded bg-zinc-200 px-2 py-0.5 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                        Veritabanında anahtar yok
+                                    </span>
                                 )}
                                 {mapsApi?.env_has_key ? (
-                                    <span className="rounded bg-zinc-800 px-2 py-0.5 text-zinc-400">.env: GOOGLE_MAPS_API_KEY tanımlı</span>
+                                    <span className="rounded bg-zinc-200 px-2 py-0.5 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                        .env: GOOGLE_MAPS_API_KEY tanımlı
+                                    </span>
                                 ) : null}
                             </div>
-                            <p className="text-xs text-amber-200/90">Buraya yazılan anahtar, .env içindeki değerin üzerindedir.</p>
+                            <p className="text-xs text-amber-800 dark:text-amber-200/90">
+                                Buraya yazılan anahtar, .env içindeki değerin üzerindedir.
+                            </p>
                             <div className="max-w-xl">
                                 <label htmlFor="gmaps-key" className={labelClass}>
                                     API anahtarı
@@ -861,7 +877,7 @@ export default function AdminSettingsIndex({
                     </fieldset>
 
                     {showSiteFormSave && (
-                        <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-6">
+                        <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800">
                             <button
                                 type="submit"
                                 disabled={siteFormBusy}
@@ -882,21 +898,22 @@ export default function AdminSettingsIndex({
                     role="tabpanel"
                     aria-labelledby="settings-tab-content"
                     hidden={activeTab !== 'content'}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900 p-6"
+                    className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
                 >
-                    <h2 className="text-lg font-semibold text-white">Platform içeriği</h2>
-                    <p className="mt-1 text-sm text-zinc-400">
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Platform içeriği</h2>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Statik sayfalar (Hakkımızda, yasal metinler) ve footer JSON tüm yöneticiler tarafından düzenlenebilir. Reklamlar:{' '}
-                        <Link href={route('admin.ad-slots.index')} className="font-medium text-amber-400 hover:underline">
+                        <Link href={route('admin.ad-slots.index')} className="font-medium text-amber-700 hover:text-amber-600 hover:underline dark:text-amber-400">
                             Reklam alanları
                         </Link>
                         .
                     </p>
 
-                    <div className="mt-8 border-t border-zinc-800 pt-8">
-                        <h3 className="font-semibold text-white">Statik sayfalar</h3>
+                    <div className="mt-8 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+                        <h3 className="font-semibold text-zinc-900 dark:text-white">Statik sayfalar</h3>
                         <p className="mt-1 text-sm text-zinc-500">
-                            Hakkımızda ve yasal metinler <code className="text-amber-400/90">/sayfalar/…</code> altında yayınlanır.
+                            Hakkımızda ve yasal metinler{' '}
+                            <code className="text-amber-800 dark:text-amber-400/90">/sayfalar/…</code> altında yayınlanır.
                         </p>
                         <div className="mt-4">
                             <label htmlFor="legal-slug" className={labelClass}>
@@ -906,7 +923,7 @@ export default function AdminSettingsIndex({
                                 id="legal-slug"
                                 value={legalSlug}
                                 onChange={(e) => setLegalSlug(e.target.value)}
-                                className="mt-1 w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={inputClassMd}
                             >
                                 {LEGAL_SLUGS.map((row) => (
                                     <option key={row.slug} value={row.slug}>
@@ -923,7 +940,7 @@ export default function AdminSettingsIndex({
                                 id="legal-title"
                                 value={currentLegal.title}
                                 onChange={(e) => setLegalTitle(e.target.value)}
-                                className="mt-1 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={inputClass}
                             />
                         </div>
                         <div className="mt-4">
@@ -936,25 +953,31 @@ export default function AdminSettingsIndex({
                                 className="mt-2"
                             />
                         </div>
-                        <details className="mt-4 rounded-lg border border-zinc-700/80 bg-zinc-950/50 p-3">
-                            <summary className="cursor-pointer text-sm text-zinc-400">Ham JSON (statik sayfalar)</summary>
+                        <details className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700/80 dark:bg-zinc-950/50">
+                            <summary className="cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
+                                Ham JSON (statik sayfalar)
+                            </summary>
                             <textarea
                                 readOnly
                                 rows={6}
                                 value={legalPagesJson}
-                                className="mt-2 w-full rounded bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-400"
+                                className={cn(
+                                    'mt-2 min-h-[120px] font-mono text-xs',
+                                    inputBaseClass,
+                                    'bg-zinc-100 text-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
+                                )}
                             />
                         </details>
                     </div>
 
-                    <div className="mt-8 border-t border-zinc-800 pt-8">
-                        <h3 className="font-semibold text-white">Footer JSON</h3>
+                    <div className="mt-8 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+                        <h3 className="font-semibold text-zinc-900 dark:text-white">Footer JSON</h3>
                         <p className="mt-1 text-xs text-zinc-500">Alt bilgi yapılandırması (bağlantılar, metinler).</p>
                         <textarea
                             value={footer}
                             onChange={(e) => setFooter(e.target.value)}
                             rows={10}
-                            className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-white"
+                            className={cn('mt-3 min-h-[200px] font-mono', inputBaseClass)}
                         />
                     </div>
 

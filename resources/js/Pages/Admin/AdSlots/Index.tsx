@@ -1,5 +1,6 @@
-import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { inputBaseClass } from '@/Components/ui/Input';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 
@@ -24,8 +25,7 @@ interface Props {
     slots: Record<string, SlotRow>;
 }
 
-const fieldClass =
-    'mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500';
+const fieldClass = `mt-1 ${inputBaseClass}`;
 
 export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Readonly<Props>) {
     const { data, setData, post, processing } = useForm({
@@ -55,11 +55,13 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Reklam alanları</h1>
-                    <p className="mt-2 max-w-3xl text-sm text-zinc-400">
-                        Her alan sitede sabit bir konuma bağlıdır. <strong className="text-zinc-300">Banner</strong> için görsel URL ve isteğe bağlı
-                        tıklama linki kullanın. <strong className="text-zinc-300">Google AdSense</strong> veya özel kod için{' '}
-                        <strong className="text-zinc-300">AdSense / özel HTML</strong> seçip reklam sağlayıcınızın verdiği kodu (script dahil) yapıştırın.
+                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Reklam alanları</h1>
+                    <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
+                        Her alan sitede sabit bir konuma bağlıdır.{' '}
+                        <strong className="text-zinc-800 dark:text-zinc-300">Banner</strong> için görsel URL ve isteğe bağlı tıklama linki kullanın.{' '}
+                        <strong className="text-zinc-800 dark:text-zinc-300">Google AdSense</strong> veya özel kod için{' '}
+                        <strong className="text-zinc-800 dark:text-zinc-300">AdSense / özel HTML</strong> seçip reklam sağlayıcınızın verdiği kodu (script
+                        dahil) yapıştırın.
                     </p>
                 </div>
 
@@ -70,30 +72,30 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                         return (
                             <details
                                 key={p.key}
-                                className="group rounded-lg border border-zinc-800 bg-zinc-900 open:border-amber-500/25 open:ring-1 open:ring-amber-500/10"
+                                className="group rounded-lg border border-zinc-200 bg-white open:border-amber-500/40 open:ring-1 open:ring-amber-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:open:border-amber-500/25 dark:open:ring-amber-500/10"
                             >
                                 <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-white">{p.label}</p>
+                                            <p className="font-semibold text-zinc-900 dark:text-white">{p.label}</p>
                                             <p className="mt-1 text-xs text-zinc-500">{p.description}</p>
-                                            <p className="mt-1 font-mono text-[10px] text-amber-500/80">slot: {p.key}</p>
+                                            <p className="mt-1 font-mono text-[10px] text-amber-700 dark:text-amber-500/80">slot: {p.key}</p>
                                         </div>
-                                        <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                                        <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                                             <input
                                                 type="checkbox"
                                                 checked={row.enabled}
                                                 onClick={(e) => e.stopPropagation()}
                                                 onChange={(e) => patchSlot(p.key, { enabled: e.target.checked })}
-                                                className="h-4 w-4 rounded border-zinc-600 text-amber-500"
+                                                className="h-4 w-4 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:text-amber-500"
                                             />
                                             Aktif
                                         </label>
                                     </div>
                                 </summary>
-                                <div className="border-t border-zinc-800 px-4 py-4 space-y-4">
+                                <div className="space-y-4 border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-400">Tür</label>
+                                        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Tür</label>
                                         <select
                                             className={fieldClass}
                                             value={row.type}
@@ -108,7 +110,7 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                                     {row.type === 'banner' && (
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <div className="sm:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-400">Görsel URL</label>
+                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Görsel URL</label>
                                                 <input
                                                     type="url"
                                                     className={fieldClass}
@@ -118,7 +120,9 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-400">Tıklanınca gidilecek link (isteğe bağlı)</label>
+                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                                    Tıklanınca gidilecek link (isteğe bağlı)
+                                                </label>
                                                 <input
                                                     type="url"
                                                     className={fieldClass}
@@ -128,7 +132,7 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-zinc-400">Alt metin</label>
+                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Alt metin</label>
                                                 <input
                                                     type="text"
                                                     className={fieldClass}
@@ -137,7 +141,9 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-zinc-400">Başlık (banner üzerinde kullanılmaz; not)</label>
+                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                                    Başlık (banner üzerinde kullanılmaz; not)
+                                                </label>
                                                 <input
                                                     type="text"
                                                     className={fieldClass}
@@ -150,7 +156,7 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
 
                                     {(row.type === 'adsense' || row.type === 'custom_html') && (
                                         <div>
-                                            <label className="block text-xs font-medium text-zinc-400">HTML / script</label>
+                                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">HTML / script</label>
                                             <textarea
                                                 className={`${fieldClass} font-mono text-xs`}
                                                 rows={10}
@@ -170,7 +176,7 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                     type="button"
                     onClick={save}
                     disabled={processing}
-                    className="rounded-lg bg-amber-500 px-5 py-2.5 font-semibold text-zinc-950 disabled:opacity-50"
+                    className="rounded-lg bg-amber-500 px-5 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50 dark:hover:bg-amber-400"
                 >
                     {processing ? 'Kaydediliyor…' : 'Tümünü kaydet'}
                 </button>

@@ -1,3 +1,5 @@
+import { inputBaseClass } from '@/Components/ui/Input';
+import { cn } from '@/lib/cn';
 import { useId, useMemo, useState } from 'react';
 
 function matchesTr(haystack: string, needle: string): boolean {
@@ -149,15 +151,15 @@ export default function AdminArtistMultiSelect({
                     placeholder="İsim yazın, alttan seçin…"
                     autoComplete="off"
                     disabled={available.length === 0}
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn('w-full', inputBaseClass, 'disabled:cursor-not-allowed disabled:opacity-50')}
                 />
-                <div className="max-h-52 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800/50">
+                <div className="max-h-52 overflow-y-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800/50">
                     {available.length === 0 ? (
                         <p className="px-3 py-3 text-sm text-zinc-500">Eklenecek sanatçı kalmadı.</p>
                     ) : availableFiltered.length === 0 ? (
                         <p className="px-3 py-3 text-sm text-zinc-500">Aramanızla eşleşen sanatçı yok.</p>
                     ) : (
-                        <ul className="divide-y divide-zinc-700/80">
+                        <ul className="divide-y divide-zinc-200 dark:divide-zinc-700/80">
                             {availableFiltered.map((a) => {
                                 const av = storageImageUrl(a.avatar);
                                 return (
@@ -165,12 +167,15 @@ export default function AdminArtistMultiSelect({
                                         <button
                                             type="button"
                                             onClick={() => add(a.id)}
-                                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-zinc-100 hover:bg-zinc-700/70"
+                                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-zinc-800 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-700/70"
                                         >
                                             {av ? (
                                                 <img src={av} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                                             ) : (
-                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-xs" aria-hidden>
+                                                <span
+                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs dark:bg-zinc-700"
+                                                    aria-hidden
+                                                >
                                                     🎤
                                                 </span>
                                             )}

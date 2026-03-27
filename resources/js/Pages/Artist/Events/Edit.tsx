@@ -79,7 +79,7 @@ function ReviewColumn({
 }: Readonly<{ title: string; hint: string; rows: PanelReviewRow[] }>) {
     return (
         <div className="rounded-xl border border-white/10 bg-zinc-900/40 p-5">
-            <h2 className="font-display text-lg font-semibold text-white">{title}</h2>
+            <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">{title}</h2>
             <p className="mt-1 text-xs text-zinc-500">{hint}</p>
             {rows.length === 0 ? (
                 <p className="mt-4 text-sm text-zinc-500">Henüz değerlendirme yok.</p>
@@ -172,7 +172,7 @@ export default function ArtistEventEdit({
         <ArtistLayout>
             <SeoHead title={`${event.title} Düzenle - Sahnebul`} description="Etkinlik bilgilerini güncelleyin." noindex />
 
-            <h1 className="font-display mb-6 text-2xl font-bold text-white">Etkinlik Düzenle</h1>
+            <h1 className="font-display mb-6 text-2xl font-bold text-zinc-900 dark:text-white">Etkinlik Düzenle</h1>
 
             {lineup.length > 0 && (
                 <section className="mb-8 max-w-2xl rounded-xl border border-white/10 bg-zinc-900/40 p-5">

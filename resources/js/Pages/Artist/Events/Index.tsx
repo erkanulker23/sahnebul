@@ -139,7 +139,7 @@ export default function ArtistEventsIndex({
 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                    <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Etkinlikler</h1>
+                    <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">Etkinlikler</h1>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
                         Mekânınıza ait etkinlikleri buradan yönetin; sanatçı olarak davet edildiğiniz etkinlikler de listelenir — düzenleme yetkisi
                         yalnızca mekân sahibindedir.

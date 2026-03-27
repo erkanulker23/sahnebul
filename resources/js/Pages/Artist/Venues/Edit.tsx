@@ -114,7 +114,7 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
         <ArtistLayout>
             <SeoHead title={`${venue.name} Düzenle - Sahnebul`} description="Mekan bilgilerini ve galeriyi güncelleyin." noindex />
 
-            <h1 className="font-display mb-8 text-2xl font-bold text-white">Mekan düzenle</h1>
+            <h1 className="font-display mb-8 text-2xl font-bold text-zinc-900 dark:text-white">Mekan düzenle</h1>
 
             <form onSubmit={submit} className="max-w-2xl space-y-6 rounded-xl border border-white/5 bg-zinc-900/50 p-8">
                 <div>
@@ -290,7 +290,7 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
             </form>
 
             <section className="mt-12 max-w-2xl rounded-xl border border-white/5 bg-zinc-900/50 p-8">
-                <h2 className="font-display text-lg font-semibold text-white">Mekan galerisi</h2>
+                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Mekan galerisi</h2>
                 <p className="mt-1 text-sm text-zinc-500">
                     Fotoğraflar mekan sayfasında “Mekan Fotoğrafları” bölümünde gösterilir. JPG, PNG veya WebP, en fazla 10 MB.
                 </p>

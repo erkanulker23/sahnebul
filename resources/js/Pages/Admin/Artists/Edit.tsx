@@ -1,11 +1,13 @@
 import PhoneInput from '@/Components/PhoneInput';
 import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
+import { inputBaseClass } from '@/Components/ui/Input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
+import { cn } from '@/lib/cn';
 import { Link, router, useForm } from '@inertiajs/react';
 
 interface MediaItem {
@@ -134,6 +136,15 @@ export default function AdminArtistEdit({
         banner_upload: null as File | null,
     });
 
+    const field = cn('mt-1', inputBaseClass);
+    const fieldMax = cn('mt-2 max-w-xl', inputBaseClass);
+    const fieldPh = cn(
+        'mt-2',
+        inputBaseClass,
+        'placeholder:text-zinc-500 dark:placeholder:text-zinc-600',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+    );
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         put(route('admin.artists.update', artist.id), {
@@ -202,10 +213,13 @@ export default function AdminArtistEdit({
             <div className="space-y-6">
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <Link href={route('admin.artists.index')} className="text-sm text-amber-400 hover:text-amber-300">
+                        <Link
+                            href={route('admin.artists.index')}
+                            className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
                             ← Sanatçı listesi
                         </Link>
-                        <h1 className="mt-2 text-2xl font-bold text-white">Sanatçı düzenle</h1>
+                        <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı düzenle</h1>
                         <p className="mt-1 text-sm text-zinc-500">/{artist.slug}</p>
                     </div>
                     <div className="flex gap-2">
@@ -213,7 +227,7 @@ export default function AdminArtistEdit({
                             href={route('artists.show', artist.slug)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
                             Sitede aç
                         </Link>
@@ -245,7 +259,7 @@ export default function AdminArtistEdit({
                             <input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                             {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                         </div>
@@ -254,7 +268,7 @@ export default function AdminArtistEdit({
                             <select
                                 value={data.status}
                                 onChange={(e) => setData('status', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             >
                                 <option value="pending">Beklemede</option>
                                 <option value="approved">Onaylı</option>
@@ -269,7 +283,7 @@ export default function AdminArtistEdit({
                             <select
                                 value={data.managed_by_user_id}
                                 onChange={(e) => setData('managed_by_user_id', e.target.value)}
-                                className="mt-2 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={fieldMax}
                             >
                                 <option value="">— Atanmadı —</option>
                                 {managerUsers.map((u) => (
@@ -288,7 +302,7 @@ export default function AdminArtistEdit({
                                 type="url"
                                 value={data.website}
                                 onChange={(e) => setData('website', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                     </div>
@@ -309,7 +323,7 @@ export default function AdminArtistEdit({
                             value={data.avatar}
                             onChange={(e) => setData('avatar', e.target.value)}
                             placeholder="https://... veya boş bırakıp dosya yükleyin"
-                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            className={field}
                         />
                         <div className="mt-2 flex flex-wrap items-center gap-3">
                             {storageUrl(data.avatar) && (
@@ -351,7 +365,7 @@ export default function AdminArtistEdit({
                             value={data.banner_image}
                             onChange={(e) => setData('banner_image', e.target.value)}
                             placeholder="https://... veya boş"
-                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            className={field}
                         />
                         {storageUrl(data.banner_image) && (
                             <div className="mt-2 overflow-hidden rounded-lg border border-zinc-700">
@@ -394,7 +408,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, instagram: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -404,7 +418,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, twitter: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -414,7 +428,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, youtube: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div className="sm:col-span-2">
@@ -452,7 +466,7 @@ export default function AdminArtistEdit({
                                 }
                                 disabled={data.spotify_auto_link_disabled}
                                 placeholder="https://open.spotify.com/intl-tr/artist/… veya 22 karakterlik sanatçı ID"
-                                className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                className={fieldPh}
                             />
                             {(errors as Record<string, string | undefined>)['social_links.spotify'] && (
                                 <p className="mt-1 text-sm text-red-400">
@@ -467,7 +481,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, tiktok: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -477,7 +491,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, facebook: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                     </div>
@@ -498,7 +512,7 @@ export default function AdminArtistEdit({
                                         email: sanitizeEmailInput(e.target.value),
                                     })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -506,7 +520,7 @@ export default function AdminArtistEdit({
                             <PhoneInput
                                 value={data.public_contact.phone ?? ''}
                                 onChange={(v) => setData('public_contact', { ...data.public_contact, phone: v })}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div className="sm:col-span-2">
@@ -517,7 +531,7 @@ export default function AdminArtistEdit({
                                     setData('public_contact', { ...data.public_contact, note: e.target.value })
                                 }
                                 rows={2}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                     </div>
@@ -533,7 +547,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('manager_info', { ...data.manager_info, name: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -543,7 +557,7 @@ export default function AdminArtistEdit({
                                 onChange={(e) =>
                                     setData('manager_info', { ...data.manager_info, company: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -551,7 +565,7 @@ export default function AdminArtistEdit({
                             <PhoneInput
                                 value={data.manager_info.phone ?? ''}
                                 onChange={(v) => setData('manager_info', { ...data.manager_info, phone: v })}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                         <div>
@@ -565,7 +579,7 @@ export default function AdminArtistEdit({
                                         email: sanitizeEmailInput(e.target.value),
                                     })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                             />
                         </div>
                     </div>
@@ -600,7 +614,7 @@ export default function AdminArtistEdit({
                                 <button
                                     type="button"
                                     onClick={() => router.post(route('admin.artists.reject', artist.id), {}, { preserveScroll: true })}
-                                    className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 >
                                     Reddet
                                 </button>
@@ -610,7 +624,7 @@ export default function AdminArtistEdit({
                 </form>
 
                 <section className="mt-10 max-w-3xl rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
-                    <h2 className="text-lg font-semibold text-white">Galeri</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
                     <p className="mt-1 text-sm text-zinc-500">Fotoğraf ekleyin veya silin.</p>
                     <input
                         type="file"

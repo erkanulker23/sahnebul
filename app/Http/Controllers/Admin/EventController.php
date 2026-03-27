@@ -439,18 +439,20 @@ class EventController extends Controller
             'urls_text' => ['nullable', 'string', 'max:65535'],
             'mode' => ['required', 'string', 'in:image_cover,image_listing,promo_video'],
             'append_promo' => ['sometimes', 'boolean'],
+            'promo_kind' => ['nullable', 'string', Rule::in(['story', 'post'])],
         ]);
 
         $appendPromo = (bool) ($validated['append_promo'] ?? true);
+        $promoKind = ($validated['promo_kind'] ?? 'story') === 'post' ? 'post' : 'story';
         $urlsText = trim((string) ($validated['urls_text'] ?? ''));
         $urlSingle = trim((string) ($validated['url'] ?? ''));
 
         if ($urlsText !== '') {
             $lines = preg_split('/\r\n|\r|\n/', $urlsText);
             $urls = array_values(array_filter(array_map('trim', $lines), fn (string $l) => $l !== ''));
-            $result = $importer->importMany($event->fresh(), $urls, $validated['mode'], $appendPromo);
+            $result = $importer->importMany($event->fresh(), $urls, $validated['mode'], $appendPromo, $promoKind);
         } elseif ($urlSingle !== '') {
-            $result = $importer->import($event->fresh(), $urlSingle, $validated['mode'], $appendPromo);
+            $result = $importer->import($event->fresh(), $urlSingle, $validated['mode'], $appendPromo, $promoKind);
         } else {
             return back()->with('error', 'En az bir bağlantı veya satır girin.');
         }
@@ -468,13 +470,15 @@ class EventController extends Controller
             'promo_video_upload' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
             'promo_poster_upload' => ['nullable', 'file', 'max:12288', 'image'],
             'append_promo' => ['sometimes', 'boolean'],
+            'promo_kind' => ['nullable', 'string', Rule::in(['story', 'post'])],
         ]);
 
         $append = (bool) ($validated['append_promo'] ?? true);
+        $promoKind = ($validated['promo_kind'] ?? 'story') === 'post' ? 'post' : 'story';
         $video = $request->file('promo_video_upload');
         $poster = $request->file('promo_poster_upload');
 
-        $result = $importer->appendPromoFromUploads($event->fresh(), $video, $poster, $append);
+        $result = $importer->appendPromoFromUploads($event->fresh(), $video, $poster, $append, $promoKind);
 
         if (! $result['success']) {
             return back()->with('error', $result['message']);

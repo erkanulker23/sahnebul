@@ -1,3 +1,5 @@
+import { inputBaseClass } from '@/Components/ui/Input';
+import { cn } from '@/lib/cn';
 import { Plus, Trash2 } from 'lucide-react';
 
 export type TicketOutletRow = { label: string; url: string };
@@ -68,11 +70,13 @@ export default function TicketSalesEditor({
     const isArtist = variant === 'artist';
     const boxClass = isArtist
         ? 'rounded-xl border border-white/10 bg-zinc-800/40 p-4'
-        : 'rounded-lg border border-zinc-700 bg-zinc-800/50 p-4';
-    const labelClass = isArtist ? 'text-sm font-medium text-zinc-400' : 'block text-sm font-medium text-zinc-400';
+        : 'rounded-lg border border-zinc-200 bg-white/90 p-4 dark:border-zinc-700 dark:bg-zinc-800/50';
+    const labelClass = isArtist
+        ? 'text-sm font-medium text-zinc-400'
+        : 'block text-sm font-medium text-zinc-600 dark:text-zinc-400';
     const inputClass = isArtist
         ? 'mt-1 w-full rounded-xl border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-white'
-        : 'mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white';
+        : cn('mt-1', inputBaseClass);
 
     const modeOption = (mode: TicketAcquisitionMode, title: string, body: string) => (
         <label
@@ -80,7 +84,9 @@ export default function TicketSalesEditor({
             className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
                 acquisitionMode === mode
                     ? 'border-amber-500/70 bg-amber-500/10'
-                    : 'border-zinc-600/80 bg-zinc-900/30 hover:border-zinc-500'
+                    : isArtist
+                      ? 'border-zinc-600/80 bg-zinc-900/30 hover:border-zinc-500'
+                      : 'border-zinc-200 bg-zinc-50 hover:border-zinc-400 dark:border-zinc-600/80 dark:bg-zinc-900/30 dark:hover:border-zinc-500'
             }`}
         >
             <input
@@ -89,10 +95,16 @@ export default function TicketSalesEditor({
                 value={mode}
                 checked={acquisitionMode === mode}
                 onChange={() => onAcquisitionModeChange(mode)}
-                className="mt-1 h-4 w-4 border-zinc-600 text-amber-500 focus:ring-amber-500"
+                className="mt-1 h-4 w-4 border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:text-amber-500"
             />
             <span>
-                <span className={`block ${isArtist ? 'text-sm font-medium text-white' : 'font-medium text-zinc-200'}`}>{title}</span>
+                <span
+                    className={`block ${
+                        isArtist ? 'text-sm font-medium text-white' : 'font-medium text-zinc-800 dark:text-zinc-200'
+                    }`}
+                >
+                    {title}
+                </span>
                 <span className="mt-0.5 block text-xs text-zinc-500">{body}</span>
             </span>
         </label>
@@ -103,7 +115,11 @@ export default function TicketSalesEditor({
     return (
         <div className="space-y-4">
             <div>
-                <h3 className={`font-semibold ${isArtist ? 'text-white' : 'text-zinc-200'}`}>Bilet satın alma / rezervasyon</h3>
+                <h3
+                    className={`font-semibold ${isArtist ? 'text-white' : 'text-zinc-900 dark:text-zinc-200'}`}
+                >
+                    Bilet satın alma / rezervasyon
+                </h3>
                 <p className="mt-1 text-xs text-zinc-500">
                     Ziyaretçiler etkinlik sayfasında bu seçime göre yönlendirilir: harici biletleme siteleri, Sahnebul rezervasyon formu veya yalnızca telefon /
                     iletişim.
@@ -156,7 +172,7 @@ export default function TicketSalesEditor({
                                     }
                                     onOutletsChange(next);
                                 }}
-                                className="rounded-md border border-zinc-600 px-2 py-1 text-xs font-medium text-zinc-300 hover:border-amber-500/50 hover:text-amber-400"
+                                className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:border-amber-500/50 hover:text-amber-700 dark:border-zinc-600 dark:text-zinc-300 dark:hover:text-amber-400"
                             >
                                 + {p.label}
                             </button>
@@ -200,7 +216,7 @@ export default function TicketSalesEditor({
                                         }
                                         onOutletsChange(outlets.filter((_, j) => j !== i));
                                     }}
-                                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-zinc-600 text-zinc-400 hover:border-red-500/50 hover:text-red-400 sm:mb-0.5"
+                                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-zinc-300 text-zinc-500 hover:border-red-500/50 hover:text-red-600 dark:border-zinc-600 dark:text-zinc-400 dark:hover:text-red-400 sm:mb-0.5"
                                     aria-label="Satırı sil"
                                 >
                                     <Trash2 className="h-4 w-4" />
@@ -212,7 +228,7 @@ export default function TicketSalesEditor({
                         <button
                             type="button"
                             onClick={() => onOutletsChange([...outlets, emptyTicketOutletRow()])}
-                            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-500 hover:text-amber-400"
+                            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:text-amber-600 dark:text-amber-500 dark:hover:text-amber-400"
                         >
                             <Plus className="h-4 w-4" />
                             Bağlantı ekle

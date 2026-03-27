@@ -1,5 +1,7 @@
-import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { inputBaseClass } from '@/Components/ui/Input';
+import { cn } from '@/lib/cn';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
@@ -39,6 +41,8 @@ export default function AdminSmtpIndex({ smtp: smtpProp }: Readonly<Props>) {
     }, [smtpProp]);
 
     const encValue = smtp.encryption ?? '';
+    const field = cn('mt-1', inputBaseClass);
+    const lbl = 'block text-sm font-medium text-zinc-600 dark:text-zinc-400';
 
     const saveSmtp = () => {
         router.post(route('admin.smtp.update'), {
@@ -59,22 +63,22 @@ export default function AdminSmtpIndex({ smtp: smtpProp }: Readonly<Props>) {
 
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">SMTP / E-posta</h1>
-                    <p className="mt-2 text-sm text-zinc-400">
+                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">SMTP / E-posta</h1>
+                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                         İletişim formu ve sistem e-postaları bu ayarlarla gönderilir. Şifre veritabanında Laravel Crypt ile saklanır; istemciye iletilmez.
                     </p>
                 </div>
 
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+                <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
                     <p className="mb-4 text-sm text-zinc-500">
                         Gönderici şifresi boş bırakılırsa mevcut şifre korunur
                         {smtp.password_set ? ' (kayıtlı şifre var).' : ' (şifre tanımlı değil).'}
                     </p>
                     <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className="block text-sm text-zinc-400">Mailer</label>
+                            <label className={lbl}>Mailer</label>
                             <select
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.mailer}
                                 onChange={(e) => setSmtp((s) => ({ ...s, mailer: e.target.value }))}
                             >
@@ -85,28 +89,28 @@ export default function AdminSmtpIndex({ smtp: smtpProp }: Readonly<Props>) {
                             </select>
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm text-zinc-400">Host</label>
+                            <label className={lbl}>Host</label>
                             <input
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.host}
                                 onChange={(e) => setSmtp((s) => ({ ...s, host: e.target.value }))}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-zinc-400">Port</label>
+                            <label className={lbl}>Port</label>
                             <input
                                 type="number"
                                 min={1}
                                 max={65535}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.port}
                                 onChange={(e) => setSmtp((s) => ({ ...s, port: Number.parseInt(e.target.value, 10) || 0 }))}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-zinc-400">Şifreleme</label>
+                            <label className={lbl}>Şifreleme</label>
                             <select
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={encValue}
                                 onChange={(e) => {
                                     const v = e.target.value;
@@ -122,37 +126,37 @@ export default function AdminSmtpIndex({ smtp: smtpProp }: Readonly<Props>) {
                             </select>
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm text-zinc-400">Kullanıcı adı</label>
+                            <label className={lbl}>Kullanıcı adı</label>
                             <input
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.username ?? ''}
                                 onChange={(e) => setSmtp((s) => ({ ...s, username: e.target.value || null }))}
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm text-zinc-400">Şifre (değiştirmek için yazın)</label>
+                            <label className={lbl}>Şifre (değiştirmek için yazın)</label>
                             <input
                                 type="password"
                                 autoComplete="new-password"
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtpPassword}
                                 onChange={(e) => setSmtpPassword(e.target.value)}
                                 placeholder="••••••••"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-zinc-400">Gönderen e-posta</label>
+                            <label className={lbl}>Gönderen e-posta</label>
                             <input
                                 type="email"
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.from_address}
                                 onChange={(e) => setSmtp((s) => ({ ...s, from_address: e.target.value }))}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-zinc-400">Gönderen adı</label>
+                            <label className={lbl}>Gönderen adı</label>
                             <input
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className={field}
                                 value={smtp.from_name}
                                 onChange={(e) => setSmtp((s) => ({ ...s, from_name: e.target.value }))}
                             />
@@ -164,12 +168,12 @@ export default function AdminSmtpIndex({ smtp: smtpProp }: Readonly<Props>) {
                             value={testMailTo}
                             onChange={(e) => setTestMailTo(e.target.value)}
                             placeholder="Test e-posta alıcısı"
-                            className="rounded bg-zinc-800 px-3 py-2 text-sm text-white"
+                            className={cn('max-w-xs', inputBaseClass)}
                         />
                         <button
                             type="button"
                             onClick={() => router.post(route('admin.smtp.test-mail'), { to: testMailTo })}
-                            className="rounded border border-emerald-400/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-300"
+                            className="rounded border border-emerald-500/40 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-300"
                         >
                             Test mail gönder
                         </button>

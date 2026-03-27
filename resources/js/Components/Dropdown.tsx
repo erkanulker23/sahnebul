@@ -54,7 +54,7 @@ const Trigger = ({ children }: PropsWithChildren) => {
 const Content = ({
     align = 'right',
     width = '48',
-    contentClasses = 'py-1 rounded-xl border border-white/10 bg-zinc-900 shadow-xl',
+    contentClasses = 'rounded-xl border border-zinc-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-zinc-900',
     children,
 }: PropsWithChildren<{
     align?: 'left' | 'right';
@@ -112,7 +112,7 @@ const DropdownLink = ({
         <Link
             {...props}
             className={cn(
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-zinc-300 transition duration-150 ease-in-out hover:bg-white/5 hover:text-white focus:bg-white/5 focus:outline-none',
+                'block w-full px-4 py-2 text-start text-sm leading-5 text-zinc-700 transition duration-150 ease-in-out hover:bg-zinc-100 hover:text-zinc-900 focus:bg-zinc-100 focus:outline-none dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white dark:focus:bg-white/5',
                 className,
             )}
         >

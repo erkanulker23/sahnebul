@@ -1,4 +1,6 @@
 import InputError from '@/Components/InputError';
+import { inputBaseClass } from '@/Components/ui/Input';
+import { cn } from '@/lib/cn';
 import LocationSelect from '@/Components/LocationSelect';
 import RichTextEditor from '@/Components/RichTextEditor';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
@@ -55,8 +57,7 @@ function parseLaravelErrors(err: unknown): Record<string, string> {
     return out;
 }
 
-const fieldClass =
-    'w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500';
+const fieldClass = cn('w-full', inputBaseClass);
 
 type Props = {
     venues: AdminVenueOption[];
@@ -253,7 +254,7 @@ export default function AdminEventVenueField({
                         transition
                         className="max-h-[min(90vh,52rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl"
                     >
-                        <DialogTitle className="text-lg font-semibold text-white">Yeni mekan ekle</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold text-zinc-900 dark:text-white">Yeni mekan ekle</DialogTitle>
                         <p className="mt-1 text-xs text-zinc-500">
                             Mekan, etkinlik formunda kullanılmak üzere <strong className="text-zinc-400">onaylı</strong> olarak kaydedilir. Tam düzenleme için
                             daha sonra Mekanlar sayfasını kullanabilirsiniz.
