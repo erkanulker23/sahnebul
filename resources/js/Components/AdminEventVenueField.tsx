@@ -91,12 +91,14 @@ export default function AdminEventVenueField({
     const [mAddress, setMAddress] = useState('');
     const [mLatitude, setMLatitude] = useState('');
     const [mLongitude, setMLongitude] = useState('');
+    const [mGoogleMapsUrl, setMGoogleMapsUrl] = useState('');
     const [mCapacity, setMCapacity] = useState('');
     const [mPhone, setMPhone] = useState('');
     const [mWhatsapp, setMWhatsapp] = useState('');
     const [mWebsite, setMWebsite] = useState('');
     const [mSocial, setMSocial] = useState<SocialLinks>(() => emptySocial());
     const [mCoverImage, setMCoverImage] = useState('');
+    const [mGoogleGalleryUrls, setMGoogleGalleryUrls] = useState<string[]>([]);
 
     const resetModalForm = useCallback(() => {
         setMName('');
@@ -108,12 +110,14 @@ export default function AdminEventVenueField({
         setMAddress('');
         setMLatitude('');
         setMLongitude('');
+        setMGoogleMapsUrl('');
         setMCapacity('');
         setMPhone('');
         setMWhatsapp('');
         setMWebsite('');
         setMSocial(emptySocial());
         setMCoverImage('');
+        setMGoogleGalleryUrls([]);
         setModalErrors({});
     }, [categories]);
 
@@ -148,12 +152,14 @@ export default function AdminEventVenueField({
             address: mAddress,
             latitude: mLatitude || null,
             longitude: mLongitude || null,
+            google_maps_url: mGoogleMapsUrl.trim() || null,
             capacity: mCapacity ? Number(mCapacity) : null,
             phone: mPhone || null,
             whatsapp: mWhatsapp || null,
             website: mWebsite.trim() || null,
             social_links: mSocial,
             cover_image: mCoverImage.trim() || null,
+            ...(mGoogleGalleryUrls.length > 0 ? { google_gallery_photo_urls: mGoogleGalleryUrls.slice(0, 5) } : {}),
         };
         axios
             .post<{ venue: AdminVenueOption }>(route('admin.venues.store-for-event'), payload, {
@@ -278,6 +284,9 @@ export default function AdminEventVenueField({
                                             setMAddress(payload.address);
                                             setMLatitude(payload.latitude);
                                             setMLongitude(payload.longitude);
+                                            if (payload.googleMapsUrl) {
+                                                setMGoogleMapsUrl(payload.googleMapsUrl);
+                                            }
                                             if (payload.city_id) setMCityId(payload.city_id);
                                             if (payload.district_id) setMDistrictId(payload.district_id);
                                             else if (payload.city_id) setMDistrictId('');
@@ -303,7 +312,11 @@ export default function AdminEventVenueField({
                                                 const html = payload.descriptionHtmlFromGoogle;
                                                 setMDescription((d) => (isRichTextProbablyEmpty(d) ? html : d));
                                             }
-                                            if (payload.coverImageUrlFromGoogle?.trim()) {
+                                            if (payload.galleryImageUrlsFromGoogle?.length) {
+                                                setMGoogleGalleryUrls(payload.galleryImageUrlsFromGoogle.slice(0, 5));
+                                                setMCoverImage(payload.coverImageUrlFromGoogle?.trim() ?? '');
+                                            } else if (payload.coverImageUrlFromGoogle?.trim()) {
+                                                setMGoogleGalleryUrls([]);
                                                 setMCoverImage(payload.coverImageUrlFromGoogle.trim());
                                             }
                                         }}

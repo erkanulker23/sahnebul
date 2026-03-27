@@ -20,7 +20,7 @@ final class AuthPortalUrls
     }
 
     /**
-     * @return array{customer: string, artist: string, venue: string, admin: string}
+     * @return array{customer: string, artist: string, venue: string, organization: string, admin: string, stage: string}
      */
     public static function forInertiaShare(): array
     {
@@ -28,7 +28,9 @@ final class AuthPortalUrls
             'customer' => self::relative('login', '/giris/kullanici'),
             'artist' => self::relative('login.sanatci', '/giris/sanatci'),
             'venue' => self::relative('login.mekan', '/giris/mekan'),
+            'organization' => self::relative('login.organizasyon', '/giris/organizasyon'),
             'admin' => self::relative('login.admin', '/yonetim/giris'),
+            'stage' => self::relative('login.sahne', '/giris/sahne'),
         ];
     }
 
@@ -38,7 +40,7 @@ final class AuthPortalUrls
             return self::relative('login.admin', '/yonetim/giris');
         }
         if ($request->is('sahne') || $request->is('sahne/*')) {
-            return self::relative('login.sanatci', '/giris/sanatci');
+            return self::relative('login.sahne', '/giris/sahne');
         }
 
         return self::relative('login', '/giris/kullanici');

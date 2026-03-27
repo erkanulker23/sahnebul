@@ -1,8 +1,11 @@
+import PhoneInput from '@/Components/PhoneInput';
 import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
-import { Link, useForm } from '@inertiajs/react';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
+import { Link, router, useForm } from '@inertiajs/react';
+import { useRef, useState } from 'react';
 
 interface ArtistPayload {
     id: number;
@@ -32,10 +35,19 @@ interface ProfileAnalytics {
     published_events_listed: number;
 }
 
+interface GalleryItem {
+    id: number;
+    url: string;
+    moderation_status: string;
+    moderation_note: string | null;
+}
+
 interface Props {
     artist: ArtistPayload | null;
     profileAnalytics: ProfileAnalytics | null;
     musicGenreOptions?: string[];
+    gallery?: GalleryItem[];
+    artistProfileApproved?: boolean;
 }
 
 function formatInt(n: number): string {
@@ -60,10 +72,26 @@ const socialLabels: Record<string, string> = {
     facebook: 'Facebook',
 };
 
-export default function PublicArtistProfileEdit({ artist, profileAnalytics, musicGenreOptions = [] }: Readonly<Props>) {
+function moderationLabel(status: string): string {
+    if (status === 'approved') return 'Yayında';
+    if (status === 'pending') return 'Onay bekliyor';
+    if (status === 'rejected') return 'Reddedildi';
+    return status;
+}
+
+export default function PublicArtistProfileEdit({
+    artist,
+    profileAnalytics,
+    musicGenreOptions = [],
+    gallery = [],
+    artistProfileApproved = false,
+}: Readonly<Props>) {
     const sl = artist?.social_links ?? {};
     const mgr = artist?.manager_info ?? {};
     const pub = artist?.public_contact ?? {};
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadBusy, setUploadBusy] = useState(false);
 
     const { data, setData, put, processing, errors } = useForm({
         bio: artist?.bio ?? '',
@@ -96,6 +124,28 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
         e.preventDefault();
         if (!artist) return;
         put(route('artist.public-profile.update'), { preserveScroll: true });
+    };
+
+    const onPickPhotos = () => {
+        fileInputRef.current?.click();
+    };
+
+    const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!artist || !files?.length) return;
+        const fd = new FormData();
+        Array.from(files).forEach((file, i) => {
+            fd.append(`photos[${i}]`, file);
+        });
+        setUploadBusy(true);
+        router.post(route('artist.public-profile.gallery.store'), fd, {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => {
+                setUploadBusy(false);
+                e.target.value = '';
+            },
+        });
     };
 
     const toggleMusicGenre = (label: string) => {
@@ -179,6 +229,68 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
                 </section>
             ) : null}
 
+            {artist ? (
+                <section className="mb-10 max-w-3xl rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
+                    <h2 className="font-display text-lg font-semibold text-white">Galeri</h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                        Çoklu fotoğraf yükleyebilir veya silebilirsiniz.
+                        {artistProfileApproved
+                            ? ' Onaylı sanatçı profiliniz olduğu için görseller doğrudan sayfanızda yayınlanır.'
+                            : ' Profiliniz henüz onaylı değilse yüklemeler yönetici onayına gider; onaylanana kadar kamu sayfasında görünmez.'}
+                    </p>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={onFilesSelected}
+                    />
+                    <button
+                        type="button"
+                        onClick={onPickPhotos}
+                        disabled={uploadBusy}
+                        className="mt-4 rounded-xl bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-200 hover:bg-amber-500/30 disabled:opacity-50"
+                    >
+                        {uploadBusy ? 'Yükleniyor…' : 'Fotoğraf ekle'}
+                    </button>
+                    {gallery.length > 0 ? (
+                        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                            {gallery.map((g) => (
+                                <li key={g.id} className="group relative overflow-hidden rounded-xl border border-white/10 bg-zinc-950/60">
+                                    <img src={g.url} alt="" className="aspect-square w-full object-cover" />
+                                    <div className="absolute left-2 top-2">
+                                        <span
+                                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                                g.moderation_status === 'approved'
+                                                    ? 'bg-emerald-500/90 text-white'
+                                                    : g.moderation_status === 'pending'
+                                                      ? 'bg-amber-500/90 text-zinc-900'
+                                                      : 'bg-zinc-600 text-white'
+                                            }`}
+                                        >
+                                            {moderationLabel(g.moderation_status)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 border-t border-white/10 p-2">
+                                        <Link
+                                            href={route('artist.public-profile.gallery.destroy', g.id)}
+                                            method="delete"
+                                            as="button"
+                                            className="text-xs font-medium text-red-400 hover:text-red-300"
+                                        >
+                                            Sil
+                                        </Link>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-4 text-sm text-zinc-500">Henüz galeri fotoğrafı yok.</p>
+                    )}
+                </section>
+            ) : null}
+
             <form onSubmit={submit} className="max-w-3xl space-y-10">
                 <section className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 sm:p-8">
                     <h2 className="font-display text-lg font-semibold text-white">Hakkında ve web</h2>
@@ -237,7 +349,10 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
                                 type="email"
                                 value={data.public_contact.email}
                                 onChange={(e) =>
-                                    setData('public_contact', { ...data.public_contact, email: e.target.value })
+                                    setData('public_contact', {
+                                        ...data.public_contact,
+                                        email: sanitizeEmailInput(e.target.value),
+                                    })
                                 }
                                 className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
                             />
@@ -247,11 +362,9 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Telefon</label>
-                            <input
-                                value={data.public_contact.phone}
-                                onChange={(e) =>
-                                    setData('public_contact', { ...data.public_contact, phone: e.target.value })
-                                }
+                            <PhoneInput
+                                value={data.public_contact.phone ?? ''}
+                                onChange={(v) => setData('public_contact', { ...data.public_contact, phone: v })}
                                 className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
                             />
                             {errors['public_contact.phone'] && (
@@ -305,11 +418,9 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Telefon</label>
-                            <input
-                                value={data.manager_info.phone}
-                                onChange={(e) =>
-                                    setData('manager_info', { ...data.manager_info, phone: e.target.value })
-                                }
+                            <PhoneInput
+                                value={data.manager_info.phone ?? ''}
+                                onChange={(v) => setData('manager_info', { ...data.manager_info, phone: v })}
                                 className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
                             />
                         </div>
@@ -319,7 +430,10 @@ export default function PublicArtistProfileEdit({ artist, profileAnalytics, musi
                                 type="email"
                                 value={data.manager_info.email}
                                 onChange={(e) =>
-                                    setData('manager_info', { ...data.manager_info, email: e.target.value })
+                                    setData('manager_info', {
+                                        ...data.manager_info,
+                                        email: sanitizeEmailInput(e.target.value),
+                                    })
                                 }
                                 className="mt-1 w-full rounded-xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-white"
                             />

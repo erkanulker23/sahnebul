@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -14,6 +15,7 @@ class Artist extends Model
 {
     protected $fillable = [
         'user_id',
+        'managed_by_user_id',
         'name',
         'slug',
         'bio',
@@ -33,9 +35,13 @@ class Artist extends Model
         'spotify_popularity',
         'spotify_followers',
         'spotify_albums',
+        'spotify_auto_link_disabled',
+        'availability_visible_to_managers',
     ];
 
     protected $casts = [
+        'spotify_auto_link_disabled' => 'boolean',
+        'availability_visible_to_managers' => 'boolean',
         'social_links' => 'array',
         'manager_info' => 'array',
         'public_contact' => 'array',
@@ -57,6 +63,12 @@ class Artist extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Organizasyon / menajer hesabı (admin atar). */
+    public function managedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'managed_by_user_id');
+    }
+
     public function events(): BelongsToMany
     {
         return $this->belongsToMany(Event::class, 'event_artists')
@@ -73,6 +85,29 @@ class Artist extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ArtistMedia::class)->orderBy('order');
+    }
+
+    /** Kamu sanatçı sayfası — yalnızca onaylı galeri görselleri */
+    public function approvedGalleryMedia(): HasMany
+    {
+        return $this->hasMany(ArtistMedia::class)
+            ->where('moderation_status', ArtistMedia::MODERATION_APPROVED)
+            ->orderBy('order');
+    }
+
+    public function publicEditSuggestions(): MorphMany
+    {
+        return $this->morphMany(PublicEditSuggestion::class, 'suggestable');
+    }
+
+    public function availabilityDays(): HasMany
+    {
+        return $this->hasMany(ArtistAvailabilityDay::class)->orderBy('date');
+    }
+
+    public function managerAvailabilityRequests(): HasMany
+    {
+        return $this->hasMany(ArtistManagerAvailabilityRequest::class);
     }
 
     public function scopeApproved($query)
@@ -144,7 +179,9 @@ class Artist extends Model
             return;
         }
 
-        $models->loadMissing(['media' => fn ($m) => $m->orderBy('order')->limit(1)]);
+        $models->loadMissing([
+            'media' => fn ($m) => $m->where('moderation_status', ArtistMedia::MODERATION_APPROVED)->orderBy('order')->limit(1),
+        ]);
         foreach ($models as $artist) {
             $fallback = $artist->media->first();
             $path = $artist->avatar ?? $fallback?->path ?? $fallback?->thumbnail;

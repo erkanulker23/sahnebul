@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Artist;
 use App\Services\AppSettingsService;
 use App\Support\AuthPortalUrls;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -93,6 +94,7 @@ class HandleInertiaRequests extends Middleware
                 /** admin / super_admin: müşteri rezervasyon menüsü ve akışı kapalı */
                 'is_platform_admin' => $user !== null && $user->isAdmin(),
                 'is_super_admin' => $user !== null && $user->isSuperAdmin(),
+                'is_manager_organization' => $user !== null && $user->isManagerOrganization(),
                 /**
                  * Saf sanatçı (rol artist, mekân yok, bekleyen mekân kaydı yok): panelde Mekanlarım / Rezervasyonlar gizlenir.
                  */
@@ -101,6 +103,7 @@ class HandleInertiaRequests extends Middleware
                     || ($user->venues_count ?? 0) > 0
                     || (is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '')
                 ),
+                'email_verification_banner' => $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail(),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

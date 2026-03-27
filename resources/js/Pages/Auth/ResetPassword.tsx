@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -44,7 +45,7 @@ export default function ResetPassword({
                         value={data.email}
                         className="mt-1 block w-full"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('email', sanitizeEmailInput(e.target.value))}
                     />
 
                     <InputError message={errors.email} className="mt-2" />

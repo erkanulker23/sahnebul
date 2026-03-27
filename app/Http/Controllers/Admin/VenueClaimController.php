@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\VenueClaimRequest;
+use App\Services\SahnebulMail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -36,6 +37,8 @@ class VenueClaimController extends Controller
             ->where('status', 'pending')
             ->update(['status' => 'rejected', 'reviewed_at' => now(), 'reviewed_by' => $request->user()->id]);
 
+        SahnebulMail::venueClaimResolved($claim->fresh(['venue', 'user']), true);
+
         return back()->with('success', 'Sahiplenme talebi onaylandı.');
     }
 
@@ -46,6 +49,9 @@ class VenueClaimController extends Controller
             'reviewed_at' => now(),
             'reviewed_by' => $request->user()->id,
         ]);
+
+        SahnebulMail::venueClaimResolved($claim->fresh(['venue', 'user']), false);
+
         return back()->with('success', 'Sahiplenme talebi reddedildi.');
     }
 }

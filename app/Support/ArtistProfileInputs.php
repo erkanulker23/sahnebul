@@ -19,12 +19,14 @@ class ArtistProfileInputs
         if (preg_match('#open\.spotify\.com/(?:intl-[a-z]{2}/)?artist/([a-zA-Z0-9]+)#i', $s, $m)) {
             return $m[1];
         }
+        if (preg_match('#^[a-zA-Z0-9]{22}\s*$#', $s, $m)) {
+            return trim($m[0]);
+        }
 
         return null;
     }
 
     /**
-     * @param  mixed  $input
      * @return array<string, string>|null
      */
     public static function normalizeSocialLinks(mixed $input): ?array
@@ -47,7 +49,6 @@ class ArtistProfileInputs
     }
 
     /**
-     * @param  mixed  $input
      * @param  list<string>  $allowedKeys
      * @return array<string, string>|null
      */
@@ -71,4 +72,3 @@ class ArtistProfileInputs
         return $out === [] ? null : $out;
     }
 }
-

@@ -156,6 +156,19 @@ export function AppHeader() {
                                         <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
                                         Mekan kaydı
                                     </Link>
+                                    <Link href={route('login.organizasyon')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                        <LogIn className="h-4 w-4 opacity-70" aria-hidden />
+                                        Organizasyon girişi
+                                    </Link>
+                                    <Link
+                                        href={route('register', { uyelik: 'organizasyon' })}
+                                        className={flyoutItemClass}
+                                        onClick={close}
+                                        role="menuitem"
+                                    >
+                                        <UserPlus className="h-4 w-4 opacity-70" aria-hidden />
+                                        Organizasyon kaydı
+                                    </Link>
                                 </>
                             )}
                         </NavFlyout>
@@ -324,6 +337,22 @@ export function AppHeader() {
                                 >
                                     <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                                     Mekan kaydı
+                                </Link>
+                                <Link
+                                    href={route('login.organizasyon')}
+                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                    onClick={closeDrawer}
+                                >
+                                    <LogIn className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                    Organizasyon girişi
+                                </Link>
+                                <Link
+                                    href={route('register', { uyelik: 'organizasyon' })}
+                                    className="flex items-center gap-2 rounded-md py-2 text-sm text-zinc-600 dark:text-zinc-400"
+                                    onClick={closeDrawer}
+                                >
+                                    <UserPlus className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+                                    Organizasyon kaydı
                                 </Link>
                             </div>
                             <Link

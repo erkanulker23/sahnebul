@@ -72,7 +72,7 @@ class EventPublicController extends Controller
         }
 
         $event->load([
-            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links,cover_image,latitude,longitude',
+            'venue:id,name,slug,address,city_id,category_id,phone,whatsapp,website,social_links,cover_image,latitude,longitude,google_maps_url',
             'venue.city:id,name',
             'venue.category:id,name',
             'artists' => fn ($q) => $q
@@ -95,7 +95,7 @@ class EventPublicController extends Controller
 
         $artistIds = $event->artists->pluck('id')->all();
 
-        $upcomingColumns = ['id', 'slug', 'title', 'start_date', 'ticket_price', 'venue_id', 'is_full', 'cover_image', 'listing_image'];
+        $upcomingColumns = ['id', 'slug', 'title', 'start_date', 'ticket_price', 'entry_is_paid', 'venue_id', 'is_full', 'cover_image', 'listing_image'];
 
         $upcomingRelations = [
             'venue' => fn ($q) => $q
@@ -137,9 +137,12 @@ class EventPublicController extends Controller
 
         $u = $request->user();
         $hasEventReminder = $u !== null
-            && $u->isCustomer()
-            && $u->email_verified_at !== null
+            && $u->canUsePublicEngagementFeatures()
             && $u->remindedEvents()->whereKey($event->id)->exists();
+
+        $canSubmitEventReview = $u !== null
+            && $u->canUsePublicEngagementFeatures()
+            && $u->canSubmitEventReviewForEvent((int) $event->id);
 
         return Inertia::render('Events/Show', [
             'event' => $event,
@@ -148,10 +151,13 @@ class EventPublicController extends Controller
             'artistUpcomingEvents' => $artistUpcomingEvents,
             'eventReviews' => $eventReviews,
             'eventCustomerActions' => [
-                'canToggle' => $u !== null && $u->isCustomer() && $u->email_verified_at !== null
+                'canToggle' => $u !== null && $u->canUsePublicEngagementFeatures()
                     && $event->start_date !== null
                     && $event->start_date->isFuture(),
                 'hasReminder' => $hasEventReminder,
+            ],
+            'eventReviewEligibility' => [
+                'canSubmit' => $canSubmitEventReview,
             ],
         ]);
     }

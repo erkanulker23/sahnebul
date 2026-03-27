@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Artist;
 use App\Models\ArtistClaimRequest;
+use App\Services\SahnebulMail;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 
 class ArtistClaimController extends Controller
@@ -22,12 +25,13 @@ class ArtistClaimController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:100',
             'last_name' => 'required|string|max:100',
-            'phone' => 'required|string|max:30',
-            'email' => 'required|email|max:255',
+            'phone' => UserContactValidation::phoneRequired(),
+            'email' => UserContactValidation::emailRequired(),
             'message' => 'nullable|string|max:1000',
         ]);
+        $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
 
-        ArtistClaimRequest::updateOrCreate(
+        $claim = ArtistClaimRequest::updateOrCreate(
             ['artist_id' => $artist->id, 'user_id' => $request->user()->id],
             [
                 'first_name' => $validated['first_name'],
@@ -40,6 +44,8 @@ class ArtistClaimController extends Controller
                 'reviewed_by' => null,
             ]
         );
+
+        SahnebulMail::artistClaimSubmitted($artist, $request->user(), $claim);
 
         return back()->with('success', 'Sanatçı profili sahiplenme talebiniz alındı.');
     }

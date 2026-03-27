@@ -6,6 +6,7 @@ import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { safeRoute } from '@/lib/safeRoute';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 
@@ -27,15 +28,21 @@ const portalMeta: Record<
     },
     mekan: {
         title: 'Mekan paneli girişi - Sahnebul',
-        description: 'Mekan üyeliği veya size bağlı mekan kaydı ile panel.',
+        description: 'Mekân sahibi hesabı veya mekânı/üyeliği olan kullanıcı hesabı ile sahne paneli.',
         headline: 'Mekan paneli',
-        sub: 'Mekan hesabınızla giriş yapın',
+        sub: 'Mekân kaydı veya mekânınız bağlı kullanıcı hesabı ile giriş',
+    },
+    organizasyon: {
+        title: 'Organizasyon girişi - Sahnebul',
+        description: 'Organizasyon firması hesabı ile sahne paneli: mekân ve etkinlik yönetimi, sanatçı müsaitlik talepleri.',
+        headline: 'Organizasyon firması',
+        sub: 'Organizasyon / ajans hesabınızla giriş yapın',
     },
     yonetim: {
-        title: 'Yönetim girişi - Sahnebul',
-        description: 'Yalnızca yönetici hesapları.',
-        headline: 'Yönetim paneli',
-        sub: 'Yönetici hesabınızla giriş yapın',
+        title: 'Site yönetimi girişi - Sahnebul',
+        description: 'Yalnızca platform süper yöneticisi ve admin hesapları (/admin).',
+        headline: 'Site yönetimi',
+        sub: 'Süper yönetici veya admin hesabınızla giriş yapın',
     },
 };
 
@@ -76,6 +83,9 @@ export default function LoginPortal({
             }
             return safeRoute('register', { uyelik: 'mekan' });
         }
+        if (portal === 'organizasyon') {
+            return safeRoute('register', { uyelik: 'organizasyon' });
+        }
         return safeRoute('register.kullanici');
     }, [portal, claimVenueSlug, claimArtistSlug]);
 
@@ -102,11 +112,28 @@ export default function LoginPortal({
             <p className="mt-2 text-sm text-zinc-500">{meta.sub}</p>
             {portal === 'kullanici' && (
                 <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
-                    Yönetici hesabıyla giriş için{' '}
-                    <Link href={safeRoute('login.admin')} className="font-medium text-amber-400 hover:text-amber-300">
-                        yönetim paneli girişi
+                    Bu sayfa bireysel kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya organizasyon firması hesabı için aşağıdaki «Diğer girişler» bağlantılarını kullanın.
+                </p>
+            )}
+            {portal === 'mekan' && (
+                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
+                    <strong className="font-medium text-zinc-300">Kimler?</strong> Mekân üyeliğiyle kayıt olduysanız (mekân sahibi hesabı) doğrudan buradan girin. Hesabınız
+                    standart kullanıcıysa ve size ait mekân kaydı veya mekân üyeliği varsa yine bu sayfa uygundur. Sanatçı için{' '}
+                    <Link href={safeRoute('login.sanatci')} className="font-medium text-amber-400 hover:text-amber-300">
+                        Sanatçı paneli girişi
+                    </Link>
+                    , organizasyon firması için{' '}
+                    <Link href={safeRoute('login.organizasyon')} className="font-medium text-amber-400 hover:text-amber-300">
+                        Organizasyon girişi
                     </Link>{' '}
-                    kullanın; bu sayfa yalnızca standart kullanıcı içindir.
+                    kullanılır.
+                </p>
+            )}
+            {portal === 'organizasyon' && (
+                <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-zinc-400">
+                    <strong className="font-medium text-zinc-300">Not:</strong> Bu sayfa organizasyon / ajans firması hesapları içindir. Platformun tamamını yöneten{' '}
+                    <strong className="font-medium text-zinc-300">site yönetimi</strong> hesabı değildir; site yönetimi{' '}
+                    <code className="rounded bg-zinc-800 px-1 text-zinc-300">/yonetim/giris</code> adresinden giriş yapar.
                 </p>
             )}
 
@@ -121,7 +148,7 @@ export default function LoginPortal({
                         className="mt-2 block w-full"
                         autoComplete="username"
                         isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('email', sanitizeEmailInput(e.target.value))}
                     />
                     <InputError message={errors.email} className="mt-2" />
                 </div>
@@ -174,8 +201,8 @@ export default function LoginPortal({
                     <Link href={safeRoute('login.mekan')} className="text-amber-400 hover:text-amber-300">
                         Mekan
                     </Link>
-                    <Link href={safeRoute('login.admin')} className="text-amber-400 hover:text-amber-300">
-                        Yönetim
+                    <Link href={safeRoute('login.organizasyon')} className="text-amber-400 hover:text-amber-300">
+                        Organizasyon
                     </Link>
                 </div>
             </div>
@@ -201,6 +228,14 @@ export default function LoginPortal({
                     Hesabınız yok mu?{' '}
                     <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
                         Mekan kaydı
+                    </a>
+                </p>
+            )}
+            {portal === 'organizasyon' && (
+                <p className="mt-4 text-center text-sm text-zinc-500">
+                    Hesabınız yok mu?{' '}
+                    <a href={registerHref} className="font-medium text-amber-400 hover:text-amber-300">
+                        Organizasyon kaydı
                     </a>
                 </p>
             )}

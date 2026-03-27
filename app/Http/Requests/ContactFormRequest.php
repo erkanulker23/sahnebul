@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ContactFormRequest extends FormRequest
@@ -11,6 +13,14 @@ class ContactFormRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $email = $this->input('email');
+        if (is_string($email)) {
+            $this->merge(['email' => preg_replace('/\s+/', '', $email)]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -18,12 +28,23 @@ class ContactFormRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:40'],
+            'email' => UserContactValidation::emailRequired(),
+            'phone' => UserContactValidation::phoneNullable(),
             'subject' => ['nullable', 'string', 'max:200'],
             'message' => ['required', 'string', 'max:5000'],
             'consent' => ['accepted'],
         ];
+    }
+
+    protected function passedValidation(): void
+    {
+        $phone = $this->input('phone');
+        if (is_string($phone) && trim($phone) !== '') {
+            $n = TurkishPhone::normalize($phone);
+            if ($n !== null) {
+                $this->merge(['phone' => $n]);
+            }
+        }
     }
 
     /**

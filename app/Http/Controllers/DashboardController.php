@@ -19,8 +19,8 @@ class DashboardController extends Controller
             return redirect()->route('artist.dashboard');
         }
 
-        if (! $user->isCustomer()) {
-            return redirect()->route('home')->with('error', 'Bu özet paneli yalnızca kullanıcı hesapları içindir.');
+        if (! ($user->isCustomer() || $user->canUsePublicEngagementFeatures())) {
+            return redirect()->route('home')->with('error', 'Bu özet paneline erişemezsiniz.');
         }
 
         $favoriteArtists = $user->favoriteArtists()
@@ -47,7 +47,7 @@ class DashboardController extends Controller
             ->with(['venue:id,name,slug', 'artists:id,name,slug,avatar'])
             ->orderBy('start_date')
             ->limit(6)
-            ->get(['id', 'slug', 'venue_id', 'title', 'start_date', 'ticket_price']);
+            ->get(['id', 'slug', 'venue_id', 'title', 'start_date', 'ticket_price', 'entry_is_paid']);
 
         return Inertia::render('Dashboard', [
             'recentReservations' => $recentReservations,

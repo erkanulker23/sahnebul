@@ -2,7 +2,8 @@ import { AdminButton, AdminDataTable, AdminPageHeader, type AdminColumn } from '
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
-import { router, usePage } from '@inertiajs/react';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 interface User {
@@ -12,6 +13,8 @@ interface User {
     role: string;
     is_active: boolean;
     created_at: string;
+    /** Hesaba bağlı sanatçı kaydı (admin sanatçı düzenleme) */
+    linked_artist_id?: number | null;
 }
 
 interface Props {
@@ -19,10 +22,23 @@ interface Props {
     filters: { search?: string; role?: string; status?: string };
 }
 
+function roleLabelTr(role: string): string {
+    const map: Record<string, string> = {
+        customer: 'Müşteri',
+        artist: 'Sanatçı',
+        venue_owner: 'Mekân sahibi',
+        manager_organization: 'Organizasyon firması',
+        admin: 'Admin',
+        super_admin: 'Süper admin',
+    };
+    return map[role] ?? role;
+}
+
 const inputClass =
     'w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500';
 
 export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
+    const isOrganizationFirmsList = filters.role === 'manager_organization';
     const currentUserId = (usePage().props.auth as { user?: { id: number } })?.user?.id;
     const [editingUserId, setEditingUserId] = useState<number | null>(null);
     const [form, setForm] = useState({
@@ -63,7 +79,7 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                 mobileLabel: 'Rol',
                 cell: (user) => (
                     <span className="inline-flex rounded-md bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
-                        {user.role}
+                        {roleLabelTr(user.role)}
                     </span>
                 ),
             },
@@ -89,12 +105,28 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
 
     return (
         <AdminLayout>
-            <SeoHead title="Kullanıcılar - Admin | Sahnebul" description="Kullanıcı hesaplarını yönetin." noindex />
+            <SeoHead
+                title={
+                    isOrganizationFirmsList
+                        ? 'Organizasyon Firmaları - Admin | Sahnebul'
+                        : 'Kullanıcılar - Admin | Sahnebul'
+                }
+                description={
+                    isOrganizationFirmsList
+                        ? 'Organizasyon firması hesaplarını listeleyin ve yönetin.'
+                        : 'Kullanıcı hesaplarını yönetin.'
+                }
+                noindex
+            />
 
             <div className="space-y-6">
                 <AdminPageHeader
-                    title="Kullanıcı Yönetimi"
-                    description="Hesapları oluşturun, düzenleyin veya dondurun."
+                    title={isOrganizationFirmsList ? 'Organizasyon Firmaları' : 'Kullanıcı Yönetimi'}
+                    description={
+                        isOrganizationFirmsList
+                            ? 'Ajans ve organizasyon şirketi hesapları; yeni firma ekleyebilir veya mevcut kayıtları düzenleyebilirsiniz.'
+                            : 'Hesapları oluşturun, düzenleyin veya dondurun.'
+                    }
                 />
 
                 <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 sm:p-6">
@@ -109,7 +141,7 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                         />
                         <input
                             value={form.email}
-                            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                            onChange={(e) => setForm((f) => ({ ...f, email: sanitizeEmailInput(e.target.value) }))}
                             placeholder="E-posta"
                             className={inputClass}
                             autoComplete="email"
@@ -129,7 +161,10 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                         >
                             <option value="customer">Müşteri</option>
                             <option value="artist">Sanatçı</option>
+                            <option value="venue_owner">Mekân sahibi</option>
+                            <option value="manager_organization">Organizasyon firması</option>
                             <option value="admin">Admin</option>
+                            <option value="super_admin">Süper admin</option>
                         </select>
                         <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:col-span-2 lg:col-span-1">
                             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} className="rounded border-zinc-400 text-amber-600 focus:ring-amber-500" />
@@ -182,7 +217,10 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                             <option value="">Tüm Roller</option>
                             <option value="customer">Müşteri</option>
                             <option value="artist">Sanatçı</option>
+                            <option value="venue_owner">Mekân sahibi</option>
+                            <option value="manager_organization">Organizasyon firması</option>
                             <option value="admin">Admin</option>
+                            <option value="super_admin">Süper admin</option>
                         </select>
                     </div>
                     <div className="w-full sm:w-40">
@@ -205,7 +243,7 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                     rows={users.data}
                     getRowKey={(u) => u.id}
                     actions={(user) =>
-                        user.role !== 'admin' && user.id !== currentUserId ? (
+                        !['admin', 'super_admin'].includes(user.role) && user.id !== currentUserId ? (
                             <>
                                 <button
                                     type="button"
@@ -223,6 +261,16 @@ export default function AdminUsersIndex({ users, filters }: Readonly<Props>) {
                                 >
                                     Düzenle
                                 </button>
+                                {user.role === 'artist' && user.linked_artist_id != null ? (
+                                    <Link
+                                        href={route('admin.artists.edit', user.linked_artist_id)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400"
+                                    >
+                                        Sanatçı düzenle
+                                    </Link>
+                                ) : null}
                                 <button type="button" onClick={() => handleToggle(user)} className="text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400">
                                     {user.is_active ? 'Dondur' : 'Aktifleştir'}
                                 </button>

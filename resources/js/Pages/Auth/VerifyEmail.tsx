@@ -15,11 +15,12 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
     return (
         <GuestLayout>
-            <SeoHead title="E-posta Doğrulama - Sahnebul" description="Hesabınızı kullanmaya başlamadan önce e-postanızı doğrulayın." noindex />
+            <SeoHead title="E-posta Doğrulama - Sahnebul" description="E-posta adresinizi doğrulayarak hesabınızı güvence altına alın." noindex />
 
             <div className="mb-4 text-sm text-gray-600">
-                Kayıt olduğunuz için teşekkürler. Başlamadan önce size gönderdiğimiz e-postadaki bağlantıya tıklayarak adresinizi doğrulayın. E-postayı
-                görmediyseniz, yeni bir doğrulama bağlantısı gönderebilirsiniz.
+                Kayıt olduğunuz için teşekkürler. Size gönderdiğimiz e-postadaki bağlantıya tıklayarak adresinizi doğrulayabilirsiniz. E-postayı
+                görmediyseniz, aşağıdan yeni bir doğrulama bağlantısı isteyebilirsiniz. Doğrulama zorunlu değildir; siteyi kullanmaya devam
+                edebilirsiniz.
             </div>
 
             {status === 'verification-link-sent' && (

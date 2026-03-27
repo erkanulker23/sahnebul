@@ -22,6 +22,7 @@ class SubscriptionController extends Controller
 
         $plans = SubscriptionPlan::query()
             ->where('is_active', true)
+            ->where('show_in_public_catalog', true)
             ->when($request->filled('type'), fn ($q) => $q->where('membership_type', $request->string('type')->toString()))
             ->orderBy('price')
             ->get();
@@ -29,9 +30,12 @@ class SubscriptionController extends Controller
         return Inertia::render('Subscriptions/Index', [
             'plans' => $plans,
             'activeSubscription' => $user->activeSubscription()?->load('plan'),
-            'selectedType' => $request->input('type', 'venue'),
-            'useArtistPanel' => $user->isArtist() || $user->venues_count > 0,
-            'canPurchase' => $user->isArtist() || $user->venues_count > 0,
+            'selectedType' => $request->input('type', 'venue'), // venue | artist | manager
+            'useArtistPanel' => $user->canAccessStagePanel(),
+            'canPurchase' => $user->isArtist()
+                || $user->isVenueOwner()
+                || $user->isManagerOrganization()
+                || $user->venues_count > 0,
         ]);
     }
 
@@ -56,6 +60,11 @@ class SubscriptionController extends Controller
         if ($plan->membership_type === 'venue' && ! $user->venues()->exists()) {
             return redirect()->route('subscriptions.index', ['type' => 'venue'])
                 ->with('error', 'Mekan üyeliği yalnızca size bağlı en az bir mekan varken satın alınabilir.');
+        }
+
+        if ($plan->membership_type === 'manager' && ! $user->isManagerOrganization()) {
+            return redirect()->route('subscriptions.index', ['type' => 'manager'])
+                ->with('error', 'Organizasyon üyeliği yalnızca organizasyon firması hesapları satın alabilir.');
         }
 
         $current = $user->activeSubscription();

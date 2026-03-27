@@ -1,4 +1,5 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
+import EventEntryPaidField from '@/Components/EventEntryPaidField';
 import RichTextEditor from '@/Components/RichTextEditor';
 import TicketSalesEditor, { emptyTicketOutletRow, inferTicketAcquisitionMode, outletsFromServer } from '@/Components/TicketSalesEditor';
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
@@ -25,6 +26,7 @@ interface Event {
     start_date: string;
     end_date: string | null;
     ticket_price: number | null;
+    entry_is_paid?: boolean;
     capacity: number | null;
     status: string;
     ticket_tiers?: { id: number; name: string; description: string | null; price: string; sort_order: number }[];
@@ -135,6 +137,7 @@ export default function ArtistEventEdit({
         start_date: event.start_date.slice(0, 16),
         end_date: event.end_date ? event.end_date.slice(0, 16) : '',
         ticket_price: event.ticket_price?.toString() ?? '',
+        entry_is_paid: event.entry_is_paid !== false,
         capacity: event.capacity?.toString() ?? '',
         status: event.status,
         ticket_tiers: (event.ticket_tiers ?? []).map((t) => ({
@@ -147,12 +150,17 @@ export default function ArtistEventEdit({
         ticket_purchase_note: event.ticket_purchase_note ?? '',
     });
 
-    transform((form) => ({
-        ...form,
-        ticket_tiers: tiersToPayload(form.ticket_tiers),
-        ticket_outlets: form.ticket_outlets.filter((o) => o.label.trim() && o.url.trim()),
-        ticket_purchase_note: form.ticket_purchase_note.trim() || null,
-    }));
+    transform((form) => {
+        const paid = Boolean(form.entry_is_paid);
+        return {
+            ...form,
+            entry_is_paid: paid,
+            ticket_price: paid ? form.ticket_price || null : null,
+            ticket_tiers: paid ? tiersToPayload(form.ticket_tiers) : [],
+            ticket_outlets: form.ticket_outlets.filter((o) => o.label.trim() && o.url.trim()),
+            ticket_purchase_note: form.ticket_purchase_note.trim() || null,
+        };
+    });
 
     const lineup = event.artists ?? [];
 
@@ -286,6 +294,18 @@ export default function ArtistEventEdit({
                         className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
                     />
                 </div>
+                <EventEntryPaidField
+                    variant="artist"
+                    idPrefix="artist_event_edit"
+                    value={data.entry_is_paid}
+                    onChange={(paid) => {
+                        setData('entry_is_paid', paid);
+                        if (!paid) {
+                            setData('ticket_price', '');
+                            setData('ticket_tiers', []);
+                        }
+                    }}
+                />
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label htmlFor="ticket_price" className="block text-sm font-medium text-zinc-400">
@@ -298,7 +318,8 @@ export default function ArtistEventEdit({
                             min={0}
                             value={data.ticket_price}
                             onChange={(e) => setData('ticket_price', e.target.value)}
-                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                            disabled={!data.entry_is_paid}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white disabled:cursor-not-allowed disabled:opacity-50"
                         />
                         <p className="mt-1 text-xs text-zinc-500">Kategori yoksa bu fiyat gösterilir.</p>
                     </div>
@@ -316,7 +337,9 @@ export default function ArtistEventEdit({
                         />
                     </div>
                 </div>
-                <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
+                {data.entry_is_paid ? (
+                    <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
+                ) : null}
                 <TicketSalesEditor
                     acquisitionMode={data.ticket_acquisition_mode}
                     onAcquisitionModeChange={(ticket_acquisition_mode) => {

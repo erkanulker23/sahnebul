@@ -29,9 +29,21 @@ interface Props {
     usersChart: { date: string; count: number }[];
     pendingArtists: { id: number; name: string; slug: string; genre: string | null; created_at: string }[];
     upcomingEvents: { id: number; title: string; start_date: string; status: string; venue: { name: string; slug: string } }[];
+    topViewedArtists: { id: number; name: string; slug: string; view_count: number }[];
+    topViewedEvents: { id: number; title: string; view_count: number; venue: { name: string; slug: string } | null }[];
 }
 
-export default function AdminDashboard({ stats, recentVenues, recentReservations, popularVenues, usersChart, pendingArtists, upcomingEvents }: Readonly<Props>) {
+export default function AdminDashboard({
+    stats,
+    recentVenues,
+    recentReservations,
+    popularVenues,
+    usersChart,
+    pendingArtists,
+    upcomingEvents,
+    topViewedArtists,
+    topViewedEvents,
+}: Readonly<Props>) {
     return (
         <AdminLayout>
             <SeoHead title="Yönetim paneli - Admin | Sahnebul" description="Sahnebul yönetim özeti." noindex />
@@ -132,6 +144,51 @@ export default function AdminDashboard({ stats, recentVenues, recentReservations
                                             <p className="text-sm text-amber-400">₺{Number(r.total_amount).toLocaleString('tr-TR')}</p>
                                             <StatusBadge status={r.status} />
                                         </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard title="En Çok Görüntülenen Sanatçılar" link={route('admin.artists.index')} linkLabel="Tümü">
+                        {topViewedArtists.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Veri yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {topViewedArtists.map((a) => (
+                                    <Link
+                                        key={a.id}
+                                        href={route('admin.artists.edit', a.id)}
+                                        className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50"
+                                    >
+                                        <p className="font-medium text-white">{a.name}</p>
+                                        <span className="text-sm tabular-nums text-amber-400">
+                                            {Number(a.view_count).toLocaleString('tr-TR')} görüntülenme
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard title="En Çok Görüntülenen Etkinlikler" link={route('admin.events.index')} linkLabel="Tümü">
+                        {topViewedEvents.length === 0 ? (
+                            <p className="p-4 text-zinc-500">Veri yok.</p>
+                        ) : (
+                            <div className="divide-y divide-zinc-800">
+                                {topViewedEvents.map((e) => (
+                                    <Link
+                                        key={e.id}
+                                        href={route('admin.events.edit', e.id)}
+                                        className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/50"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-white">{e.title}</p>
+                                            {e.venue && <p className="text-sm text-zinc-500">{e.venue.name}</p>}
+                                        </div>
+                                        <span className="shrink-0 text-sm tabular-nums text-amber-400">
+                                            {Number(e.view_count).toLocaleString('tr-TR')} görüntülenme
+                                        </span>
                                     </Link>
                                 ))}
                             </div>

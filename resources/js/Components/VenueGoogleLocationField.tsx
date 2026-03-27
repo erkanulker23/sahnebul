@@ -68,37 +68,52 @@ function fetchLegacyPlaceDetails(google: GoogleMapsNs, placeId: string): Promise
     });
 }
 
-/** Eski Places Details: photos[0].getUrl */
-function extractGooglePlacePhotoUrl(place: GoogleMapsNs | null | undefined): string | undefined {
-    const photos = place?.photos as GoogleMapsNs[] | undefined;
-    if (!photos?.length) {
-        return undefined;
+const MAX_GOOGLE_VENUE_PHOTOS = 5;
+
+function pushPhotoUrl(bucket: string[], url: string | undefined): void {
+    if (!url || !/^https?:\/\//i.test(url)) {
+        return;
     }
-    const ph = photos[0];
-    if (ph && typeof ph.getUrl === 'function') {
-        try {
-            const u = ph.getUrl({ maxWidth: 1600 });
-            return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : undefined;
-        } catch {
-            return undefined;
-        }
+    const base = url.split('?')[0];
+    if (bucket.some((x) => x.split('?')[0] === base)) {
+        return;
     }
-    return undefined;
+    if (bucket.length >= MAX_GOOGLE_VENUE_PHOTOS) {
+        return;
+    }
+    bucket.push(url);
 }
 
-/** Önce legacy foto; yoksa yeni Place API photos + getUrl / getURI */
-async function resolveGooglePlaceCoverUrl(
-    google: GoogleMapsNs,
-    placeId: string,
-    legacy: GoogleMapsNs | null | undefined,
-    gotNewPlace: boolean,
-): Promise<string | undefined> {
-    const fromLegacy = extractGooglePlacePhotoUrl(legacy);
-    if (fromLegacy) {
-        return fromLegacy;
+/** Eski PlacesService: photos[].getUrl (en fazla 5) */
+function extractLegacyPhotoUrls(place: GoogleMapsNs | null | undefined): string[] {
+    const out: string[] = [];
+    const photos = place?.photos as GoogleMapsNs[] | undefined;
+    if (!photos?.length) {
+        return out;
     }
-    if (!gotNewPlace || typeof google?.maps?.importLibrary !== 'function') {
-        return undefined;
+    for (const ph of photos) {
+        if (out.length >= MAX_GOOGLE_VENUE_PHOTOS) {
+            break;
+        }
+        if (ph && typeof ph.getUrl === 'function') {
+            try {
+                const u = ph.getUrl({ maxWidth: 1600 });
+                if (typeof u === 'string') {
+                    pushPhotoUrl(out, u);
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+    return out;
+}
+
+/** Yeni Place (JS) API: photos + getUrl / getURI */
+async function fetchNewPlacePhotoUrls(google: GoogleMapsNs, placeId: string): Promise<string[]> {
+    const out: string[] = [];
+    if (typeof google?.maps?.importLibrary !== 'function') {
+        return out;
     }
     try {
         const lib = await google.maps.importLibrary('places');
@@ -106,7 +121,7 @@ async function resolveGooglePlaceCoverUrl(
             | (new (opts: { id: string }) => { fetchFields: (o: { fields: string[] }) => Promise<void> })
             | undefined;
         if (!Place) {
-            return undefined;
+            return out;
         }
         const p = new Place({ id: placeId });
         await p.fetchFields({ fields: ['photos'] });
@@ -116,23 +131,41 @@ async function resolveGooglePlaceCoverUrl(
                 getURI?: (opts: { maxWidth?: number }) => Promise<string>;
             }>;
         };
-        const ph0 = raw.photos?.[0];
-        if (ph0?.getUrl) {
-            const u = ph0.getUrl({ maxWidth: 1600 });
-            if (typeof u === 'string' && /^https?:\/\//i.test(u)) {
-                return u;
+        for (const ph0 of raw.photos ?? []) {
+            if (out.length >= MAX_GOOGLE_VENUE_PHOTOS) {
+                break;
             }
-        }
-        if (ph0?.getURI) {
-            const u = await ph0.getURI({ maxWidth: 1600 });
-            if (typeof u === 'string' && /^https?:\/\//i.test(u)) {
-                return u;
+            if (ph0?.getUrl) {
+                const u = ph0.getUrl({ maxWidth: 1600 });
+                pushPhotoUrl(out, typeof u === 'string' ? u : undefined);
+            } else if (ph0?.getURI) {
+                const u = await ph0.getURI({ maxWidth: 1600 });
+                pushPhotoUrl(out, typeof u === 'string' ? u : undefined);
             }
         }
     } catch (e) {
         console.error(e);
     }
-    return undefined;
+    return out;
+}
+
+/** Legacy + yeni API ile en fazla 5 benzersiz foto URL */
+async function resolveGooglePlaceGalleryUrls(
+    google: GoogleMapsNs,
+    placeId: string,
+    legacy: GoogleMapsNs | null | undefined,
+): Promise<string[]> {
+    const out: string[] = [];
+    for (const u of extractLegacyPhotoUrls(legacy)) {
+        pushPhotoUrl(out, u);
+    }
+    if (out.length < MAX_GOOGLE_VENUE_PHOTOS) {
+        const fromNew = await fetchNewPlacePhotoUrls(google, placeId);
+        for (const u of fromNew) {
+            pushPhotoUrl(out, u);
+        }
+    }
+    return out;
 }
 
 function textOf(v: unknown): string {
@@ -541,7 +574,7 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
             return;
         }
 
-        const coverImageUrlFromGoogle = await resolveGooglePlaceCoverUrl(google, placeId, legacy, gotNewPlace);
+        const galleryImageUrlsFromGoogle = await resolveGooglePlaceGalleryUrls(google, placeId, legacy);
 
         const bizName = displayNameText.trim() || undefined;
         const base = buildVenueGoogleLocationPayload({
@@ -555,6 +588,7 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
             mapsUrl,
             editorialSummary,
             openingHours,
+            galleryImageUrlsFromGoogle,
         });
 
         let admin: { city_id?: string; district_id?: string; neighborhood_id?: string } = {};
@@ -567,7 +601,6 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
         emit({
             ...base,
             ...admin,
-            ...(coverImageUrlFromGoogle ? { coverImageUrlFromGoogle } : {}),
         });
     }, []);
 
@@ -582,10 +615,12 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
             setLinkError('Geçersiz koordinat aralığı.');
             return;
         }
+        const pasted = linkDraft.trim();
         const baseLink: VenueGoogleLocationApplyPayload = {
             address: currentAddress,
             latitude: formatCoordShort(coords.lat),
             longitude: formatCoordShort(coords.lng),
+            ...(pasted && /google\.[^/]*\/maps|maps\.google|goo\.gl\/maps/i.test(pasted) ? { googleMapsUrl: pasted } : {}),
         };
         const g = window.google as GoogleMapsNs;
         void (async () => {
@@ -618,7 +653,7 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
             <div>
                 <p className="text-sm font-medium text-amber-200/90">Konum — Google Haritalar</p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                    Listeden seçince adres, il/ilçe (eşleşirse), koordinatlar, varsa Google işletme fotoğrafı kapak URL alanına, telefon, web, özet ve çalışma saatleri ile sosyal bağlantılar forma aktarılır.
+                    Listeden seçince adres, il/ilçe (eşleşirse), koordinatlar, varsa en fazla <strong className="text-zinc-400">5</strong> Google fotoğrafı galeriye, ilki kapak olarak; işletme özeti ve çalışma saatleri açıklamaya; telefon, web ve sosyal bağlantılar forma aktarılır.
                 </p>
             </div>
 

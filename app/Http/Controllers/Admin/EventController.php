@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Services\EventMediaImportFromUrlService;
+use App\Services\SahnebulMail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,7 @@ class EventController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'ticket_price' => $request->input('ticket_price') ?: null,
+            'entry_is_paid' => $request->boolean('entry_is_paid', true),
             'capacity' => $request->input('capacity') ?: null,
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
@@ -95,6 +97,7 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
+            'entry_is_paid' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -139,6 +142,7 @@ class EventController extends Controller
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
+        [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         unset($validated['cover_upload'], $validated['listing_upload']);
         if ($request->hasFile('cover_upload')) {
@@ -196,6 +200,7 @@ class EventController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'ticket_price' => $request->input('ticket_price') ?: null,
+            'entry_is_paid' => $request->boolean('entry_is_paid', true),
             'capacity' => $request->input('capacity') ?: null,
             'artist_ids' => $request->input('artist_ids') ?: [],
             'cover_image' => $request->input('cover_image') ?: null,
@@ -207,6 +212,7 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
+            'entry_is_paid' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -251,6 +257,7 @@ class EventController extends Controller
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
+        [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         unset($validated['cover_upload'], $validated['listing_upload']);
 
@@ -441,6 +448,8 @@ class EventController extends Controller
 
     private function performEventDelete(Event $event): void
     {
+        SahnebulMail::eventDeletedNotifyStakeholders($event);
+
         foreach (['cover_image', 'listing_image', 'promo_video_path'] as $field) {
             $path = $event->{$field} ?? null;
             if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {

@@ -38,6 +38,7 @@ interface Props {
         title: string;
         start_date: string;
         ticket_price: number | null;
+        entry_is_paid?: boolean;
         venue: { name: string; slug: string };
         artists: { id: number; name: string; slug: string; avatar: string | null }[];
     }[];
@@ -153,7 +154,11 @@ export default function Dashboard({
                                             </div>
                                             <div className="shrink-0 text-right">
                                                 <p className="text-xs text-zinc-500">{formatTurkishDateTime(e.start_date)}</p>
-                                                {e.ticket_price != null && <p className="text-sm text-amber-400">{e.ticket_price} ₺</p>}
+                                                {e.entry_is_paid === false ? (
+                                                    <p className="text-sm text-emerald-400">Ücretsiz giriş</p>
+                                                ) : (
+                                                    e.ticket_price != null && <p className="text-sm text-amber-400">{e.ticket_price} ₺</p>
+                                                )}
                                             </div>
                                         </Link>
                                     ))
@@ -199,7 +204,7 @@ export default function Dashboard({
                             <li><Link href={route('artists.index')} className="text-amber-400 hover:text-amber-300">Sanatçıları keşfedin</Link> ve favorileyin</li>
                             <li>Etkinliklere hatırlatıcı ekleyin; .ics ile takviminize alın</li>
                             <li>Rezervasyon yapın</li>
-                            <li>Değerlendirme ve yorum bırakın</li>
+                            <li>Onaylanmış etkinlik rezervasyonunuz varsa etkinlik sayfasından değerlendirme bırakın</li>
                         </ul>
                     </div>
                 </div>

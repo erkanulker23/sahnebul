@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArtistClaimRequest;
+use App\Services\SahnebulMail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -30,12 +31,17 @@ class ArtistClaimController extends Controller
             ->where('status', 'pending')
             ->update(['status' => 'rejected', 'reviewed_at' => now(), 'reviewed_by' => $request->user()->id]);
 
+        SahnebulMail::artistClaimResolved($claim->fresh(['artist', 'user']), true);
+
         return back()->with('success', 'Sanatçı profili sahiplenme talebi onaylandı.');
     }
 
     public function reject(Request $request, ArtistClaimRequest $claim)
     {
         $claim->update(['status' => 'rejected', 'reviewed_at' => now(), 'reviewed_by' => $request->user()->id]);
+
+        SahnebulMail::artistClaimResolved($claim->fresh(['artist', 'user']), false);
+
         return back()->with('success', 'Sanatçı profili sahiplenme talebi reddedildi.');
     }
 }

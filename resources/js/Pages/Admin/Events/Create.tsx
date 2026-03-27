@@ -1,5 +1,6 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
 import AdminEventVenueField from '@/Components/AdminEventVenueField';
+import EventEntryPaidField from '@/Components/EventEntryPaidField';
 import TicketSalesEditor, { emptyTicketOutletRow, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -33,6 +34,7 @@ export default function AdminEventCreate({
         start_date: '',
         end_date: '',
         ticket_price: '',
+        entry_is_paid: true,
         capacity: '',
         status: 'draft',
         artist_ids: [] as number[],
@@ -47,17 +49,19 @@ export default function AdminEventCreate({
     });
 
     transform((d) => {
-        const { ticket_tiers: tiers, cover_upload, listing_upload, ticket_outlets, ...rest } = d;
+        const { ticket_tiers: tiers, cover_upload, listing_upload, ticket_outlets, entry_is_paid, ...rest } = d;
+        const paid = Boolean(entry_is_paid);
         return {
             ...rest,
+            entry_is_paid: paid,
             description: rest.description || null,
             event_rules: rest.event_rules || null,
             end_date: rest.end_date || null,
-            ticket_price: rest.ticket_price || null,
+            ticket_price: paid ? rest.ticket_price || null : null,
             capacity: rest.capacity || null,
             cover_image: rest.cover_image || null,
             listing_image: rest.listing_image || null,
-            ticket_tiers: tiersToPayload(tiers),
+            ticket_tiers: paid ? tiersToPayload(tiers) : [],
             ticket_outlets: ticket_outlets.filter((o) => o.label.trim() && o.url.trim()),
             ticket_purchase_note: rest.ticket_purchase_note.trim() || null,
             cover_upload,
@@ -160,12 +164,27 @@ export default function AdminEventCreate({
                             />
                             {errors.end_date && <p className="mt-1 text-sm text-red-400">{errors.end_date}</p>}
                         </div>
+                        <div className="sm:col-span-2">
+                            <EventEntryPaidField
+                                variant="admin"
+                                idPrefix="admin_event_create"
+                                value={data.entry_is_paid}
+                                onChange={(paid) => {
+                                    setData('entry_is_paid', paid);
+                                    if (!paid) {
+                                        setData('ticket_price', '');
+                                        setData('ticket_tiers', []);
+                                    }
+                                }}
+                            />
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Genel bilet fiyatı (₺)</label>
                             <input
                                 value={data.ticket_price}
                                 onChange={(e) => setData('ticket_price', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                disabled={!data.entry_is_paid}
+                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div>
@@ -221,7 +240,9 @@ export default function AdminEventCreate({
                             className="mt-2"
                         />
                     </div>
-                    <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
+                    {data.entry_is_paid ? (
+                        <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
+                    ) : null}
                     <TicketSalesEditor
                         acquisitionMode={data.ticket_acquisition_mode}
                         onAcquisitionModeChange={(ticket_acquisition_mode) => {

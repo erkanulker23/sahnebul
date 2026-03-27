@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AppSetting;
 use App\Models\Artist;
+use App\Models\ArtistEventProposal;
+use App\Models\ArtistMedia;
 use App\Models\Event;
 use App\Models\EventArtistReport;
 use App\Models\Review;
@@ -257,16 +259,36 @@ class AppSettingsService
             $resolvedPassword = $this->resolveSmtpPasswordFromStorage($password);
         }
 
+        $port = isset($smtp['port']) ? (int) $smtp['port'] : (int) config('mail.mailers.smtp.port', 587);
+        $scheme = self::resolveSmtpSchemeForSymfony($smtp['encryption'] ?? null, $port);
+
         config([
             'mail.default' => $smtp['mailer'] ?? config('mail.default'),
             'mail.mailers.smtp.host' => $smtp['host'] ?? config('mail.mailers.smtp.host'),
-            'mail.mailers.smtp.port' => $smtp['port'] ?? config('mail.mailers.smtp.port'),
+            'mail.mailers.smtp.port' => $port,
             'mail.mailers.smtp.username' => $smtp['username'] ?? config('mail.mailers.smtp.username'),
             'mail.mailers.smtp.password' => $resolvedPassword ?? config('mail.mailers.smtp.password'),
-            'mail.mailers.smtp.scheme' => $smtp['encryption'] ?? config('mail.mailers.smtp.scheme'),
+            'mail.mailers.smtp.scheme' => $scheme,
             'mail.from.address' => $smtp['from_address'] ?? config('mail.from.address'),
             'mail.from.name' => $smtp['from_name'] ?? config('mail.from.name'),
         ]);
+    }
+
+    /**
+     * Symfony Mailer DSN: yalnızca "smtp" veya "smtps". "tls" şema olarak geçersiz; boş bırakılınca Laravel porttan seçer.
+     */
+    public static function resolveSmtpSchemeForSymfony(mixed $encryption, int $port): ?string
+    {
+        $e = is_string($encryption) ? strtolower(trim($encryption)) : '';
+        if (in_array($e, ['ssl', 'smtps'], true)) {
+            return 'smtps';
+        }
+
+        if ($e === '' || in_array($e, ['tls', 'starttls'], true)) {
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -372,7 +394,7 @@ class AppSettingsService
     /**
      * Admin badge sayıları — tek cache anahtarı, TTL kısa.
      *
-     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int, pending_event_artist_reports: int}
+     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int, pending_event_artist_reports: int, pending_artist_event_proposals: int, pending_artist_media: int}
      */
     public function getAdminNotificationCounts(): array
     {
@@ -384,6 +406,12 @@ class AppSettingsService
                 'pending_reviews' => Review::where('is_approved', false)->count(),
                 'pending_event_artist_reports' => Schema::hasTable('event_artist_reports')
                     ? EventArtistReport::where('status', EventArtistReport::STATUS_PENDING)->count()
+                    : 0,
+                'pending_artist_event_proposals' => Schema::hasTable('artist_event_proposals')
+                    ? ArtistEventProposal::query()->where('status', ArtistEventProposal::STATUS_PENDING)->count()
+                    : 0,
+                'pending_artist_media' => Schema::hasColumn('artist_media', 'moderation_status')
+                    ? ArtistMedia::query()->where('moderation_status', ArtistMedia::MODERATION_PENDING)->count()
                     : 0,
             ];
         });

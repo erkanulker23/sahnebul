@@ -3,7 +3,8 @@ import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { eventStatusTr, reservationStatusTr, venueArtistStatusTr } from '@/lib/statusLabels';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import type { PageProps } from '@/types';
 
 interface Venue {
     id: number;
@@ -28,7 +29,7 @@ interface ActiveSubscription {
     plan: {
         name: string;
         slug: string;
-        membership_type: 'artist' | 'venue';
+        membership_type: 'artist' | 'venue' | 'manager';
         interval: 'monthly' | 'yearly';
         features: string | null;
     };
@@ -64,11 +65,29 @@ function formatInt(n: number | undefined): string {
 }
 
 function membershipTypeLabel(t: ActiveSubscription['plan']['membership_type']): string {
-    return t === 'artist' ? 'Sanatçı üyeliği' : 'Mekan üyeliği';
+    if (t === 'artist') {
+        return 'Sanatçı üyeliği';
+    }
+    if (t === 'manager') {
+        return 'Organizatör üyeliği';
+    }
+
+    return 'Mekan üyeliği';
 }
 
 function intervalLabel(i: ActiveSubscription['plan']['interval']): string {
     return i === 'yearly' ? 'Yıllık' : 'Aylık';
+}
+
+function subscriptionIndexType(t: ActiveSubscription['plan']['membership_type']): 'artist' | 'venue' | 'manager' {
+    if (t === 'artist') {
+        return 'artist';
+    }
+    if (t === 'manager') {
+        return 'manager';
+    }
+
+    return 'venue';
 }
 
 function defaultCapabilities(type: ActiveSubscription['plan']['membership_type']): string[] {
@@ -79,6 +98,13 @@ function defaultCapabilities(type: ActiveSubscription['plan']['membership_type']
             'Sanatçı profilinizi bağlama ve düzenleme (onaylı profil)',
         ];
     }
+    if (type === 'manager') {
+        return [
+            'Bağlı sanatçıların müsaitlik takvimini görüntüleme',
+            'Müsaitlik ve etkinlik için sanatçıya istek gönderme',
+        ];
+    }
+
     return [
         'Onaylı mekanlarınızı ekleme ve düzenleme',
         'Etkinlik oluşturma, taslak ve yayın yönetimi',
@@ -94,10 +120,15 @@ export default function ArtistDashboard({
     activeSubscription = null,
 }: Readonly<Props>) {
     const featuresRaw = activeSubscription?.plan.features?.trim() ?? '';
+    const showVenueNav = (usePage<PageProps>().props.auth?.artist_panel_show_venue_nav ?? true) === true;
+    const panelSeoTitle = showVenueNav ? 'Mekan Paneli - Sahnebul' : 'Sanatçı Paneli - Sahnebul';
+    const panelSeoDescription = showVenueNav
+        ? 'Mekan ve etkinlik özetiniz; Sahnebul mekan paneli.'
+        : 'Sanatçı paneli özeti ve etkinlik performansı; Sahnebul.';
 
     return (
         <ArtistLayout>
-            <SeoHead title="Mekan Paneli - Sahnebul" description="Mekan ve etkinlik özetiniz; Sahnebul mekan paneli." noindex />
+            <SeoHead title={panelSeoTitle} description={panelSeoDescription} noindex />
 
             <h1 className="font-display mb-2 text-2xl font-bold text-white">Panel</h1>
             <p className="mb-8 text-sm text-zinc-500">Özet ve son işlemler. Profil ayarları için sol menüden <span className="text-zinc-400">Profil</span> sayfasını kullanın.</p>
@@ -123,7 +154,7 @@ export default function ArtistDashboard({
                             </p>
                         </div>
                         <Link
-                            href={route('subscriptions.index', { type: activeSubscription.plan.membership_type === 'artist' ? 'artist' : 'venue' })}
+                            href={route('subscriptions.index', { type: subscriptionIndexType(activeSubscription.plan.membership_type) })}
                             className="shrink-0 self-start rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/25"
                         >
                             Paketleri görüntüle

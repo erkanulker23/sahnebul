@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput';
 import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { cn } from '@/lib/cn';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { safeRoute } from '@/lib/safeRoute';
 import { useForm } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
@@ -107,7 +108,7 @@ export default function RegisterKullanici() {
                         value={data.email}
                         className="mt-2 block w-full"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('email', sanitizeEmailInput(e.target.value))}
                         required
                     />
                     <InputError message={errors.email} className="mt-2" />

@@ -13,6 +13,7 @@ interface Event {
     created_at: string;
     status: string;
     ticket_price: number | null;
+    entry_is_paid?: boolean;
     view_count?: number;
     venue: { name: string; status?: string };
     visible_on_site?: boolean;
@@ -149,7 +150,7 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                 mobileLabel: 'Fiyat',
                 cell: (e) => (
                     <span className="font-medium text-amber-600 dark:text-amber-400">
-                        {e.ticket_price != null ? `₺${e.ticket_price}` : '—'}
+                        {e.entry_is_paid === false ? 'Ücretsiz' : e.ticket_price != null ? `₺${e.ticket_price}` : '—'}
                     </span>
                 ),
             },

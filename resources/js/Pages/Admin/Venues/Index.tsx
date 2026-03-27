@@ -15,6 +15,7 @@ interface Venue {
     events_count?: number;
     city: { name: string };
     category: { name: string };
+    user?: { id: number; name: string; email: string } | null;
 }
 
 interface Props {
@@ -165,6 +166,21 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                         )}
                     </div>
                 ),
+            },
+            {
+                key: 'owner',
+                header: 'Ekleyen',
+                mobileLabel: 'Ekleyen',
+                className: 'max-w-[200px]',
+                cell: (v) =>
+                    v.user ? (
+                        <div className="min-w-0 text-xs">
+                            <p className="truncate font-medium text-zinc-800 dark:text-zinc-200">{v.user.name}</p>
+                            <p className="truncate text-zinc-500 dark:text-zinc-400">{v.user.email}</p>
+                        </div>
+                    ) : (
+                        <span className="text-zinc-400">—</span>
+                    ),
             },
             {
                 key: 'loc',

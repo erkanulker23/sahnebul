@@ -98,8 +98,12 @@ final class SehirSecPlatformEvents
         $venue = $event->venue;
         $image = self::publicImageUrl($event->listingThumbnailPath()) ?? self::publicImageUrl($venue?->cover_image);
 
-        $price = $event->minPrice();
-        $priceLabel = $price !== null ? number_format($price, 2, ',', '.').' ₺' : null;
+        if (! ($event->entry_is_paid ?? true)) {
+            $priceLabel = 'Ücretsiz giriş';
+        } else {
+            $price = $event->minPrice();
+            $priceLabel = $price !== null ? number_format($price, 2, ',', '.').' ₺' : null;
+        }
 
         return [
             'item_key' => 'evt-'.$event->id,

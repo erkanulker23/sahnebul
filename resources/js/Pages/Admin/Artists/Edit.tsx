@@ -1,8 +1,11 @@
+import PhoneInput from '@/Components/PhoneInput';
 import MusicGenresChecklist from '@/Components/MusicGenresChecklist';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
+import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { Link, router, useForm } from '@inertiajs/react';
 
 interface MediaItem {
@@ -14,6 +17,7 @@ interface Artist {
     id: number;
     name: string;
     slug: string;
+    managed_by_user_id?: number | null;
     events_count?: number;
     genre: string | null;
     music_genres?: string[] | null;
@@ -25,11 +29,58 @@ interface Artist {
     manager_info?: { name?: string; company?: string; phone?: string; email?: string } | null;
     public_contact?: { email?: string; phone?: string; note?: string } | null;
     media: MediaItem[];
+    spotify_id?: string | null;
+    spotify_url?: string | null;
+    spotify_auto_link_disabled?: boolean;
+}
+
+function initialSpotifyField(artist: Artist): string {
+    if (artist.spotify_auto_link_disabled) {
+        return '';
+    }
+    const fromSocial = (artist.social_links?.spotify ?? '').trim();
+    if (fromSocial !== '') {
+        return fromSocial;
+    }
+    const url = (artist.spotify_url ?? '').trim();
+    if (url !== '') {
+        return url;
+    }
+    const sid = (artist.spotify_id ?? '').trim();
+    if (sid !== '') {
+        return `https://open.spotify.com/artist/${sid}`;
+    }
+    return '';
+}
+
+interface ManagerUserRow {
+    id: number;
+    name: string;
+    organization_display_name?: string | null;
+    email: string;
+}
+
+interface SubscriptionPlanRow {
+    id: number;
+    name: string;
+    slug: string;
+    interval: string;
+    price: string | number;
+}
+
+interface OwnerSub {
+    starts_at: string;
+    ends_at: string;
+    plan: { id: number; name: string; slug: string; membership_type: string } | null;
 }
 
 interface Props {
     artist: Artist;
     musicGenreOptions: string[];
+    managerUsers?: ManagerUserRow[];
+    artistOwner?: { id: number; name: string; email: string } | null;
+    artistSubscriptionPlans?: SubscriptionPlanRow[];
+    artistOwnerSubscription?: OwnerSub | null;
 }
 
 function storageUrl(path: string | null): string | null {
@@ -38,7 +89,14 @@ function storageUrl(path: string | null): string | null {
     return `/storage/${path}`;
 }
 
-export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<Props>) {
+export default function AdminArtistEdit({
+    artist,
+    musicGenreOptions,
+    managerUsers = [],
+    artistOwner = null,
+    artistSubscriptionPlans = [],
+    artistOwnerSubscription = null,
+}: Readonly<Props>) {
     const sl = artist.social_links ?? {};
     const mgr = artist.manager_info ?? {};
     const pub = artist.public_contact ?? {};
@@ -49,11 +107,13 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
         avatar: artist.avatar ?? '',
         website: artist.website ?? '',
         status: artist.status,
+        managed_by_user_id: artist.managed_by_user_id != null ? String(artist.managed_by_user_id) : '',
+        spotify_auto_link_disabled: artist.spotify_auto_link_disabled === true,
         social_links: {
             instagram: sl.instagram ?? '',
             twitter: sl.twitter ?? '',
             youtube: sl.youtube ?? '',
-            spotify: sl.spotify ?? '',
+            spotify: initialSpotifyField(artist),
             tiktok: sl.tiktok ?? '',
             facebook: sl.facebook ?? '',
         },
@@ -161,6 +221,17 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                     </div>
                 </div>
 
+                <AdminEntitySubscriptionPanel
+                    key={`artist-sub-${artist.id}-${artistOwnerSubscription?.ends_at ?? 'none'}-${artistOwnerSubscription?.plan?.slug ?? 'noplan'}`}
+                    title="Sanatçı kullanıcı üyelik paketi"
+                    description="Paket, sanatçı profiline bağlı kullanıcıya atanır."
+                    postRouteName="admin.artists.subscription.update"
+                    routeParam={{ artist: artist.id }}
+                    owner={artistOwner}
+                    plans={artistSubscriptionPlans}
+                    ownerSubscription={artistOwnerSubscription}
+                />
+
                 <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
@@ -183,6 +254,27 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                                 <option value="approved">Onaylı</option>
                                 <option value="rejected">Reddedildi</option>
                             </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-zinc-400">Organizasyon firması</label>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                                Yalnızca «Organizasyon firması» rolündeki kullanıcı hesapları. Sitede sanatçı profilinde organizasyon notu gösterilir.
+                            </p>
+                            <select
+                                value={data.managed_by_user_id}
+                                onChange={(e) => setData('managed_by_user_id', e.target.value)}
+                                className="mt-2 w-full max-w-xl rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            >
+                                <option value="">— Atanmadı —</option>
+                                {managerUsers.map((u) => (
+                                    <option key={u.id} value={u.id}>
+                                        {(u.organization_display_name?.trim() || u.name) + ` (${u.email})`}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.managed_by_user_id && (
+                                <p className="mt-1 text-sm text-red-400">{errors.managed_by_user_id}</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Website</label>
@@ -278,15 +370,48 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                         </div>
-                        <div>
+                        <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-zinc-400">Spotify</label>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                Sanatçı sayfasındaki gömülü oynatıcı ve bağlantı buradan gelir. Aynı isimde başka bir sanatçıya denk gelen
+                                yanlış eşleşmeyi kaldırmak için aşağıdaki kutuyu işaretleyip kaydedin; arka plandaki isimle otomatik eşleştirme de
+                                bu sanatçı için kapatılır.
+                            </p>
+                            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-700/80 bg-zinc-800/40 px-3 py-2.5">
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 h-4 w-4 rounded border-zinc-600 text-amber-500 focus:ring-amber-500"
+                                    checked={data.spotify_auto_link_disabled}
+                                    onChange={(e) => {
+                                        const on = e.target.checked;
+                                        setData('spotify_auto_link_disabled', on);
+                                        if (on) {
+                                            setData('social_links', { ...data.social_links, spotify: '' });
+                                        }
+                                    }}
+                                />
+                                <span className="text-sm text-zinc-300">
+                                    <span className="font-medium text-white">Spotify yok / gösterme</span>
+                                    <span className="mt-0.5 block text-zinc-500">
+                                        Profilde Spotify bölümünü kapatır; sunucudaki otomatik isimle Spotify eşleştirmesinin bu sanatçıyı yeniden
+                                        bağlamasını engeller.
+                                    </span>
+                                </span>
+                            </label>
                             <input
                                 value={data.social_links.spotify}
                                 onChange={(e) =>
                                     setData('social_links', { ...data.social_links, spotify: e.target.value })
                                 }
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                disabled={data.spotify_auto_link_disabled}
+                                placeholder="https://open.spotify.com/intl-tr/artist/… veya 22 karakterlik sanatçı ID"
+                                className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
                             />
+                            {(errors as Record<string, string | undefined>)['social_links.spotify'] && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    {(errors as Record<string, string>)['social_links.spotify']}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">TikTok</label>
@@ -321,18 +446,19 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                                 type="email"
                                 value={data.public_contact.email}
                                 onChange={(e) =>
-                                    setData('public_contact', { ...data.public_contact, email: e.target.value })
+                                    setData('public_contact', {
+                                        ...data.public_contact,
+                                        email: sanitizeEmailInput(e.target.value),
+                                    })
                                 }
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">İletişim telefon</label>
-                            <input
-                                value={data.public_contact.phone}
-                                onChange={(e) =>
-                                    setData('public_contact', { ...data.public_contact, phone: e.target.value })
-                                }
+                            <PhoneInput
+                                value={data.public_contact.phone ?? ''}
+                                onChange={(v) => setData('public_contact', { ...data.public_contact, phone: v })}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                         </div>
@@ -375,11 +501,9 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-zinc-400">Menajer telefon</label>
-                            <input
-                                value={data.manager_info.phone}
-                                onChange={(e) =>
-                                    setData('manager_info', { ...data.manager_info, phone: e.target.value })
-                                }
+                            <PhoneInput
+                                value={data.manager_info.phone ?? ''}
+                                onChange={(v) => setData('manager_info', { ...data.manager_info, phone: v })}
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />
                         </div>
@@ -389,7 +513,10 @@ export default function AdminArtistEdit({ artist, musicGenreOptions }: Readonly<
                                 type="email"
                                 value={data.manager_info.email}
                                 onChange={(e) =>
-                                    setData('manager_info', { ...data.manager_info, email: e.target.value })
+                                    setData('manager_info', {
+                                        ...data.manager_info,
+                                        email: sanitizeEmailInput(e.target.value),
+                                    })
                                 }
                                 className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
                             />

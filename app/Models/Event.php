@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SahnebulMail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,9 +12,26 @@ use Illuminate\Validation\ValidationException;
 
 class Event extends Model
 {
+    protected static function booted(): void
+    {
+        static::created(function (Event $event): void {
+            if ($event->status === 'published') {
+                SahnebulMail::eventPublishedForFavoriteArtists($event->load(['venue', 'artists']));
+            }
+        });
+
+        static::updated(function (Event $event): void {
+            if ($event->wasChanged('status')
+                && $event->status === 'published'
+                && $event->getOriginal('status') !== 'published') {
+                SahnebulMail::eventPublishedForFavoriteArtists($event->load(['venue', 'artists']));
+            }
+        });
+    }
+
     protected $fillable = [
         'venue_id', 'title', 'slug', 'description', 'start_date', 'end_date',
-        'event_rules', 'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'status',
+        'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'status',
         'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
     ];
 
@@ -21,6 +39,7 @@ class Event extends Model
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'ticket_price' => 'decimal:2',
+        'entry_is_paid' => 'boolean',
         'is_full' => 'boolean',
         'view_count' => 'integer',
         'sahnebul_reservation_enabled' => 'boolean',
@@ -73,9 +92,29 @@ class Event extends Model
         return $this->hasMany(EventTicketTier::class)->orderBy('sort_order');
     }
 
+    /**
+     * @param  array<string, mixed>  $validated
+     * @param  list<array{name: string, description: string|null, price: float, sort_order: int}>  $ticketTiers
+     * @return array{0: array<string, mixed>, 1: list<array{name: string, description: string|null, price: float, sort_order: int}>}
+     */
+    public static function applyEntryPaidToValidated(array $validated, array $ticketTiers): array
+    {
+        $paid = (bool) ($validated['entry_is_paid'] ?? true);
+        $validated['entry_is_paid'] = $paid;
+        if (! $paid) {
+            $validated['ticket_price'] = null;
+            $ticketTiers = [];
+        }
+
+        return [$validated, $ticketTiers];
+    }
+
     /** En düşük bilet fiyatı (kategoriler veya tek fiyat). */
     public function minPrice(): ?float
     {
+        if (! ($this->entry_is_paid ?? true)) {
+            return null;
+        }
         if ($this->relationLoaded('ticketTiers') && $this->ticketTiers->isNotEmpty()) {
             return (float) $this->ticketTiers->min('price');
         }

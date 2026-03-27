@@ -23,6 +23,7 @@ interface Event {
     cover_image?: string | null;
     listing_image?: string | null;
     ticket_price?: number | string | null;
+    entry_is_paid?: boolean;
     view_count?: number;
     min_price?: number | null;
     public_url_segment?: string | null;
@@ -76,6 +77,9 @@ function reportStatusHint(status: string): string {
 }
 
 function displayPrice(ev: Event): string | null {
+    if (ev.entry_is_paid === false) {
+        return 'Ücretsiz giriş';
+    }
     if (ev.min_price != null && ev.min_price > 0) {
         return formatTry(ev.min_price);
     }

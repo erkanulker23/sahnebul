@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Artist;
 use App\Models\User;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -22,6 +24,23 @@ class UserController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $userIds = $users->getCollection()->pluck('id');
+        $linkedArtistIdByUser = $userIds->isEmpty()
+            ? collect()
+            : Artist::query()
+                ->whereIn('user_id', $userIds)
+                ->orderBy('id')
+                ->get(['id', 'user_id'])
+                ->unique('user_id')
+                ->pluck('id', 'user_id');
+
+        $users->getCollection()->transform(function (User $user) use ($linkedArtistIdByUser) {
+            $aid = $linkedArtistIdByUser->get($user->id);
+            $user->setAttribute('linked_artist_id', $aid !== null ? (int) $aid : null);
+
+            return $user;
+        });
+
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => $request->only(['search', 'role', 'status']),
@@ -37,6 +56,7 @@ class UserController extends Controller
             return back()->with('error', 'Admin hesapları devre dışı bırakılamaz.');
         }
         $user->update(['is_active' => ! $user->is_active]);
+
         return back()->with('success', $user->is_active ? 'Kullanıcı aktifleştirildi.' : 'Hesap donduruldu.');
     }
 
@@ -49,6 +69,7 @@ class UserController extends Controller
             return back()->with('error', 'Admin hesapları silinemez.');
         }
         $user->delete();
+
         return back()->with('success', 'Kullanıcı silindi.');
     }
 
@@ -56,9 +77,9 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email']),
             'password' => ['required', 'string', 'min:6'],
-            'role' => ['required', 'in:customer,artist,admin'],
+            'role' => ['required', 'in:customer,artist,venue_owner,manager_organization,admin,super_admin'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -77,9 +98,9 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email,'.$user->id]),
             'password' => ['nullable', 'string', 'min:6'],
-            'role' => ['required', 'in:customer,artist,admin'],
+            'role' => ['required', 'in:customer,artist,venue_owner,manager_organization,admin,super_admin'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 

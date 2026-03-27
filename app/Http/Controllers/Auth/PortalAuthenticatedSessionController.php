@@ -20,9 +20,23 @@ class PortalAuthenticatedSessionController extends Controller
             'login' => 'kullanici',
             'login.sanatci' => 'sanatci',
             'login.mekan' => 'mekan',
+            'login.organizasyon' => 'organizasyon',
             'login.admin' => 'yonetim',
             default => abort(404),
         };
+    }
+
+    public function createStageLoginChooser(Request $request): Response
+    {
+        $redirect = SafeRedirect::relativePath($request->query('redirect'));
+        if ($redirect !== null) {
+            $request->session()->put('url.intended', $redirect);
+        }
+
+        return Inertia::render('Auth/StageLoginChooser', [
+            'canResetPassword' => Route::has('password.request'),
+            'status' => session('status'),
+        ]);
     }
 
     public function create(Request $request): Response
@@ -45,7 +59,7 @@ class PortalAuthenticatedSessionController extends Controller
 
     public function store(LoginRequest $request, string $portal): RedirectResponse
     {
-        $allowed = ['kullanici', 'sanatci', 'mekan', 'yonetim'];
+        $allowed = ['kullanici', 'sanatci', 'mekan', 'organizasyon', 'yonetim'];
         abort_unless(in_array($portal, $allowed, true), 404);
 
         $request->authenticateForPortal($portal);
@@ -56,6 +70,7 @@ class PortalAuthenticatedSessionController extends Controller
             'kullanici' => route('dashboard', absolute: false),
             'sanatci' => route('artist.dashboard', absolute: false),
             'mekan' => route('artist.venues.index', absolute: false),
+            'organizasyon' => route('artist.dashboard', absolute: false),
             'yonetim' => route('admin.dashboard', absolute: false),
         };
 

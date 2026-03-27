@@ -32,6 +32,10 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/giris/sanatci';
         case 'login.mekan':
             return '/giris/mekan';
+        case 'login.organizasyon':
+            return '/giris/organizasyon';
+        case 'login.sahne':
+            return '/giris/sahne';
         case 'login.admin':
             return '/yonetim/giris';
         case 'login.store': {
@@ -56,6 +60,26 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         }
         case 'admin.seo-tools.index':
             return '/admin/seo-site-haritasi';
+        case 'artist.organization.artists.index':
+            return `/sahne/organizasyon/sanatcilar${queryString(params ?? {})}`;
+        case 'artist.organization.artists.store':
+            return '/sahne/organizasyon/sanatcilar';
+        case 'artist.organization.artists.attach': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/kat`;
+            }
+
+            return '/sahne/organizasyon/sanatcilar';
+        }
+        case 'artist.organization.artists.detach': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/birak`;
+            }
+
+            return '/sahne/organizasyon/sanatcilar';
+        }
         default:
             return '/';
     }

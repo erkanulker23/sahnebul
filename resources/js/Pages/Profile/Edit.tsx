@@ -76,7 +76,7 @@ export default function Edit({ mustVerifyEmail, status, cities = [], layoutVaria
     const inner =
         layoutVariant === 'admin' ? (
             <>
-                <SeoHead title="Hesabım" description="Yönetici hesabı: profil, şifre ve güvenlik." noindex />
+                <SeoHead title="Hesabım" description="Site yönetimi hesabı: profil, şifre ve güvenlik." noindex />
                 <div className="px-4 pb-10 pt-6 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-5xl">
                         <AdminPageHeader

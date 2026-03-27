@@ -23,6 +23,7 @@ export default function AdminVenueCreate({ categories, googleMapsBrowserKey = nu
         address: '',
         latitude: '',
         longitude: '',
+        google_maps_url: '',
         capacity: '',
         phone: '',
         whatsapp: '',
@@ -36,6 +37,7 @@ export default function AdminVenueCreate({ categories, googleMapsBrowserKey = nu
             facebook: '',
         },
         cover_image: '',
+        google_gallery_photo_urls: [] as string[],
         status: 'pending',
         is_featured: false,
     });
@@ -122,8 +124,15 @@ export default function AdminVenueCreate({ categories, googleMapsBrowserKey = nu
                                     if (payload.descriptionHtmlFromGoogle && isRichTextProbablyEmpty(data.description)) {
                                         setData('description', payload.descriptionHtmlFromGoogle);
                                     }
-                                    if (payload.coverImageUrlFromGoogle?.trim()) {
+                                    if (payload.galleryImageUrlsFromGoogle?.length) {
+                                        setData('google_gallery_photo_urls', payload.galleryImageUrlsFromGoogle.slice(0, 5));
+                                        setData('cover_image', payload.coverImageUrlFromGoogle?.trim() ?? '');
+                                    } else if (payload.coverImageUrlFromGoogle?.trim()) {
                                         setData('cover_image', payload.coverImageUrlFromGoogle.trim());
+                                        setData('google_gallery_photo_urls', []);
+                                    }
+                                    if (payload.googleMapsUrl) {
+                                        setData('google_maps_url', payload.googleMapsUrl);
                                     }
                                 }}
                             />
@@ -228,7 +237,7 @@ export default function AdminVenueCreate({ categories, googleMapsBrowserKey = nu
                         <div className="sm:col-span-2">
                             <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Kapak görseli</label>
                             <p className="mt-0.5 text-xs text-zinc-500">
-                                Google ile seçilen kapak, mekanı ilk kez kaydettiğinizde otomatik olarak sunucuya indirilir.
+                                Google’dan seçilen konumla birlikte en fazla 5 fotoğraf ve kapak, kayıtta sunucuya indirilip galeriye eklenir.
                             </p>
                             <input
                                 value={data.cover_image}

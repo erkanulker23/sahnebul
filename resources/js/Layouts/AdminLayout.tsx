@@ -1,3 +1,4 @@
+import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import { SahnebulWordmark } from '@/Components/brand/SahnebulWordmark';
 import Dropdown from '@/Components/Dropdown';
 import FlashMessage from '@/Components/FlashMessage';
@@ -7,6 +8,7 @@ import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Briefcase,
     Building2,
     Calendar,
     ChevronDown,
@@ -15,6 +17,8 @@ import {
     FileText,
     Folder,
     Globe,
+    Image,
+    Inbox,
     LayoutDashboard,
     Mail,
     MapPin,
@@ -22,6 +26,7 @@ import {
     Menu,
     MessageSquare,
     Mic,
+    PenLine,
     Mic2,
     Search,
     Settings,
@@ -32,47 +37,70 @@ import {
 } from 'lucide-react';
 import { PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 
-const navItems: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
-    { href: 'admin.dashboard', label: 'Yönetim paneli', icon: LayoutDashboard },
-    { href: 'admin.profile', label: 'Hesabım', icon: User },
-    { href: 'admin.users.index', label: 'Kullanıcılar', icon: Users },
-    { href: 'admin.venues.index', label: 'Mekanlar', icon: Building2 },
-    { href: 'admin.events.index', label: 'Etkinlikler', icon: Calendar },
-    { href: 'admin.external-events.index', label: 'Crawl Adayları', icon: Globe },
-    { href: 'admin.artists.index', label: 'Sanatçılar', icon: Mic },
-    { href: 'admin.music-genres.index', label: 'Müzik türleri', icon: Tags },
-    { href: 'admin.blog.index', label: 'Blog', icon: FileText },
-    { href: 'admin.subscriptions.index', label: 'Üyelik Paketleri', icon: CreditCard },
-    { href: 'admin.venue-claims.index', label: 'Mekan Sahiplenme', icon: Building2 },
-    { href: 'admin.artist-claims.index', label: 'Sanatçı Sahiplenme', icon: Mic2 },
-    { href: 'admin.reservations.index', label: 'Rezervasyonlar', icon: ClipboardList },
-    { href: 'admin.reviews.index', label: 'Yorumlar', icon: MessageSquare },
-    { href: 'admin.event-artist-reports.index', label: 'Kadro raporları', icon: AlertTriangle },
-    { href: 'admin.categories.index', label: 'Kategoriler', icon: Folder },
-    { href: 'admin.cities.index', label: 'Şehirler', icon: MapPin },
-    { href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
-    { href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
-    { href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
-    { href: 'admin.seo-tools.index', label: 'SEO / Site haritası', icon: Search },
+type AdminNavItem = {
+    navKey: string;
+    href: string;
+    label: string;
+    icon: typeof LayoutDashboard;
+    /** URL sorgu parametreleri (örn. ?role=…) */
+    query?: Record<string, string>;
+};
+
+const navItems: AdminNavItem[] = [
+    { navKey: 'admin.dashboard', href: 'admin.dashboard', label: 'Yönetim paneli', icon: LayoutDashboard },
+    { navKey: 'admin.profile', href: 'admin.profile', label: 'Hesabım', icon: User },
+    { navKey: 'admin.users.index', href: 'admin.users.index', label: 'Kullanıcılar', icon: Users },
+    {
+        navKey: 'admin.users.organization_firms',
+        href: 'admin.users.index',
+        label: 'Organizasyon Firmaları',
+        icon: Briefcase,
+        query: { role: 'manager_organization' },
+    },
+    { navKey: 'admin.venues.index', href: 'admin.venues.index', label: 'Mekanlar', icon: Building2 },
+    { navKey: 'admin.events.index', href: 'admin.events.index', label: 'Etkinlikler', icon: Calendar },
+    { navKey: 'admin.external-events.index', href: 'admin.external-events.index', label: 'Crawl Adayları', icon: Globe },
+    { navKey: 'admin.artists.index', href: 'admin.artists.index', label: 'Sanatçılar', icon: Mic },
+    { navKey: 'admin.music-genres.index', href: 'admin.music-genres.index', label: 'Müzik türleri', icon: Tags },
+    { navKey: 'admin.blog.index', href: 'admin.blog.index', label: 'Blog', icon: FileText },
+    { navKey: 'admin.subscriptions.index', href: 'admin.subscriptions.index', label: 'Üyelik Paketleri', icon: CreditCard },
+    { navKey: 'admin.venue-claims.index', href: 'admin.venue-claims.index', label: 'Mekan Sahiplenme', icon: Building2 },
+    { navKey: 'admin.artist-claims.index', href: 'admin.artist-claims.index', label: 'Sanatçı Sahiplenme', icon: Mic2 },
+    { navKey: 'admin.reservations.index', href: 'admin.reservations.index', label: 'Rezervasyonlar', icon: ClipboardList },
+    { navKey: 'admin.contact-messages.index', href: 'admin.contact-messages.index', label: 'İletişim mesajları', icon: Inbox },
+    { navKey: 'admin.reviews.index', href: 'admin.reviews.index', label: 'Yorumlar', icon: MessageSquare },
+    { navKey: 'admin.edit-suggestions.index', href: 'admin.edit-suggestions.index', label: 'Düzenleme önerileri', icon: PenLine },
+    { navKey: 'admin.event-artist-reports.index', href: 'admin.event-artist-reports.index', label: 'Kadro raporları', icon: AlertTriangle },
+    { navKey: 'admin.artist-event-proposals.index', href: 'admin.artist-event-proposals.index', label: 'Sanatçı etkinlik önerileri', icon: FileText },
+    { navKey: 'admin.artist-gallery-moderation.index', href: 'admin.artist-gallery-moderation.index', label: 'Sanatçı galeri onayları', icon: Image },
+    { navKey: 'admin.categories.index', href: 'admin.categories.index', label: 'Kategoriler', icon: Folder },
+    { navKey: 'admin.cities.index', href: 'admin.cities.index', label: 'Şehirler', icon: MapPin },
+    { navKey: 'admin.ad-slots.index', href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
+    { navKey: 'admin.smtp.index', href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
+    { navKey: 'admin.settings.index', href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
+    { navKey: 'admin.seo-tools.index', href: 'admin.seo-tools.index', label: 'SEO / Site haritası', icon: Search },
 ];
 
 export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
     const pageProps = usePage().props as {
-        auth?: { is_super_admin?: boolean };
+        auth?: { is_super_admin?: boolean; email_verification_banner?: boolean };
         adminNotifications?: {
             pending_venues: number;
             pending_artists: number;
             draft_events: number;
             pending_reviews: number;
             pending_event_artist_reports: number;
+            pending_artist_event_proposals?: number;
+            pending_artist_media?: number;
         } | null;
     };
     const isSuperAdmin = pageProps.auth?.is_super_admin === true;
 
     const visibleNavItems = useMemo(
-        () => (isSuperAdmin ? navItems : navItems.filter((i) => i.href !== 'admin.smtp.index')),
+        () => (isSuperAdmin ? navItems : navItems.filter((i) => i.navKey !== 'admin.smtp.index')),
         [isSuperAdmin],
     );
+    const currentUrl = usePage().url;
     const { theme, toggleTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -96,6 +124,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             draft_events: n?.draft_events ?? 0,
             pending_reviews: n?.pending_reviews ?? 0,
             pending_event_artist_reports: n?.pending_event_artist_reports ?? 0,
+            pending_artist_event_proposals: n?.pending_artist_event_proposals ?? 0,
+            pending_artist_media: n?.pending_artist_media ?? 0,
         };
     }, [pageProps.adminNotifications]);
 
@@ -105,7 +135,9 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             notificationCounts.pending_artists +
             notificationCounts.draft_events +
             notificationCounts.pending_reviews +
-            notificationCounts.pending_event_artist_reports,
+            notificationCounts.pending_event_artist_reports +
+            notificationCounts.pending_artist_event_proposals +
+            notificationCounts.pending_artist_media,
         [notificationCounts],
     );
 
@@ -118,17 +150,41 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             c > 0 ? 'bg-amber-500/25 text-amber-900 dark:text-amber-300' : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500',
         );
 
-    const isActive = (href: string) => {
+    const navItemIsActive = (item: AdminNavItem) => {
         try {
-            if (route().current(href)) {
+            if (item.query && Object.keys(item.query).length > 0) {
+                if (! route().current(item.href)) {
+                    return false;
+                }
+                const qs = currentUrl.includes('?') ? currentUrl.slice(currentUrl.indexOf('?') + 1) : '';
+                const params = new URLSearchParams(qs);
+                for (const [k, v] of Object.entries(item.query)) {
+                    if (params.get(k) !== v) {
+                        return false;
+                    }
+                }
+
                 return true;
             }
-            if (href === 'admin.blog.index' && route().current('admin.blog.create')) {
+            if (item.href === 'admin.users.index') {
+                if (! route().current('admin.users.index')) {
+                    return false;
+                }
+                const qs = currentUrl.includes('?') ? currentUrl.slice(currentUrl.indexOf('?') + 1) : '';
+                const role = new URLSearchParams(qs).get('role');
+
+                return role !== 'manager_organization';
+            }
+            if (route().current(item.href)) {
                 return true;
             }
-            if (href === 'admin.subscriptions.index' && route().current('admin.subscriptions.create')) {
+            if (item.href === 'admin.blog.index' && route().current('admin.blog.create')) {
                 return true;
             }
+            if (item.href === 'admin.subscriptions.index' && route().current('admin.subscriptions.create')) {
+                return true;
+            }
+
             return false;
         } catch {
             return false;
@@ -151,18 +207,19 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             </div>
             {visibleNavItems.map((item) => {
                 const Icon = item.icon;
+                const href =
+                    item.href === 'admin.event-artist-reports.index' || item.href === 'admin.seo-tools.index'
+                        ? safeRoute(item.href)
+                        : route(item.href, item.query ?? {});
+
                 return (
                     <Link
-                        key={item.href}
-                        href={
-                            item.href === 'admin.event-artist-reports.index' || item.href === 'admin.seo-tools.index'
-                                ? safeRoute(item.href)
-                                : route(item.href)
-                        }
+                        key={item.navKey}
+                        href={href}
                         onClick={closeSidebar}
                         className={cn(
                             'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
-                            isActive(item.href)
+                            navItemIsActive(item)
                                 ? 'bg-amber-500/20 font-medium text-amber-800 dark:text-amber-400'
                                 : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white',
                         )}
@@ -313,6 +370,24 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                                         {notificationCounts.pending_event_artist_reports}
                                     </span>
                                 </Dropdown.Link>
+                                <Dropdown.Link
+                                    href={route('admin.artist-event-proposals.index')}
+                                    className={notifLinkClass}
+                                >
+                                    <span>Sanatçı etkinlik + mekân önerisi</span>
+                                    <span className={notifBadgeClass(notificationCounts.pending_artist_event_proposals)}>
+                                        {notificationCounts.pending_artist_event_proposals}
+                                    </span>
+                                </Dropdown.Link>
+                                <Dropdown.Link
+                                    href={route('admin.artist-gallery-moderation.index')}
+                                    className={notifLinkClass}
+                                >
+                                    <span>Sanatçı galeri onayı</span>
+                                    <span className={notifBadgeClass(notificationCounts.pending_artist_media)}>
+                                        {notificationCounts.pending_artist_media}
+                                    </span>
+                                </Dropdown.Link>
                                 <div className="mt-1 border-t border-zinc-100 pt-1 dark:border-zinc-800">
                                     <Dropdown.Link
                                         href={route('admin.dashboard')}
@@ -340,6 +415,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                         </Link>
                     </div>
                 </header>
+                <EmailVerificationBanner />
                 <FlashMessage />
                 <main className="admin-shell">{children}</main>
             </div>

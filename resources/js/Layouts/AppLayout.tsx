@@ -1,4 +1,6 @@
 import { AdSlot } from '@/Components/AdSlot';
+import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
+import FlashMessage from '@/Components/FlashMessage';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
 import { Link, usePage } from '@inertiajs/react';
@@ -9,6 +11,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
         auth: {
             user: { name: string; email: string; role?: string } | null;
             is_super_admin?: boolean;
+            email_verification_banner?: boolean;
         };
         seo?: { logoUrl?: string | null };
         settings?: {
@@ -57,6 +60,8 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
     return (
         <div className="flex min-h-[100dvh] flex-col overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
             <AppHeader />
+            <EmailVerificationBanner />
+            <FlashMessage />
 
             <AdSlot
                 slotKey="header_below_nav"

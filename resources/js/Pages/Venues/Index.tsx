@@ -7,7 +7,7 @@ import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 
 interface Artist {
@@ -60,6 +60,7 @@ interface VenueListItem {
     slug: string;
     cover_image: string | null;
     address: string;
+    is_featured?: boolean;
     rating_avg?: number;
     review_count?: number;
     weekly_events_count?: number;
@@ -125,6 +126,19 @@ export default function VenuesIndex({
     const [citySlug, setCitySlug] = useState(filters.city ?? '');
     const [categorySlug, setCategorySlug] = useState(filters.category ?? '');
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const nearbyVenuesScrollRef = useRef<HTMLUListElement>(null);
+
+    const scrollNearbyVenuesBy = useCallback((dir: -1 | 1) => {
+        const el = nearbyVenuesScrollRef.current;
+        if (!el) {
+            return;
+        }
+        const card = el.querySelector<HTMLElement>('[data-nearby-venue-card]');
+        const w = card?.offsetWidth ?? 300;
+        const gap = 16;
+        el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+    }, []);
+
     const imageSrc = (path: string | null) => {
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
@@ -412,7 +426,7 @@ export default function VenuesIndex({
                         ) : null}
                         {locationChecked && nearbyVenues.length > 0 ? (
                             <div className="rounded-2xl border border-amber-200/70 bg-gradient-to-b from-amber-50/90 via-white to-zinc-50/90 p-4 shadow-sm ring-1 ring-amber-100/80 dark:border-amber-500/20 dark:from-amber-950/40 dark:via-zinc-900/80 dark:to-zinc-950 dark:ring-amber-500/10 sm:p-6 lg:p-8">
-                                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                                     <div className="min-w-0">
                                         <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                                             <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -422,13 +436,34 @@ export default function VenuesIndex({
                                             Yakınınızdaki mekânlar
                                         </h2>
                                         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                                            Önce haritada koordinatı kayıtlı mekânlar yakınlığa göre sıralanır; koordinatı olmayanlar
-                                            sonda yer alır (şehir seç etkinlik sıralamasıyla aynı mantık). Yeşil rozet yalnızca mesafe
-                                            hesaplanabildiğinde gösterilir.
+                                            Kaydırarak gezinin. Koordinatı kayıtlı mekânlar yakınlığa göre sıralanır; koordinatı olmayanlar
+                                            sonda yer alır. Yeşil rozet yalnızca mesafe hesaplanabildiğinde gösterilir.
                                         </p>
                                     </div>
+                                    <div className="flex shrink-0 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => scrollNearbyVenuesBy(-1)}
+                                            className="rounded-full border border-zinc-300 bg-white/90 px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                            aria-label="Önceki mekânlar"
+                                        >
+                                            ←
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => scrollNearbyVenuesBy(1)}
+                                            className="rounded-full border border-zinc-300 bg-white/90 px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                            aria-label="Sonraki mekânlar"
+                                        >
+                                            →
+                                        </button>
+                                    </div>
                                 </div>
-                                <ul className="grid list-none grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+                                <ul
+                                    ref={nearbyVenuesScrollRef}
+                                    aria-label="Yakınınızdaki mekânlar"
+                                    className="-mx-1 flex list-none snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-2 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+                                >
                                     {nearbyVenues.map((venue) => {
                                         const locLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
                                         const rawDist =
@@ -438,10 +473,11 @@ export default function VenuesIndex({
                                         /** Sunucu: koordinatsız mekânlar için sentinel (~999999 km) */
                                         const dist = rawDist != null && rawDist < 900_000 ? rawDist : null;
                                         return (
-                                            <li key={venue.id} className="min-w-0">
+                                            <li key={venue.id} className="shrink-0 snap-start">
                                                 <Link
+                                                    data-nearby-venue-card
                                                     href={route('venues.show', venue.slug)}
-                                                    className="block overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60 dark:hover:border-amber-500/40"
+                                                    className="block w-[min(85vw,300px)] max-w-[300px] overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60 dark:hover:border-amber-500/40"
                                                 >
                                                     <div className="relative h-40 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
                                                         {venue.cover_image ? (
@@ -524,11 +560,16 @@ export default function VenuesIndex({
                                     {(venues?.data ?? []).map((venue) => {
                                         const venueLocationLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
                                         const showVenueLocation = venueLocationLine !== '';
+                                        const featured = venue.is_featured === true;
                                         return (
                                         <Link
                                             key={venue.id}
                                             href={route('venues.show', venue.slug)}
-                                            className="overflow-hidden rounded-2xl border border-zinc-200 bg-white transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-white/10 dark:bg-zinc-900/60"
+                                            className={`group/card overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 ${
+                                                featured
+                                                    ? 'border-amber-400/90 shadow-lg shadow-amber-500/15 ring-2 ring-amber-400/50 hover:border-amber-300 dark:border-amber-500/40 dark:shadow-amber-900/20 dark:ring-amber-500/30'
+                                                    : 'border-zinc-200 hover:border-amber-300 dark:border-white/10'
+                                            }`}
                                         >
                                             <div className="relative h-44 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
                                                 {venue.cover_image ? (
@@ -537,6 +578,13 @@ export default function VenuesIndex({
                                                     <div className="flex h-full items-center justify-center text-4xl opacity-50">🎭</div>
                                                 )}
                                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/20" />
+                                                {featured ? (
+                                                    <div className="pointer-events-none absolute left-2 top-2 z-[14] sm:left-3 sm:top-3">
+                                                        <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-md ring-1 ring-amber-200/80 sm:text-xs">
+                                                            Öne çıkan
+                                                        </span>
+                                                    </div>
+                                                ) : null}
                                                 {showVenueLocation ? (
                                                     <div className="pointer-events-none absolute right-2 top-2 z-[12] max-w-[calc(100%-5.5rem)] sm:right-3 sm:top-3">
                                                         <span

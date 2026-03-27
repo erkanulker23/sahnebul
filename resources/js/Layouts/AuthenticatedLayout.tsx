@@ -1,3 +1,4 @@
+import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
@@ -127,6 +128,8 @@ export default function Authenticated({
                         </div>
                 </div>
             </nav>
+
+            <EmailVerificationBanner />
 
             {header && (
                 <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50">

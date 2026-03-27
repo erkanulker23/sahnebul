@@ -6,6 +6,7 @@ use App\Http\Requests\ContactFormRequest;
 use App\Mail\ContactFormSubmitted;
 use App\Models\ContactMessage;
 use App\Services\AppSettingsService;
+use App\Services\SahnebulMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -58,6 +59,8 @@ class ContactController extends Controller
                 ]);
             }
         }
+
+        SahnebulMail::contactFormSubmittedNotifyAdmins($message);
 
         return redirect()
             ->route('contact')

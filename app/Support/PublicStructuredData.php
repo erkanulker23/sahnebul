@@ -220,6 +220,16 @@ final class PublicStructuredData
             ? 'https://schema.org/SoldOut'
             : 'https://schema.org/InStock';
 
+        if (! ($event->entry_is_paid ?? true)) {
+            return [
+                '@type' => 'Offer',
+                'url' => $ticketUrl,
+                'price' => 0,
+                'priceCurrency' => 'TRY',
+                'availability' => $availability,
+            ];
+        }
+
         $prices = [];
         foreach ($event->ticketTiers as $t) {
             if (isset($t->price) && is_numeric($t->price)) {

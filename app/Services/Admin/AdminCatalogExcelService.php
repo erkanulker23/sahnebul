@@ -12,6 +12,8 @@ use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\ArtistProfileInputs;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -113,8 +115,8 @@ final class AdminCatalogExcelService
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'capacity' => ['nullable', 'integer', 'min:1'],
-            'phone' => ['nullable', 'string', 'max:40'],
-            'whatsapp' => ['nullable', 'string', 'max:40'],
+            'phone' => UserContactValidation::phoneNullable(),
+            'whatsapp' => UserContactValidation::whatsappNullable(),
             'website' => ['nullable', 'url', 'max:255'],
             'social_links' => ['nullable', 'array'],
             'social_links.*' => ['nullable', 'string', 'max:500'],
@@ -165,6 +167,7 @@ final class AdminCatalogExcelService
                 if ($venue !== null) {
                     $payload = self::applyVenueFkFallbacksFromExisting($venue, $row, $payload);
                     Validator::make($payload, $venueRules)->validate();
+                    $payload = self::normalizeVenueImportPhones($payload);
                     $slug = Str::slug((string) ($payload['slug'] ?: $venue->slug));
                     Validator::make(['slug' => $slug], [
                         'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('venues', 'slug')->ignore($venue->id)],
@@ -175,6 +178,7 @@ final class AdminCatalogExcelService
                 } else {
                     $payload = self::applyVenueOptionalFksForNewRow($row, $payload);
                     Validator::make($payload, $venueRules)->validate();
+                    $payload = self::normalizeVenueImportPhones($payload);
 
                     $slugCell = trim((string) ($row['slug'] ?? ''));
                     if ($slugCell !== '') {
@@ -183,6 +187,7 @@ final class AdminCatalogExcelService
                         if ($collision !== null) {
                             $payload = self::applyVenueFkFallbacksFromExisting($collision, $row, $payload);
                             Validator::make($payload, $venueRules)->validate();
+                            $payload = self::normalizeVenueImportPhones($payload);
                             $slug = Str::slug((string) ($payload['slug'] ?: $collision->slug));
                             Validator::make(['slug' => $slug], [
                                 'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('venues', 'slug')->ignore($collision->id)],
@@ -216,6 +221,17 @@ final class AdminCatalogExcelService
         }
 
         return self::importRedirectResponse($created, $updated, $errors, 'Mekan');
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private static function normalizeVenueImportPhones(array $payload): array
+    {
+        $out = TurkishPhone::mergeNormalizedInto($payload, ['phone']);
+
+        return TurkishPhone::mergeNormalizedWhatsAppInto($out, 'whatsapp');
     }
 
     private static function resolveVenueForExcelImport(?int $id, array $row): ?Venue
@@ -590,11 +606,11 @@ final class AdminCatalogExcelService
                     'manager_info' => ['nullable', 'array'],
                     'manager_info.name' => ['nullable', 'string', 'max:255'],
                     'manager_info.company' => ['nullable', 'string', 'max:255'],
-                    'manager_info.phone' => ['nullable', 'string', 'max:80'],
-                    'manager_info.email' => ['nullable', 'email', 'max:255'],
+                    'manager_info.phone' => UserContactValidation::phoneNullable(),
+                    'manager_info.email' => UserContactValidation::emailNullable(),
                     'public_contact' => ['nullable', 'array'],
-                    'public_contact.email' => ['nullable', 'email', 'max:255'],
-                    'public_contact.phone' => ['nullable', 'string', 'max:80'],
+                    'public_contact.email' => UserContactValidation::emailNullable(),
+                    'public_contact.phone' => UserContactValidation::phoneNullable(),
                     'public_contact.note' => ['nullable', 'string', 'max:2000'],
                     'country_code' => ['nullable', 'string', 'max:8'],
                     'view_count' => ['integer', 'min:0'],
@@ -607,7 +623,14 @@ final class AdminCatalogExcelService
                 ];
 
                 Validator::make($payload, $rules)->validate();
+                $payload = TurkishPhone::mergeNormalizedInto($payload, [
+                    'manager_info.phone',
+                    'public_contact.phone',
+                ]);
                 self::applySpotifyFromSocial($payload);
+                if (filled($payload['spotify_id'] ?? null)) {
+                    $payload['spotify_auto_link_disabled'] = false;
+                }
 
                 if ($id !== null && Artist::query()->whereKey($id)->exists()) {
                     /** @var Artist $artist */

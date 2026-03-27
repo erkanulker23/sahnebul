@@ -9,6 +9,8 @@ use App\Models\City;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -117,9 +119,9 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'site_name' => 'nullable|string|max:120',
-            'contact_email' => 'nullable|email|max:255',
-            'support_email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:80',
+            'contact_email' => UserContactValidation::emailNullable(),
+            'support_email' => UserContactValidation::emailNullable(),
+            'phone' => UserContactValidation::phoneNullable(),
             'address' => 'nullable|string|max:500',
             'seo_default_description' => 'nullable|string|max:5000',
             'seo_keywords' => 'nullable|string|max:500',
@@ -142,6 +144,8 @@ class SettingsController extends Controller
             'social_linkedin' => 'nullable|url|max:500',
             'social_tiktok' => 'nullable|url|max:500',
         ]);
+
+        $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
 
         $current = $this->appSettings->getSitePublicSettings();
         $currentSeo = is_array($current['seo'] ?? null) ? $current['seo'] : [];

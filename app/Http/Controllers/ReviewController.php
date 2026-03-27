@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use App\Models\Venue;
+use App\Services\SahnebulMail;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class ReviewController extends Controller
 {
@@ -33,6 +33,11 @@ class ReviewController extends Controller
             'review_count' => $venue->reviews()->where('is_approved', true)->count(),
             'rating_avg' => (int) round($venue->reviews()->where('is_approved', true)->avg('rating')),
         ]);
+
+        $venue->loadMissing('user');
+        if ($venue->user) {
+            SahnebulMail::newVenueReviewForOwner($venue->user, $review, $venue);
+        }
 
         return back()->with('success', 'Değerlendirmeniz kaydedildi.');
     }

@@ -43,7 +43,8 @@ class ContactFormSubmitted extends Mailable implements ShouldQueue, ShouldQueueA
     public function content(): Content
     {
         return new Content(
-            text: 'mail.contact-submitted-text',
+            html: 'mail.sahnebul.contact',
+            text: 'mail.sahnebul.contact-plain',
         );
     }
 }

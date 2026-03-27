@@ -66,7 +66,7 @@ class LoginRequest extends FormRequest
     /**
      * Kimlik doğrulaması + seçilen giriş kapısına uygun rol kontrolü (uygunsuzsa oturum açılmaz).
      *
-     * @param  'kullanici'|'sanatci'|'mekan'|'yonetim'  $portal
+     * @param  'kullanici'|'sanatci'|'mekan'|'organizasyon'|'yonetim'  $portal
      */
     public function authenticateForPortal(string $portal): void
     {

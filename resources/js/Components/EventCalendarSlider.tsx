@@ -14,6 +14,7 @@ export type CalendarSliderEvent = {
     description?: string | null;
     start_date: string;
     ticket_price?: number | null;
+    entry_is_paid?: boolean;
     artists?: { id: number; name: string; slug: string; avatar?: string | null }[];
     venue?: { name: string; slug?: string; city?: { name: string } | null };
 };
@@ -306,7 +307,11 @@ export default function EventCalendarSlider({
                                                 )}
                                                 {variant === 'artist' && (
                                                     <p className="mt-2 text-base font-semibold text-emerald-600 dark:text-emerald-400">
-                                                        {event.ticket_price == null ? 'Ücretsiz / Bilgi yok' : `${event.ticket_price} ₺`}
+                                                        {event.entry_is_paid === false
+                                                            ? 'Ücretsiz giriş'
+                                                            : event.ticket_price == null
+                                                              ? 'Ücret bilgisi yok'
+                                                              : `${event.ticket_price} ₺`}
                                                     </p>
                                                 )}
                                                 {event.description?.trim() && (

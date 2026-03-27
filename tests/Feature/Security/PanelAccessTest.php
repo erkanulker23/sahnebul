@@ -52,7 +52,7 @@ class PanelAccessTest extends TestCase
 
     public function test_guest_cannot_access_artist_panel(): void
     {
-        $this->get('/sahne')->assertRedirect(route('login.sanatci', absolute: false));
+        $this->get('/sahne')->assertRedirect(route('login.sahne', absolute: false));
     }
 
     public function test_artist_can_open_sahne_panel_without_gold(): void

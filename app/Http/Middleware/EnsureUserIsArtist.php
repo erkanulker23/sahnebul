@@ -15,14 +15,7 @@ class EnsureUserIsArtist
         }
 
         $user = $request->user();
-        $pendingVenue = is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '';
-
-        if (
-            $user->isArtist()
-            || $user->hasActiveMembership('venue')
-            || $pendingVenue
-            || $user->venues()->exists()
-        ) {
+        if ($user->canAccessStagePanel()) {
             return $next($request);
         }
 

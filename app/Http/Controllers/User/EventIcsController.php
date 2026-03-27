@@ -15,6 +15,7 @@ class EventIcsController extends Controller
         abort_unless($model->status === 'published' && $model->venue?->status === 'approved', 404);
 
         $user = $request->user();
+        abort_unless($user->canUsePublicEngagementFeatures(), 403);
         $hasReminder = $user->remindedEvents()->whereKey($model->id)->exists();
         abort_unless($hasReminder, 403);
 

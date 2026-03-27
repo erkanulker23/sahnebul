@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SubscriptionPlan;
 use App\Models\Venue;
 use App\Models\VenueMedia;
 use App\Services\Admin\VenueMergeService;
 use App\Services\AppSettingsService;
+use App\Services\SahnebulMail;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -40,7 +44,7 @@ class VenueController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
 
-        $venues = Venue::with(['city', 'category'])
+        $venues = Venue::with(['city', 'category', 'user:id,name,email'])
             ->withCount('events')
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($search !== '', function ($q) use ($search) {
@@ -98,6 +102,7 @@ class VenueController extends Controller
             'description' => $request->input('description') ?: null,
             'latitude' => $request->input('latitude') ?: null,
             'longitude' => $request->input('longitude') ?: null,
+            'google_maps_url' => $request->input('google_maps_url') ?: null,
             'capacity' => $request->input('capacity') ?: null,
             'phone' => $request->input('phone') ?: null,
             'whatsapp' => $request->input('whatsapp') ?: null,
@@ -118,9 +123,10 @@ class VenueController extends Controller
             'address' => 'required|string|max:1000',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
+            'google_maps_url' => 'nullable|string|max:2048',
             'capacity' => 'nullable|integer|min:1',
-            'phone' => 'nullable|string|max:40',
-            'whatsapp' => 'nullable|string|max:40',
+            'phone' => UserContactValidation::phoneNullable(),
+            'whatsapp' => UserContactValidation::whatsappNullable(),
             'website' => 'nullable|url|max:255',
             'social_links' => 'nullable|array',
             'social_links.*' => 'nullable|string|max:500',
@@ -128,16 +134,31 @@ class VenueController extends Controller
             'status' => 'required|in:pending,approved,rejected',
             'cover_upload' => 'nullable|image|max:10240',
             'is_featured' => 'nullable|boolean',
+            'google_gallery_photo_urls' => 'nullable|array|max:5',
+            'google_gallery_photo_urls.*' => 'nullable|string|url|max:4096',
         ]);
 
+        $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
+        $validated = TurkishPhone::mergeNormalizedWhatsAppInto($validated, 'whatsapp');
+
+        $galleryUrls = array_values(array_filter(array_map('trim', $validated['google_gallery_photo_urls'] ?? [])));
+        $galleryUrls = array_slice($galleryUrls, 0, 5);
+        unset($validated['google_gallery_photo_urls']);
+
         unset($validated['cover_upload']);
-        if ($request->hasFile('cover_upload')) {
+        $hadCoverUpload = $request->hasFile('cover_upload');
+        if ($hadCoverUpload) {
             $validated['cover_image'] = $request->file('cover_upload')->store('venue-covers', 'public');
+        } elseif ($galleryUrls !== []) {
+            $validated['cover_image'] = null;
         } else {
             $validated['cover_image'] = $this->mirrorRemoteVenueCoverIfNeeded($validated['cover_image'] ?? null);
         }
 
         $validated['is_featured'] = $request->boolean('is_featured');
+        if (empty($validated['google_maps_url'])) {
+            $validated['google_maps_url'] = null;
+        }
 
         $normalizedName = mb_strtolower(trim($validated['name']));
         if ($normalizedName !== '' && Venue::query()
@@ -152,18 +173,53 @@ class VenueController extends Controller
         $slugBase = Str::slug($validated['name']);
         $validated['slug'] = $slugBase.'-'.Str::lower(Str::random(4));
 
-        return Venue::create($validated);
+        $venue = Venue::create($validated);
+
+        if ($galleryUrls !== []) {
+            $this->remoteCoverImporter->importGoogleGalleryToVenue($venue, $galleryUrls, updateVenueCoverFromFirst: ! $hadCoverUpload);
+        }
+
+        return $venue;
     }
 
     public function edit(Venue $venue)
     {
-        $venue->load(['city', 'category', 'media']);
+        $venue->load(['city', 'category', 'media', 'user:id,name,email']);
         $venue->loadCount('events');
+
+        $owner = $venue->user;
+        $venueSubscriptionPlans = SubscriptionPlan::query()
+            ->adminAssignableFor('venue')
+            ->get(['id', 'name', 'slug', 'interval', 'price', 'membership_type']);
+
+        $venueOwnerSubscription = null;
+        if ($owner !== null) {
+            $sub = $owner->activeSubscription()?->load('plan');
+            if ($sub !== null) {
+                $venueOwnerSubscription = [
+                    'starts_at' => $sub->starts_at->toIso8601String(),
+                    'ends_at' => $sub->ends_at->toIso8601String(),
+                    'plan' => $sub->plan !== null
+                        ? [
+                            'id' => $sub->plan->id,
+                            'name' => $sub->plan->name,
+                            'slug' => $sub->plan->slug,
+                            'membership_type' => $sub->plan->membership_type,
+                        ]
+                        : null,
+                ];
+            }
+        }
 
         return Inertia::render('Admin/Venues/Edit', [
             'venue' => $venue,
             'categories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
+            'venueOwner' => $owner !== null
+                ? ['id' => $owner->id, 'name' => $owner->name, 'email' => $owner->email]
+                : null,
+            'venueSubscriptionPlans' => $venueSubscriptionPlans,
+            'venueOwnerSubscription' => $venueOwnerSubscription,
         ]);
     }
 
@@ -173,6 +229,7 @@ class VenueController extends Controller
             'description' => $request->input('description') ?: null,
             'latitude' => $request->input('latitude') ?: null,
             'longitude' => $request->input('longitude') ?: null,
+            'google_maps_url' => $request->input('google_maps_url') ?: null,
             'capacity' => $request->input('capacity') ?: null,
             'phone' => $request->input('phone') ?: null,
             'whatsapp' => $request->input('whatsapp') ?: null,
@@ -200,9 +257,10 @@ class VenueController extends Controller
             'address' => 'required|string|max:1000',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
+            'google_maps_url' => 'nullable|string|max:2048',
             'capacity' => 'nullable|integer|min:1',
-            'phone' => 'nullable|string|max:40',
-            'whatsapp' => 'nullable|string|max:40',
+            'phone' => UserContactValidation::phoneNullable(),
+            'whatsapp' => UserContactValidation::whatsappNullable(),
             'website' => 'nullable|url|max:255',
             'social_links' => 'nullable|array',
             'social_links.*' => 'nullable|string|max:500',
@@ -211,6 +269,9 @@ class VenueController extends Controller
             'cover_upload' => 'nullable|image|max:10240',
             'is_featured' => 'nullable|boolean',
         ]);
+
+        $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
+        $validated = TurkishPhone::mergeNormalizedWhatsAppInto($validated, 'whatsapp');
 
         unset($validated['cover_upload']);
         if ($request->hasFile('cover_upload')) {
@@ -227,6 +288,9 @@ class VenueController extends Controller
 
         $validated['is_featured'] = $request->boolean('is_featured');
         $validated['slug'] = Str::slug($validated['slug']);
+        if (empty($validated['google_maps_url'])) {
+            $validated['google_maps_url'] = null;
+        }
 
         $normalizedName = mb_strtolower(trim($validated['name']));
         if ($normalizedName !== '' && Venue::query()
@@ -284,6 +348,33 @@ class VenueController extends Controller
         }
 
         return back()->with('success', 'Kapak görseli sunucuya kaydedildi.');
+    }
+
+    /**
+     * Google Places’tan gelen görsel URL’lerini (en fazla 5) galeriye indirir; mevcut kapak değiştirilmez.
+     */
+    public function importRemoteGoogleGallery(Request $request, Venue $venue)
+    {
+        $validated = $request->validate([
+            'urls' => 'required|array|min:1|max:5',
+            'urls.*' => 'required|string|url|max:4096',
+            'set_cover_from_first' => 'nullable|boolean',
+        ]);
+
+        $urls = array_values(array_filter(array_map('trim', $validated['urls'])));
+        $urls = array_slice($urls, 0, 5);
+
+        $this->remoteCoverImporter->importGoogleGalleryToVenue(
+            $venue,
+            $urls,
+            updateVenueCoverFromFirst: $request->boolean('set_cover_from_first'),
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Google görselleri galeriye eklendi.');
     }
 
     /**
@@ -440,6 +531,11 @@ class VenueController extends Controller
 
     private function performVenueDelete(Venue $venue): void
     {
+        $venue->loadMissing('user');
+        if ($venue->status === 'approved' && $venue->user) {
+            SahnebulMail::venueDeletedNotifyOwner($venue->user, $venue->name);
+        }
+
         $venue->loadMissing('events');
         foreach ($venue->events as $event) {
             if ($event->cover_image && ! Str::startsWith($event->cover_image, ['http://', 'https://'])) {

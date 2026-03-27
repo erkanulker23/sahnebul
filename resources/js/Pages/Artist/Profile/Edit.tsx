@@ -22,6 +22,7 @@ export default function ArtistProfileEdit({
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
                         omitCityField
+                        omitInterestsField
                         className="max-w-xl"
                     />
                 </div>

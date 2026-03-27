@@ -1,15 +1,18 @@
+import PhoneInput from '@/Components/PhoneInput';
 import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { eventShowParam } from '@/lib/eventShowUrl';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { truncateMetaDescription } from '@/utils/seo';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
+import SuggestEditModal from '@/Components/SuggestEditModal';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Music2, Pause, Play } from 'lucide-react';
+import { Music2, Pause, PenLine, Play } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
@@ -175,6 +178,7 @@ function socialLinkTitle(key: string): string {
 interface Artist {
     id: number;
     user_id?: number | null;
+    status?: string;
     view_count?: number;
     /** Bağlı kullanıcının e-postası doğrulanmış, profil sahiplenilmiş. */
     is_verified_profile?: boolean;
@@ -225,6 +229,7 @@ interface Props {
     provinceNames?: string[];
     claimStatus?: string | null;
     artistFavorite?: { canToggle: boolean; isFavorited: boolean };
+    organizationAffiliation?: { label: string } | null;
 }
 
 function SpotifyTrackPreview({
@@ -304,6 +309,7 @@ export default function ArtistShow({
     provinceNames = [],
     claimStatus,
     artistFavorite = { canToggle: false, isFavorited: false },
+    organizationAffiliation = null,
 }: Readonly<Props>) {
     const page = usePage().props as {
         auth?: { user?: { id: number } | null };
@@ -312,6 +318,7 @@ export default function ArtistShow({
     const user = page.auth?.user;
     const appUrl = (page.seo?.appUrl ?? '').replace(/\/$/, '');
     const canonicalUrl = appUrl ? `${appUrl}/sanatcilar/${artist.slug}` : undefined;
+    const [suggestEditOpen, setSuggestEditOpen] = useState(false);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -342,7 +349,7 @@ export default function ArtistShow({
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
-    const canClaimArtist = artist.user_id == null;
+    const canClaimArtist = artist.user_id == null && artist.status !== 'approved';
 
     const formatTrackDuration = (ms: number | null | undefined) => {
         if (ms == null || ms <= 0) return '—';
@@ -369,6 +376,23 @@ export default function ArtistShow({
         }));
         return { displaySocialLinks: merged, resolvedSocialList: list };
     }, [artist.social_links, artist.spotify_url, artist.spotify_id]);
+
+    const artistProfileSnapshot = useMemo(
+        () => ({
+            website: artist.website,
+            bio: artist.bio,
+            social_links: displaySocialLinks,
+            manager_info: artist.manager_info ?? null,
+            public_contact: artist.public_contact ?? null,
+        }),
+        [
+            artist.website,
+            artist.bio,
+            artist.manager_info,
+            artist.public_contact,
+            displaySocialLinks,
+        ],
+    );
 
     const spotifySearchPills: readonly string[] = ['Tümü'];
 
@@ -595,8 +619,20 @@ export default function ArtistShow({
                                                     <input value={claimFirstName} onChange={(e) => setClaimFirstName(e.target.value)} className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white" placeholder="Ad" required />
                                                     <input value={claimLastName} onChange={(e) => setClaimLastName(e.target.value)} className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white" placeholder="Soyad" required />
                                                 </div>
-                                                <input value={claimPhone} onChange={(e) => setClaimPhone(e.target.value)} className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white" placeholder="Telefon" required />
-                                                <input type="email" value={claimEmail} onChange={(e) => setClaimEmail(e.target.value)} className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white" placeholder="E-posta" required />
+                                                <PhoneInput
+                                                    value={claimPhone}
+                                                    onChange={setClaimPhone}
+                                                    className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white"
+                                                    required
+                                                />
+                                                <input
+                                                    type="email"
+                                                    value={claimEmail}
+                                                    onChange={(e) => setClaimEmail(sanitizeEmailInput(e.target.value))}
+                                                    className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white"
+                                                    placeholder="E-posta"
+                                                    required
+                                                />
                                                 <textarea value={claimMessage} onChange={(e) => setClaimMessage(e.target.value)} rows={3} className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-zinc-800 dark:border-amber-500/20 dark:bg-zinc-900 dark:text-white" placeholder="Kısa doğrulama notu (opsiyonel)" />
                                                 <button type="submit" disabled={claimLoading} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-60">Sahiplenme Talebi Gönder</button>
                                             </form>
@@ -662,7 +698,21 @@ export default function ArtistShow({
                                         Favoriler için giriş
                                     </Link>
                                 ) : null}
+                                <button
+                                    type="button"
+                                    onClick={() => setSuggestEditOpen(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
+                                >
+                                    <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
+                                    Düzenleme öner
+                                </button>
                             </div>
+                            {organizationAffiliation ? (
+                                <p className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+                                    <span className="font-semibold text-amber-700 dark:text-amber-400">{organizationAffiliation.label}</span>{' '}
+                                    organizasyonu bünyesinde listelenmektedir.
+                                </p>
+                            ) : null}
                             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                                 {(artist.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
                             </p>
@@ -1074,6 +1124,16 @@ export default function ArtistShow({
                     </div>
                 </div>
             </div>
+
+            <SuggestEditModal
+                open={suggestEditOpen}
+                onClose={() => setSuggestEditOpen(false)}
+                entityKind="artist"
+                entitySlug={artist.slug}
+                entityName={artist.name}
+                isAuthenticated={Boolean(user)}
+                artistProfileSnapshot={artistProfileSnapshot}
+            />
         </AppLayout>
     );
 }

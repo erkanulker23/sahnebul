@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,12 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'pending_venue_name', 'email', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active'])]
+#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'email', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, MustVerifyEmail, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -38,6 +40,17 @@ class User extends Authenticatable
         return $this->hasMany(Reservation::class);
     }
 
+    /**
+     * Etkinlik değerlendirmesi: yalnızca bu etkinliğe bağlı onaylanmış veya tamamlanmış rezervasyon.
+     */
+    public function canSubmitEventReviewForEvent(int $eventId): bool
+    {
+        return $this->reservations()
+            ->where('event_id', $eventId)
+            ->whereIn('status', ['confirmed', 'completed'])
+            ->exists();
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
@@ -46,6 +59,12 @@ class User extends Authenticatable
     public function venues(): HasMany
     {
         return $this->hasMany(Venue::class);
+    }
+
+    /** Organizasyon firması hesabının yönettiği sanatçı kayıtları (`artists.managed_by_user_id`). */
+    public function managedArtists(): HasMany
+    {
+        return $this->hasMany(Artist::class, 'managed_by_user_id');
     }
 
     public function favoriteArtists(): BelongsToMany
@@ -79,7 +98,12 @@ class User extends Authenticatable
         return $this->subscriptions()
             ->where('status', 'active')
             ->where('ends_at', '>', now())
-            ->whereHas('plan', fn ($q) => $q->where('slug', 'gold-monthly')->orWhere('slug', 'gold-yearly'))
+            ->whereHas('plan', fn ($q) => $q->whereIn('slug', [
+                'gold-monthly',
+                'gold-yearly',
+                'org-monthly',
+                'org-yearly',
+            ]))
             ->exists();
     }
 
@@ -110,5 +134,44 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
+    }
+
+    /**
+     * Favori sanatçı ve etkinlik hatırlatması (takip): giriş + doğrulanmış e-posta; yönetici hesapları hariç.
+     */
+    public function canUsePublicEngagementFeatures(): bool
+    {
+        if ($this->email_verified_at === null) {
+            return false;
+        }
+
+        return ! $this->isAdmin();
+    }
+
+    public function isVenueOwner(): bool
+    {
+        return $this->role === 'venue_owner';
+    }
+
+    public function isManagerOrganization(): bool
+    {
+        return $this->role === 'manager_organization';
+    }
+
+    /**
+     * /sahne paneli ve mekan/etkinlik yönetimi (sanatçı, mekân sahibi, organizasyon yöneticisi veya bağlı içerik).
+     */
+    public function canAccessStagePanel(): bool
+    {
+        if ($this->isArtist() || $this->isVenueOwner() || $this->isManagerOrganization()) {
+            return true;
+        }
+
+        $pendingVenue = is_string($this->pending_venue_name) && trim($this->pending_venue_name) !== '';
+
+        return $pendingVenue
+            || $this->venues()->exists()
+            || $this->hasActiveMembership('venue')
+            || $this->hasActiveMembership('manager');
     }
 }

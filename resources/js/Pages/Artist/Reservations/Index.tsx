@@ -10,6 +10,8 @@ interface Reservation {
     reservation_time: string;
     status: string;
     total_amount: number;
+    guest_name: string | null;
+    guest_phone: string | null;
     user: { name: string };
     venue: { name: string };
 }
@@ -44,6 +46,11 @@ export default function ArtistReservationsIndex({ reservations, stats }: Props) 
                     <div key={r.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/5 bg-zinc-900/50 p-6">
                         <div>
                             <p className="font-semibold text-white">{r.user.name}</p>
+                            {(r.guest_name || r.guest_phone) && (
+                                <p className="text-sm text-zinc-400">
+                                    Form: {[r.guest_name, r.guest_phone].filter(Boolean).join(' · ')}
+                                </p>
+                            )}
                             <p className="text-sm text-zinc-500">{r.venue.name}</p>
                             <p className="mt-1 text-zinc-400">{formatTurkishDateTimeFromParts(r.reservation_date, r.reservation_time)} • ₺{Number(r.total_amount).toLocaleString('tr-TR')}</p>
                         </div>

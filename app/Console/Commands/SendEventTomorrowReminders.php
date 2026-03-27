@@ -2,13 +2,13 @@
 
 namespace App\Console\Commands;
 
-use App\Mail\EventTomorrowReminderMail;
 use App\Models\Event;
 use App\Models\User;
+use App\Notifications\EventTomorrowReminderDatabaseNotification;
+use App\Services\SahnebulMail;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class SendEventTomorrowReminders extends Command
 {
@@ -40,19 +40,19 @@ class SendEventTomorrowReminders extends Command
             if ($user === null || $event === null || $event->venue?->status !== 'approved') {
                 continue;
             }
-            if (! $user->isCustomer()) {
+            if (! $user->canUsePublicEngagementFeatures()) {
                 DB::table('user_event_reminders')->where('id', $row->reminder_row_id)->update(['reminder_sent_at' => now()]);
 
                 continue;
             }
 
-            try {
-                Mail::to($user->email)->send(new EventTomorrowReminderMail($user, $event));
-            } catch (\Throwable $e) {
-                $this->error('E-posta gönderilemedi (kullanıcı '.$user->id.', etkinlik '.$event->id.'): '.$e->getMessage());
+            if (! SahnebulMail::eventTomorrowReminder($user, $event)) {
+                $this->error('E-posta gönderilemedi (kullanıcı '.$user->id.', etkinlik '.$event->id.').');
 
                 continue;
             }
+
+            $user->notify(new EventTomorrowReminderDatabaseNotification($event));
 
             DB::table('user_event_reminders')->where('id', $row->reminder_row_id)->update(['reminder_sent_at' => now()]);
             $sent++;

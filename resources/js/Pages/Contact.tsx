@@ -1,6 +1,8 @@
+import PhoneInput from '@/Components/PhoneInput';
 import SeoHead from '@/Components/SeoHead';
 import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/cn';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 import { ExternalLink, Mail, MapPin, Phone } from 'lucide-react';
@@ -207,12 +209,11 @@ export default function Contact() {
                                     <label htmlFor="contact-phone" className={labelClass}>
                                         Telefon <span className="text-zinc-400">(isteğe bağlı)</span>
                                     </label>
-                                    <input
+                                    <PhoneInput
                                         id="contact-phone"
-                                        type="tel"
                                         name="phone"
                                         value={data.phone}
-                                        onChange={(e) => setData('phone', e.target.value)}
+                                        onChange={(v) => setData('phone', v)}
                                         className={fieldClass}
                                         autoComplete="tel"
                                     />

@@ -4,6 +4,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { PageProps } from '@/types';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useMemo, useState } from 'react';
 
@@ -35,6 +36,7 @@ export default function UpdateProfileInformation({
     className = '',
     omitSectionHeader = false,
     omitCityField = false,
+    omitInterestsField = false,
 }: Readonly<{
     mustVerifyEmail: boolean;
     status?: string;
@@ -44,6 +46,8 @@ export default function UpdateProfileInformation({
     omitSectionHeader?: boolean;
     /** Sahne paneli sanatçı profili: şehir seçimi gösterilmez. */
     omitCityField?: boolean;
+    /** Sahne paneli `/sahne/profil`: ilgi alanları gösterilmez (mevcut değerler kayıtta korunur). */
+    omitInterestsField?: boolean;
 }>) {
     const { auth } = usePage<PageProps>().props;
     const user = auth.user as {
@@ -156,7 +160,7 @@ export default function UpdateProfileInformation({
                         type="email"
                         className="mt-1 block w-full"
                         value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('email', sanitizeEmailInput(e.target.value))}
                         required
                         autoComplete="username"
                     />
@@ -180,29 +184,31 @@ export default function UpdateProfileInformation({
                     </div>
                 )}
 
-                <div>
-                    <InputLabel value="İlgi alanları" />
-                    <div className="mt-2 flex flex-wrap gap-2">
-                        {data.interests.map((v, i) => (
-                            <span key={`${v}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-sm text-amber-400">
-                                {v}
-                                <button type="button" onClick={() => removeInterest(i)} className="hover:text-red-400">×</button>
-                            </span>
-                        ))}
+                {!omitInterestsField && (
+                    <div>
+                        <InputLabel value="İlgi alanları" />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {data.interests.map((v, i) => (
+                                <span key={`${v}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-sm text-amber-400">
+                                    {v}
+                                    <button type="button" onClick={() => removeInterest(i)} className="hover:text-red-400">×</button>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                            <TextInput
+                                value={interestInput}
+                                onChange={(e) => setInterestInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } }}
+                                placeholder="Eklemek için yazıp Enter"
+                                className="flex-1"
+                            />
+                            <button type="button" onClick={addInterest} className="rounded-xl bg-amber-500/20 px-4 py-2 text-sm text-amber-400 hover:bg-amber-500/30">
+                                Ekle
+                            </button>
+                        </div>
                     </div>
-                    <div className="mt-2 flex gap-2">
-                        <TextInput
-                            value={interestInput}
-                            onChange={(e) => setInterestInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } }}
-                            placeholder="Eklemek için yazıp Enter"
-                            className="flex-1"
-                        />
-                        <button type="button" onClick={addInterest} className="rounded-xl bg-amber-500/20 px-4 py-2 text-sm text-amber-400 hover:bg-amber-500/30">
-                            Ekle
-                        </button>
-                    </div>
-                </div>
+                )}
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>

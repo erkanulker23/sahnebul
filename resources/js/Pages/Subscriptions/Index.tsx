@@ -8,7 +8,7 @@ import { Link, router } from '@inertiajs/react';
 interface Plan {
     id: number;
     name: string;
-    membership_type: 'artist' | 'venue';
+    membership_type: 'artist' | 'venue' | 'manager';
     interval: 'monthly' | 'yearly';
     trial_days?: number;
     price: string;
@@ -22,7 +22,7 @@ interface Props {
         ends_at: string;
         plan?: { name: string };
     } | null;
-    selectedType?: 'artist' | 'venue';
+    selectedType?: 'artist' | 'venue' | 'manager';
     /** Sanatçı veya bağlı mekanı olan kullanıcı: sol menülü sahne paneli */
     useArtistPanel?: boolean;
     /** Sanatçı veya mekan sahibi: paket satın alma */
@@ -43,10 +43,26 @@ function SubscriptionContent({
                 noindex
             />
             <h1 className="font-display text-3xl font-bold text-white">Üyelik Paketleri</h1>
-            <p className="mt-2 text-zinc-400">Sanatçı ve mekan üyelik paketlerini buradan seçebilirsiniz.</p>
-            <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-zinc-900/50 p-1">
-                <Link href={route('subscriptions.index', { type: 'venue' })} className={`rounded-lg px-3 py-1.5 text-sm ${selectedType === 'venue' ? 'bg-amber-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}>Mekan Üyeliği</Link>
-                <Link href={route('subscriptions.index', { type: 'artist' })} className={`rounded-lg px-3 py-1.5 text-sm ${selectedType === 'artist' ? 'bg-amber-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}>Sanatçı Üyeliği</Link>
+            <p className="mt-2 text-zinc-400">Sanatçı, mekan ve organizasyon üyelik paketlerini buradan seçebilirsiniz.</p>
+            <div className="mt-4 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-zinc-900/50 p-1">
+                <Link
+                    href={route('subscriptions.index', { type: 'venue' })}
+                    className={`rounded-lg px-3 py-1.5 text-sm ${selectedType === 'venue' ? 'bg-amber-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                >
+                    Mekan Üyeliği
+                </Link>
+                <Link
+                    href={route('subscriptions.index', { type: 'artist' })}
+                    className={`rounded-lg px-3 py-1.5 text-sm ${selectedType === 'artist' ? 'bg-amber-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                >
+                    Sanatçı Üyeliği
+                </Link>
+                <Link
+                    href={route('subscriptions.index', { type: 'manager' })}
+                    className={`rounded-lg px-3 py-1.5 text-sm ${selectedType === 'manager' ? 'bg-amber-500 text-zinc-950' : 'text-zinc-400 hover:text-white'}`}
+                >
+                    Organizasyon firması
+                </Link>
             </div>
 
             {activeSubscription && (
@@ -57,7 +73,8 @@ function SubscriptionContent({
 
             {!canPurchase && (
                 <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-                    Paket satın almak için hesabınızın <strong>sanatçı</strong> olması veya size bağlı en az bir <strong>mekan</strong> bulunması gerekir.
+                    Paket satın almak için hesabınızın <strong>sanatçı</strong>, <strong>mekân sahibi</strong> veya{' '}
+                    <strong>organizasyon firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
                 </div>
             )}
 
@@ -137,7 +154,8 @@ export default function SubscriptionIndex({
 
                 {!canPurchase && (
                     <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
-                        Paket satın almak için hesabınızın <strong>sanatçı</strong> olması veya size bağlı en az bir <strong>mekan</strong> bulunması gerekir.
+                        Paket satın almak için hesabınızın <strong>sanatçı</strong>, <strong>mekân sahibi</strong> veya{' '}
+                    <strong>organizasyon firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
                     </div>
                 )}
 

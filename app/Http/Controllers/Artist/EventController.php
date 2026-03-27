@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Artist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
+use App\Models\ArtistEventProposal;
+use App\Models\Category;
 use App\Models\Event;
 use App\Models\EventArtistReport;
 use App\Models\EventReview;
 use App\Models\Review;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\AppSettingsService;
+use App\Support\ArtistProfileInputs;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -143,19 +149,184 @@ class EventController extends Controller
             $venueSearch = $search;
         }
 
-        $artists = Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);
-        $defaultArtistId = Artist::query()
-            ->where('user_id', $request->user()->id)
+        $linkedArtist = Artist::query()
+            ->where('user_id', $user->id)
             ->where('status', 'approved')
-            ->value('id');
+            ->first(['id', 'name']);
 
-        return Inertia::render('Artist/Events/Create', [
+        $hasOwnApprovedVenue = $ownVenues->isNotEmpty();
+        $lockArtistsToSelf = $linkedArtist !== null && ! $hasOwnApprovedVenue;
+        $artists = $lockArtistsToSelf
+            ? Artist::approved()->notIntlImport()->whereRaw('0 = 1')->get(['id', 'name'])
+            : Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name']);
+
+        $props = [
             'venues' => $venues,
             'venuePickerMode' => $venuePickerMode,
             'venueSearch' => $venueSearch,
             'artists' => $artists,
-            'defaultArtistId' => $defaultArtistId,
+            'defaultArtistId' => $linkedArtist?->id,
+            'lockArtistsToSelf' => $lockArtistsToSelf,
+            'linkedArtistName' => $linkedArtist?->name,
+        ];
+
+        if ($venuePickerMode === 'catalog') {
+            $props['categories'] = Category::orderBy('order')->get(['id', 'name']);
+            $props['googleMapsBrowserKey'] = app(AppSettingsService::class)->getGoogleMapsBrowserKey();
+        }
+
+        return Inertia::render('Artist/Events/Create', $props);
+    }
+
+    /**
+     * Onaylı sanatçı profili olan ve kendi onaylı mekânı olmayan kullanıcı: yeni mekân + etkinlik önerisi (admin onayı).
+     */
+    public function proposeWithNewVenue(Request $request)
+    {
+        $user = $request->user();
+        if ($user->venues()->where('status', 'approved')->exists()) {
+            return redirect()
+                ->route('artist.events.create')
+                ->with('error', 'Onaylı mekânınız varsa etkinliği doğrudan oluşturun veya katalogdan mekân seçin.');
+        }
+
+        $linkedArtist = Artist::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->first();
+
+        if ($linkedArtist === null) {
+            return redirect()
+                ->route('artist.events.index')
+                ->with('error', 'Yeni mekân önerisi için onaylı sanatçı profiliniz olmalıdır.');
+        }
+
+        $pv = $request->input('proposed_venue', []);
+        if (! is_array($pv)) {
+            $pv = [];
+        }
+        $pv['district_id'] = $pv['district_id'] ?? null;
+        $pv['neighborhood_id'] = $pv['neighborhood_id'] ?? null;
+        $pv['social_links'] = ArtistProfileInputs::normalizeSocialLinks($pv['social_links'] ?? []);
+        $request->merge([
+            'proposed_venue' => $pv,
+            'ticket_tiers' => Event::filterTicketTierRowsFromRequestInput($request->input('ticket_tiers')),
+            'artist_ids' => $request->input('artist_ids') ?? [],
+            'start_date' => $request->input('start_date') ?: null,
+            'end_date' => $request->input('end_date') ?: null,
+            'entry_is_paid' => $request->boolean('entry_is_paid', true),
         ]);
+
+        $validated = $request->validate([
+            'proposed_venue' => ['required', 'array'],
+            'proposed_venue.name' => 'required|string|max:255',
+            'proposed_venue.category_id' => 'required|exists:categories,id',
+            'proposed_venue.city_id' => 'required|exists:cities,id',
+            'proposed_venue.district_id' => 'nullable|exists:districts,id',
+            'proposed_venue.neighborhood_id' => 'nullable|exists:neighborhoods,id',
+            'proposed_venue.description' => 'nullable|string',
+            'proposed_venue.address' => 'required|string',
+            'proposed_venue.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'proposed_venue.longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'proposed_venue.google_maps_url' => 'nullable|string|max:2048',
+            'proposed_venue.capacity' => 'nullable|integer|min:1',
+            'proposed_venue.phone' => UserContactValidation::phoneNullable(),
+            'proposed_venue.whatsapp' => UserContactValidation::whatsappNullable(),
+            'proposed_venue.website' => 'nullable|url|max:255',
+            'proposed_venue.social_links' => 'nullable|array',
+            'proposed_venue.social_links.*' => 'nullable|string|max:500',
+            'proposed_venue.google_gallery_photo_urls' => 'nullable|array|max:5',
+            'proposed_venue.google_gallery_photo_urls.*' => 'nullable|string|url|max:4096',
+            'artist_ids' => 'nullable|array',
+            'artist_ids.*' => ['integer', Artist::ruleExistsInPublicCatalog()],
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'event_rules' => 'nullable|string|max:5000',
+            'entry_is_paid' => 'boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => [
+                'nullable',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $start = $request->input('start_date');
+                    if (! $start) {
+                        return;
+                    }
+                    try {
+                        if (Carbon::parse($value)->lt(Carbon::parse($start))) {
+                            $fail('Bitiş tarihi başlangıçtan önce olamaz.');
+                        }
+                    } catch (\Throwable) {
+                        $fail('Geçerli bir bitiş tarihi girin.');
+                    }
+                },
+            ],
+            'ticket_price' => 'nullable|numeric|min:0',
+            'capacity' => 'nullable|integer|min:1',
+            'is_full' => 'sometimes|boolean',
+            'ticket_tiers' => 'nullable|array',
+            'ticket_tiers.*.name' => 'required|string|max:255',
+            'ticket_tiers.*.description' => 'nullable|string|max:500',
+            'ticket_tiers.*.price' => 'required|numeric|min:0',
+            'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
+            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_outlets' => 'nullable|array|max:15',
+            'ticket_outlets.*.label' => 'nullable|string|max:120',
+            'ticket_outlets.*.url' => 'nullable|string|max:2048',
+            'ticket_purchase_note' => 'nullable|string|max:5000',
+        ]);
+
+        $validated['proposed_venue'] = TurkishPhone::mergeNormalizedInto($validated['proposed_venue'], ['phone']);
+        $validated['proposed_venue'] = TurkishPhone::mergeNormalizedWhatsAppInto($validated['proposed_venue'], 'whatsapp');
+
+        $venuePayload = $validated['proposed_venue'];
+        unset($validated['proposed_venue']);
+
+        $ticketTiers = $validated['ticket_tiers'] ?? [];
+        unset($validated['ticket_tiers']);
+
+        [$eventPart, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
+        $eventPart['is_full'] = $request->boolean('is_full');
+        $eventPart['ticket_purchase_note'] = isset($eventPart['ticket_purchase_note']) && trim((string) $eventPart['ticket_purchase_note']) !== ''
+            ? trim((string) $eventPart['ticket_purchase_note'])
+            : null;
+        $eventPart = Event::applyTicketAcquisitionToValidatedArray($eventPart);
+
+        $artistIds = $eventPart['artist_ids'] ?? [];
+        unset($eventPart['artist_ids']);
+        $ids = is_array($artistIds) ? array_map('intval', $artistIds) : [];
+        $ids = array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
+        $ids = array_values(array_diff($ids, [(int) $linkedArtist->id]));
+        array_unshift($ids, (int) $linkedArtist->id);
+
+        $galleryUrls = array_values(array_filter(array_map('trim', $venuePayload['google_gallery_photo_urls'] ?? [])));
+        $galleryUrls = array_slice($galleryUrls, 0, 5);
+        $venuePayload['google_gallery_photo_urls'] = $galleryUrls;
+        if (empty($venuePayload['google_maps_url'])) {
+            $venuePayload['google_maps_url'] = null;
+        }
+
+        $eventPayload = array_merge($eventPart, [
+            'ticket_tiers' => $ticketTiers,
+            'artist_ids' => $ids,
+        ]);
+
+        ArtistEventProposal::create([
+            'user_id' => $user->id,
+            'artist_id' => $linkedArtist->id,
+            'status' => ArtistEventProposal::STATUS_PENDING,
+            'venue_payload' => $venuePayload,
+            'event_payload' => $eventPayload,
+        ]);
+
+        app(AppSettingsService::class)->forgetCaches();
+
+        return redirect()
+            ->route('artist.events.index')
+            ->with('success', 'Mekân ve etkinlik öneriniz yöneticilere iletildi. Onaylandığında taslak etkinlik oluşturulur.');
     }
 
     public function store(Request $request)
@@ -165,6 +336,7 @@ class EventController extends Controller
             'artist_ids' => $request->input('artist_ids') ?? [],
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
+            'entry_is_paid' => $request->boolean('entry_is_paid', true),
         ]);
 
         $validated = $request->validate([
@@ -202,6 +374,7 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
+            'entry_is_paid' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -240,6 +413,7 @@ class EventController extends Controller
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
+        [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         $validated['is_full'] = $request->boolean('is_full');
         $validated['slug'] = Str::slug($validated['title']).'-'.Str::random(4);
@@ -257,12 +431,19 @@ class EventController extends Controller
             ->where('status', 'approved')
             ->value('id');
 
-        if ($linkedArtistId !== null) {
+        $hasOwnApprovedVenue = $request->user()->venues()->where('status', 'approved')->exists();
+
+        if ($linkedArtistId !== null && ! $hasOwnApprovedVenue) {
+            $artistIds = [(int) $linkedArtistId];
+        } elseif ($linkedArtistId !== null && $hasOwnApprovedVenue) {
             $ids = is_array($artistIds) ? array_map('intval', $artistIds) : [];
             $ids = array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
             $ids = array_values(array_diff($ids, [(int) $linkedArtistId]));
             array_unshift($ids, (int) $linkedArtistId);
             $artistIds = $ids;
+        } else {
+            $artistIds = is_array($artistIds) ? array_map('intval', $artistIds) : [];
+            $artistIds = array_values(array_unique(array_filter($artistIds, fn (int $id) => $id > 0)));
         }
 
         $event = DB::transaction(function () use ($validated, $ticketTiers, $artistIds): Event {
@@ -363,6 +544,7 @@ class EventController extends Controller
             'artist_ids' => $request->input('artist_ids') ?? [],
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
+            'entry_is_paid' => $request->boolean('entry_is_paid', true),
         ]);
 
         $validated = $request->validate([
@@ -390,6 +572,7 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
+            'entry_is_paid' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -429,6 +612,7 @@ class EventController extends Controller
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
         unset($validated['ticket_tiers']);
+        [$validated, $ticketTiers] = Event::applyEntryPaidToValidated($validated, $ticketTiers);
 
         $validated['is_full'] = $request->boolean('is_full');
         $validated['ticket_purchase_note'] = isset($validated['ticket_purchase_note']) && trim((string) $validated['ticket_purchase_note']) !== ''

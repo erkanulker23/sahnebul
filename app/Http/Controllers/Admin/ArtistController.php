@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\ArtistMedia;
 use App\Models\MusicGenre;
+use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Support\ArtistProfileInputs;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -43,12 +47,47 @@ class ArtistController extends Controller
 
     public function edit(Artist $artist)
     {
-        $artist->load('media');
+        $artist->load(['media', 'user:id,name,email']);
         $artist->loadCount('events');
+
+        $managerUsers = User::query()
+            ->where('role', 'manager_organization')
+            ->orderBy('name')
+            ->get(['id', 'name', 'organization_display_name', 'email']);
+
+        $owner = $artist->user;
+        $artistSubscriptionPlans = SubscriptionPlan::query()
+            ->adminAssignableFor('artist')
+            ->get(['id', 'name', 'slug', 'interval', 'price', 'membership_type']);
+
+        $artistOwnerSubscription = null;
+        if ($owner !== null) {
+            $sub = $owner->activeSubscription()?->load('plan');
+            if ($sub !== null) {
+                $artistOwnerSubscription = [
+                    'starts_at' => $sub->starts_at->toIso8601String(),
+                    'ends_at' => $sub->ends_at->toIso8601String(),
+                    'plan' => $sub->plan !== null
+                        ? [
+                            'id' => $sub->plan->id,
+                            'name' => $sub->plan->name,
+                            'slug' => $sub->plan->slug,
+                            'membership_type' => $sub->plan->membership_type,
+                        ]
+                        : null,
+                ];
+            }
+        }
 
         return Inertia::render('Admin/Artists/Edit', [
             'artist' => $artist,
+            'managerUsers' => $managerUsers,
             'musicGenreOptions' => MusicGenre::optionNamesOrdered(),
+            'artistOwner' => $owner !== null
+                ? ['id' => $owner->id, 'name' => $owner->name, 'email' => $owner->email]
+                : null,
+            'artistSubscriptionPlans' => $artistSubscriptionPlans,
+            'artistOwnerSubscription' => $artistOwnerSubscription,
         ]);
     }
 
@@ -61,6 +100,8 @@ class ArtistController extends Controller
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
             'manager_info' => ArtistProfileInputs::normalizeStringMap($request->input('manager_info'), ['name', 'company', 'phone', 'email']),
             'public_contact' => ArtistProfileInputs::normalizeStringMap($request->input('public_contact'), ['email', 'phone', 'note']),
+            'managed_by_user_id' => $request->filled('managed_by_user_id') ? (int) $request->input('managed_by_user_id') : null,
+            'spotify_auto_link_disabled' => $request->boolean('spotify_auto_link_disabled'),
         ]);
 
         $allowedTypes = MusicGenre::optionNamesOrdered();
@@ -77,13 +118,19 @@ class ArtistController extends Controller
             'manager_info' => 'nullable|array',
             'manager_info.name' => 'nullable|string|max:255',
             'manager_info.company' => 'nullable|string|max:255',
-            'manager_info.phone' => 'nullable|string|max:80',
-            'manager_info.email' => 'nullable|email|max:255',
+            'manager_info.phone' => UserContactValidation::phoneNullable(),
+            'manager_info.email' => UserContactValidation::emailNullable(),
             'public_contact' => 'nullable|array',
-            'public_contact.email' => 'nullable|email|max:255',
-            'public_contact.phone' => 'nullable|string|max:80',
+            'public_contact.email' => UserContactValidation::emailNullable(),
+            'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
             'avatar_upload' => 'nullable|image|max:10240',
+            'managed_by_user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'manager_organization')),
+            ],
+            'spotify_auto_link_disabled' => 'boolean',
         ]);
 
         unset($validated['avatar_upload']);
@@ -91,11 +138,16 @@ class ArtistController extends Controller
             $validated['avatar'] = $request->file('avatar_upload')->store('artist-avatars', 'public');
         }
 
+        $validated = TurkishPhone::mergeNormalizedInto($validated, [
+            'manager_info.phone',
+            'public_contact.phone',
+        ]);
+
         $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));
         $validated['music_genres'] = $mg === [] ? null : $mg;
         $validated['genre'] = $mg === [] ? null : implode(', ', $mg);
 
-        self::syncSpotifyMetaFromSocialLinks($validated);
+        self::applySpotifyFromAdminSocialLinks($validated);
 
         $normalizedName = mb_strtolower(trim($validated['name']));
         if ($normalizedName !== '' && Artist::query()->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])->exists()) {
@@ -121,6 +173,8 @@ class ArtistController extends Controller
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
             'manager_info' => ArtistProfileInputs::normalizeStringMap($request->input('manager_info'), ['name', 'company', 'phone', 'email']),
             'public_contact' => ArtistProfileInputs::normalizeStringMap($request->input('public_contact'), ['email', 'phone', 'note']),
+            'managed_by_user_id' => $request->filled('managed_by_user_id') ? (int) $request->input('managed_by_user_id') : null,
+            'spotify_auto_link_disabled' => $request->boolean('spotify_auto_link_disabled'),
         ]);
 
         $allowedTypes = MusicGenre::optionNamesOrdered();
@@ -137,13 +191,24 @@ class ArtistController extends Controller
             'manager_info' => 'nullable|array',
             'manager_info.name' => 'nullable|string|max:255',
             'manager_info.company' => 'nullable|string|max:255',
-            'manager_info.phone' => 'nullable|string|max:80',
-            'manager_info.email' => 'nullable|email|max:255',
+            'manager_info.phone' => UserContactValidation::phoneNullable(),
+            'manager_info.email' => UserContactValidation::emailNullable(),
             'public_contact' => 'nullable|array',
-            'public_contact.email' => 'nullable|email|max:255',
-            'public_contact.phone' => 'nullable|string|max:80',
+            'public_contact.email' => UserContactValidation::emailNullable(),
+            'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
             'avatar_upload' => 'nullable|image|max:10240',
+            'managed_by_user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'manager_organization')),
+            ],
+            'spotify_auto_link_disabled' => 'boolean',
+        ]);
+
+        $validated = TurkishPhone::mergeNormalizedInto($validated, [
+            'manager_info.phone',
+            'public_contact.phone',
         ]);
 
         unset($validated['avatar_upload']);
@@ -167,7 +232,7 @@ class ArtistController extends Controller
         $validated['music_genres'] = $mg === [] ? null : $mg;
         $validated['genre'] = $mg === [] ? null : implode(', ', $mg);
 
-        self::syncSpotifyMetaFromSocialLinks($validated);
+        self::applySpotifyFromAdminSocialLinks($validated);
 
         $normalizedName = mb_strtolower(trim($validated['name']));
         if ($normalizedName !== '' && Artist::query()
@@ -197,6 +262,7 @@ class ArtistController extends Controller
             'type' => 'photo',
             'path' => $path,
             'order' => $order + 1,
+            'moderation_status' => ArtistMedia::MODERATION_APPROVED,
         ]);
 
         return back()->with('success', 'Galeriye fotoğraf eklendi.');
@@ -267,28 +333,54 @@ class ArtistController extends Controller
     }
 
     /**
-     * social_links.spotify doluysa spotify_id / spotify_url sütunlarını doldurur (gömülü çalar ve doğrudan bağlantı).
+     * Admin formundan Spotify: “yok” işaretliyse veya alan boşsa sütunları temizler; doluysa spotify_id/url senkronlar.
+     * spotify_auto_link_disabled: spotify:import-artists isim eşleştirmesinin bu kaydı yeniden doldurmasını engeller.
      *
      * @param  array<string, mixed>  $validated
      */
-    private static function syncSpotifyMetaFromSocialLinks(array &$validated): void
+    private static function applySpotifyFromAdminSocialLinks(array &$validated): void
     {
         $social = $validated['social_links'] ?? null;
         if (! is_array($social)) {
+            $social = [];
+        }
+
+        $suppressAutoLink = ! empty($validated['spotify_auto_link_disabled']);
+
+        $clearSpotifyColumns = static function () use (&$validated, &$social): void {
+            $validated['spotify_id'] = null;
+            $validated['spotify_url'] = null;
+            $validated['spotify_genres'] = null;
+            $validated['spotify_popularity'] = null;
+            $validated['spotify_followers'] = null;
+            $validated['spotify_albums'] = null;
+            unset($social['spotify']);
+            $validated['social_links'] = $social;
+        };
+
+        if ($suppressAutoLink) {
+            $clearSpotifyColumns();
+            $validated['spotify_auto_link_disabled'] = true;
+
             return;
         }
-        $raw = $social['spotify'] ?? '';
-        if (! is_string($raw)) {
-            return;
-        }
-        $raw = trim($raw);
+
+        $validated['spotify_auto_link_disabled'] = false;
+
+        $raw = isset($social['spotify']) && is_string($social['spotify']) ? trim($social['spotify']) : '';
         if ($raw === '') {
+            $clearSpotifyColumns();
+
             return;
         }
+
         $id = ArtistProfileInputs::extractSpotifyArtistId($raw);
         if ($id === null) {
-            return;
+            throw ValidationException::withMessages([
+                'social_links.spotify' => 'Geçerli bir Spotify sanatçı bağlantısı girin (ör. open.spotify.com/artist/… veya 22 karakterlik sanatçı ID).',
+            ]);
         }
+
         $validated['spotify_id'] = $id;
         $validated['spotify_url'] = str_starts_with($raw, 'http://') || str_starts_with($raw, 'https://')
             ? $raw

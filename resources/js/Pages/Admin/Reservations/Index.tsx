@@ -12,6 +12,8 @@ interface Reservation {
     status: string;
     total_amount: number;
     reservation_type: string;
+    guest_name: string | null;
+    guest_phone: string | null;
     user: { name: string; email: string };
     venue: { name: string };
 }
@@ -42,6 +44,11 @@ export default function AdminReservationsIndex({ reservations, stats, filters }:
                     <div className="min-w-0">
                         <p className="font-medium text-zinc-900 dark:text-white">{r.user.name}</p>
                         <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{r.user.email}</p>
+                        {(r.guest_name || r.guest_phone) && (
+                            <p className="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-500">
+                                Form: {[r.guest_name, r.guest_phone].filter(Boolean).join(' · ')}
+                            </p>
+                        )}
                     </div>
                 ),
             },

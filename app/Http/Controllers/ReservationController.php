@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
 use App\Models\EventTicketTier;
 use App\Models\Reservation;
 use App\Models\Venue;
+use App\Services\SahnebulMail;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -58,10 +62,26 @@ class ReservationController extends Controller
             }
         }
 
+        $preselectedEvent = $preselectEventId ? $events->firstWhere('id', $preselectEventId) : null;
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $waDigits = $venue->whatsapp ? preg_replace('/\D+/', '', (string) $venue->whatsapp) : '';
+        $waMessageLines = ['Merhaba,'];
+        if ($preselectedEvent) {
+            $waMessageLines[] = '“'.$preselectedEvent->title.'” etkinliği için sahnebul.com üzerinden ulaşıyorum; rezervasyon yapmak istiyorum.';
+            $waMessageLines[] = 'Etkinlik: '.$appUrl.'/etkinlikler/'.$preselectedEvent->publicUrlSegment();
+        } else {
+            $waMessageLines[] = '“'.$venue->name.'” mekânı için sahnebul.com üzerinden ulaşıyorum; rezervasyon yapmak istiyorum.';
+            $waMessageLines[] = 'Mekân: '.$appUrl.'/mekanlar/'.$venue->slug;
+        }
+        $whatsappReservationHref = ($waDigits !== '' && strlen($waDigits) >= 10)
+            ? 'https://wa.me/'.$waDigits.'?text='.rawurlencode(implode("\n", $waMessageLines))
+            : null;
+
         return Inertia::render('Reservations/Create', [
             'venue' => $venue,
             'events' => $events,
             'preselectEventId' => $preselectEventId,
+            'whatsappReservationHref' => $whatsappReservationHref,
         ]);
     }
 
@@ -71,8 +91,10 @@ class ReservationController extends Controller
             return back()->with('error', 'Yönetici hesabıyla müşteri rezervasyonu oluşturulamaz.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'venue_id' => 'required|exists:venues,id',
+            'guest_name' => 'required|string|max:120',
+            'guest_phone' => UserContactValidation::phoneRequired(),
             'event_id' => 'nullable|exists:events,id',
             'reservation_date' => 'required|date|after_or_equal:today',
             'reservation_time' => 'required',
@@ -82,16 +104,17 @@ class ReservationController extends Controller
             'notes' => 'nullable|string|max:500',
             'event_ticket_tier_id' => 'nullable|integer|exists:event_ticket_tiers,id',
         ]);
+        $validated = TurkishPhone::mergeNormalizedInto($validated, ['guest_phone']);
 
-        $venue = Venue::findOrFail($request->venue_id);
+        $venue = Venue::findOrFail($validated['venue_id']);
         if ($venue->status !== 'approved') {
             return back()->with('error', 'Bu sahne için rezervasyon yapılamaz.');
         }
 
         $amount = 0;
         $tierId = null;
-        if ($request->event_id) {
-            $event = $venue->events()->with('ticketTiers')->find($request->event_id);
+        if (! empty($validated['event_id'])) {
+            $event = $venue->events()->with('ticketTiers')->find($validated['event_id']);
             if (! $event) {
                 return back()->with('error', 'Seçilen etkinlik bulunamadı.');
             }
@@ -101,35 +124,53 @@ class ReservationController extends Controller
             if ($event->ticketTiers->isNotEmpty()) {
                 $tier = EventTicketTier::query()
                     ->where('event_id', $event->id)
-                    ->where('id', (int) $request->input('event_ticket_tier_id'))
+                    ->where('id', (int) ($validated['event_ticket_tier_id'] ?? 0))
                     ->first();
                 if (! $tier) {
                     return back()->with('error', 'Bu etkinlik için bilet kategorisi seçin.');
                 }
-                $amount = (float) $tier->price * (int) $request->quantity;
+                $amount = (float) $tier->price * (int) $validated['quantity'];
                 $tierId = $tier->id;
             } else {
-                $amount = (float) ($event->ticket_price ?? 0) * (int) $request->quantity;
+                $amount = (float) ($event->ticket_price ?? 0) * (int) $validated['quantity'];
             }
         }
 
-        DB::transaction(function () use ($request, $venue, $tierId, $amount): void {
-            Reservation::create([
+        $reservation = DB::transaction(function () use ($request, $venue, $tierId, $amount, $validated): Reservation {
+            return Reservation::create([
                 'user_id' => $request->user()->id,
+                'guest_name' => trim((string) $validated['guest_name']),
+                'guest_phone' => $validated['guest_phone'],
                 'venue_id' => $venue->id,
-                'event_id' => $request->event_id,
+                'event_id' => $validated['event_id'] ?? null,
                 'event_ticket_tier_id' => $tierId,
-                'reservation_date' => $request->reservation_date,
-                'reservation_time' => $request->reservation_time,
-                'reservation_type' => $request->reservation_type,
-                'guest_count' => $request->guest_count,
-                'quantity' => $request->quantity,
+                'reservation_date' => $validated['reservation_date'],
+                'reservation_time' => $validated['reservation_time'],
+                'reservation_type' => $validated['reservation_type'],
+                'guest_count' => $validated['guest_count'],
+                'quantity' => $validated['quantity'],
                 'total_amount' => $amount,
                 'qr_code' => 'QR-'.strtoupper(Str::random(12)),
                 'status' => 'pending',
-                'notes' => $request->notes,
+                'notes' => $validated['notes'] ?? null,
             ]);
         });
+
+        $reservation->load(['user', 'venue.user', 'event']);
+        SahnebulMail::reservationSubmitted($reservation);
+
+        $actor = $request->user();
+        if ($reservation->event_id !== null && $actor->canUsePublicEngagementFeatures()) {
+            $ev = Event::query()->with('venue:id,status')->find($reservation->event_id);
+            if ($ev
+                && $ev->status === 'published'
+                && $ev->venue?->status === 'approved'
+                && $ev->start_date !== null
+                && $ev->start_date->isFuture()
+                && ! $actor->remindedEvents()->whereKey($ev->id)->exists()) {
+                $actor->remindedEvents()->attach($ev->id, ['reminder_sent_at' => null]);
+            }
+        }
 
         return redirect()->route('reservations.index')->with('success', 'Rezervasyonunuz alındı. Onay bekleniyor.');
     }

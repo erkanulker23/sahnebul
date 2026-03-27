@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Venue extends Model
 {
     protected $fillable = [
         'user_id', 'category_id', 'city_id', 'district_id', 'neighborhood_id',
-        'name', 'slug', 'description', 'address', 'latitude', 'longitude',
+        'name', 'slug', 'description', 'address', 'latitude', 'longitude', 'google_maps_url',
         'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image', 'status', 'is_featured',
         'rating_avg', 'review_count', 'view_count',
     ];
@@ -51,6 +52,11 @@ class Venue extends Model
     public function media(): HasMany
     {
         return $this->hasMany(VenueMedia::class)->orderBy('order');
+    }
+
+    public function publicEditSuggestions(): MorphMany
+    {
+        return $this->morphMany(PublicEditSuggestion::class, 'suggestable');
     }
 
     public function events(): HasMany

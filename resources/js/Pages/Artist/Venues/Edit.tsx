@@ -1,8 +1,12 @@
+import PhoneInput from '@/Components/PhoneInput';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import LocationSelect from '@/Components/LocationSelect';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import SeoHead from '@/Components/SeoHead';
+import { formatTrPhoneInput } from '@/lib/trPhoneInput';
+import axios from 'axios';
 import { router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface VenueMedia {
     id: number;
@@ -18,6 +22,7 @@ interface Venue {
     address: string;
     latitude?: number | string | null;
     longitude?: number | string | null;
+    google_maps_url?: string | null;
     capacity: number | null;
     phone: string | null;
     whatsapp: string | null;
@@ -52,6 +57,8 @@ function imageSrc(path: string): string {
 
 export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKey = null }: Props) {
     const gallery = venue.media ?? [];
+    const [googleGalleryImporting, setGoogleGalleryImporting] = useState(false);
+    const [googleGalleryError, setGoogleGalleryError] = useState<string | null>(null);
 
     const sl = venue.social_links ?? {};
     const { data, setData, put, processing, errors } = useForm({
@@ -64,6 +71,7 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
         address: venue.address,
         latitude: venue.latitude != null && venue.latitude !== '' ? String(venue.latitude) : '',
         longitude: venue.longitude != null && venue.longitude !== '' ? String(venue.longitude) : '',
+        google_maps_url: venue.google_maps_url ?? '',
         capacity: venue.capacity?.toString() ?? '',
         phone: venue.phone ?? '',
         whatsapp: venue.whatsapp ?? '',
@@ -177,8 +185,38 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
                         if (payload.descriptionPlainFromGoogle && !data.description.trim()) {
                             setData('description', payload.descriptionPlainFromGoogle);
                         }
+                        if (payload.googleMapsUrl) {
+                            setData('google_maps_url', payload.googleMapsUrl);
+                        }
+                        if (payload.galleryImageUrlsFromGoogle && payload.galleryImageUrlsFromGoogle.length > 0) {
+                            setGoogleGalleryImporting(true);
+                            setGoogleGalleryError(null);
+                            axios
+                                .post(
+                                    route('artist.venues.google-gallery-import', venue.id),
+                                    {
+                                        urls: payload.galleryImageUrlsFromGoogle.slice(0, 5),
+                                        set_cover_from_first: true,
+                                    },
+                                    { headers: { Accept: 'application/json' }, timeout: 120_000 },
+                                )
+                                .then(() => {
+                                    router.reload({ only: ['venue'] });
+                                })
+                                .catch((err: unknown) => {
+                                    const ax = err as { response?: { data?: { message?: string } } };
+                                    setGoogleGalleryError(
+                                        ax.response?.data?.message ?? 'Google görselleri indirilemedi.',
+                                    );
+                                })
+                                .finally(() => setGoogleGalleryImporting(false));
+                        }
                     }}
                 />
+                {googleGalleryImporting && (
+                    <p className="text-sm text-amber-400">Google fotoğrafları indiriliyor…</p>
+                )}
+                {googleGalleryError && <p className="text-sm text-red-400">{googleGalleryError}</p>}
                 <div>
                     <label className="block text-sm font-medium text-zinc-400">Adres *</label>
                     <input value={data.address} onChange={(e) => setData('address', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
@@ -203,11 +241,23 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Telefon</label>
-                        <input value={data.phone} onChange={(e) => setData('phone', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <PhoneInput
+                            value={data.phone ?? ''}
+                            onChange={(v) => setData('phone', v)}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">WhatsApp</label>
-                        <input value={data.whatsapp} onChange={(e) => setData('whatsapp', e.target.value)} placeholder="+90… veya wa.me linki" className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <input
+                            value={data.whatsapp ?? ''}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setData('whatsapp', /^https?:\/\//i.test(v.trim()) ? v : formatTrPhoneInput(v));
+                            }}
+                            placeholder="05XX XXX XX XX veya https://wa.me/…"
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Web</label>

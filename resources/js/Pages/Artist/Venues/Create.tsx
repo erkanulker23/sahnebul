@@ -1,7 +1,9 @@
+import PhoneInput from '@/Components/PhoneInput';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import LocationSelect from '@/Components/LocationSelect';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import SeoHead from '@/Components/SeoHead';
+import { formatTrPhoneInput } from '@/lib/trPhoneInput';
 import { useForm } from '@inertiajs/react';
 
 interface Category {
@@ -27,6 +29,7 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
         address: '',
         latitude: '',
         longitude: '',
+        google_maps_url: '',
         capacity: '',
         phone: '',
         whatsapp: '',
@@ -39,6 +42,7 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
             tiktok: '',
             facebook: '',
         },
+        google_gallery_photo_urls: [] as string[],
     });
 
     const submit = (e: React.FormEvent) => {
@@ -122,6 +126,14 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
                         if (payload.descriptionPlainFromGoogle && !data.description.trim()) {
                             setData('description', payload.descriptionPlainFromGoogle);
                         }
+                        if (payload.googleMapsUrl) {
+                            setData('google_maps_url', payload.googleMapsUrl);
+                        }
+                        if (payload.galleryImageUrlsFromGoogle?.length) {
+                            setData('google_gallery_photo_urls', payload.galleryImageUrlsFromGoogle.slice(0, 5));
+                        } else {
+                            setData('google_gallery_photo_urls', []);
+                        }
                     }}
                 />
                 <div>
@@ -148,11 +160,23 @@ export default function ArtistVenueCreate({ categories, googleMapsBrowserKey = n
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Telefon</label>
-                        <input value={data.phone} onChange={(e) => setData('phone', e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <PhoneInput
+                            value={data.phone}
+                            onChange={(v) => setData('phone', v)}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">WhatsApp</label>
-                        <input value={data.whatsapp} onChange={(e) => setData('whatsapp', e.target.value)} placeholder="+90… veya wa.me linki" className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
+                        <input
+                            value={data.whatsapp}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setData('whatsapp', /^https?:\/\//i.test(v.trim()) ? v : formatTrPhoneInput(v));
+                            }}
+                            placeholder="05XX XXX XX XX veya https://wa.me/…"
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Web Sitesi</label>

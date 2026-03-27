@@ -35,14 +35,15 @@ class SubscriptionPlanController extends Controller
         ]);
 
         $trialDays = (int) $validated['trial_days'];
-        $slugBase = Str::slug($validated['name'] . '-' . $validated['membership_type'] . '-' . $validated['interval']);
-        $slug = $trialDays > 0 ? $slugBase . '-deneme-' . $trialDays . 'g' : $slugBase;
+        $slugBase = Str::slug($validated['name'].'-'.$validated['membership_type'].'-'.$validated['interval']);
+        $slug = $trialDays > 0 ? $slugBase.'-deneme-'.$trialDays.'g' : $slugBase;
 
         SubscriptionPlan::create([
             ...$validated,
             'trial_days' => $trialDays,
             'slug' => $slug,
             'is_active' => (bool) ($validated['is_active'] ?? true),
+            'show_in_public_catalog' => true,
         ]);
 
         return redirect()->route('admin.subscriptions.index')->with('success', 'Paket eklendi.');

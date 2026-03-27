@@ -49,7 +49,11 @@ class VenueController extends Controller
             $query->where('name', 'like', '%'.$request->search.'%');
         }
 
-        $venues = $query->latest()->paginate(12)->withQueryString();
+        $venues = $query
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
         $popularArtistsQuery = Artist::query()
             ->approved()
             ->withCount([
@@ -106,7 +110,10 @@ class VenueController extends Controller
         $pendingVenue = $user && is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '';
         $canAddVenue = $user && (
             $user->isArtist()
+            || $user->isVenueOwner()
+            || $user->isManagerOrganization()
             || $user->hasActiveMembership('venue')
+            || $user->hasActiveMembership('manager')
             || $pendingVenue
             || $user->venues()->exists()
         );

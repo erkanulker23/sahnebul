@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artist;
 use App\Models\ArtistClaimRequest;
+use App\Models\ArtistMedia;
 use App\Models\City;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
@@ -188,7 +189,23 @@ class ArtistController extends Controller
             $artist->refresh();
         }
 
-        $artist->load(['media']);
+        $artist->load([
+            'media' => fn ($q) => $q->where('moderation_status', ArtistMedia::MODERATION_APPROVED),
+        ]);
+
+        if ($artist->spotify_auto_link_disabled) {
+            $artist->setAttribute('spotify_id', null);
+            $artist->setAttribute('spotify_url', null);
+            $artist->setAttribute('spotify_genres', null);
+            $artist->setAttribute('spotify_popularity', null);
+            $artist->setAttribute('spotify_followers', null);
+            $artist->setAttribute('spotify_albums', null);
+            $sl = $artist->social_links;
+            if (is_array($sl)) {
+                unset($sl['spotify']);
+                $artist->setAttribute('social_links', $sl !== [] ? $sl : null);
+            }
+        }
 
         // Tüm geçmişi belleğe almak yerine sorgu ile bölmek; yaklaşanlarda düşük limit (ör. 12)
         // ileri tarihli konserleri listeden düşürüyordu (aynı sanatçıda çok etkinlik varsa).
@@ -265,15 +282,25 @@ class ArtistController extends Controller
         $artist->loadExists([
             'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
         ]);
+        $artist->load(['managedBy:id,name,organization_display_name,email']);
 
         $u = $request->user();
         $isFavorited = $u !== null
-            && $u->isCustomer()
-            && $u->email_verified_at !== null
+            && $u->canUsePublicEngagementFeatures()
             && $u->favoriteArtists()->whereKey($artist->id)->exists();
+
+        $organizationAffiliation = null;
+        if ($artist->managedBy) {
+            $m = $artist->managedBy;
+            $label = trim((string) ($m->organization_display_name ?? '')) !== ''
+                ? (string) $m->organization_display_name
+                : (string) $m->name;
+            $organizationAffiliation = ['label' => $label];
+        }
 
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
+            'organizationAffiliation' => $organizationAffiliation,
             'documentStructuredData' => PublicStructuredData::artistShowGraph($artist),
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,
@@ -284,7 +311,7 @@ class ArtistController extends Controller
                 ? ArtistClaimRequest::where('artist_id', $artist->id)->where('user_id', auth()->id())->value('status')
                 : null,
             'artistFavorite' => [
-                'canToggle' => $u !== null && $u->isCustomer() && $u->email_verified_at !== null,
+                'canToggle' => $u !== null && $u->canUsePublicEngagementFeatures(),
                 'isFavorited' => $isFavorited,
             ],
         ]);

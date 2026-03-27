@@ -10,6 +10,8 @@ interface Reservation {
     status: string;
     total_amount: number;
     reservation_type: string;
+    guest_name: string | null;
+    guest_phone: string | null;
     guest_count: number;
     quantity: number;
     notes: string | null;
@@ -40,9 +42,17 @@ export default function AdminReservationShow({ reservation }: Props) {
                         <h2 className="mb-4 font-semibold text-white">Bilgiler</h2>
                         <dl className="space-y-3">
                             <div>
-                                <dt className="text-sm text-zinc-500">Müşteri</dt>
+                                <dt className="text-sm text-zinc-500">Hesap</dt>
                                 <dd className="text-white">{reservation.user.name} ({reservation.user.email})</dd>
                             </div>
+                            {(reservation.guest_name || reservation.guest_phone) && (
+                                <div>
+                                    <dt className="text-sm text-zinc-500">Form (ad / telefon)</dt>
+                                    <dd className="text-white">
+                                        {[reservation.guest_name, reservation.guest_phone].filter(Boolean).join(' · ')}
+                                    </dd>
+                                </div>
+                            )}
                             <div>
                                 <dt className="text-sm text-zinc-500">Sahne</dt>
                                 <dd className="text-white">{reservation.venue.name}</dd>

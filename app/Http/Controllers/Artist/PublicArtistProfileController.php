@@ -4,9 +4,14 @@ namespace App\Http\Controllers\Artist;
 
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
+use App\Models\ArtistMedia;
 use App\Models\MusicGenre;
+use App\Services\AppSettingsService;
 use App\Support\ArtistProfileInputs;
+use App\Support\TurkishPhone;
+use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +25,7 @@ class PublicArtistProfileController extends Controller
             ->first();
 
         $profileAnalytics = null;
+        $gallery = [];
         if ($artist !== null) {
             $favoritesCount = $artist->favoritedByUsers()->count();
             $publishedOnListings = $artist->events()->where('events.status', 'published')->count();
@@ -29,12 +35,24 @@ class PublicArtistProfileController extends Controller
                 'favorites_count' => $favoritesCount,
                 'published_events_listed' => $publishedOnListings,
             ];
+
+            $artist->load(['media' => fn ($q) => $q->orderBy('order')]);
+            foreach ($artist->media as $m) {
+                $gallery[] = [
+                    'id' => $m->id,
+                    'url' => Storage::disk('public')->url($m->path),
+                    'moderation_status' => $m->moderation_status ?? ArtistMedia::MODERATION_APPROVED,
+                    'moderation_note' => $m->moderation_note,
+                ];
+            }
         }
 
         return Inertia::render('Artist/PublicProfile/Edit', [
             'artist' => $artist,
             'profileAnalytics' => $profileAnalytics,
             'musicGenreOptions' => MusicGenre::optionNamesOrdered(),
+            'gallery' => $gallery,
+            'artistProfileApproved' => $artist !== null && $artist->status === 'approved',
         ]);
     }
 
@@ -68,12 +86,17 @@ class PublicArtistProfileController extends Controller
             'manager_info' => 'nullable|array',
             'manager_info.name' => 'nullable|string|max:255',
             'manager_info.company' => 'nullable|string|max:255',
-            'manager_info.phone' => 'nullable|string|max:80',
-            'manager_info.email' => 'nullable|email|max:255',
+            'manager_info.phone' => UserContactValidation::phoneNullable(),
+            'manager_info.email' => UserContactValidation::emailNullable(),
             'public_contact' => 'nullable|array',
-            'public_contact.email' => 'nullable|email|max:255',
-            'public_contact.phone' => 'nullable|string|max:80',
+            'public_contact.email' => UserContactValidation::emailNullable(),
+            'public_contact.phone' => UserContactValidation::phoneNullable(),
             'public_contact.note' => 'nullable|string|max:2000',
+        ]);
+
+        $validated = TurkishPhone::mergeNormalizedInto($validated, [
+            'manager_info.phone',
+            'public_contact.phone',
         ]);
 
         $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));
@@ -83,5 +106,81 @@ class PublicArtistProfileController extends Controller
         $artist->update($validated);
 
         return redirect()->route('artist.public-profile')->with('success', 'Sanatçı sayfanız güncellendi.');
+    }
+
+    public function storeGallery(Request $request)
+    {
+        $artist = Artist::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if ($artist === null) {
+            return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
+        }
+
+        $request->validate([
+            'photos' => ['required', 'array', 'min:1', 'max:20'],
+            'photos.*' => ['image', 'max:10240'],
+        ]);
+
+        $mod = $artist->status === 'approved'
+            ? ArtistMedia::MODERATION_APPROVED
+            : ArtistMedia::MODERATION_PENDING;
+
+        $maxOrder = (int) $artist->media()->max('order');
+
+        foreach ($request->file('photos', []) as $file) {
+            if (! $file->isValid()) {
+                continue;
+            }
+            $path = $file->store('artist-media', 'public');
+            $maxOrder++;
+            ArtistMedia::create([
+                'artist_id' => $artist->id,
+                'type' => 'photo',
+                'path' => $path,
+                'order' => $maxOrder,
+                'moderation_status' => $mod,
+            ]);
+        }
+
+        if ($mod === ArtistMedia::MODERATION_PENDING) {
+            app(AppSettingsService::class)->forgetCaches();
+        }
+
+        return back()->with(
+            'success',
+            $mod === ArtistMedia::MODERATION_PENDING
+                ? 'Fotoğraflar yüklendi. Onaylı olmayan profillerde görseller yönetici onayından sonra yayınlanır.'
+                : 'Fotoğraflar galerinize eklendi.'
+        );
+    }
+
+    public function destroyGallery(Request $request, ArtistMedia $media)
+    {
+        $artist = Artist::query()
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if ($artist === null || (int) $media->artist_id !== (int) $artist->id) {
+            abort(403);
+        }
+
+        $wasPending = $media->moderation_status === ArtistMedia::MODERATION_PENDING;
+
+        if ($media->path) {
+            Storage::disk('public')->delete($media->path);
+        }
+        if ($media->thumbnail) {
+            Storage::disk('public')->delete($media->thumbnail);
+        }
+
+        $media->delete();
+
+        if ($wasPending) {
+            app(AppSettingsService::class)->forgetCaches();
+        }
+
+        return back()->with('success', 'Görsel kaldırıldı.');
     }
 }

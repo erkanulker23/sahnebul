@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Venue;
+use App\Models\VenueMedia;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -49,13 +51,17 @@ class VenueRemoteCoverImporter
 
     /**
      * İndirme başarısızsa null döner.
+     *
+     * @param  string  $directory  Yalnızca venue-covers veya venue-media
      */
-    public function importToPublicDisk(string $url): ?string
+    public function importToPublicDisk(string $url, string $directory = 'venue-covers'): ?string
     {
         $url = trim($url);
         if (! $this->isMirrorableUrl($url)) {
             return null;
         }
+
+        $directory = in_array($directory, ['venue-covers', 'venue-media'], true) ? $directory : 'venue-covers';
 
         try {
             $response = Http::timeout(45)
@@ -104,10 +110,54 @@ class VenueRemoteCoverImporter
             default => 'jpg',
         };
 
-        $path = 'venue-covers/'.Str::uuid()->toString().'.'.$ext;
+        $path = $directory.'/'.Str::uuid()->toString().'.'.$ext;
         Storage::disk('public')->put($path, $body);
 
         return $path;
+    }
+
+    /**
+     * Google Places foto URL'lerini venue-media'ya indirir, galeri satırları oluşturur.
+     * Kapak için ilk başarılı yolu döner (çağıran venue.cover_image güncelleyebilir).
+     *
+     * @param  list<string>  $urls
+     */
+    public function importGoogleGalleryToVenue(Venue $venue, array $urls, bool $updateVenueCoverFromFirst = true): ?string
+    {
+        $urls = array_values(array_unique(array_filter(array_map('trim', $urls))));
+        $urls = array_slice($urls, 0, 5);
+        if ($urls === []) {
+            return null;
+        }
+
+        $order = (int) ($venue->media()->max('order') ?? 0);
+        $firstPath = null;
+
+        foreach ($urls as $url) {
+            if (! $this->isMirrorableUrl($url)) {
+                continue;
+            }
+            $path = $this->importToPublicDisk($url, 'venue-media');
+            if ($path === null) {
+                continue;
+            }
+            if ($firstPath === null) {
+                $firstPath = $path;
+            }
+            $order++;
+            VenueMedia::create([
+                'venue_id' => $venue->id,
+                'type' => 'photo',
+                'path' => $path,
+                'order' => $order,
+            ]);
+        }
+
+        if ($updateVenueCoverFromFirst && $firstPath !== null) {
+            $venue->update(['cover_image' => $firstPath]);
+        }
+
+        return $firstPath;
     }
 
     private function sniffImageContentType(string $body): ?string

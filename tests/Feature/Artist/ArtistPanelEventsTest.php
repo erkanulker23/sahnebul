@@ -65,6 +65,47 @@ class ArtistPanelEventsTest extends TestCase
             ->where('canCreateEvent', true));
     }
 
+    public function test_venue_owner_can_mark_event_free_entry_and_drop_prices(): void
+    {
+        $category = Category::query()->create(['name' => 'Bar', 'slug' => 'bar-'.uniqid(), 'order' => 1]);
+        $city = City::query()->create(['name' => 'İstanbul', 'slug' => 'istanbul-'.uniqid()]);
+        $owner = User::factory()->create(['role' => 'customer']);
+        $venue = Venue::query()->create([
+            'user_id' => $owner->id,
+            'category_id' => $category->id,
+            'city_id' => $city->id,
+            'name' => 'Sahip Mekân',
+            'slug' => 'sahip-mekan-'.uniqid(),
+            'address' => 'Adres',
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($owner)->post(route('artist.events.store'), [
+            'venue_id' => $venue->id,
+            'title' => 'Ücretsiz açılış gecesi',
+            'artist_ids' => [],
+            'description' => null,
+            'event_rules' => null,
+            'start_date' => now()->addDays(5)->toDateTimeString(),
+            'end_date' => null,
+            'ticket_price' => '250',
+            'entry_is_paid' => false,
+            'capacity' => null,
+            'ticket_tiers' => [
+                ['name' => 'VIP', 'description' => null, 'price' => 500, 'sort_order' => 0],
+            ],
+            'ticket_acquisition_mode' => 'sahnebul',
+            'ticket_outlets' => [],
+            'ticket_purchase_note' => null,
+        ])->assertRedirect(route('artist.events.index'));
+
+        $event = Event::query()->where('title', 'Ücretsiz açılış gecesi')->first();
+        $this->assertNotNull($event);
+        $this->assertFalse($event->entry_is_paid);
+        $this->assertNull($event->ticket_price);
+        $this->assertCount(0, $event->fresh()->ticketTiers);
+    }
+
     public function test_artist_without_venue_can_create_draft_event_at_foreign_venue(): void
     {
         $category = Category::query()->create(['name' => 'Bar', 'slug' => 'bar-'.uniqid(), 'order' => 1]);

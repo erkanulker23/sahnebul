@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\SahnebulTemplateMail;
 use App\Models\AppSetting;
 use App\Services\AppSettingsService;
 use Illuminate\Http\Request;
@@ -59,10 +60,22 @@ class SmtpSettingsController extends Controller
             'to' => 'required|email|max:255',
         ]);
 
+        $this->appSettings->applySmtpMailConfig();
+
         try {
-            Mail::raw('Bu e-posta Sahnebul SMTP test iletisidir.', function ($message) use ($data): void {
-                $message->to($data['to'])->subject('Sahnebul SMTP Test');
-            });
+            Mail::to($data['to'])->send(
+                new SahnebulTemplateMail(
+                    emailSubject: 'Sahnebul SMTP test',
+                    title: 'SMTP bağlantısı çalışıyor',
+                    introLines: [
+                        'Bu e-posta yönetim panelindeki <strong>Test e-postası gönder</strong> düğmesiyle iletilmiştir.',
+                        'Mesajı aldıysanız giden sunucu ve gönderici ayarları doğrudur.',
+                    ],
+                    detailLines: [],
+                    actionUrl: rtrim((string) config('app.url'), '/'),
+                    actionLabel: 'Siteyi aç',
+                ),
+            );
         } catch (\Throwable $e) {
             Log::warning('SMTP test mail failed', [
                 'to' => $data['to'],

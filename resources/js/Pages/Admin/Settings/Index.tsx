@@ -1,7 +1,9 @@
+import PhoneInput from '@/Components/PhoneInput';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { cn } from '@/lib/cn';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { safeRoute } from '@/lib/safeRoute';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
@@ -683,7 +685,7 @@ export default function AdminSettingsIndex({
                                             id="c-email"
                                             type="email"
                                             value={contactEmail}
-                                            onChange={(e) => setContactEmail(e.target.value)}
+                                            onChange={(e) => setContactEmail(sanitizeEmailInput(e.target.value))}
                                             className={inputClass}
                                         />
                                     </div>
@@ -695,7 +697,7 @@ export default function AdminSettingsIndex({
                                             id="s-email"
                                             type="email"
                                             value={supportEmail}
-                                            onChange={(e) => setSupportEmail(e.target.value)}
+                                            onChange={(e) => setSupportEmail(sanitizeEmailInput(e.target.value))}
                                             className={inputClass}
                                         />
                                     </div>
@@ -703,7 +705,7 @@ export default function AdminSettingsIndex({
                                         <label htmlFor="c-phone" className={labelClass}>
                                             Telefon
                                         </label>
-                                        <input id="c-phone" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+                                        <PhoneInput id="c-phone" value={phone} onChange={setPhone} className={inputClass} />
                                     </div>
                                     <div>
                                         <label htmlFor="c-addr" className={labelClass}>

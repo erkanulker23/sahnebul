@@ -1,6 +1,8 @@
+import PhoneInput from '@/Components/PhoneInput';
 import { AdSlot } from '@/Components/AdSlot';
 import DetailEventList from '@/Components/DetailEventList';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
+import SuggestEditModal from '@/Components/SuggestEditModal';
 import VenuePhotoGallery from '@/Components/VenuePhotoGallery';
 import SeoHead, { metaDescriptionFromContent, type SharedSeo } from '@/Components/SeoHead';
 import { toAbsoluteUrl, truncateMetaDescription } from '@/utils/seo';
@@ -11,7 +13,9 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Building2, Eye } from 'lucide-react';
+import { Building2, Eye, PenLine } from 'lucide-react';
+import { googleMapsOpenUrl } from '@/lib/googleMapsOpenUrl';
+import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { useEffect, useState } from 'react';
 
 interface Review {
@@ -27,12 +31,14 @@ interface Review {
 interface Venue {
     id: number;
     user_id?: number | null;
+    status?: string;
     name: string;
     slug: string;
     description: string | null;
     address: string;
     latitude?: number | null;
     longitude?: number | null;
+    google_maps_url?: string | null;
     capacity: number | null;
     phone: string | null;
     whatsapp?: string | null;
@@ -198,19 +204,23 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
     const user = auth?.user;
     const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [suggestEditOpen, setSuggestEditOpen] = useState(false);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
     const [claimPhone, setClaimPhone] = useState('');
     const [claimEmail, setClaimEmail] = useState('');
     const [claimLoading, setClaimLoading] = useState(false);
-    const mapUrl = venue.latitude && venue.longitude
-        ? `https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`
-        : `https://www.google.com/maps/search/${encodeURIComponent(venue.address)}`;
+    const mapUrl = googleMapsOpenUrl({
+        google_maps_url: venue.google_maps_url,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        address: venue.address,
+    });
     const reviewCount = venue.reviews_count || venue.review_count || 0;
     const reviews = venue.reviews || [];
     const hasReviewed = user && reviews.some((r) => r.user?.id === user.id);
-    const canClaimVenue = venue.user_id == null;
+    const canClaimVenue = venue.user_id == null && venue.status !== 'approved';
     const imageSrc = (path: string | null | undefined) => {
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
@@ -366,6 +376,14 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                                     <Eye className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden strokeWidth={2} />
                                     {(venue.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
                                 </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSuggestEditOpen(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-medium text-amber-200 transition hover:bg-white/15"
+                                >
+                                    <PenLine className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2} />
+                                    Düzenleme öner
+                                </button>
                             </div>
                             {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
                                 <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">
@@ -639,8 +657,20 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                                                 <input value={claimFirstName} onChange={(e) => setClaimFirstName(e.target.value)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500" placeholder="Ad" required />
                                                 <input value={claimLastName} onChange={(e) => setClaimLastName(e.target.value)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500" placeholder="Soyad" required />
                                             </div>
-                                            <input value={claimPhone} onChange={(e) => setClaimPhone(e.target.value)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500" placeholder="Telefon" required />
-                                            <input type="email" value={claimEmail} onChange={(e) => setClaimEmail(e.target.value)} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500" placeholder="E-posta" required />
+                                            <PhoneInput
+                                                value={claimPhone}
+                                                onChange={setClaimPhone}
+                                                className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500"
+                                                required
+                                            />
+                                            <input
+                                                type="email"
+                                                value={claimEmail}
+                                                onChange={(e) => setClaimEmail(sanitizeEmailInput(e.target.value))}
+                                                className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-amber-500/30 dark:bg-zinc-900/70 dark:text-white dark:placeholder:text-zinc-500"
+                                                placeholder="E-posta"
+                                                required
+                                            />
                                             <textarea
                                                 value={claimMessage}
                                                 onChange={(e) => setClaimMessage(e.target.value)}
@@ -683,6 +713,15 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                     </div>
                 )}
             </div>
+
+            <SuggestEditModal
+                open={suggestEditOpen}
+                onClose={() => setSuggestEditOpen(false)}
+                entityKind="venue"
+                entitySlug={venue.slug}
+                entityName={venue.name}
+                isAuthenticated={Boolean(user)}
+            />
         </AppLayout>
     );
 }

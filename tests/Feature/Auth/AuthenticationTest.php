@@ -52,4 +52,32 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_organization_firm_can_authenticate_via_organization_portal(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'manager_organization',
+            'organization_display_name' => 'Test Ajans',
+        ]);
+
+        $response = $this->post('/giris/organizasyon', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('artist.dashboard', absolute: false));
+    }
+
+    public function test_customer_cannot_use_organization_login_portal(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+
+        $this->post('/giris/organizasyon', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
 }

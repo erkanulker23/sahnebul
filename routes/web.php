@@ -3,16 +3,21 @@
 use App\Http\Controllers\Admin\AdPlacementController as AdminAdPlacementController;
 use App\Http\Controllers\Admin\ArtistClaimController as AdminArtistClaimController;
 use App\Http\Controllers\Admin\ArtistController as AdminArtistController;
+use App\Http\Controllers\Admin\ArtistEventProposalController as AdminArtistEventProposalController;
+use App\Http\Controllers\Admin\ArtistGalleryModerationController as AdminArtistGalleryModerationController;
 use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
 use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
+use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventArtistReportController as AdminEventArtistReportController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
+use App\Http\Controllers\Admin\ManagedSubscriptionController as AdminManagedSubscriptionController;
 use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\PublicEditSuggestionController as AdminPublicEditSuggestionController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\SeoToolsController as AdminSeoToolsController;
@@ -22,9 +27,12 @@ use App\Http\Controllers\Admin\SubscriptionPlanController as AdminSubscriptionPl
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VenueClaimController as AdminVenueClaimController;
 use App\Http\Controllers\Admin\VenueController as AdminVenueController;
+use App\Http\Controllers\Artist\ArtistAvailabilityController;
 use App\Http\Controllers\Artist\DashboardController as ArtistDashboardController;
 use App\Http\Controllers\Artist\EventArtistReportController as ArtistEventArtistReportController;
 use App\Http\Controllers\Artist\EventController as ArtistEventController;
+use App\Http\Controllers\Artist\ManagerArtistAvailabilityController;
+use App\Http\Controllers\Artist\OrganizationArtistController;
 use App\Http\Controllers\Artist\ProfileController as ArtistProfileController;
 use App\Http\Controllers\Artist\PublicArtistProfileController;
 use App\Http\Controllers\Artist\ReservationController as ArtistReservationController;
@@ -40,6 +48,7 @@ use App\Http\Controllers\EventReviewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicEditSuggestionController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ReverseGeocodeController;
 use App\Http\Controllers\ReviewController;
@@ -80,6 +89,9 @@ Route::middleware(['throttle:venues-nearby', 'json.same-site'])->group(function 
     Route::get('/mekanlar/yakinindakiler', [VenueController::class, 'nearby'])->name('venues.nearby');
 });
 Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
+Route::post('/mekanlar/{venue:slug}/duzenme-oneri', [PublicEditSuggestionController::class, 'storeVenue'])
+    ->middleware('throttle:10,1')
+    ->name('venues.edit-suggestion.store');
 Route::redirect('/sahneler', '/mekanlar', 301);
 Route::get('/sahneler/{venue:slug}', function (Venue $venue) {
     return redirect()->route('venues.show', $venue->slug, 301);
@@ -93,6 +105,9 @@ Route::get('/etkinlikler/{event}', [EventPublicController::class, 'show'])
     ->name('events.show');
 Route::get('/sanatcilar', [ArtistController::class, 'index'])->name('artists.index');
 Route::get('/sanatcilar/{artist:slug}', [ArtistController::class, 'show'])->name('artists.show');
+Route::post('/sanatcilar/{artist:slug}/duzenme-oneri', [PublicEditSuggestionController::class, 'storeArtist'])
+    ->middleware('throttle:10,1')
+    ->name('artists.edit-suggestion.store');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post:slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/iletisim', [ContactController::class, 'create'])->name('contact');
@@ -110,7 +125,7 @@ Route::get('/sehir-sec/{city}', SehirSecCityController::class)
     ->where('city', 'istanbul|ankara|izmir|antalya|bursa|eskisehir')
     ->name('sehir-sec.city');
 
-Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -137,9 +152,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/mekanlar/{venue}/sahiplen', [VenueClaimController::class, 'store'])->name('venues.claim');
     Route::post('/sahneler/{venue}/sahiplen', [VenueClaimController::class, 'store']);
     Route::post('/sanatcilar/{artist}/sahiplen', [ArtistClaimController::class, 'store'])->name('artists.claim');
-});
 
-Route::middleware(['auth', 'verified', 'customer'])->group(function () {
     Route::post('/hesabim/favori-sanatci/{artist}', [FavoriteArtistController::class, 'toggle'])
         ->whereNumber('artist')
         ->name('user.favorites.artists.toggle');
@@ -151,7 +164,7 @@ Route::middleware(['auth', 'verified', 'customer'])->group(function () {
         ->name('user.events.ics');
 });
 
-Route::middleware(['auth', 'verified', 'artist'])->prefix('sahne')->name('artist.')->group(function () {
+Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(function () {
     Route::redirect('sahnelerim', '/sahne/mekanlarim', 301);
     Route::redirect('sahnelerim/ekle', '/sahne/mekanlarim/ekle', 301);
     Route::get('sahnelerim/{venue}/duzenle', function (Venue $venue) {
@@ -166,16 +179,24 @@ Route::middleware(['auth', 'verified', 'artist'])->prefix('sahne')->name('artist
     Route::get('/profil', [ArtistProfileController::class, 'edit'])->name('profile');
     Route::get('/sanatci-sayfam', [PublicArtistProfileController::class, 'edit'])->name('public-profile');
     Route::put('/sanatci-sayfam', [PublicArtistProfileController::class, 'update'])->name('public-profile.update');
+    Route::post('/sanatci-sayfam/galeri', [PublicArtistProfileController::class, 'storeGallery'])
+        ->name('public-profile.gallery.store');
+    Route::delete('/sanatci-sayfam/galeri/{media}', [PublicArtistProfileController::class, 'destroyGallery'])
+        ->name('public-profile.gallery.destroy');
     Route::get('/mekanlarim', [ArtistVenueController::class, 'index'])->name('venues.index');
     Route::get('/mekanlarim/ekle', [ArtistVenueController::class, 'create'])->name('venues.create');
     Route::post('/mekanlarim', [ArtistVenueController::class, 'store'])->name('venues.store');
     Route::get('/mekanlarim/{venue}/duzenle', [ArtistVenueController::class, 'edit'])->name('venues.edit');
     Route::put('/mekanlarim/{venue}', [ArtistVenueController::class, 'update'])->name('venues.update');
+    Route::post('/mekanlarim/{venue}/google-galeri-url', [ArtistVenueController::class, 'importRemoteGoogleGallery'])->name('venues.google-gallery-import');
     Route::post('/mekanlarim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlarim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::get('/etkinlikler', [ArtistEventController::class, 'index'])->name('events.index');
     Route::get('/etkinlikler/ekle', [ArtistEventController::class, 'create'])->name('events.create');
     Route::post('/etkinlikler', [ArtistEventController::class, 'store'])->name('events.store');
+    Route::post('/etkinlikler/yeni-mekan-onerisi', [ArtistEventController::class, 'proposeWithNewVenue'])
+        ->middleware('throttle:8,1')
+        ->name('events.propose');
     Route::get('/etkinlikler/{event}/duzenle', [ArtistEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [ArtistEventController::class, 'update'])->name('events.update');
     Route::post('/etkinlikler/{event}/rapor', [ArtistEventArtistReportController::class, 'store'])
@@ -183,9 +204,34 @@ Route::middleware(['auth', 'verified', 'artist'])->prefix('sahne')->name('artist
         ->name('events.report');
     Route::get('/rezervasyonlar', [ArtistReservationController::class, 'index'])->name('reservations.index');
     Route::patch('/rezervasyonlar/{reservation}/durum', [ArtistReservationController::class, 'updateStatus'])->name('reservations.updateStatus');
+
+    Route::get('/musaitlik', [ArtistAvailabilityController::class, 'index'])->name('availability.index');
+    Route::post('/musaitlik/gun', [ArtistAvailabilityController::class, 'storeDay'])->name('availability.days.store');
+    Route::post('/musaitlik/gunler-araligi', [ArtistAvailabilityController::class, 'storeDaysRange'])->name('availability.days.range');
+    Route::delete('/musaitlik/gun/{day}', [ArtistAvailabilityController::class, 'destroyDay'])->name('availability.days.destroy');
+    Route::patch('/musaitlik/gorunurluk', [ArtistAvailabilityController::class, 'updateVisibility'])->name('availability.visibility');
+    Route::patch('/musaitlik/istekler/{availabilityRequest}', [ArtistAvailabilityController::class, 'updateIncomingRequest'])
+        ->name('availability.incoming-requests.update');
+
+    Route::get('/organizasyon/sanatcilar', [OrganizationArtistController::class, 'index'])->name('organization.artists.index');
+    Route::post('/organizasyon/sanatcilar', [OrganizationArtistController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('organization.artists.store');
+    Route::post('/organizasyon/sanatcilar/{artist:slug}/kat', [OrganizationArtistController::class, 'attach'])
+        ->middleware('throttle:40,1')
+        ->name('organization.artists.attach');
+    Route::post('/organizasyon/sanatcilar/{artist:slug}/birak', [OrganizationArtistController::class, 'detach'])
+        ->middleware('throttle:40,1')
+        ->name('organization.artists.detach');
+
+    Route::get('/organizasyon/musaitlik', [ManagerArtistAvailabilityController::class, 'index'])->name('manager-availability.index');
+    Route::get('/organizasyon/musaitlik/{artist:slug}', [ManagerArtistAvailabilityController::class, 'show'])->name('manager-availability.show');
+    Route::post('/organizasyon/musaitlik/{artist:slug}/istek', [ManagerArtistAvailabilityController::class, 'storeRequest'])
+        ->middleware('throttle:30,1')
+        ->name('manager-availability.requests.store');
 });
 
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/profil', [AdminProfileController::class, 'edit'])->name('profile');
 
@@ -206,9 +252,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/mekanlar/birlestir', [AdminVenueController::class, 'merge'])->name('venues.merge');
     Route::get('/mekanlar/{venue}/duzenle', [AdminVenueController::class, 'edit'])->name('venues.edit');
     Route::post('/mekanlar/{venue}/kapak-url', [AdminVenueController::class, 'importRemoteCover'])->name('venues.cover-import');
+    Route::post('/mekanlar/{venue}/google-galeri-url', [AdminVenueController::class, 'importRemoteGoogleGallery'])->name('venues.google-gallery-import');
     Route::post('/mekanlar/{venue}/galeri', [AdminVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlar/{venue}/galeri/{media}', [AdminVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::put('/mekanlar/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
+    Route::post('/mekanlar/{venue}/uyelik-paketi', [AdminManagedSubscriptionController::class, 'updateForVenue'])->name('venues.subscription.update');
     Route::post('/mekanlar/{venue}/onayla', [AdminVenueController::class, 'approve'])->name('venues.approve');
     Route::post('/mekanlar/{venue}/reddet', [AdminVenueController::class, 'reject'])->name('venues.reject');
     Route::delete('/mekanlar/{venue}', [AdminVenueController::class, 'destroy'])->name('venues.destroy');
@@ -250,6 +298,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/sanatcilar/{artist:id}/galeri', [AdminArtistController::class, 'storeMedia'])->name('artists.media.store');
     Route::delete('/sanatcilar/{artist:id}/galeri/{media}', [AdminArtistController::class, 'destroyMedia'])->name('artists.media.destroy');
     Route::put('/sanatcilar/{artist:id}', [AdminArtistController::class, 'update'])->name('artists.update');
+    Route::post('/sanatcilar/{artist:id}/uyelik-paketi', [AdminManagedSubscriptionController::class, 'updateForArtist'])->name('artists.subscription.update');
     Route::post('/sanatcilar/{artist:id}/onayla', [AdminArtistController::class, 'approve'])->name('artists.approve');
     Route::post('/sanatcilar/{artist:id}/reddet', [AdminArtistController::class, 'reject'])->name('artists.reject');
     Route::delete('/sanatcilar/{artist:id}', [AdminArtistController::class, 'destroy'])->name('artists.destroy');
@@ -258,12 +307,25 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/rezervasyonlar/{reservation}', [AdminReservationController::class, 'show'])->name('reservations.show');
     Route::patch('/rezervasyonlar/{reservation}/durum', [AdminReservationController::class, 'updateStatus'])->name('reservations.updateStatus');
 
+    Route::get('/iletisim-mesajlari', [AdminContactMessageController::class, 'index'])->name('contact-messages.index');
+
     Route::get('/yorumlar', [AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::get('/duzenme-onerileri', [AdminPublicEditSuggestionController::class, 'index'])->name('edit-suggestions.index');
+    Route::post('/duzenme-onerileri/{suggestion}/incelendi', [AdminPublicEditSuggestionController::class, 'markReviewed'])->name('edit-suggestions.mark-reviewed');
     Route::post('/yorumlar/{review}/onayla', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::delete('/yorumlar/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
 
     Route::get('/sanatci-etkinlik-raporlari', [AdminEventArtistReportController::class, 'index'])->name('event-artist-reports.index');
     Route::patch('/sanatci-etkinlik-raporlari/{report}', [AdminEventArtistReportController::class, 'update'])->name('event-artist-reports.update');
+
+    Route::get('/sanatci-etkinlik-onerileri', [AdminArtistEventProposalController::class, 'index'])->name('artist-event-proposals.index');
+    Route::get('/sanatci-etkinlik-onerileri/{proposal}', [AdminArtistEventProposalController::class, 'show'])->name('artist-event-proposals.show');
+    Route::post('/sanatci-etkinlik-onerileri/{proposal}/onayla', [AdminArtistEventProposalController::class, 'approve'])->name('artist-event-proposals.approve');
+    Route::post('/sanatci-etkinlik-onerileri/{proposal}/reddet', [AdminArtistEventProposalController::class, 'reject'])->name('artist-event-proposals.reject');
+
+    Route::get('/sanatci-galeri-onaylari', [AdminArtistGalleryModerationController::class, 'index'])->name('artist-gallery-moderation.index');
+    Route::post('/sanatci-galeri-onaylari/{media}/onayla', [AdminArtistGalleryModerationController::class, 'approve'])->name('artist-gallery-moderation.approve');
+    Route::post('/sanatci-galeri-onaylari/{media}/reddet', [AdminArtistGalleryModerationController::class, 'reject'])->name('artist-gallery-moderation.reject');
 
     Route::get('/kategoriler', [AdminCategoryController::class, 'index'])->name('categories.index');
     Route::get('/kategoriler/excel', [AdminCatalogExcelController::class, 'exportCategories'])->name('categories.excel-export');

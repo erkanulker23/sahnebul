@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Event;
 use App\Models\Artist;
+use App\Models\Event;
 use App\Models\Reservation;
 use App\Models\Review;
 use App\Models\User;
@@ -58,6 +58,18 @@ class DashboardController extends Controller
             ->limit(5)
             ->get(['id', 'name', 'slug', 'review_count', 'rating_avg']);
 
+        $topViewedArtists = Artist::query()
+            ->approved()
+            ->orderByDesc('view_count')
+            ->limit(5)
+            ->get(['id', 'name', 'slug', 'view_count']);
+
+        $topViewedEvents = Event::query()
+            ->orderByDesc('view_count')
+            ->limit(5)
+            ->with(['venue:id,name,slug'])
+            ->get(['id', 'venue_id', 'title', 'view_count']);
+
         $usersChart = User::query()
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', Carbon::now()->subDays(14))
@@ -70,6 +82,8 @@ class DashboardController extends Controller
             'recentVenues' => $recentVenues,
             'recentReservations' => $recentReservations,
             'popularVenues' => $popularVenues,
+            'topViewedArtists' => $topViewedArtists,
+            'topViewedEvents' => $topViewedEvents,
             'usersChart' => $usersChart,
             'pendingArtists' => $pendingArtists,
             'upcomingEvents' => $upcomingEvents,

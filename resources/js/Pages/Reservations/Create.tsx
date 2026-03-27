@@ -1,3 +1,4 @@
+import PhoneInput from '@/Components/PhoneInput';
 import SeoHead from '@/Components/SeoHead';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, useForm } from '@inertiajs/react';
@@ -22,6 +23,7 @@ interface Event {
     title: string;
     start_date: string;
     ticket_price: number | null;
+    entry_is_paid?: boolean;
     ticket_tiers?: TicketTier[];
 }
 
@@ -29,9 +31,13 @@ interface Props {
     venue: Venue & { city: { name: string }; category: { name: string } };
     events: Event[];
     preselectEventId?: number | null;
+    whatsappReservationHref?: string | null;
 }
 
 function eventPriceLabel(ev: Event): string {
+    if (ev.entry_is_paid === false) {
+        return 'Ücretsiz giriş';
+    }
     const tiers = ev.ticket_tiers ?? [];
     if (tiers.length > 0) {
         const nums = tiers.map((t) => parseFloat(t.price));
@@ -45,7 +51,12 @@ function eventPriceLabel(ev: Event): string {
     return ev.ticket_price != null ? `${ev.ticket_price} ₺` : '—';
 }
 
-export default function ReservationCreate({ venue, events, preselectEventId = null }: Readonly<Props>) {
+export default function ReservationCreate({
+    venue,
+    events,
+    preselectEventId = null,
+    whatsappReservationHref = null,
+}: Readonly<Props>) {
     const preselectedEvent = useMemo(
         () => (preselectEventId ? events.find((e) => e.id === preselectEventId) ?? null : null),
         [preselectEventId, events],
@@ -61,6 +72,8 @@ export default function ReservationCreate({ venue, events, preselectEventId = nu
 
     const { data, setData, post, processing, errors } = useForm({
         venue_id: venue.id,
+        guest_name: '',
+        guest_phone: '',
         event_id: preselectedEvent?.id ?? null,
         event_ticket_tier_id: initialTicketTierId,
         reservation_date: '',
@@ -96,9 +109,58 @@ export default function ReservationCreate({ venue, events, preselectEventId = nu
                 <Link href={route('venues.show', venue.slug)} className="mb-6 inline-block text-amber-400 hover:text-amber-300">
                     ← {venue.name}
                 </Link>
-                <h1 className="font-display mb-8 text-3xl font-bold text-white">Rezervasyon Yap</h1>
+                <h1 className="font-display mb-4 text-3xl font-bold text-white">Rezervasyon Yap</h1>
+                <p className="mb-8 text-sm text-zinc-400">
+                    Bu form Sahnebul rezervasyon sistemidir. Talebiniz mekân yönetimine iletilir; aynı zamanda{' '}
+                    <strong className="text-zinc-300">sahnebul.com yönetimi</strong> kayıt altına alır ve gerekirse size dönüş yapabilir.
+                </p>
+
+                {whatsappReservationHref ? (
+                    <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                        <p className="text-sm text-emerald-100/90">
+                            WhatsApp üzerinden mekâna yazarken etkinlik bilgisi ve Sahnebul kaynağı mesaja eklenir.
+                        </p>
+                        <a
+                            href={whatsappReservationHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500 sm:w-auto sm:px-6"
+                        >
+                            WhatsApp ile rezervasyon mesajı hazırla
+                        </a>
+                    </div>
+                ) : null}
 
                 <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-white/5 bg-zinc-900/50 p-8">
+                    <div>
+                        <label htmlFor="res_guest_name" className="block text-sm font-medium text-zinc-400">
+                            Adınız Soyadınız *
+                        </label>
+                        <input
+                            id="res_guest_name"
+                            type="text"
+                            autoComplete="name"
+                            value={data.guest_name}
+                            onChange={(e) => setData('guest_name', e.target.value)}
+                            required
+                            maxLength={120}
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
+                        {errors.guest_name && <p className="mt-1 text-sm text-red-400">{errors.guest_name}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="res_guest_phone" className="block text-sm font-medium text-zinc-400">
+                            Telefon numaranız *
+                        </label>
+                        <PhoneInput
+                            id="res_guest_phone"
+                            value={data.guest_phone}
+                            onChange={(v) => setData('guest_phone', v)}
+                            required
+                            className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
+                        />
+                        {errors.guest_phone && <p className="mt-1 text-sm text-red-400">{errors.guest_phone}</p>}
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-400">Tarih</label>
                         <input
@@ -191,7 +253,7 @@ export default function ReservationCreate({ venue, events, preselectEventId = nu
                     )}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Misafir Sayısı</label>
+                            <label className="block text-sm font-medium text-zinc-400">Kaç kişisiniz? *</label>
                             <input
                                 type="number"
                                 min={1}
@@ -214,11 +276,16 @@ export default function ReservationCreate({ venue, events, preselectEventId = nu
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Not (opsiyonel)</label>
+                        <label htmlFor="res_notes" className="block text-sm font-medium text-zinc-400">
+                            Mesajınız (isteğe bağlı)
+                        </label>
                         <textarea
+                            id="res_notes"
                             value={data.notes}
                             onChange={(e) => setData('notes', e.target.value)}
                             rows={3}
+                            maxLength={500}
+                            placeholder="Özel istek, masa tercihi vb."
                             className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white"
                         />
                     </div>
@@ -227,7 +294,7 @@ export default function ReservationCreate({ venue, events, preselectEventId = nu
                         disabled={processing}
                         className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
                     >
-                        Rezervasyon Yap
+                        Gönder
                     </button>
                 </form>
             </div>

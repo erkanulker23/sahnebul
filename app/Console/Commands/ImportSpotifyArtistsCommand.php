@@ -189,6 +189,7 @@ class ImportSpotifyArtistsCommand extends Command
         $artists = Artist::query()
             ->where('status', 'approved')
             ->where('country_code', 'TR')
+            ->where('spotify_auto_link_disabled', false)
             ->whereNull('spotify_id')
             ->orderBy('id')
             ->limit($limit)

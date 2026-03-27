@@ -6,6 +6,7 @@ export interface User {
     avatar?: string | null;
     city?: string;
     interests?: string[];
+    role?: string;
 }
 
 export interface LinkedArtistSummary {
@@ -25,5 +26,9 @@ export type PageProps<
         linkedArtist?: LinkedArtistSummary | null;
         /** false: saf sanatçı — yan menüde Mekanlarım / Rezervasyonlar yok */
         artist_panel_show_venue_nav?: boolean;
+        /** Organizasyon yöneticisi — sanatçı müsaitlik tarayıcısı */
+        is_manager_organization?: boolean;
+        /** E-posta doğrulanmadı — panellerde üst şerit */
+        email_verification_banner?: boolean;
     };
 };

@@ -11,6 +11,8 @@ class FavoriteArtistController extends Controller
 {
     public function toggle(Request $request, int $artist): RedirectResponse
     {
+        abort_unless($request->user()->canUsePublicEngagementFeatures(), 403);
+
         $model = Artist::query()->where('status', 'approved')->findOrFail($artist);
 
         $user = $request->user();

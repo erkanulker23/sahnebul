@@ -51,7 +51,12 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $sub = $request->user()->activeSubscription()?->load('plan');
+        $sub = $request->user()->subscriptions()
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->whereHas('plan', fn ($q) => $q->whereIn('membership_type', ['artist', 'manager']))
+            ->latest('ends_at')
+            ->first()?->load('plan');
 
         return Inertia::render('Artist/Dashboard', [
             'stats' => $stats,

@@ -1,9 +1,10 @@
+import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import FlashMessage from '@/Components/FlashMessage';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
-import { Building2, Calendar, ClipboardList, LayoutDashboard, Menu, Mic, Moon, Sun, User, X, type LucideIcon } from 'lucide-react';
+import { Building2, Calendar, CalendarCheck, ClipboardList, LayoutDashboard, Menu, Mic, Moon, Sun, User, Users, X, type LucideIcon } from 'lucide-react';
 import { PropsWithChildren, useCallback, useEffect, useState } from 'react';
 
 const coreNavItems: { routeName: string; label: string; icon: typeof LayoutDashboard }[] = [
@@ -20,6 +21,7 @@ const venueNavItems: { routeName: string; label: string; icon: LucideIcon }[] = 
 export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) {
     const auth = usePage<PageProps>().props.auth;
     const { linkedArtist } = auth;
+    const isManagerOrganization = auth.is_manager_organization === true;
     /** Eksik prop (eski önbellek): mekân sahipleri menüyü kaybetmesin. */
     const showVenueNav = auth.artist_panel_show_venue_nav !== false;
     const { theme, toggleTheme } = useTheme();
@@ -40,6 +42,14 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
     const isActive = (routeName: string) => {
         try {
             return route().current(routeName);
+        } catch {
+            return false;
+        }
+    };
+
+    const matchesRoutePattern = (pattern: string) => {
+        try {
+            return Boolean(route().current(pattern));
         } catch {
             return false;
         }
@@ -102,6 +112,51 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                 >
                     <Mic className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
                     Sanatçı sayfam
+                </Link>
+            )}
+            {linkedArtist && (
+                <Link
+                    href={route('artist.availability.index')}
+                    onClick={closeSidebar}
+                    className={cn(
+                        'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
+                        matchesRoutePattern('artist.availability.*')
+                            ? 'bg-amber-500/15 font-medium text-amber-800 dark:text-amber-400'
+                            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white',
+                    )}
+                >
+                    <CalendarCheck className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
+                    Müsaitlik takvimi
+                </Link>
+            )}
+            {isManagerOrganization && (
+                <Link
+                    href={route('artist.organization.artists.index')}
+                    onClick={closeSidebar}
+                    className={cn(
+                        'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
+                        matchesRoutePattern('artist.organization.artists.*')
+                            ? 'bg-amber-500/15 font-medium text-amber-800 dark:text-amber-400'
+                            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white',
+                    )}
+                >
+                    <Mic className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
+                    Bünyemdeki sanatçılar
+                </Link>
+            )}
+            {isManagerOrganization && (
+                <Link
+                    href={route('artist.manager-availability.index')}
+                    onClick={closeSidebar}
+                    className={cn(
+                        'flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition',
+                        matchesRoutePattern('artist.manager-availability.*')
+                            ? 'bg-amber-500/15 font-medium text-amber-800 dark:text-amber-400'
+                            : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white',
+                    )}
+                >
+                    <Users className="h-5 w-5 shrink-0 stroke-[1.75]" aria-hidden />
+                    Sanatçı müsaitlikleri
                 </Link>
             )}
         </>
@@ -177,6 +232,7 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                         Çıkış Yap
                     </Link>
                 </header>
+                <EmailVerificationBanner />
                 <FlashMessage />
                 <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</div>
             </div>

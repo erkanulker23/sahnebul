@@ -11,20 +11,21 @@ class EventReminderController extends Controller
 {
     public function toggle(Request $request, int $event): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user->canUsePublicEngagementFeatures(), 403);
+
         $model = Event::query()->with('venue:id,status')->findOrFail($event);
         abort_unless($model->status === 'published' && $model->venue?->status === 'approved', 404);
         abort_if($model->start_date !== null && $model->start_date->isPast(), 404);
 
-        $user = $request->user();
-
         if ($user->remindedEvents()->whereKey($model->id)->exists()) {
             $user->remindedEvents()->detach($model->id);
 
-            return back()->with('success', 'E-posta hatırlatıcısı kapatıldı.');
+            return back()->with('success', 'Etkinlik takibi kapatıldı.');
         }
 
         $user->remindedEvents()->attach($model->id, ['reminder_sent_at' => null]);
 
-        return back()->with('success', 'Etkinlikten bir gün önce e-posta hatırlatması açıldı.');
+        return back()->with('success', 'Etkinliği takip ediyorsunuz. Etkinlikten bir gün önce e-posta ve bildirim alırsınız.');
     }
 }

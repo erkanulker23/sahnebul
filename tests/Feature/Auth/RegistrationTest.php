@@ -74,7 +74,7 @@ class RegistrationTest extends TestCase
         $response->assertRedirect(route('artist.venues.create', absolute: false));
         $this->assertDatabaseHas('users', [
             'email' => 'venue@example.com',
-            'role' => 'customer',
+            'role' => 'venue_owner',
             'pending_venue_name' => 'Caz Kulübü',
             'name' => 'Ayşe Yılmaz',
         ]);

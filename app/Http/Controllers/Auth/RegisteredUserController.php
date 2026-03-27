@@ -7,6 +7,7 @@ use App\Models\Artist;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\SafeRedirect;
+use App\Support\UserContactValidation;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,8 @@ class RegisteredUserController extends Controller
                 $membership = 'artist';
             } elseif ($uyelik === 'mekan') {
                 $membership = 'venue';
+            } elseif ($uyelik === 'organizasyon') {
+                $membership = 'organization';
             }
         }
 
@@ -72,7 +75,7 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => array_merge(UserContactValidation::emailRequired(), ['unique:'.User::class]),
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -100,18 +103,27 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => array_merge(UserContactValidation::emailRequired(), ['unique:'.User::class]),
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'membership_type' => ['required', 'in:artist,venue'],
+            'membership_type' => ['required', 'in:artist,venue,organization'],
             'venue_name' => ['required_if:membership_type,venue', 'nullable', 'string', 'max:255'],
+            'organization_display_name' => ['required_if:membership_type,organization', 'nullable', 'string', 'max:255'],
             'return_to' => ['nullable', 'string', 'max:2048'],
         ]);
 
-        $role = $request->input('membership_type') === 'artist' ? 'artist' : 'customer';
+        $role = match ($request->input('membership_type')) {
+            'artist' => 'artist',
+            'venue' => 'venue_owner',
+            'organization' => 'manager_organization',
+            default => 'customer',
+        };
 
         $user = User::create([
             'name' => $request->name,
             'pending_venue_name' => $request->input('membership_type') === 'venue' ? $request->input('venue_name') : null,
+            'organization_display_name' => $request->input('membership_type') === 'organization'
+                ? $request->input('organization_display_name')
+                : null,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,

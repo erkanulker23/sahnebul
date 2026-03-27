@@ -34,7 +34,7 @@ class DemoProfileUsersSeeder extends Seeder
             [
                 'name' => 'Demo Mekan Sahibi',
                 'password' => Hash::make('password'),
-                'role' => 'customer',
+                'role' => 'venue_owner',
                 'email_verified_at' => now(),
                 'is_active' => true,
             ]
