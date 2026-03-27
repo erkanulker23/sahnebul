@@ -451,6 +451,7 @@ export default function ArtistShow({
     }, [artist.slug]);
 
     const bannerPhoto = imageSrc(artist.banner_image ?? null);
+    const hasHeroBanner = Boolean(bannerPhoto);
     const avatarUrl = profilePhoto;
     const shareUrlForSocial = canonicalUrl ?? '';
     const copyShareLink = useCallback(async () => {
@@ -485,27 +486,80 @@ export default function ArtistShow({
             />
 
             <div className="min-h-screen">
-                <div className="mx-auto max-w-7xl px-0 pt-6 sm:px-4 sm:pt-8 lg:px-8">
-                    <Link
-                        href={route('artists.index')}
-                        className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-400"
-                    >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Tüm Sanatçılar
-                    </Link>
-                </div>
-
-                {bannerPhoto ? (
-                    <div className="mx-auto mt-4 max-w-7xl px-0 sm:mt-6 sm:px-4 lg:px-8">
-                        <div className="relative aspect-[21/9] min-h-[140px] max-h-[min(42vw,22rem)] w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-md dark:border-white/[0.08] dark:bg-zinc-900 sm:max-h-[min(36vw,20rem)] sm:rounded-3xl">
-                            <img src={bannerPhoto} alt="" className="h-full w-full object-cover" />
-                        </div>
+                {!hasHeroBanner ? (
+                    <div className="mx-auto max-w-7xl px-0 pt-6 sm:px-4 sm:pt-8 lg:px-8">
+                        <Link
+                            href={route('artists.index')}
+                            className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-400"
+                        >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Tüm Sanatçılar
+                        </Link>
                     </div>
                 ) : null}
 
-                <div className="relative mx-auto mt-4 max-w-7xl px-0 sm:mt-6 sm:px-4 lg:px-8">
+                {hasHeroBanner && bannerPhoto ? (
+                    <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden bg-zinc-950">
+                        <img
+                            src={bannerPhoto}
+                            alt={artist.name}
+                            className="absolute inset-0 h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-zinc-950/70" aria-hidden />
+                        <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
+                            <Link href={route('artists.index')} className="text-sm text-amber-300 transition hover:text-amber-200">
+                                ← Tüm Sanatçılar
+                            </Link>
+                            <div className="mt-6 max-w-4xl">
+                                <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">{artist.name}</h1>
+                                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                                    <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">
+                                        {artist.genre ?? 'Sanatçı'}
+                                    </span>
+                                    {artist.is_verified_profile ? (
+                                        <VerifiedArtistProfileBadge size="md" className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100" />
+                                    ) : null}
+                                    {artistFavorite.canToggle ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                            }
+                                            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                                artistFavorite.isFavorited
+                                                    ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
+                                                    : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+                                            }`}
+                                        >
+                                            {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
+                                        </button>
+                                    ) : !user ? (
+                                        <Link
+                                            href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                        >
+                                            Favoriler için giriş
+                                        </Link>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSuggestEditOpen(true)}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                                    >
+                                        <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
+                                        Düzenleme öner
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
+
+                <div
+                    className={`relative mx-auto max-w-7xl px-0 sm:px-4 lg:px-8 ${hasHeroBanner ? 'mt-6 sm:mt-8' : 'mt-4 sm:mt-6'}`}
+                >
                     <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
                         {/* Sol: Fotoğraf + sosyal */}
                         <div className="shrink-0 lg:w-96">
@@ -716,45 +770,49 @@ export default function ArtistShow({
 
                         {/* Sağ: Bio + Etkinlikler */}
                         <div className="min-w-0 flex-1">
-                            <span className="mb-3 inline-block rounded-full bg-amber-500/20 px-4 py-1.5 text-sm font-medium text-amber-400">
-                                {artist.genre ?? 'Sanatçı'}
-                            </span>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <h1 className="font-display text-4xl font-bold text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
-                                    {artist.name}
-                                </h1>
-                                {artist.is_verified_profile && <VerifiedArtistProfileBadge size="md" className="self-center" />}
-                                {artistFavorite.canToggle ? (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
-                                        }
-                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                                            artistFavorite.isFavorited
-                                                ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
-                                                : 'border border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40'
-                                        }`}
-                                    >
-                                        {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
-                                    </button>
-                                ) : !user ? (
-                                    <Link
-                                        href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
-                                        className="rounded-full border border-amber-500/40 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
-                                    >
-                                        Favoriler için giriş
-                                    </Link>
-                                ) : null}
-                                <button
-                                    type="button"
-                                    onClick={() => setSuggestEditOpen(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
-                                >
-                                    <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
-                                    Düzenleme öner
-                                </button>
-                            </div>
+                            {!hasHeroBanner ? (
+                                <>
+                                    <span className="mb-3 inline-block rounded-full bg-amber-500/20 px-4 py-1.5 text-sm font-medium text-amber-400">
+                                        {artist.genre ?? 'Sanatçı'}
+                                    </span>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <h1 className="font-display text-4xl font-bold text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
+                                            {artist.name}
+                                        </h1>
+                                        {artist.is_verified_profile && <VerifiedArtistProfileBadge size="md" className="self-center" />}
+                                        {artistFavorite.canToggle ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                                }
+                                                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                                    artistFavorite.isFavorited
+                                                        ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
+                                                        : 'border border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40'
+                                                }`}
+                                            >
+                                                {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
+                                            </button>
+                                        ) : !user ? (
+                                            <Link
+                                                href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                                className="rounded-full border border-amber-500/40 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                                            >
+                                                Favoriler için giriş
+                                            </Link>
+                                        ) : null}
+                                        <button
+                                            type="button"
+                                            onClick={() => setSuggestEditOpen(true)}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
+                                        >
+                                            <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
+                                            Düzenleme öner
+                                        </button>
+                                    </div>
+                                </>
+                            ) : null}
                             {shareUrlForSocial ? (
                                 <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10">
                                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Sosyal medyada paylaş</p>
