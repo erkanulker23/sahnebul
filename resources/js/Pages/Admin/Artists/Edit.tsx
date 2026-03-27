@@ -168,7 +168,16 @@ export default function AdminArtistEdit({
         };
         // PHP genelde dosyaları yalnızca POST multipart ile $_FILES’a alır; gerçek PUT’ta yükleme düşer.
         if (hasUpload) {
-            transform((form) => ({ ...form, _method: 'put' }));
+            // Boş dosya alanlarını gönderme; bazı sunucularda "" ile gelen file input sorun çıkarabiliyor.
+            transform((form) => {
+                const { avatar_upload, banner_upload, ...rest } = form;
+                return {
+                    ...rest,
+                    _method: 'put',
+                    ...(avatar_upload instanceof File ? { avatar_upload } : {}),
+                    ...(banner_upload instanceof File ? { banner_upload } : {}),
+                };
+            });
             post(url, {
                 forceFormData: true,
                 preserveScroll: true,

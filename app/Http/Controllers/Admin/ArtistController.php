@@ -114,7 +114,7 @@ class ArtistController extends Controller
             'name' => 'required|string|max:255',
             'music_genres' => 'nullable|array',
             'music_genres.*' => ['string', Rule::in($allowedTypes)],
-            'bio' => 'nullable|string',
+            'bio' => 'nullable|string|max:500000',
             'avatar' => 'nullable|string|max:2048',
             'banner_image' => 'nullable|string|max:2048',
             'website' => 'nullable|url|max:255',
@@ -153,7 +153,8 @@ class ArtistController extends Controller
             'public_contact.phone',
         ]);
 
-        $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));
+        $rawGenres = $validated['music_genres'] ?? [];
+        $mg = array_values(array_unique(array_filter(is_array($rawGenres) ? $rawGenres : [])));
         $validated['music_genres'] = $mg === [] ? null : $mg;
         $validated['genre'] = $mg === [] ? null : implode(', ', $mg);
 
@@ -193,7 +194,7 @@ class ArtistController extends Controller
             'name' => 'required|string|max:255',
             'music_genres' => 'nullable|array',
             'music_genres.*' => ['string', Rule::in($allowedTypes)],
-            'bio' => 'nullable|string',
+            'bio' => 'nullable|string|max:500000',
             'avatar' => 'nullable|string|max:2048',
             'banner_image' => 'nullable|string|max:2048',
             'website' => 'nullable|url|max:255',
@@ -253,7 +254,8 @@ class ArtistController extends Controller
             $validated['slug'] = Str::slug($validated['name']).'-'.Str::lower(Str::random(4));
         }
 
-        $mg = array_values(array_unique(array_filter($validated['music_genres'] ?? [])));
+        $rawGenresUp = $validated['music_genres'] ?? [];
+        $mg = array_values(array_unique(array_filter(is_array($rawGenresUp) ? $rawGenresUp : [])));
         $validated['music_genres'] = $mg === [] ? null : $mg;
         $validated['genre'] = $mg === [] ? null : implode(', ', $mg);
 
