@@ -116,7 +116,7 @@ export default function AdminArtistEdit({
     const sl = artist.social_links ?? {};
     const mgr = artist.manager_info ?? {};
     const pub = artist.public_contact ?? {};
-    const { data, setData, put, processing, errors, progress } = useForm({
+    const { data, setData, put, post, processing, errors, progress, transform } = useForm({
         name: artist.name,
         music_genres: initialMusicGenres(artist.music_genres, artist.genre, musicGenreOptions),
         bio: artist.bio ?? '',
@@ -160,15 +160,29 @@ export default function AdminArtistEdit({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('admin.artists.update', artist.id), {
-            // Yalnızca dosya yüklenirken FormData kullan; aksi halde JSON gövde iç içe social_links’i güvenilir iletir.
-            forceFormData: data.avatar_upload instanceof File || data.banner_upload instanceof File,
-            preserveScroll: true,
-            onSuccess: () => {
-                setData('avatar_upload', null);
-                setData('banner_upload', null);
-            },
-        });
+        const hasUpload = data.avatar_upload instanceof File || data.banner_upload instanceof File;
+        const url = route('admin.artists.update', artist.id);
+        const onSuccess = () => {
+            setData('avatar_upload', null);
+            setData('banner_upload', null);
+        };
+        // PHP genelde dosyaları yalnızca POST multipart ile $_FILES’a alır; gerçek PUT’ta yükleme düşer.
+        if (hasUpload) {
+            transform((form) => ({ ...form, _method: 'put' }));
+            post(url, {
+                forceFormData: true,
+                preserveScroll: true,
+                onFinish: () => {
+                    transform((f) => f);
+                },
+                onSuccess,
+            });
+        } else {
+            put(url, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        }
     };
 
     const addGallery = (file: File) => {

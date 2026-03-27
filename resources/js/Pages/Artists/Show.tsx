@@ -333,6 +333,8 @@ export default function ArtistShow({
     const user = page.auth?.user;
     const appUrl = (page.seo?.appUrl ?? '').replace(/\/$/, '');
     const canonicalUrl = appUrl ? `${appUrl}/sanatcilar/${artist.slug}` : undefined;
+    /** Paylaşım linkleri mutlak https URL ister; canonical yoksa istemcide tam adres kullanılır */
+    const [resolvedShareUrl, setResolvedShareUrl] = useState(() => canonicalUrl ?? '');
     const [suggestEditOpen, setSuggestEditOpen] = useState(false);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
@@ -374,6 +376,16 @@ export default function ArtistShow({
             .join('|');
     }, [artist.media]);
     useInstagramEmbedScript(instagramGallerySignatures);
+    useEffect(() => {
+        if (canonicalUrl && /^https?:\/\//i.test(canonicalUrl)) {
+            setResolvedShareUrl(canonicalUrl);
+            return;
+        }
+        const href = globalThis.window?.location?.href;
+        if (href) {
+            setResolvedShareUrl(href.split('#')[0]);
+        }
+    }, [canonicalUrl]);
     const canClaimArtist = artist.user_id == null && artist.status !== 'approved';
 
     const formatTrackDuration = (ms: number | null | undefined) => {
@@ -453,9 +465,11 @@ export default function ArtistShow({
     const bannerPhoto = imageSrc(artist.banner_image ?? null);
     const hasHeroBanner = Boolean(bannerPhoto);
     const avatarUrl = profilePhoto;
-    const shareUrlForSocial = canonicalUrl ?? '';
+    const shareUrlForSocial = resolvedShareUrl;
     const copyShareLink = useCallback(async () => {
-        const u = shareUrlForSocial || (typeof window !== 'undefined' ? window.location.href : '');
+        const u =
+            shareUrlForSocial ||
+            (typeof globalThis.window !== 'undefined' ? globalThis.window.location.href.split('#')[0] : '');
         if (!u || !navigator.clipboard?.writeText) return;
         try {
             await navigator.clipboard.writeText(u);
@@ -562,10 +576,13 @@ export default function ArtistShow({
                 >
                     <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
                         {/* Sol: Fotoğraf + sosyal */}
-                        <div className="shrink-0 lg:w-96">
+                        <div className="shrink-0 lg:w-80">
                             <div className="sticky top-24">
-                                <div className="relative overflow-hidden rounded-2xl">
-                                    <div className="aspect-square overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-lg dark:border-white/[0.06] dark:bg-zinc-900 dark:shadow-2xl">
+                                <div className="flex justify-center lg:justify-start">
+                                    <div
+                                        className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-[3px] border-zinc-200 bg-zinc-100 shadow-xl ring-2 ring-amber-500/15 dark:border-white/10 dark:bg-zinc-900 dark:ring-amber-500/20 sm:h-44 sm:w-44 md:h-48 md:w-48"
+                                        title={artist.name}
+                                    >
                                         {profilePhoto ? (
                                             <img
                                                 src={profilePhoto ?? ''}
@@ -574,7 +591,9 @@ export default function ArtistShow({
                                             />
                                         ) : (
                                             <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                                                <span className="text-8xl opacity-40">🎤</span>
+                                                <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
+                                                    🎤
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -815,10 +834,15 @@ export default function ArtistShow({
                             ) : null}
                             {shareUrlForSocial ? (
                                 <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10">
-                                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Sosyal medyada paylaş</p>
+                                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                        Sosyal medyada paylaş
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         <a
-                                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(artist.name)}&url=${encodeURIComponent(shareUrlForSocial)}`}
+                                            href={`https://twitter.com/intent/tweet?${new URLSearchParams({
+                                                text: artist.name,
+                                                url: shareUrlForSocial,
+                                            }).toString()}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className={shareBtnClass}
@@ -826,7 +850,7 @@ export default function ArtistShow({
                                             X (Twitter)
                                         </a>
                                         <a
-                                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrlForSocial)}`}
+                                            href={`https://www.facebook.com/sharer/sharer.php?${new URLSearchParams({ u: shareUrlForSocial }).toString()}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className={shareBtnClass}
@@ -834,7 +858,9 @@ export default function ArtistShow({
                                             Facebook
                                         </a>
                                         <a
-                                            href={`https://wa.me/?text=${encodeURIComponent(`${artist.name} — ${shareUrlForSocial}`)}`}
+                                            href={`https://api.whatsapp.com/send?${new URLSearchParams({
+                                                text: `${artist.name}\n${shareUrlForSocial}`,
+                                            }).toString()}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className={shareBtnClass}
@@ -842,7 +868,11 @@ export default function ArtistShow({
                                             WhatsApp
                                         </a>
                                         <a
-                                            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrlForSocial)}`}
+                                            href={`https://www.linkedin.com/shareArticle?${new URLSearchParams({
+                                                mini: 'true',
+                                                url: shareUrlForSocial,
+                                                title: artist.name,
+                                            }).toString()}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className={shareBtnClass}
@@ -864,34 +894,6 @@ export default function ArtistShow({
                             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                                 {(artist.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
                             </p>
-
-                            {resolvedSocialList.length > 0 && (
-                                <div className="mt-4">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                                        Sosyal medya
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {resolvedSocialList.map(({ key, href, label }) => (
-                                            <a
-                                                key={`hero-${key}`}
-                                                href={href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                aria-label={`${label} — yeni sekmede aç`}
-                                                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:border-amber-400 hover:text-amber-900 dark:border-white/10 dark:bg-zinc-900/70 dark:text-zinc-200 dark:hover:border-amber-500/50 dark:hover:text-amber-300"
-                                            >
-                                                <span
-                                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white ${socialBadgeClass(key)}`}
-                                                    aria-hidden
-                                                >
-                                                    <SocialPlatformIcon platform={key} className="h-4 w-4" />
-                                                </span>
-                                                {label}
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 <div className="rounded-xl border border-zinc-200 bg-white p-4 text-center dark:border-white/10 dark:bg-zinc-900/50">
