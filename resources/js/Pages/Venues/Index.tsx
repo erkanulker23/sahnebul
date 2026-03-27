@@ -493,7 +493,7 @@ export default function VenuesIndex({
                                                 href={route('venues.show', venue.slug)}
                                                 className={`block w-[min(85vw,300px)] max-w-[300px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-md shadow-zinc-900/[0.07] transition hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-black/40 dark:hover:border-emerald-500/35 ${
                                                     featured
-                                                        ? 'rounded-[14px] border-transparent shadow-lg shadow-emerald-900/22 dark:border-transparent dark:shadow-[0_10px_32px_-6px_rgba(52,211,153,0.32)]'
+                                                        ? 'rounded-[14px] border-transparent shadow-lg shadow-emerald-900/22 dark:border-white/[0.08] dark:shadow-none dark:ring-1 dark:ring-emerald-500/45'
                                                         : ''
                                                 }`}
                                             >
@@ -518,7 +518,7 @@ export default function VenuesIndex({
                                                     />
                                                     {featured ? (
                                                         <div className="pointer-events-none absolute left-2 top-2 z-[3] sm:left-3 sm:top-3">
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 sm:gap-1.5 sm:px-2.5 sm:text-[10px]">
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:shadow-none dark:ring-1 dark:ring-white/25 sm:gap-1.5 sm:px-2.5 sm:text-[10px]">
                                                                 <Star className="h-3 w-3 fill-zinc-950" strokeWidth={2} aria-hidden />
                                                                 Öne çıkan
                                                             </span>
@@ -573,7 +573,7 @@ export default function VenuesIndex({
                                         return (
                                             <li key={venue.id} className="shrink-0 snap-start">
                                                 {featured ? (
-                                                    <div className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_12px_40px_-8px_rgba(16,185,129,0.38)] dark:from-emerald-400/80 dark:via-emerald-600 dark:to-emerald-950 dark:shadow-[0_14px_44px_-8px_rgba(52,211,153,0.35)]">
+                                                    <div className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_12px_40px_-8px_rgba(16,185,129,0.38)] dark:from-emerald-500/55 dark:via-emerald-700/75 dark:to-emerald-950 dark:shadow-none dark:ring-1 dark:ring-emerald-500/40">
                                                         {card}
                                                     </div>
                                                 ) : (
@@ -597,7 +597,7 @@ export default function VenuesIndex({
                                     <Star className="inline h-3.5 w-3.5 fill-emerald-500 text-emerald-600 dark:fill-emerald-400" aria-hidden />
                                     <span>Öne çıkan</span>
                                 </span>{' '}
-                                mekânlar yeşil çerçeve, gölge ve rozetle vurgulanır.
+                                mekânlar yeşil çerçeve ve rozetle vurgulanır.
                             </p>
                         </div>
                         {(venues?.data ?? []).length === 0 ? (
@@ -627,7 +627,7 @@ export default function VenuesIndex({
                                                 href={route('venues.show', venue.slug)}
                                                 className={`group/card block h-full overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 ${
                                                     featured
-                                                        ? 'rounded-[14px] border-transparent shadow-lg shadow-emerald-900/25 dark:border-transparent dark:shadow-[0_10px_36px_-6px_rgba(52,211,153,0.35)]'
+                                                        ? 'rounded-[14px] border-transparent shadow-lg shadow-emerald-900/25 dark:border-white/[0.08] dark:shadow-none dark:ring-1 dark:ring-emerald-500/45'
                                                         : 'border-zinc-200 shadow-md shadow-zinc-900/[0.08] hover:border-emerald-500/35 hover:shadow-lg hover:shadow-zinc-900/12 dark:border-white/10 dark:shadow-black/45 dark:hover:border-emerald-500/30 dark:hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.65)]'
                                                 }`}
                                             >
@@ -646,7 +646,7 @@ export default function VenuesIndex({
                                                     />
                                                     {featured ? (
                                                         <div className="pointer-events-none absolute left-2 top-2 z-[14] sm:left-3 sm:top-3">
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 sm:gap-1.5 sm:text-xs">
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:shadow-none dark:ring-1 dark:ring-white/25 sm:gap-1.5 sm:text-xs">
                                                                 <Star className="h-3 w-3 fill-zinc-950 sm:h-3.5 sm:w-3.5" strokeWidth={2} aria-hidden />
                                                                 Öne çıkan
                                                             </span>
@@ -709,7 +709,7 @@ export default function VenuesIndex({
                                         return featured ? (
                                             <div
                                                 key={venue.id}
-                                                className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_14px_44px_-8px_rgba(16,185,129,0.42)] dark:from-emerald-400/85 dark:via-emerald-600 dark:to-emerald-950 dark:shadow-[0_18px_50px_-10px_rgba(52,211,153,0.38)]"
+                                                className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_14px_44px_-8px_rgba(16,185,129,0.42)] dark:from-emerald-500/55 dark:via-emerald-700/75 dark:to-emerald-950 dark:shadow-none dark:ring-1 dark:ring-emerald-500/40"
                                             >
                                                 {link}
                                             </div>

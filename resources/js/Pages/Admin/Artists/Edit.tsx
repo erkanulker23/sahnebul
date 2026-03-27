@@ -10,6 +10,7 @@ import { AdminFormTabList, AdminFormTabPanel } from '@/Components/Admin/AdminFor
 import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -629,10 +630,10 @@ export default function AdminArtistEdit({
                         entity={artist}
                         variant="artist"
                         routes={{
-                            importMedia: route('admin.artists.import-promo-media', artist.id),
-                            appendPromoFiles: route('admin.artists.append-promo-files', artist.id),
-                            clearPromoMedia: route('admin.artists.clear-promo-media', artist.id),
-                            removePromoItem: route('admin.artists.remove-promo-item', artist.id),
+                            importMedia: safeRoute('admin.artists.import-promo-media', { artist: artist.id }),
+                            appendPromoFiles: safeRoute('admin.artists.append-promo-files', { artist: artist.id }),
+                            clearPromoMedia: safeRoute('admin.artists.clear-promo-media', { artist: artist.id }),
+                            removePromoItem: safeRoute('admin.artists.remove-promo-item', { artist: artist.id }),
                         }}
                     />
                         </AdminFormTabPanel>

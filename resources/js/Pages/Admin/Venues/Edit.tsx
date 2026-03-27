@@ -15,6 +15,7 @@ import { Link, router, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { useState } from 'react';
 
 interface MediaItem {
@@ -654,10 +655,10 @@ export default function AdminVenueEdit({
                         entity={venue}
                         variant="venue"
                         routes={{
-                            importMedia: route('admin.venues.import-promo-media', venue.id),
-                            appendPromoFiles: route('admin.venues.append-promo-files', venue.id),
-                            clearPromoMedia: route('admin.venues.clear-promo-media', venue.id),
-                            removePromoItem: route('admin.venues.remove-promo-item', venue.id),
+                            importMedia: safeRoute('admin.venues.import-promo-media', { venue: venue.id }),
+                            appendPromoFiles: safeRoute('admin.venues.append-promo-files', { venue: venue.id }),
+                            clearPromoMedia: safeRoute('admin.venues.clear-promo-media', { venue: venue.id }),
+                            removePromoItem: safeRoute('admin.venues.remove-promo-item', { venue: venue.id }),
                         }}
                     />
                         </AdminFormTabPanel>

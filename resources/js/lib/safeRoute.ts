@@ -90,6 +90,70 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         }
         case 'artist.public-profile.gallery.instagram.store':
             return '/sahne/sanatci-sayfam/galeri-instagram';
+        case 'admin.artists.import-promo-media': {
+            const id = params?.artist ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/sanatcilar/${id}/adresten-tanitim-medya`;
+            }
+
+            return '/admin/sanatcilar';
+        }
+        case 'admin.artists.append-promo-files': {
+            const id = params?.artist ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/sanatcilar/${id}/tanitim-dosya-yukle`;
+            }
+
+            return '/admin/sanatcilar';
+        }
+        case 'admin.artists.clear-promo-media': {
+            const id = params?.artist ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/sanatcilar/${id}/tanitim-medya-temizle`;
+            }
+
+            return '/admin/sanatcilar';
+        }
+        case 'admin.artists.remove-promo-item': {
+            const id = params?.artist ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/sanatcilar/${id}/tanitim-galeri-oge-sil`;
+            }
+
+            return '/admin/sanatcilar';
+        }
+        case 'admin.venues.import-promo-media': {
+            const id = params?.venue ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/mekanlar/${id}/adresten-tanitim-medya`;
+            }
+
+            return '/admin/mekanlar';
+        }
+        case 'admin.venues.append-promo-files': {
+            const id = params?.venue ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/mekanlar/${id}/tanitim-dosya-yukle`;
+            }
+
+            return '/admin/mekanlar';
+        }
+        case 'admin.venues.clear-promo-media': {
+            const id = params?.venue ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/mekanlar/${id}/tanitim-medya-temizle`;
+            }
+
+            return '/admin/mekanlar';
+        }
+        case 'admin.venues.remove-promo-item': {
+            const id = params?.venue ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/mekanlar/${id}/tanitim-galeri-oge-sil`;
+            }
+
+            return '/admin/mekanlar';
+        }
         default:
             return '/';
     }
