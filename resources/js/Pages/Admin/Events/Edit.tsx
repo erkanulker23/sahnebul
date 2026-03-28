@@ -601,6 +601,7 @@ export default function AdminEventEdit({
                         entity={event}
                         variant="event"
                         routes={adminEventPromoGalleryRoutes(event.id)}
+                        showVideoUrlBackgroundOption={false}
                     />
 
                     <div className="flex flex-wrap gap-3">

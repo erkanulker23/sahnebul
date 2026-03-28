@@ -76,10 +76,13 @@ export default function AdminEntityPromoGalleryPanel({
     entity,
     routes,
     variant,
+    showVideoUrlBackgroundOption = true,
 }: Readonly<{
     entity: EntityWithPromo;
     routes: AdminEntityPromoGalleryRoutes;
     variant: 'venue' | 'artist' | 'event';
+    /** false: yönetim paneli — sunucu zaten senkron işler; arka plan kutusu gösterilmez */
+    showVideoUrlBackgroundOption?: boolean;
 }>) {
     const copy = COPY[variant];
     const fieldResize = cn(
@@ -89,8 +92,8 @@ export default function AdminEntityPromoGalleryPanel({
     );
 
     const [appendPromoToGallery, setAppendPromoToGallery] = useState(true);
-    /** Yalnızca video URL içe aktarımı için kuyruk (post görselleri her zaman anında). */
-    const [reelUrlsInBackground, setReelUrlsInBackground] = useState(true);
+    /** Sanatçı/mekân panelinde: uzun indirmede yanıt sonrası sıra (post görselleri her zaman anında). */
+    const [reelUrlsInBackground, setReelUrlsInBackground] = useState(false);
 
     const [postImageFiles, setPostImageFiles] = useState<File[]>([]);
     const [reelVideoFiles, setReelVideoFiles] = useState<File[]>([]);
@@ -170,7 +173,7 @@ export default function AdminEntityPromoGalleryPanel({
                 urls_text: reelUrlsText,
                 mode: 'promo_video',
                 append_promo: appendPromoToGallery,
-                ...(reelUrlsInBackground ? { promo_import_background: true } : {}),
+                ...(showVideoUrlBackgroundOption && reelUrlsInBackground ? { promo_import_background: true } : {}),
             },
             {
                 preserveScroll: true,
@@ -322,19 +325,27 @@ export default function AdminEntityPromoGalleryPanel({
                     <p className="mt-1 text-xs text-zinc-500">{copy.reelHint}</p>
                 </div>
 
-                <label className="flex cursor-pointer items-start gap-2 rounded-md border border-amber-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
-                    <input
-                        type="checkbox"
-                        checked={reelUrlsInBackground}
-                        onChange={(e) => setReelUrlsInBackground(e.target.checked)}
-                        disabled={reelUrlsImporting}
-                        className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
-                    />
-                    <span>
-                        Video URL’lerini <strong className="text-amber-100/90">arka planda sırayla</strong> işle (uzun indirmelerde önerilir). Kapalı: istek
-                        bitene kadar beklenir.
-                    </span>
-                </label>
+                {showVideoUrlBackgroundOption ? (
+                    <label className="flex cursor-pointer items-start gap-2 rounded-md border border-amber-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                        <input
+                            type="checkbox"
+                            checked={reelUrlsInBackground}
+                            onChange={(e) => setReelUrlsInBackground(e.target.checked)}
+                            disabled={reelUrlsImporting}
+                            className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                        />
+                        <span>
+                            Video URL’lerini <strong className="text-amber-100/90">yanıt gönderildikten sonra sırayla</strong> işle (uzun indirmede
+                            tarayıcı zaman aşımını önler). Kapalı: işlem bitene kadar bu sayfa bekler — sonucu hemen görürsünüz.
+                        </span>
+                    </label>
+                ) : (
+                    <p className="rounded-md border border-zinc-700/50 bg-zinc-950/30 p-2.5 text-[11px] text-zinc-500">
+                        Yönetim panelinde içe aktarma <strong className="text-zinc-400">anında</strong> tamamlanır; başarı veya hata mesajı hemen gösterilir.
+                        Instagram videosu için sunucuda <strong className="text-zinc-400">yt-dlp</strong> ve <strong className="text-zinc-400">ffmpeg</strong>{' '}
+                        gerekir — kontrol: <code className="text-amber-200/80">php artisan sahnebul:promo-import-deps</code>
+                    </p>
+                )}
 
                 <div className="space-y-2">
                     <p className="text-[11px] font-medium text-zinc-400">Dosyadan (MP4, WebM, MOV — çoklu)</p>

@@ -25,7 +25,7 @@ final class HomeHeroSlideDefaults
                 'eyebrow' => 'Yaklaşan gösteriler',
                 'headline' => 'Etkinlik takvimine',
                 'headline_accent' => 'tek bakışta',
-                'body' => 'Bu hafta ve önümüzdeki günlerdeki konserleri tarih ve şehre göre tarayın; mekân detaylarından bilet ve iletişim bilgisine geçin.',
+                'body' => 'Önümüzdeki günlerdeki konserleri tarih ve şehre göre tarayın; mekân detaylarından bilet ve iletişim bilgisine geçin.',
             ],
             [
                 'eyebrow' => 'Sanatçı dünyası',

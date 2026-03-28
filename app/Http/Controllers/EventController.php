@@ -9,6 +9,7 @@ use App\Services\TurkeyProvincesSync;
 use App\Support\EventListingQuery;
 use App\Support\EventListingTypes;
 use App\Support\InertiaDocumentMeta;
+use App\Support\UpcomingSevenDayEventWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +41,7 @@ class EventController extends Controller
             } elseif ($period === 'tomorrow') {
                 $query->whereDate('start_date', today()->addDay());
             } elseif ($period === 'week') {
-                $query->whereBetween('start_date', [now()->startOfWeek(), now()->copy()->endOfWeek()]);
+                UpcomingSevenDayEventWindow::applyToEloquent($query);
             }
         }
 

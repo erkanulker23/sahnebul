@@ -87,7 +87,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
             <div className="mx-auto max-w-7xl px-0 sm:px-4 lg:px-8">
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400/90">Bu hafta sahnede</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400/90">Önümüzdeki 7 gün</p>
                         <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">
                             Yaklaşan etkinlikleri olan sanatçılar
                         </h2>
@@ -156,7 +156,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                                 {n > 0 ? (
                                                     <p
                                                         className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight tracking-tight text-white/95 drop-shadow-sm sm:gap-1.5 sm:text-[11px]"
-                                                        aria-label={`Bu hafta ${n} etkinlik`}
+                                                        aria-label={`Önümüzdeki 7 günde ${n} etkinlik`}
                                                     >
                                                         <IconTicket className="h-3 w-3 shrink-0 text-amber-300/95 sm:h-3.5 sm:w-3.5" />
                                                         <span className="min-w-0 truncate">
@@ -199,7 +199,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                             {artist.genre ?? 'Sanatçı'}
                                         </p>
                                         <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">
-                                            Bu hafta sahnede
+                                            Önümüzdeki 7 gün
                                         </p>
                                         <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400 sm:gap-1.5 sm:pt-4 sm:text-sm">
                                             Detaylar

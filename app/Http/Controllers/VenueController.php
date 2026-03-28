@@ -12,6 +12,7 @@ use App\Services\AppSettingsService;
 use App\Support\DailyUniqueEntityView;
 use App\Support\HomeHeroSlideDefaults;
 use App\Support\HomeHeroSlides;
+use App\Support\UpcomingSevenDayEventWindow;
 use App\Support\VenuePageSeo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,9 +30,9 @@ class VenueController extends Controller
         $query = Venue::query()
             ->with(['category', 'city', 'district', 'media'])
             ->withCount([
-                'events as weekly_events_count' => fn ($q) => $q
-                    ->published()
-                    ->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]),
+                'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(
+                    $q->published()
+                ),
                 'events as monthly_events_count' => fn ($q) => $q
                     ->published()
                     ->where('start_date', '>=', now()->startOfDay())
@@ -93,7 +94,7 @@ class VenueController extends Controller
             ->published()
             ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->where('start_date', '>', $todayEnd)
-            ->where('start_date', '<=', now()->copy()->addDays(7)->endOfDay())
+            ->where('start_date', '<=', UpcomingSevenDayEventWindow::upperBound())
             ->with([
                 'venue:id,name,slug,category_id,city_id,district_id',
                 'venue.category:id,name',

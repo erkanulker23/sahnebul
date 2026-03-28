@@ -14,7 +14,7 @@ use App\Support\DailyUniqueEntityView;
 use App\Support\InertiaDocumentMeta;
 use App\Support\PublicStructuredData;
 use App\Support\TurkishAlphabet;
-use Carbon\CarbonInterface;
+use App\Support\UpcomingSevenDayEventWindow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -39,10 +39,11 @@ class ArtistController extends Controller
                 'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
             ])
             ->withCount([
-                'events as weekly_events_count' => fn ($q) => $q
-                    ->published()
-                    ->whereHas('venue', fn ($v) => $v->listedPublicly())
-                    ->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]),
+                'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(
+                    $q
+                        ->published()
+                        ->whereHas('venue', fn ($v) => $v->listedPublicly())
+                ),
                 'events as monthly_events_count' => fn ($q) => $q
                     ->published()
                     ->whereHas('venue', fn ($v) => $v->listedPublicly())
@@ -66,9 +67,7 @@ class ArtistController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        $weekStart = now()->startOfWeek();
-        $weekEnd = now()->endOfWeek();
-        $artistsThisWeek = $this->artistsWithShowsThisWeek($weekStart, $weekEnd);
+        $artistsThisWeek = $this->artistsWithShowsInUpcomingWindow();
         $genres = Artist::approved()
             ->notIntlImport()
             ->whereNotNull('genre')
@@ -96,8 +95,8 @@ class ArtistController extends Controller
             ),
             'artistsThisWeek' => $artistsThisWeek,
             'weekRange' => [
-                'start' => $weekStart->toIso8601String(),
-                'end' => $weekEnd->toIso8601String(),
+                'start' => now()->toIso8601String(),
+                'end' => UpcomingSevenDayEventWindow::upperBound()->toIso8601String(),
             ],
             'genres' => $genres,
             'letters' => $letters,
@@ -107,23 +106,27 @@ class ArtistController extends Controller
     }
 
     /**
+     * Sanatçılar: bugünden itibaren 7 günlük pencerede (yalnızca start_date >= şu an) en az bir yayınlanmış etkinliği olanlar.
+     *
      * @return Collection<int, array<string, mixed>>
      */
-    private function artistsWithShowsThisWeek(CarbonInterface $weekStart, CarbonInterface $weekEnd): Collection
+    private function artistsWithShowsInUpcomingWindow(): Collection
     {
-        $rows = DB::table('event_artists')
-            ->join('events', 'events.id', '=', 'event_artists.event_id')
-            ->join('venues', 'venues.id', '=', 'events.venue_id')
-            ->join('artists', 'artists.id', '=', 'event_artists.artist_id')
-            ->where('events.status', 'published')
-            ->where('venues.status', 'approved')
-            ->where('venues.is_active', true)
-            ->where('artists.status', 'approved')
-            ->where(function ($q) {
-                $q->whereNull('artists.country_code')
-                    ->orWhere('artists.country_code', '!=', 'INT');
-            })
-            ->whereBetween('events.start_date', [$weekStart, $weekEnd])
+        $rows = UpcomingSevenDayEventWindow::applyToQuery(
+            DB::table('event_artists')
+                ->join('events', 'events.id', '=', 'event_artists.event_id')
+                ->join('venues', 'venues.id', '=', 'events.venue_id')
+                ->join('artists', 'artists.id', '=', 'event_artists.artist_id')
+                ->where('events.status', 'published')
+                ->where('venues.status', 'approved')
+                ->where('venues.is_active', true)
+                ->where('artists.status', 'approved')
+                ->where(function ($q) {
+                    $q->whereNull('artists.country_code')
+                        ->orWhere('artists.country_code', '!=', 'INT');
+                }),
+            'events.start_date'
+        )
             ->select(
                 'event_artists.artist_id',
                 DB::raw('MIN(events.start_date) as first_show'),

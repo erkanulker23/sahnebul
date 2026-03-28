@@ -787,6 +787,23 @@ final class EventMediaImportFromUrlService
             }
         }
 
+        if (! $posterEmbedOnly && ! $videoSaved && $isInstagram && ($shortcode !== null || $instagramStoryCanonical !== null)) {
+            if ($posterPath !== null && trim((string) $posterPath) !== '') {
+                $this->deleteStoredPathIfOwned($posterPath);
+            }
+            $model->refresh();
+
+            $yt = $this->resolveYtDlpBinary();
+            $hint = $yt !== null
+                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi; ffmpeg kurulu olmalı. Gerekirse .env YTDLP_COOKIES_FILE ile oturum çerezi deneyin.'
+                : 'Sunucuda yt-dlp bulunamadı (.env YTDLP_BINARY veya sistem PATH). Örnek: apt install yt-dlp ffmpeg / brew install yt-dlp ffmpeg.';
+
+            return [
+                'success' => false,
+                'message' => 'Instagram tam videosu indirilemedi; galeriye yalnız kapak olarak eklenmedi. '.$hint.' Tam video için doğrudan .mp4/.webm bağlantısı veya dosya yükleyin. Yalnız önizleme gerekiyorsa «Gönderi görselleri» bölümündeki URL alanını kullanın.',
+            ];
+        }
+
         if ($posterEmbedOnly) {
             $videoPath = null;
         }
@@ -839,12 +856,6 @@ final class EventMediaImportFromUrlService
             ];
         }
 
-        if (! $posterEmbedOnly && ! $videoSaved && $isInstagram && ($shortcode || $instagramStoryCanonical !== null) && $posterPath !== null) {
-            array_unshift(
-                $messages,
-                'Tanıtım galerisine önizleme kaydedildi (video indirilemedi). Üretim sunucusunda yt-dlp ve ffmpeg kurulu ve PHP için YTDLP_BINARY / FFMPEG_BINARY veya PATH ayarlı olmalı. Sitede oynatmak için panelden MP4/WebM yükleyin veya doğrudan video bağlantısı ekleyin.'
-            );
-        }
         if ($posterEmbedOnly && $posterPath !== null) {
             array_unshift($messages, 'Gönderi görseli olarak kaydedildi (video indirilmedi — tam video için «Tanıtım videoları» alanını kullanın).');
         }

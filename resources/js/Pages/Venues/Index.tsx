@@ -938,7 +938,7 @@ export default function VenuesIndex({
                     <EventCarousel
                         accent="violet"
                         subtitle="Önümüzdeki 7 gün"
-                        title="Bu haftaki etkinlikler"
+                        title="Önümüzdeki 7 gündeki etkinlikler"
                         events={upcomingWeekEvents}
                         emptyMessage="Önümüzdeki günler için eklenmiş etkinlik yok. Takipte kalın!"
                     />

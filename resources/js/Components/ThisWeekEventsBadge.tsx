@@ -11,7 +11,7 @@ interface Props {
 }
 
 /**
- * Önce bu hafta, yoksa bu ay içindeki etkinlik sayısı — kapak görseli üzerinde vurgu.
+ * Önce önümüzdeki 7 gün, yoksa bu ay içindeki etkinlik sayısı — kapak görseli üzerinde vurgu.
  */
 export default function ThisWeekEventsBadge({
     weekCount,
@@ -27,7 +27,7 @@ export default function ThisWeekEventsBadge({
 
     const isSlider = variant === 'slider';
     const aria = useWeek ? weekEventCountAriaLabel(count) : monthEventCountAriaLabel(count);
-    const periodLabel = useWeek ? 'Bu hafta' : 'Bu ay';
+    const periodLabel = useWeek ? '7 gün' : 'Bu ay';
     /**
      * Gradient’i inline veriyoruz: (1) Tailwind önbelleği / derleme gecikmesinde turuncu kalmasın
      * (2) lime/açık sarımsı yeşil yerine net zümrüt–teal (şeritte “hâlâ sarı” şikâyetini önler)

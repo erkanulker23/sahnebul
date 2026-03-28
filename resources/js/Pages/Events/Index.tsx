@@ -70,7 +70,7 @@ interface Props {
 const PERIOD_LABELS: Record<string, string> = {
     today: 'Bugün',
     tomorrow: 'Yarın',
-    week: 'Bu hafta',
+    week: 'Önümüzdeki 7 gün',
 };
 
 const FILTER_SELECT_CLASS =
@@ -430,7 +430,7 @@ export default function EventsIndex({
                                         <option value="">Zaman</option>
                                         <option value="today">Bugün</option>
                                         <option value="tomorrow">Yarın</option>
-                                        <option value="week">Bu hafta</option>
+                                        <option value="week">Önümüzdeki 7 gün</option>
                                     </select>
                                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>

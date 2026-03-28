@@ -42,8 +42,9 @@ trait PromoGalleryImportActions
             return back()->with('error', 'En az bir bağlantı veya satır girin.');
         }
 
-        // Eski formlar bu alanı göndermez; yalnızca açıkça true gönderilirse kuyruk (yeni admin paneli).
-        $useQueue = $validated['mode'] === 'promo_video'
+        // Admin paneli: her zaman senkron yanıt (gerçek başarı/hata mesajı). Arka plan yalnızca sanatçı/mekân panelinde.
+        $useQueue = ! $request->is('admin/*')
+            && $validated['mode'] === 'promo_video'
             && $request->has('promo_import_background')
             && $request->boolean('promo_import_background');
 
