@@ -57,6 +57,11 @@ class CheckPromoImportDepsCommand extends Command
             $this->line('YTDLP_COOKIES_FILE: <fg=gray>tanımlı değil (Instagram engelinde isteğe bağlı)</>');
         }
 
+        $extraArgs = config('services.ytdlp.extra_args_json');
+        $this->line('YTDLP_EXTRA_ARGS_JSON: '.(is_array($extraArgs) && $extraArgs !== []
+            ? '<fg=cyan>'.count($extraArgs).' ek argv</>'
+            : '<fg=gray>tanımlı değil</>'));
+
         $igCookie = config('services.instagram.fetch_cookies');
         $this->line('INSTAGRAM_FETCH_COOKIES: '.(is_string($igCookie) && trim($igCookie) !== ''
             ? '<fg=green>tanımlı</> (Laravel’in Instagram HTML istekleri; HTTP 429 azaltmaya yardımcı olabilir)'
@@ -64,7 +69,7 @@ class CheckPromoImportDepsCommand extends Command
 
         $this->newLine();
         if ($ytPath && $ffPath) {
-            $this->info('Gerekli araçlar görünüyor. Yine de Instagram engeli için yt-dlp sürümü ve çerez dosyası gerekebilir.');
+            $this->info('Gerekli araçlar görünüyor. Hikâye (/stories/…) ve giriş duvarı için YTDLP_COOKIES_FILE sık gerekir; yt-dlp’yi sık güncelleyin.');
 
             return self::SUCCESS;
         }

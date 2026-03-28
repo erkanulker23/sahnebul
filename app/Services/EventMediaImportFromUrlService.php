@@ -663,6 +663,7 @@ final class EventMediaImportFromUrlService
         $messages = [];
         $videoSaved = false;
         $videoPath = null;
+        $ytdlpLastError = null;
         $referer = $isInstagram ? 'https://www.instagram.com/' : null;
 
         foreach ($videoUrlCandidates as $candidate) {
@@ -691,7 +692,9 @@ final class EventMediaImportFromUrlService
                         'http_candidate_count' => count($videoUrlCandidates),
                     ]);
                 }
-                $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized, $shortcode);
+                $ytDl = $this->tryDownloadInstagramVideoWithYtDlp($normalized, $shortcode);
+                $ytPath = $ytDl['path'];
+                $ytdlpLastError = $ytDl['ytdlp_error'];
             } elseif ($instagramStoryCanonical !== null) {
                 if ($videoUrlCandidates !== []) {
                     Log::warning('Instagram tanıtım (hikâye): HTML adaylarından MP4 inmedi', [
@@ -699,9 +702,12 @@ final class EventMediaImportFromUrlService
                         'http_candidate_count' => count($videoUrlCandidates),
                     ]);
                 }
-                $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized, null);
+                $ytDl = $this->tryDownloadInstagramVideoWithYtDlp($normalized, null);
+                $ytPath = $ytDl['path'];
+                $ytdlpLastError = $ytDl['ytdlp_error'];
             } else {
                 $ytPath = null;
+                $ytdlpLastError = null;
             }
             if ($ytPath !== null) {
                 $videoPath = $ytPath;
@@ -810,8 +816,9 @@ final class EventMediaImportFromUrlService
             $model->refresh();
 
             $yt = $this->resolveYtDlpBinary();
+            $diag = $this->instagramYtDlpUserHintFromStderr($ytdlpLastError);
             $hint = $yt !== null
-                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi; ffmpeg kurulu olmalı. Gerekirse .env YTDLP_COOKIES_FILE ile oturum çerezi deneyin.'
+                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi; ffmpeg kurulu olmalı. Gerekirse .env YTDLP_COOKIES_FILE ile oturum çerezi deneyin; yt-dlp sürümünü güncelleyin (pipx upgrade yt-dlp).'.$diag
                 : 'Sunucuda yt-dlp bulunamadı. .env: tam yol ile YTDLP_BINARY (örn. /home/forge/.local/bin/yt-dlp), gerekirse YTDLP_EXTRA_PATHS veya ~/yt-dlp yolu. Kurulum: pipx install yt-dlp veya apt install yt-dlp. Kontrol: php artisan sahnebul:promo-import-deps. Ardından php artisan config:clear.';
 
             return [
@@ -1651,25 +1658,72 @@ final class EventMediaImportFromUrlService
         return $this->dedupePreserveOrderStringList($urls);
     }
 
-    private function tryDownloadInstagramVideoWithYtDlp(string $normalized, ?string $shortcode): ?string
+    /**
+     * DASH birleştirme başarısız olsa bile tek parça `best` formatıyla sık sık kurtulur.
+     *
+     * @return list<string>
+     */
+    private function instagramYtDlpFormatFallbackList(): array
     {
+        return [
+            'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/best',
+            'bestvideo+bestaudio/best',
+            'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
+            'best',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function ytdlpConfiguredExtraArgs(): array
+    {
+        $raw = config('services.ytdlp.extra_args_json');
+
+        return is_array($raw)
+            ? array_values(array_filter($raw, fn ($x) => is_string($x) && $x !== ''))
+            : [];
+    }
+
+    private function instagramYtDlpUserHintFromStderr(?string $stderr): string
+    {
+        if ($stderr === null || trim($stderr) === '') {
+            return '';
+        }
+        $l = mb_strtolower($stderr);
+        if (str_contains($l, 'log in') || str_contains($l, 'login') || str_contains($l, 'cookies') || str_contains($l, 'private')) {
+            return ' Instagram çıktısı oturum/çerez veya özel içerik istediğini gösteriyor: tarayıcıdan Netscape cookies.txt dışa aktarıp YTDLP_COOKIES_FILE ayarlayın (hikâye bağlantılarında neredeyse zorunlu).';
+        }
+        if (str_contains($l, '429') || str_contains($l, 'rate-limit') || str_contains($l, 'too many requests')) {
+            return ' Çok istek veya IP engeli olabilir; bir süre sonra deneyin veya INSTAGRAM_FETCH_COOKIES / YTDLP_COOKIES_FILE kullanın.';
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array{path: ?string, ytdlp_error: ?string}
+     */
+    private function tryDownloadInstagramVideoWithYtDlp(string $normalized, ?string $shortcode): array
+    {
+        $lastCombinedErr = null;
         $binary = $this->resolveYtDlpBinary();
         if ($binary === null) {
             Log::warning('event promo: yt-dlp bulunamadı; Instagram videoları için kurun (brew install yt-dlp) veya .env YTDLP_BINARY=/opt/homebrew/bin/yt-dlp');
 
-            return null;
+            return ['path' => null, 'ytdlp_error' => null];
         }
 
         if ($shortcode !== null && $shortcode !== '') {
             foreach ($this->instagramYtDlpSourceUrls($normalized, $shortcode) as $sourceUrl) {
-                $dest = $this->runYtDlpInstagramDownloadOnce($binary, $sourceUrl);
+                $dest = $this->runYtDlpInstagramDownloadOnce($binary, $sourceUrl, null, $lastCombinedErr);
                 if ($dest !== null) {
                     Log::info('event promo: yt-dlp instagram video kaydedildi', [
                         'shortcode' => $shortcode,
                         'source_url' => Str::limit($sourceUrl, 120),
                     ]);
 
-                    return $dest;
+                    return ['path' => $dest, 'ytdlp_error' => null];
                 }
             }
 
@@ -1678,42 +1732,56 @@ final class EventMediaImportFromUrlService
                 'tried_urls' => array_map(fn (string $u) => Str::limit($u, 100), $this->instagramYtDlpSourceUrls($normalized, $shortcode)),
             ]);
 
-            return null;
+            return ['path' => null, 'ytdlp_error' => $lastCombinedErr];
         }
 
-        $dest = $this->runYtDlpInstagramDownloadOnce($binary, $normalized);
-        if ($dest === null) {
-            $dest = $this->runYtDlpInstagramDownloadOnce(
-                $binary,
-                $normalized,
-                'bestvideo[ext=mp4]+bestaudio/bestvideo+bestaudio/best[ext=mp4]/best',
-            );
-        }
-        if ($dest === null) {
-            $dest = $this->runYtDlpInstagramDownloadOnce($binary, $normalized, 'best[ext=mp4]/best[ext=webm]/best');
-        }
+        $dest = $this->runYtDlpInstagramDownloadOnce($binary, $normalized, null, $lastCombinedErr);
         if ($dest !== null) {
             Log::info('event promo: yt-dlp instagram (doğrudan URL)', [
                 'source_url' => Str::limit($normalized, 120),
             ]);
 
-            return $dest;
+            return ['path' => $dest, 'ytdlp_error' => null];
         }
 
         Log::warning('event promo: yt-dlp doğrudan Instagram URL başarısız (hikâye veya kısakodsuz)', [
             'url' => Str::limit($normalized, 120),
         ]);
 
+        return ['path' => null, 'ytdlp_error' => $lastCombinedErr];
+    }
+
+    private function runYtDlpInstagramDownloadOnce(string $binary, string $httpsInstagramUrl, ?string $formatSpec, ?string &$lastCombinedErr): ?string
+    {
+        $formats = $formatSpec !== null
+            ? [$formatSpec]
+            : $this->instagramYtDlpFormatFallbackList();
+
+        foreach ($formats as $format) {
+            $attemptErr = null;
+            $dest = $this->executeSingleYtDlpInstagramAttempt($binary, $httpsInstagramUrl, $format, $attemptErr);
+            if ($attemptErr !== null) {
+                $lastCombinedErr = $attemptErr;
+            }
+            if ($dest !== null) {
+                return $dest;
+            }
+        }
+
         return null;
     }
 
-    private function runYtDlpInstagramDownloadOnce(string $binary, string $httpsInstagramUrl, ?string $formatSpec = null): ?string
-    {
+    private function executeSingleYtDlpInstagramAttempt(
+        string $binary,
+        string $httpsInstagramUrl,
+        string $format,
+        ?string &$combinedErr,
+    ): ?string {
+        $combinedErr = null;
         $timeout = (float) config('services.ytdlp.timeout', 300);
         $dir = sys_get_temp_dir();
         $base = 'sbn_ytdlp_'.Str::random(20);
         $outTemplate = $dir.DIRECTORY_SEPARATOR.$base.'.%(ext)s';
-        $format = $formatSpec ?? 'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/best';
 
         $cmd = [$binary];
         $cookies = config('services.ytdlp.cookies_file');
@@ -1727,13 +1795,15 @@ final class EventMediaImportFromUrlService
                 $cmd[] = $cookies;
             }
         }
+        foreach ($this->ytdlpConfiguredExtraArgs() as $extra) {
+            $cmd[] = $extra;
+        }
         $cmd = array_merge($cmd, [
             '--add-header', 'Referer:https://www.instagram.com/',
             '--add-header', 'Origin:https://www.instagram.com',
             '-o', $outTemplate,
             '--no-playlist',
             '--no-progress',
-            '--no-warnings',
             '-f', $format,
             '--merge-output-format', 'mp4',
             $httpsInstagramUrl,
@@ -1743,19 +1813,25 @@ final class EventMediaImportFromUrlService
             $process->run();
         } catch (\Throwable $e) {
             Log::notice('yt-dlp process exception', ['url' => Str::limit($httpsInstagramUrl, 80), 'message' => $e->getMessage()]);
+            $combinedErr = $e->getMessage();
 
             return null;
         }
+        $outChunk = Str::limit($process->getErrorOutput().$process->getOutput(), 1200);
         if (! $process->isSuccessful()) {
+            $combinedErr = $outChunk;
             Log::warning('yt-dlp instagram non-zero exit', [
                 'url' => Str::limit($httpsInstagramUrl, 120),
-                'output' => Str::limit($process->getErrorOutput().$process->getOutput(), 800),
+                'format' => $format,
+                'output' => Str::limit($outChunk, 800),
             ]);
 
             return null;
         }
         $rawMatches = glob($dir.DIRECTORY_SEPARATOR.$base.'*', GLOB_NOSORT);
         if ($rawMatches === false || $rawMatches === []) {
+            $combinedErr = $outChunk !== '' ? $outChunk : 'yt-dlp başarılı çıktı verdi ancak geçici dosya bulunamadı.';
+
             return null;
         }
         $tmpFile = $this->finalizeInstagramYtDlpDownloadFiles($rawMatches, $dir, $base);
@@ -1765,12 +1841,14 @@ final class EventMediaImportFromUrlService
                     @unlink($p);
                 }
             }
+            $combinedErr = $outChunk !== '' ? $outChunk : 'Video parçaları birleştirilemedi (ffmpeg gerekli olabilir).';
 
             return null;
         }
         $size = filesize($tmpFile);
         if ($size === false || $size > self::MAX_VIDEO_BYTES || $size < 1024) {
             @unlink($tmpFile);
+            $combinedErr = 'İnen dosya çok küçük veya çok büyük; geçerli video olarak kabul edilmedi.';
 
             return null;
         }
@@ -1784,6 +1862,7 @@ final class EventMediaImportFromUrlService
         }
         if ($mime === false || ! in_array($mime, ['video/mp4', 'video/webm'], true)) {
             @unlink($tmpFile);
+            $combinedErr = 'İnen dosya video/mp4 veya video/webm olarak tanınmadı.';
 
             return null;
         }

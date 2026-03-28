@@ -125,6 +125,23 @@ return [
         'extra_search_paths' => env('YTDLP_EXTRA_PATHS', ''),
         'timeout' => (int) env('YTDLP_TIMEOUT', 300),
         'cookies_file' => env('YTDLP_COOKIES_FILE'),
+        /**
+         * yt-dlp’ye eklenecek ek argümanlar (JSON dizi; her öğe ayrı argv).
+         * Örnek: '["--extractor-args","instagram:webpage_download_timeout=90"]'
+         *
+         * @var list<string>
+         */
+        'extra_args_json' => (static function (): array {
+            $raw = env('YTDLP_EXTRA_ARGS_JSON');
+            if (! is_string($raw) || trim($raw) === '') {
+                return [];
+            }
+            $decoded = json_decode($raw, true);
+
+            return is_array($decoded)
+                ? array_values(array_filter($decoded, fn ($x) => is_string($x) && $x !== ''))
+                : [];
+        })(),
     ],
 
     /**
