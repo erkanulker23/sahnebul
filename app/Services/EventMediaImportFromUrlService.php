@@ -795,6 +795,18 @@ final class EventMediaImportFromUrlService
             }
         }
 
+        // Hikâye sayfası og:image çoğu zaman Instagram logosu; video diske indiyse gerçek kareyi ffmpeg ile al.
+        if ($instagramStoryCanonical !== null && $videoSaved && $videoPath !== null && ! $posterEmbedOnly) {
+            $fromFrame = $this->extractPosterFrameFromStoredVideo($videoPath);
+            if ($fromFrame !== null) {
+                if ($posterPath !== null) {
+                    $this->deleteStoredPathIfOwned($posterPath);
+                }
+                $posterPath = $fromFrame;
+                $messages[] = 'Kapak görseli videodan alındı (hikâye önizlemesi yerine gerçek kare).';
+            }
+        }
+
         if ($posterEmbedOnly && $posterPath === null && ! $isInstagram && $ogImage !== null && trim($ogImage) !== '') {
             try {
                 $imgUrl = $this->assertSafeUrl($this->resolveUrl($normalized, trim($ogImage)));
@@ -2055,6 +2067,81 @@ final class EventMediaImportFromUrlService
         }
 
         return true;
+    }
+
+    /**
+     * Sunucudaki tanıtım videosundan tek kare JPEG kapak (Instagram hikâye og:image logosu yerine).
+     *
+     * @param  string  $publicRelativePath  Storage disk public göreli yol (örn. event-promo/….mp4)
+     */
+    private function extractPosterFrameFromStoredVideo(string $publicRelativePath): ?string
+    {
+        $ffmpeg = $this->resolveFfmpegBinary();
+        if ($ffmpeg === null) {
+            return null;
+        }
+        $trimmed = trim($publicRelativePath);
+        if ($trimmed === '' || str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+            return null;
+        }
+        $full = Storage::disk('public')->path($trimmed);
+        if (! is_file($full)) {
+            return null;
+        }
+        $tmpOut = sys_get_temp_dir().DIRECTORY_SEPARATOR.'sbn_poster_'.Str::random(18).'.jpg';
+        $timeout = min(90.0, (float) config('services.ffmpeg.timeout', 180));
+        $cmd = [
+            $ffmpeg,
+            '-hide_banner',
+            '-loglevel', 'error',
+            '-y',
+            '-ss', '0.5',
+            '-i', $full,
+            '-frames:v', '1',
+            '-q:v', '3',
+            $tmpOut,
+        ];
+        try {
+            $process = new Process($cmd, null, null, null, $timeout);
+            $process->run();
+        } catch (\Throwable $e) {
+            Log::notice('ffmpeg poster frame exception', ['message' => $e->getMessage()]);
+            if (is_file($tmpOut)) {
+                @unlink($tmpOut);
+            }
+
+            return null;
+        }
+        if (! $process->isSuccessful() || ! is_file($tmpOut)) {
+            if (is_file($tmpOut)) {
+                @unlink($tmpOut);
+            }
+
+            return null;
+        }
+        $size = filesize($tmpOut);
+        if ($size === false || $size < 2048) {
+            @unlink($tmpOut);
+
+            return null;
+        }
+        $dest = 'event-promo-posters/'.Str::uuid()->toString().'.jpg';
+        $stream = fopen($tmpOut, 'rb');
+        if ($stream === false) {
+            @unlink($tmpOut);
+
+            return null;
+        }
+        try {
+            Storage::disk('public')->put($dest, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            @unlink($tmpOut);
+        }
+
+        return $dest;
     }
 
     private function resolveFfmpegBinary(): ?string

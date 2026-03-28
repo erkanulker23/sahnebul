@@ -259,10 +259,15 @@ export function PublicPromoGallerySection({
     const promoThreeColGrid =
         'mt-4 grid w-full max-w-full list-none grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 sm:gap-1';
 
+    /** Gönderi kapakları: sanatçı «Galeri» ile aynı — kare önizleme, görsel oranı bozulmaz (object-cover). Mobilde 4 sütun. */
+    const promoPostGrid =
+        'mt-4 grid w-full max-w-full list-none grid-cols-4 gap-0.5 sm:grid-cols-3 sm:gap-1 md:grid-cols-4';
+
     const promoPortraitTile =
         'relative aspect-[9/16] min-h-0 min-w-0 w-full max-w-full overflow-hidden rounded-sm border border-zinc-200 bg-zinc-950 dark:border-white/10';
     const storyCell = `${promoPortraitTile} shadow-sm`;
-    const postCell = promoPortraitTile;
+    const postCell =
+        'relative aspect-square min-h-0 min-w-0 w-full max-w-full overflow-hidden rounded-sm border border-zinc-200 bg-zinc-950 shadow-sm dark:border-white/10';
 
     function renderStoryCell(it: PromoGalleryItem, idx: number) {
         const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
@@ -327,7 +332,7 @@ export function PublicPromoGallerySection({
                     <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                         {labels.postsDescription} ({postItems.length}).
                     </p>
-                    <ul className={promoThreeColGrid}>
+                    <ul className={promoPostGrid}>
                         {postItems.map((it, idx) => {
                             const slide = postSlides[idx];
                             const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;

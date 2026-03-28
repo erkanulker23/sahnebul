@@ -7,6 +7,7 @@ import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEventList';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
+import EventHeroFallbackBackdrop from '@/Components/EventHeroFallbackBackdrop';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import {
@@ -18,7 +19,7 @@ import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurki
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { ExternalLink, MessageCircle, Navigation, Ticket } from 'lucide-react';
+import { CalendarDays, ExternalLink, MessageCircle, Navigation, Sparkles, Ticket } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 interface Artist {
@@ -279,12 +280,8 @@ export default function EventShow({
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
     const artistVisual = (a: Artist) => imageSrc(a.display_image ?? a.avatar);
-    /** Kapak yoksa sanatçı fotoğrafı kullanılmaz (yanıltıcı); önce liste görseli, sonra mekân kapak, yoksa varsayılan gradient. */
-    const heroBackdrop =
-        imageSrc(event.cover_image) ??
-        imageSrc(event.listing_image ?? null) ??
-        imageSrc(event.venue.cover_image ?? null) ??
-        null;
+    /** Yalnız etkinliğin kendi görselleri; mekân/sanatçı kapak hero’da kullanılmaz. Yoksa özel varsayılan sahne tasarımı. */
+    const heroBackdrop = imageSrc(event.cover_image) ?? imageSrc(event.listing_image ?? null) ?? null;
     const tiers = event.ticket_tiers ?? [];
     const hasTiers = tiers.length > 0;
     const entryFree = event.entry_is_paid === false;
@@ -402,17 +399,7 @@ export default function EventShow({
                 {heroBackdrop ? (
                     <img src={heroBackdrop} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
-                    <div className="absolute inset-0" aria-hidden>
-                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-800 dark:via-zinc-950 dark:to-black" />
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(217,119,6,0.2),transparent_55%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(245,158,11,0.22),transparent_55%)]" />
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.1),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.12),transparent_50%)]" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Ticket
-                                className="h-[min(40vw,11rem)] w-[min(40vw,11rem)] text-amber-700/20 dark:text-amber-400/15"
-                                strokeWidth={1}
-                            />
-                        </div>
-                    </div>
+                    <EventHeroFallbackBackdrop />
                 )}
                 <div
                     className={
