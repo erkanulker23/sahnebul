@@ -5,8 +5,6 @@ namespace App\Support;
 use App\Http\Controllers\SehirSecController;
 use App\Models\Event;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 final class SehirSecPlatformEvents
 {
@@ -37,17 +35,17 @@ final class SehirSecPlatformEvents
 
         $events = EventListingQuery::applyDefaultOrder(
             $q->with([
-                'venue:id,name,city_id,district_id,category_id,cover_image',
+                'venue:id,name,slug,city_id,district_id,category_id,cover_image',
                 'venue.city:id,name',
                 'venue.district:id,name',
-                'venue.category:id,name',
-                'ticketTiers:id,event_id,price',
+                'venue.category:id,name,slug',
+                'artists:id,name,slug,avatar,genre',
             ])
         )
             ->limit(self::PER_CITY_LIMIT)
             ->get();
 
-        return $events->map(fn (Event $e) => self::serializeCard($e, $citySlug))->all();
+        return $events->map(fn (Event $e) => self::toPublicTicketCardProps($e))->all();
     }
 
     /**
@@ -68,11 +66,11 @@ final class SehirSecPlatformEvents
             EventListingQuery::base()
                 ->whereHas('venue.city', fn ($q) => $q->whereIn('slug', $slugs))
                 ->with([
-                    'venue:id,name,city_id,district_id,category_id,cover_image',
+                    'venue:id,name,slug,city_id,district_id,category_id,cover_image',
                     'venue.city:id,name,slug',
                     'venue.district:id,name',
-                    'venue.category:id,name',
-                    'ticketTiers:id,event_id,price',
+                    'venue.category:id,name,slug',
+                    'artists:id,name,slug,avatar,genre',
                 ])
         )->get();
 
@@ -84,55 +82,63 @@ final class SehirSecPlatformEvents
             if (count($out[$slug]) >= self::PER_CITY_LIMIT) {
                 continue;
             }
-            $out[$slug][] = self::serializeCard($event, $slug);
+            $out[$slug][] = self::toPublicTicketCardProps($event);
         }
 
         return $out;
     }
 
     /**
+     * /etkinlikler ile aynı PublicEventTicketCard alanları.
+     *
      * @return array<string, mixed>
      */
-    public static function serializeCard(Event $event, string $citySlug): array
+    public static function toPublicTicketCardProps(Event $event): array
     {
-        $venue = $event->venue;
-        $image = self::publicImageUrl($event->listingThumbnailPath()) ?? self::publicImageUrl($venue?->cover_image);
+        $event->loadMissing([
+            'venue.category',
+            'venue.city',
+            'venue.district',
+            'artists',
+        ]);
 
-        if (! ($event->entry_is_paid ?? true)) {
-            $priceLabel = 'Ücretsiz giriş';
-        } else {
-            $price = $event->minPrice();
-            $priceLabel = $price !== null ? number_format($price, 2, ',', '.').' ₺' : null;
-        }
+        $venue = $event->venue;
 
         return [
-            'item_key' => 'evt-'.$event->id,
             'id' => $event->id,
+            'slug' => $event->slug,
             'title' => $event->title,
-            'image_url' => $image,
-            'venue_name' => $venue?->name,
-            'dates_line' => $event->start_date?->timezone(config('app.timezone'))->translatedFormat('d F Y, H:i'),
-            'price_label' => $priceLabel,
-            'external_url' => null,
-            'rank' => null,
-            'city_slug' => $citySlug,
-            'category_name' => $venue?->category?->name,
-            'district_label' => $venue?->district?->name,
-            'city_label' => $venue?->city?->name,
-            'artist_type_label' => null,
-            'internal_event_segment' => $event->publicUrlSegment(),
+            'start_date' => $event->start_date?->toIso8601String() ?? '',
+            'cover_image' => $event->cover_image,
+            'listing_image' => $event->listing_image,
+            'status' => $event->status,
+            'is_full' => $event->is_full,
+            'ticket_acquisition_mode' => $event->ticket_acquisition_mode,
+            'sahnebul_reservation_enabled' => $event->sahnebul_reservation_enabled,
+            'entry_is_paid' => $event->entry_is_paid,
+            'venue' => $venue === null ? [
+                'name' => '',
+                'slug' => '',
+            ] : [
+                'name' => $venue->name,
+                'slug' => $venue->slug ?? '',
+                'cover_image' => $venue->cover_image,
+                'category' => $venue->category
+                    ? ['name' => $venue->category->name, 'slug' => $venue->category->slug]
+                    : null,
+                'city' => $venue->city ? ['name' => $venue->city->name] : null,
+                'district' => $venue->district ? ['name' => $venue->district->name] : null,
+            ],
+            'artists' => $event->artists
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                    'slug' => $a->slug ?? '',
+                    'avatar' => $a->avatar,
+                    'genre' => $a->genre,
+                ])
+                ->values()
+                ->all(),
         ];
-    }
-
-    private static function publicImageUrl(?string $path): ?string
-    {
-        if ($path === null || trim($path) === '') {
-            return null;
-        }
-        if (Str::startsWith($path, ['http://', 'https://'])) {
-            return $path;
-        }
-
-        return Storage::disk('public')->url($path);
     }
 }

@@ -1,32 +1,14 @@
 import SeoHead from '@/Components/SeoHead';
-import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
-import { externalDisKaynakSegment } from '@/lib/eventShowUrl';
+import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
-import { MapPin, Ticket } from 'lucide-react';
+import { Ticket } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-interface BubiletEvent {
-    item_key?: string;
-    id: number;
-    title: string;
-    image_url: string | null;
-    venue_name: string | null;
-    dates_line: string | null;
-    price_label: string | null;
-    external_url: string | null;
-    rank: number | null;
-    city_slug: string | null;
-    category_name: string | null;
-    district_label: string | null;
-    city_label: string | null;
-    internal_event_segment: string | null;
-}
 
 interface CitySection {
     slug: string;
     name: string;
-    events: BubiletEvent[];
+    events: PublicEventTicketCardEvent[];
 }
 
 interface Props {
@@ -160,12 +142,14 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                                     </div>
                                 ) : (
                                     <div className="relative">
-                                        <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                        <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
                                             {section.events.map((ev) => (
-                                                <BubiletEventCard
-                                                    key={ev.item_key ?? `${section.slug}-${ev.id}`}
-                                                    ev={ev}
-                                                />
+                                                <div
+                                                    key={ev.id}
+                                                    className="h-full min-w-[min(100%,320px)] max-w-[320px] shrink-0 snap-start"
+                                                >
+                                                    <PublicEventTicketCard event={ev} />
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
@@ -180,68 +164,5 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                 </div>
             </div>
         </AppLayout>
-    );
-}
-
-function bubiletEventDetailHref(ev: BubiletEvent): string {
-    const eventParam = ev.internal_event_segment ?? externalDisKaynakSegment(ev.id);
-    return route('events.show', { event: eventParam });
-}
-
-function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
-    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
-    const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
-    const locationLine = formatVenueLocationLine(cityTop, districtTop);
-    const showLocationTop = locationLine !== '';
-
-    return (
-        <Link
-            href={bubiletEventDetailHref(ev)}
-            className="group relative block w-[192px] shrink-0 snap-start scroll-ml-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-        >
-            {ev.rank != null && (
-                <span
-                    className="pointer-events-none absolute left-0 top-1/2 z-0 -translate-y-1/2 select-none text-[180px] font-black leading-none text-transparent sm:text-[220px]"
-                    style={{ WebkitTextStroke: '2px rgba(16, 185, 129, 0.5)' }}
-                    aria-hidden
-                >
-                    {ev.rank}
-                </span>
-            )}
-            <div className="relative z-[2] flex h-[272px] w-[192px] flex-col overflow-hidden rounded-2xl bg-zinc-800 shadow-lg transition duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl">
-                {ev.image_url ? (
-                    <img src={ev.image_url} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-110" />
-                ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/45 to-transparent" />
-                {showLocationTop ? (
-                    <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] md:left-3 md:right-3 md:top-3">
-                        <span
-                            className="inline-flex w-full max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/40 ring-1 ring-white/20 md:gap-2 md:px-3 md:py-1.5"
-                            title={locationLine}
-                        >
-                            <MapPin className="h-3 w-3 shrink-0 text-white/95" aria-hidden />
-                            <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white md:text-[11px]">
-                                {locationLine}
-                            </span>
-                        </span>
-                    </div>
-                ) : null}
-                {ev.category_name && (
-                    <div className="relative z-[5] p-3 pb-0 md:p-4 md:pb-0">
-                        <span className="inline-block max-w-[90%] truncate rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300 backdrop-blur-sm">
-                            {ev.category_name}
-                        </span>
-                    </div>
-                )}
-                <div className="relative z-[5] mt-auto flex flex-col justify-end p-3 text-white md:p-4">
-                    <h3 className="line-clamp-2 text-base font-semibold leading-snug">{ev.title}</h3>
-                    {ev.dates_line && <p className="mt-1 line-clamp-2 text-xs text-slate-200">{ev.dates_line}</p>}
-                    {ev.venue_name && <p className="line-clamp-2 text-xs text-slate-300">{ev.venue_name}</p>}
-                    {ev.price_label && <p className="mt-2 text-base font-bold text-emerald-400">{ev.price_label}</p>}
-                </div>
-            </div>
-        </Link>
     );
 }

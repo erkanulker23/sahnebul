@@ -1,3 +1,4 @@
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -118,7 +119,8 @@ export default function PublicEventTicketCard({
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 opacity-90 transition group-hover:opacity-100" />
                     {/** sm altı: poster temiz; konum/tarih kart metninde. sm ve üstü: görsel alt şerit. */}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] hidden bg-gradient-to-t from-black/85 from-[18%] via-black/45 via-[55%] to-transparent px-2 pb-2 pt-10 sm:block sm:px-3 sm:pb-2.5 sm:pt-12">
-                        <div className="flex min-w-0 flex-col gap-0.5">
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <EventRelativeDayPill startDate={event.start_date} placement="overlay" />
                             {showLocationOverlay ? (
                                 <p
                                     className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight tracking-tight text-white/95 drop-shadow-sm sm:gap-1.5 sm:text-[11px]"
@@ -146,7 +148,8 @@ export default function PublicEventTicketCard({
                     ) : null}
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
-                    <div className="mb-1.5 flex flex-col gap-0.5 sm:hidden">
+                    <div className="mb-1.5 flex flex-col gap-1 sm:hidden">
+                        <EventRelativeDayPill startDate={event.start_date} placement="panel" />
                         {showLocationOverlay ? (
                             <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-400" title={locationLine}>
                                 <IconMapPin className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500" />

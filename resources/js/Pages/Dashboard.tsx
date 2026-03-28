@@ -1,3 +1,4 @@
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import SeoHead from '@/Components/SeoHead';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime, formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
@@ -166,7 +167,8 @@ export default function Dashboard({
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="shrink-0 text-right">
+                                            <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                                                <EventRelativeDayPill startDate={e.start_date} placement="compactLight" />
                                                 <p className="text-xs text-zinc-600 dark:text-zinc-500">{formatTurkishDateTime(e.start_date)}</p>
                                                 {e.entry_is_paid === false ? (
                                                     <p className="text-sm text-emerald-700 dark:text-emerald-400">Ücretsiz giriş</p>

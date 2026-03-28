@@ -1,30 +1,14 @@
 import SeoHead from '@/Components/SeoHead';
-import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
-import { externalDisKaynakSegment } from '@/lib/eventShowUrl';
+import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, MapPin, Ticket } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-interface BubiletEvent {
-    item_key?: string;
-    id: number;
-    title: string;
-    image_url: string | null;
-    venue_name: string | null;
-    dates_line: string | null;
-    price_label: string | null;
-    external_url: string | null;
-    rank: number | null;
-    city_slug: string | null;
-    category_name: string | null;
-    district_label: string | null;
-    /** Mekân ili (kart görseli üstü) */
-    city_label: string | null;
-    artist_type_label: string | null;
-    /** Platformda yayınlanmış eşleşme varsa /etkinlikler/{slug}-{id} */
-    internal_event_segment: string | null;
+/** Sunucu yakınlık sıralamasında opsiyonel km */
+interface CityEventsRow extends PublicEventTicketCardEvent {
+    distance_km?: number;
 }
 
 interface CategoryOption {
@@ -60,7 +44,7 @@ interface Props {
     /** Konuma göre sıralama (ilçe filtresi değil) */
     nearLat?: number | null;
     nearLng?: number | null;
-    events: { data: BubiletEvent[]; links: PaginatorLink[] };
+    events: { data: CityEventsRow[]; links: PaginatorLink[] };
 }
 
 function cityListHref(
@@ -389,9 +373,13 @@ export default function SehirSecCityEvents({
                         </p>
                     )}
                     {events.data.length > 0 && (
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 lg:gap-6">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                             {events.data.map((ev) => (
-                                <BubiletEventCard key={ev.item_key ?? `evt-${ev.id}`} ev={ev} />
+                                <PublicEventTicketCard
+                                    key={ev.id}
+                                    event={ev}
+                                    distanceKm={typeof ev.distance_km === 'number' ? ev.distance_km : null}
+                                />
                             ))}
                         </div>
                     )}
@@ -431,100 +419,5 @@ export default function SehirSecCityEvents({
                 </div>
             </div>
         </AppLayout>
-    );
-}
-
-function bubiletEventDetailHref(ev: BubiletEvent): string {
-    const eventParam = ev.internal_event_segment ?? externalDisKaynakSegment(ev.id);
-    return route('events.show', { event: eventParam });
-}
-
-function BubiletEventCard({ ev }: Readonly<{ ev: BubiletEvent }>) {
-    const cityTop = typeof ev.city_label === 'string' ? ev.city_label.trim() : '';
-    const districtTop = typeof ev.district_label === 'string' ? ev.district_label.trim() : '';
-    const locationLine = formatVenueLocationLine(cityTop, districtTop);
-    const showLocationTop = locationLine !== '';
-
-    return (
-        <Link
-            href={bubiletEventDetailHref(ev)}
-            className="group relative block w-full max-w-[220px] justify-self-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:max-w-none"
-        >
-            {ev.rank != null && (
-                <span
-                    className="pointer-events-none absolute -left-1 top-1/2 z-0 hidden -translate-y-1/2 select-none text-[100px] font-black leading-none text-transparent sm:block"
-                    style={{ WebkitTextStroke: '2px rgba(16, 185, 129, 0.35)' }}
-                    aria-hidden
-                >
-                    {ev.rank}
-                </span>
-            )}
-            <div className="relative z-[2] flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl bg-zinc-800 shadow-lg transition duration-300 group-hover:scale-[1.02] group-hover:shadow-2xl">
-                {ev.image_url ? (
-                    <img
-                        src={ev.image_url}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-110"
-                    />
-                ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 from-40% via-55% to-transparent" />
-                {showLocationTop ? (
-                    <div className="pointer-events-none absolute left-2 right-2 top-2 z-[6] sm:left-3 sm:right-3 sm:top-3">
-                        <span
-                            className="inline-flex w-full max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/40 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
-                            title={locationLine}
-                        >
-                            <MapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" aria-hidden />
-                            <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
-                                {locationLine}
-                            </span>
-                        </span>
-                    </div>
-                ) : null}
-                <div className="relative z-[5] flex flex-wrap gap-1.5 p-2 sm:p-3">
-                    {ev.artist_type_label && (
-                        <span className="inline-block max-w-full truncate rounded-full bg-violet-950/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-200 backdrop-blur-sm">
-                            {ev.artist_type_label}
-                        </span>
-                    )}
-                    {ev.category_name && (
-                        <span className="inline-block max-w-full truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300 backdrop-blur-sm">
-                            {ev.category_name}
-                        </span>
-                    )}
-                </div>
-                <div className="relative z-[5] mt-auto flex flex-col justify-end rounded-t-2xl bg-gradient-to-t from-black/95 via-black/75 to-transparent p-2.5 pt-8 text-white ring-1 ring-black/20 backdrop-blur-[2px] sm:p-3 sm:pt-10 md:p-4">
-                    <h2
-                        className="line-clamp-2 text-sm font-semibold leading-snug sm:text-base"
-                        style={{ textShadow: '0 2px 12px rgb(0 0 0 / 0.85), 0 1px 2px rgb(0 0 0 / 0.9)' }}
-                    >
-                        {ev.title}
-                    </h2>
-                    {ev.dates_line && (
-                        <p
-                            className="mt-1 line-clamp-2 text-[11px] font-medium text-white sm:text-xs"
-                            style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.9)' }}
-                        >
-                            {ev.dates_line}
-                        </p>
-                    )}
-                    {ev.venue_name && (
-                        <p
-                            className="mt-1 line-clamp-2 text-[11px] text-zinc-200 sm:text-xs"
-                            style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.85)' }}
-                        >
-                            {ev.venue_name}
-                        </p>
-                    )}
-                    {ev.price_label && (
-                        <p className="mt-2 text-sm font-bold text-emerald-400 sm:text-base" style={{ textShadow: '0 1px 6px rgb(0 0 0 / 0.8)' }}>
-                            {ev.price_label}
-                        </p>
-                    )}
-                </div>
-            </div>
-        </Link>
     );
 }

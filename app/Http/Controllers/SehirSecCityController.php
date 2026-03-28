@@ -179,11 +179,11 @@ class SehirSecCityController extends Controller
         }
 
         $listQuery->with([
-            'venue:id,name,city_id,district_id,category_id,cover_image',
+            'venue:id,name,slug,city_id,district_id,category_id,cover_image',
             'venue.city:id,name',
             'venue.district:id,name',
-            'venue.category:id,name',
-            'ticketTiers:id,event_id,price',
+            'venue.category:id,name,slug',
+            'artists:id,name,slug,avatar,genre',
         ]);
 
         if ($nearLatQueryOk) {
@@ -195,7 +195,19 @@ class SehirSecCityController extends Controller
         /** @var LengthAwarePaginator<int, Event> $paginator */
         $paginator = $listQuery->paginate(24)->withQueryString();
 
-        $paginator->through(fn (Event $row) => SehirSecPlatformEvents::serializeCard($row, $city));
+        $paginator->through(function (Event $row) use ($nearLatQueryOk) {
+            $payload = SehirSecPlatformEvents::toPublicTicketCardProps($row);
+            if (
+                $nearLatQueryOk
+                && isset($row->proximity_km)
+                && is_numeric($row->proximity_km)
+                && (float) $row->proximity_km < 999999
+            ) {
+                $payload['distance_km'] = round((float) $row->proximity_km, 3);
+            }
+
+            return $payload;
+        });
 
         return Inertia::render('SehirSec/CityEvents', [
             'citySlug' => $city,

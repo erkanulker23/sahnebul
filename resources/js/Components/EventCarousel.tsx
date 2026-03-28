@@ -1,3 +1,4 @@
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -187,13 +188,16 @@ export default function EventCarousel({
                                                 </span>
                                             </div>
                                         ) : null}
-                                        <div className="flex min-w-0 items-start gap-2">
-                                            <IconCalendar
-                                                className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-amber-600 dark:text-amber-400'}`}
-                                            />
-                                            <span className="min-w-0 text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
-                                                {whenLabel}
-                                            </span>
+                                        <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1.5">
+                                            <EventRelativeDayPill startDate={event.start_date} placement="panel" />
+                                            <div className="flex min-w-0 flex-1 items-start gap-2">
+                                                <IconCalendar
+                                                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-amber-600 dark:text-amber-400'}`}
+                                                />
+                                                <span className="min-w-0 text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
+                                                    {whenLabel}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

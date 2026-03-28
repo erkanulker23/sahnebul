@@ -1,4 +1,5 @@
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { cn } from '@/lib/cn';
 import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -511,9 +512,12 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                             <span className="block truncate font-medium text-zinc-900 dark:text-white">
                                                                 {ev.title}
                                                             </span>
-                                                            <span className="block text-xs text-zinc-500">
-                                                                {formatTurkishDateTime(ev.start_date)}
-                                                                {ev.venue_name ? ` · ${ev.venue_name}` : ''}
+                                                            <span className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                                                                <EventRelativeDayPill startDate={ev.start_date} placement="compactLight" />
+                                                                <span>
+                                                                    {formatTurkishDateTime(ev.start_date)}
+                                                                    {ev.venue_name ? ` · ${ev.venue_name}` : ''}
+                                                                </span>
                                                             </span>
                                                         </span>
                                                     </Link>

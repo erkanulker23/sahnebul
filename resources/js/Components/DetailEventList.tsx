@@ -1,3 +1,4 @@
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { eventTicketBadge } from '@/lib/eventTicketBadge';
@@ -178,7 +179,8 @@ function EventListRow({
             >
                 <span className={`w-1 shrink-0 ${ended ? 'bg-zinc-400 dark:bg-zinc-600' : 'bg-[#e9785c]'}`} aria-hidden />
                 <div className="flex min-w-0 flex-1 items-stretch gap-3 py-3 pl-3 pr-2 sm:gap-4 sm:pl-4 sm:pr-3">
-                    <div className="flex w-[min(100%,7.5rem)] shrink-0 flex-col items-center justify-center border-r border-zinc-200 px-1.5 py-1 text-center dark:border-white/10 sm:w-32">
+                    <div className="flex w-[min(100%,7.5rem)] shrink-0 flex-col items-center justify-center gap-1.5 border-r border-zinc-200 px-1.5 py-1 text-center dark:border-white/10 sm:w-32">
+                        <EventRelativeDayPill startDate={ev.start_date} placement="listTime" />
                         <span className="inline-flex items-start gap-1 text-center text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
                             <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} aria-hidden />
                             {whenLabel}

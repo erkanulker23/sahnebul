@@ -1,3 +1,4 @@
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { stripHtmlToText } from '@/utils/seo';
@@ -264,7 +265,8 @@ export default function EventCalendarSlider({
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-violet-500/5 opacity-0 transition group-hover:opacity-100" />
                                         <div className="relative flex gap-5 p-5">
-                                            <div className="flex min-w-[5.75rem] max-w-[6.5rem] flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-2 py-3 text-center">
+                                            <div className="flex min-w-[5.75rem] max-w-[6.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] px-2 py-3 text-center">
+                                                <EventRelativeDayPill startDate={event.start_date} placement="listTime" />
                                                 <span className="text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-200/95">
                                                     {formatTurkishDateTime(event.start_date)}
                                                 </span>

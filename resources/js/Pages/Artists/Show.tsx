@@ -16,6 +16,7 @@ import { truncateMetaDescription } from '@/utils/seo';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SuggestEditModal from '@/Components/SuggestEditModal';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop';
 import AppLayout from '@/Layouts/AppLayout';
@@ -864,7 +865,12 @@ export default function ArtistShow({
                                     <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">Sıradaki Konser</p>
                                     <p className="mt-1 font-display text-2xl font-bold text-zinc-900 dark:text-white">{nextEvent.title}</p>
                                     <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{nextEvent.venue.name}</p>
-                                    <p className="mt-2 text-sm font-medium text-amber-800 dark:text-amber-200">{formatTurkishDateTime(nextEvent.start_date)}</p>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <EventRelativeDayPill startDate={nextEvent.start_date} placement="compactLight" />
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                            {formatTurkishDateTime(nextEvent.start_date)}
+                                        </p>
+                                    </div>
                                 </div>
                             )}
 
