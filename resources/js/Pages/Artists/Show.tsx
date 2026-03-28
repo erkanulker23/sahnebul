@@ -3,7 +3,7 @@ import {
     artistPromoLabels,
     promoGalleryItemsFromEntity,
 } from '@/Components/PublicPromoGallerySection';
-import { InstagramPostBlock, instagramPermalinkForEmbed, useInstagramEmbedScript } from '@/Components/InstagramPostEmbed';
+import { InstagramExternalOpenCard } from '@/Components/InstagramPostEmbed';
 import PhoneInput from '@/Components/PhoneInput';
 import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
@@ -57,8 +57,9 @@ interface ArtistMediaItem {
     path: string;
     title: string | null;
     type: string;
-    /** Instagram gönderi/reel — sitede gömülü oynatıcı */
+    /** Instagram gönderi/reel — sitede önizleme + Instagram’da aç (gömülü widget yok) */
     embed_url?: string | null;
+    thumbnail?: string | null;
 }
 
 function stringMapHasContent(obj: Record<string, unknown> | null | undefined): boolean {
@@ -370,15 +371,6 @@ export default function ArtistShow({
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
-    const instagramGallerySignatures = useMemo(() => {
-        const list = artist.media ?? [];
-        return list
-            .map((x) => (x.embed_url ?? '').trim())
-            .filter((u) => u.includes('instagram.com'))
-            .map((u) => instagramPermalinkForEmbed(u))
-            .join('|');
-    }, [artist.media]);
-    useInstagramEmbedScript(instagramGallerySignatures);
     useEffect(() => {
         if (canonicalUrl && /^https?:\/\//i.test(canonicalUrl)) {
             setResolvedShareUrl(canonicalUrl);
@@ -1072,15 +1064,18 @@ export default function ArtistShow({
                                         {artist.media.map((m) => {
                                             const ig = (m.embed_url ?? '').trim();
                                             if (ig.includes('instagram.com')) {
+                                                const thumb = m.thumbnail?.trim()
+                                                    ? imageSrc(m.thumbnail)
+                                                    : null;
                                                 return (
                                                     <div
                                                         key={m.id}
                                                         className="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-950/40 sm:col-span-3 md:col-span-4"
                                                     >
                                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                                                            Instagram gömülü gönderi
+                                                            Instagram gönderisi
                                                         </p>
-                                                        <InstagramPostBlock permalink={ig} />
+                                                        <InstagramExternalOpenCard permalink={ig} posterSrc={thumb} className="mx-auto" />
                                                     </div>
                                                 );
                                             }

@@ -250,7 +250,7 @@ class PublicArtistProfileController extends Controller
             'success',
             $mod === ArtistMedia::MODERATION_PENDING
                 ? 'Instagram içeriği eklendi. Onay sonrası kamu sayfasında gösterilir.'
-                : 'Instagram içeriği galerinize eklendi; sayfanızda gömülü oynatıcı olarak görünür.'
+                : 'Instagram içeriği galerinize eklendi; sayfanızda önizleme ve Instagram’da aç bağlantısı olarak görünür.'
         );
     }
 

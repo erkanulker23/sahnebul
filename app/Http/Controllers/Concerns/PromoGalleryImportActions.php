@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Concerns;
 
-use App\Jobs\ProcessPromoGalleryUrlImportsJob;
 use App\Services\EventMediaImportFromUrlService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 trait PromoGalleryImportActions
@@ -47,19 +48,83 @@ trait PromoGalleryImportActions
             && $request->boolean('promo_import_background');
 
         if ($useQueue) {
-            ProcessPromoGalleryUrlImportsJob::dispatch(
-                $model::class,
-                $model->getKey(),
-                $urls,
-                $validated['mode'],
-                $appendPromo,
-                $posterEmbedOnly,
-            );
+            $modelClass = $model::class;
+            $modelId = $model->getKey();
+            $mode = $validated['mode'];
+            $urlsCopy = $urls;
+            $append = $appendPromo;
+            $posterOnly = $posterEmbedOnly;
+
+            dispatch(function () use ($modelClass, $modelId, $urlsCopy, $mode, $append, $posterOnly): void {
+                if ($mode !== 'promo_video') {
+                    Log::warning('promo URL import (afterResponse): yalnızca promo_video desteklenir.', ['mode' => $mode]);
+
+                    return;
+                }
+                if (! class_exists($modelClass) || ! is_a($modelClass, Model::class, true)) {
+                    return;
+                }
+                /** @var Model|null $freshModel */
+                $freshModel = $modelClass::query()->find($modelId);
+                if ($freshModel === null) {
+                    Log::warning('promo URL import (afterResponse): model bulunamadı.', ['class' => $modelClass, 'id' => $modelId]);
+
+                    return;
+                }
+
+                $importer = app(EventMediaImportFromUrlService::class);
+
+                try {
+                    if (! $append) {
+                        $importer->purgePromoGallery($freshModel);
+                        $freshModel->refresh();
+                    }
+
+                    $failures = [];
+                    $ok = 0;
+                    foreach ($urlsCopy as $url) {
+                        $url = trim((string) $url);
+                        if ($url === '') {
+                            continue;
+                        }
+                        $r = $importer->import($freshModel->fresh(), $url, $mode, true, $posterOnly);
+                        if ($r['success']) {
+                            $ok++;
+                        } else {
+                            $failures[] = Str::limit($url, 96).' — '.$r['message'];
+                        }
+                    }
+
+                    Log::info('promo gallery URL import (afterResponse) tamamlandı', [
+                        'model' => $modelClass,
+                        'id' => $modelId,
+                        'ok' => $ok,
+                        'lines' => count($urlsCopy),
+                        'failures' => array_slice($failures, 0, 12),
+                    ]);
+
+                    if ($failures !== [] && $ok === 0) {
+                        Log::warning('promo gallery URL import: tüm satırlar başarısız', [
+                            'model' => $modelClass,
+                            'id' => $modelId,
+                            'failures' => $failures,
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('promo gallery URL import (afterResponse) istisna', [
+                        'model' => $modelClass,
+                        'id' => $modelId,
+                        'exception' => $e->getMessage(),
+                    ]);
+                    report($e);
+                }
+            })->afterResponse();
+
             $n = count($urls);
 
             return back()->with(
                 'success',
-                $n.' bağlantı arka planda sırayla işleniyor. Tamamlanınca sayfayı yenileyin; hatalar sunucu günlüğüne yazılır.'
+                $n.' bağlantı yanıt gönderildikten sonra sunucuda sırayla işleniyor (queue worker gerekmez). Bir süre sonra sayfayı yenileyin; sorun olursa sunucu günlüğüne bakın.'
             );
         }
 

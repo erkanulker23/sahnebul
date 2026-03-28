@@ -1,4 +1,4 @@
-import { InstagramPostBlock, instagramPermalinkForEmbed, useInstagramEmbedScript } from '@/Components/InstagramPostEmbed';
+import { InstagramExternalOpenCard } from '@/Components/InstagramPostEmbed';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -180,25 +180,6 @@ export function PublicPromoGallerySection({
         [postItems, resolveStorageSrc],
     );
 
-    const instagramEmbedSignatures = useMemo(() => {
-        const urls = new Set<string>();
-        for (const it of visible) {
-            const raw = it.embed_url?.trim() ?? '';
-            if (!raw.includes('instagram.com')) {
-                continue;
-            }
-            const localVideo = it.video_path?.trim()
-                ? Boolean(resolveStorageSrc(it.video_path))
-                : false;
-            if (localVideo) {
-                continue;
-            }
-            urls.add(instagramPermalinkForEmbed(raw));
-        }
-        return Array.from(urls).sort().join('|');
-    }, [visible, resolveStorageSrc]);
-    useInstagramEmbedScript(instagramEmbedSignatures);
-
     const closePostLightbox = useCallback(() => {
         setPostLightbox(null);
     }, []);
@@ -230,13 +211,6 @@ export function PublicPromoGallerySection({
             globalThis.removeEventListener('keydown', onKey);
         };
     }, [postLightbox, closePostLightbox, goPostLightbox]);
-
-    useEffect(() => {
-        if (postLightbox === null) return;
-        const w = globalThis.window as Window & { instgrm?: { Embeds: { process: () => void } } };
-        const id = globalThis.window.setTimeout(() => w.instgrm?.Embeds?.process(), 200);
-        return () => globalThis.window.clearTimeout(id);
-    }, [postLightbox]);
 
     const genericEmbedOnly = useMemo(
         () =>
@@ -456,9 +430,11 @@ export function PublicPromoGallerySection({
                                         Tarayıcınız bu videoyu oynatamıyor.
                                     </video>
                                 ) : lbSlide.kind === 'instagram' ? (
-                                    <div className="max-h-[min(calc(100dvh-9.5rem),calc(100vh-9.5rem))] w-full max-w-full overflow-y-auto rounded-lg">
-                                        <InstagramPostBlock permalink={lbSlide.permalink} className="min-h-[min(480px,70dvh)] w-full justify-start py-2" />
-                                    </div>
+                                    <InstagramExternalOpenCard
+                                        permalink={lbSlide.permalink}
+                                        posterSrc={lbSlide.poster}
+                                        className="w-full max-w-md"
+                                    />
                                 ) : (
                                     <img
                                         src={lbSlide.src}
