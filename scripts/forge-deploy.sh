@@ -5,7 +5,11 @@ set -euo pipefail
 
 cd "${FORGE_SITE_PATH:-$PWD}"
 
-git pull origin "${FORGE_SITE_BRANCH:-main}"
+# npm ci / eski deploy'lar bazen package-lock.json'ı sunucuda değiştirir; düz `git pull` bu yüzden
+# "Your local changes would be overwritten by merge" ile düşer. Üretimde repo her zaman origin ile aynı olmalı.
+BRANCH="${FORGE_SITE_BRANCH:-main}"
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
 
 if command -v composer >/dev/null 2>&1; then
   composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
