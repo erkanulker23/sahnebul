@@ -776,7 +776,7 @@ final class EventMediaImportFromUrlService
         if (! $posterEmbedOnly && ! $videoSaved && $isInstagram && ($shortcode || $instagramStoryCanonical !== null)) {
             $binary = $this->resolveYtDlpBinary();
             $storyNote = $instagramStoryCanonical !== null
-                ? ' Hikâyeler süresi dolabilir; indirme için giriş çerezi gerekebilir.'
+                ? ' Hikâyeler süresi dolabilir. Profil herkese açık olsa bile Instagram, hikâye videosunu çoğu sunucu/oturumsuz istekte vermez; yt-dlp için tarayıcı çerezi (YTDLP_COOKIES_FILE) sıkça gereklidir.'
                 : '';
             $hint = $binary !== null
                 ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi (güncel yt-dlp; sunucuda ffmpeg kurulu olmalı; gerekirse .env’de YTDLP_COOKIES_FILE).'.$storyNote
@@ -1713,7 +1713,7 @@ final class EventMediaImportFromUrlService
         }
         $l = mb_strtolower($stderr);
         if (str_contains($l, 'log in') || str_contains($l, 'login') || str_contains($l, 'cookies') || str_contains($l, 'private')) {
-            return ' Instagram çıktısı oturum/çerez veya özel içerik istediğini gösteriyor: tarayıcıdan Netscape cookies.txt dışa aktarıp YTDLP_COOKIES_FILE ayarlayın (hikâye bağlantılarında neredeyse zorunlu).';
+            return ' Instagram çıktısı oturum/çerez istiyor olabilir (herkese açık hesaplarda bile hikâyeler genelde böyledir; bu «gizli profil» anlamına gelmez). Tarayıcıdan Netscape cookies.txt dışa aktarıp YTDLP_COOKIES_FILE ayarlayın; hikâyelerde neredeyse zorunludur.';
         }
         if (str_contains($l, '429') || str_contains($l, 'rate-limit') || str_contains($l, 'too many requests')) {
             return ' Çok istek veya IP engeli olabilir; bir süre sonra deneyin veya INSTAGRAM_FETCH_COOKIES / YTDLP_COOKIES_FILE kullanın.';

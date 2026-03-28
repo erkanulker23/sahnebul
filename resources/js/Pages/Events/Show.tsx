@@ -302,7 +302,7 @@ export default function EventShow({
             ? 'Bilet veya rezervasyon aşağıdaki platform bağlantıları üzerinden yapılır; Sahnebul rezervasyon formu bu etkinlik için kullanılmaz.'
             : acquisitionMode === 'sahnebul'
               ? 'Önce Sahnebul üzerinden rezervasyon / bilet talebi oluşturabilirsiniz. Ek olarak harici bağlantılar varsa onlar da listelenir.'
-              : 'Bu etkinlikte çevrimiçi bilet satışı yoktur. Rezervasyon için soldaki notu ve yan sütundaki mekân iletişim bilgilerini (telefon, WhatsApp) kullanın.';
+              : 'Bu etkinlikte çevrimiçi bilet satışı yoktur. Rezervasyon için soldaki notu ve yan sütundaki mekân kutusundaki telefon veya WhatsApp satırlarını kullanın.';
     const reservationHref = `${route('reservations.create', event.venue.slug)}?event=${event.id}`;
     const venueMapInput = {
         google_maps_url: event.venue.google_maps_url,
@@ -671,13 +671,13 @@ export default function EventShow({
                                     )}
                                     {acquisitionMode === 'phone_only' && purchaseNote.length === 0 && (
                                         <p className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 text-sm text-zinc-700 dark:border-white/10 dark:bg-zinc-800/50 dark:text-zinc-300">
-                                            Rezervasyon ve bilgi için yan sütundaki <strong>Mekan iletişimi</strong> kutusundaki telefon veya WhatsApp satırlarını kullanın.
+                                            Rezervasyon ve bilgi için yan sütundaki <strong>Mekan</strong> kutusundaki telefon veya WhatsApp satırlarını kullanın.
                                         </p>
                                     )}
                                 </div>
                             ) : (
                                 <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-                                    Bu etkinlik için henüz bilet veya rezervasyon kanalı tanımlanmamış. Bilgi için yan sütundaki mekân iletişimini kullanabilirsiniz.
+                                    Bu etkinlik için henüz bilet veya rezervasyon kanalı tanımlanmamış. Bilgi için yan sütundaki mekân kutusunu kullanabilirsiniz.
                                 </p>
                             )}
                         </div>
@@ -926,7 +926,10 @@ export default function EventShow({
                                 </div>
                             </div>
                         ) : null}
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
+                        <div
+                            id="mekan-iletisimi"
+                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80"
+                        >
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Mekan</p>
                             {imageSrc(event.venue.cover_image ?? null) ? (
                                 <Link
@@ -940,54 +943,7 @@ export default function EventShow({
                                     />
                                 </Link>
                             ) : null}
-                            <p className="mt-3 font-semibold">
-                                <Link
-                                    href={route('venues.show', event.venue.slug)}
-                                    className="text-zinc-900 hover:text-amber-600 hover:underline dark:text-white dark:hover:text-amber-400"
-                                >
-                                    {event.venue.name}
-                                </Link>
-                            </p>
-                            <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{event.venue.category?.name ?? '-'}</p>
-                            <a
-                                href={mapUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-2 block text-sm leading-snug text-zinc-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
-                            >
-                                {venueAddressMapLabel}
-                            </a>
-                            <div className="mt-3 flex flex-col gap-2">
-                                <a
-                                    href={mapUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-center text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                >
-                                    Haritada aç →
-                                </a>
-                                <a
-                                    href={directionsUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-center text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                >
-                                    Yol tarifi al
-                                </a>
-                            </div>
-                            <Link
-                                href={route('venues.show', event.venue.slug)}
-                                className="mt-3 inline-block text-sm font-medium text-zinc-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
-                            >
-                                Mekan sayfası →
-                            </Link>
-                        </div>
-                        <div
-                            id="mekan-iletisimi"
-                            className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80"
-                        >
-                            <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Mekan iletişimi</p>
-                            <p className="mt-2 font-semibold text-zinc-900 dark:text-white">
+                            <p className="mt-3 font-semibold text-zinc-900 dark:text-white">
                                 <Link
                                     href={route('venues.show', event.venue.slug)}
                                     className="hover:text-amber-600 hover:underline dark:hover:text-amber-400"
@@ -995,8 +951,9 @@ export default function EventShow({
                                     {event.venue.name}
                                 </Link>
                             </p>
+                            <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{event.venue.category?.name ?? '-'}</p>
                             <div className="mt-3">
-                                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Adres</p>
+                                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Konum</p>
                                 <a
                                     href={mapUrl}
                                     target="_blank"
@@ -1007,64 +964,7 @@ export default function EventShow({
                                     <span className="leading-snug">{venueAddressMapLabel}</span>
                                 </a>
                             </div>
-                            <div className="mt-4 space-y-4 text-sm">
-                                {event.venue.phone && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Telefon</p>
-                                        <a
-                                            href={`tel:${event.venue.phone.replaceAll(/\s/g, '')}`}
-                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                        >
-                                            {event.venue.phone}
-                                        </a>
-                                    </div>
-                                )}
-                                {event.venue.whatsapp && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">WhatsApp</p>
-                                        <a
-                                            href={waVenuePrefill ?? `https://wa.me/${event.venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-1 block text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
-                                        >
-                                            {event.venue.whatsapp}
-                                        </a>
-                                    </div>
-                                )}
-                                {event.venue.website && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Web sitesi</p>
-                                        <a
-                                            href={event.venue.website}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
-                                        >
-                                            {event.venue.website.replace(/^https?:\/\//, '')}
-                                        </a>
-                                    </div>
-                                )}
-                                {socialEntries.length > 0 && (
-                                    <div>
-                                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Sosyal medya</p>
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            {socialEntries.map(([key, url]) => (
-                                                <a
-                                                    key={key}
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-amber-400/50 hover:text-amber-600 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-amber-400"
-                                                >
-                                                    {venueSocialLinkTitle(key)}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mt-4 flex flex-wrap gap-3 border-t border-zinc-100 pt-4 dark:border-white/10">
+                            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
                                 <a
                                     href={mapUrl}
                                     target="_blank"
@@ -1089,6 +989,69 @@ export default function EventShow({
                                     Mekan sayfası →
                                 </Link>
                             </div>
+                            {(event.venue.phone ||
+                                event.venue.whatsapp ||
+                                event.venue.website ||
+                                socialEntries.length > 0) && (
+                                <div className="mt-4 space-y-4 border-t border-zinc-100 pt-4 text-sm dark:border-white/10">
+                                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">İletişim</p>
+                                    {event.venue.phone && (
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Telefon</p>
+                                            <a
+                                                href={`tel:${event.venue.phone.replaceAll(/\s/g, '')}`}
+                                                className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                            >
+                                                {event.venue.phone}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {event.venue.whatsapp && (
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">WhatsApp</p>
+                                            <a
+                                                href={waVenuePrefill ?? `https://wa.me/${event.venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="mt-1 block text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+                                            >
+                                                {event.venue.whatsapp}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {event.venue.website && (
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Web sitesi</p>
+                                            <a
+                                                href={event.venue.website}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="mt-1 block text-amber-600 hover:text-amber-500 dark:text-amber-400"
+                                            >
+                                                {event.venue.website.replace(/^https?:\/\//, '')}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {socialEntries.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Sosyal medya</p>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {socialEntries.map(([key, url]) => (
+                                                    <a
+                                                        key={key}
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-amber-400/50 hover:text-amber-600 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-amber-400"
+                                                    >
+                                                        {venueSocialLinkTitle(key)}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         {hasTicketChannels && (
                             <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
@@ -1099,7 +1062,7 @@ export default function EventShow({
                                             href="#mekan-iletisimi"
                                             className="block w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-center text-sm font-medium text-zinc-800 hover:border-amber-400/50 dark:border-white/10 dark:text-zinc-200"
                                         >
-                                            Mekan iletişimi ↓
+                                            Mekan ↓
                                         </a>
                                     ) : (
                                         <>
@@ -1181,7 +1144,7 @@ export default function EventShow({
                                 <p className="mt-4 text-xs text-zinc-500">
                                     {hasTicketChannels
                                         ? 'Satın alma seçenekleri yukarıda ve “Biletleri nereden alabilirsiniz?” bölümünde.'
-                                        : 'Bilet bilgisi için yan sütundaki mekân iletişimini kullanın.'}
+                                        : 'Bilet bilgisi için yan sütundaki mekân kutusunu kullanın.'}
                                 </p>
                             </div>
                         ) : (
