@@ -45,7 +45,10 @@ Sunucuda cron:
 ## 6. Depolama ve yükleme
 
 - `config/filesystems.php` içinde S3 diski `visibility` ve notlarla güncellendi; canlıda `FILESYSTEM_DISK=s3` + `AWS_*`.
-- Nginx/PHP: `client_max_body_size` ve `upload_max_filesize` / `post_max_size` medya yüklemeleri için yükseltilmeli (ör. 20M+).
+- **413 Request Entity Too Large (nginx):** Tanıtım / galeri video yüklemeleri büyük gövde kullanır. Nginx varsayılanı genelde **1m** olduğu için istek daha Laravel’e ulaşmadan reddedilir.
+  - **Nginx:** Site yapılandırmasında `server { }` içine `client_max_body_size 100M;` ekleyin (örnek not: `deploy/nginx-upload-limits.snippet.conf`).
+  - **PHP-FPM:** `upload_max_filesize` ve `post_max_size` en az **100M** olmalı (Forge → Site → PHP → “Edit PHP Configuration” veya sunucu `php.ini`). Aksi halde Laravel doğrulamasına gelmeden yükleme kesilir.
+  - Uygulama tarafı üst sınır: `PromoGalleryImportActions` içinde `max:102400` (**kilobyte** ≈ 100 MB) ve `EventMediaImportFromUrlService::MAX_VIDEO_BYTES` ile uyumludur.
 
 ## 7. Frontend (Vite)
 

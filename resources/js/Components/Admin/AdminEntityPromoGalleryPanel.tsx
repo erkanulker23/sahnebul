@@ -56,12 +56,19 @@ function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video
 
 const COPY = {
     venue: {
-        lead: 'Mekân sayfasında gösterilir. Yalnızca bu mekân ve programınızla ilgili tanıtım ekleyin; ziyaretçi deneyimi için içeriği alakalı tutun.',
-        postHint: 'Instagram / sosyal gönderi bağlantıları mekân veya buradaki etkinliklerle ilişkili olmalıdır.',
+        lead: 'Ziyaretçi sayfasında üstte tanıtım videoları, altta gönderi görselleri görünür. Aşağıda önce görselleri (1), sonra videoları (2) ekleyin — yanlış kutuya URL koymayın.',
+        postHint: 'Instagram /p/… veya yüklenen görsel; yalnız kare önizleme. Tam reel/MP4 için 2. bölüm.',
+        reelHint: 'MP4/WebM dosyası veya reel URL’si; uzun indirmede arka plan kuyruğunu açabilirsiniz.',
     },
     artist: {
-        lead: 'Onaylı sanatçı profil sayfanızda yayınlanır. Kendi performans ve duyurularınızla ilgili tanıtım kullanın.',
-        postHint: 'Gönderi bağlantıları sanatçı kimliğiniz veya sahne içeriğinizle uyumlu olmalıdır.',
+        lead: 'Sitede üstte tanıtım videoları, altta gönderi görselleri listelenir. 1 = görsel kutusu, 2 = video kutusu.',
+        postHint: 'Duyuru kapakları ve Instagram’dan önizleme; tam video burada indirilmez.',
+        reelHint: 'Performans videoları; sunucuda yt-dlp + ffmpeg gerekebilir.',
+    },
+    event: {
+        lead: 'Tanıtım alanı iki parçadır: videolar (Reels) ile gönderi görselleri (Instagram / görsel). Yayında önce videolar, sonra gönderiler sıralanır.',
+        postHint: 'Yalnız önizleme görseli veya embed. .mp4 ve tam reel indirmesi için 2. bölümü kullanın.',
+        reelHint: 'Dosya veya reel/MP4 bağlantısı; çok URL’de arka plan sırası önerilir.',
     },
 } as const;
 
@@ -72,7 +79,7 @@ export default function AdminEntityPromoGalleryPanel({
 }: Readonly<{
     entity: EntityWithPromo;
     routes: AdminEntityPromoGalleryRoutes;
-    variant: 'venue' | 'artist';
+    variant: 'venue' | 'artist' | 'event';
 }>) {
     const copy = COPY[variant];
     const fieldResize = cn(
@@ -80,92 +87,106 @@ export default function AdminEntityPromoGalleryPanel({
         inputBaseClass,
         'placeholder:text-zinc-500 dark:placeholder:text-zinc-600',
     );
-    const fieldSm = cn('mt-1 w-full sm:w-56', inputBaseClass);
 
-    const [html5PromoUrls, setHtml5PromoUrls] = useState('');
-    const [postPromoUrls, setPostPromoUrls] = useState('');
-    const [appendHtml5PromoToGallery, setAppendHtml5PromoToGallery] = useState(true);
-    const [appendPostPromoToGallery, setAppendPostPromoToGallery] = useState(true);
-    const [html5PromoImporting, setHtml5PromoImporting] = useState(false);
-    const [postPromoImporting, setPostPromoImporting] = useState(false);
-    const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
-    const [promoPosterFile, setPromoPosterFile] = useState<File | null>(null);
-    const [promoUploading, setPromoUploading] = useState(false);
+    const [appendPromoToGallery, setAppendPromoToGallery] = useState(true);
+    /** Yalnızca video URL içe aktarımı için kuyruk (post görselleri her zaman anında). */
+    const [reelUrlsInBackground, setReelUrlsInBackground] = useState(true);
+
+    const [postImageFiles, setPostImageFiles] = useState<File[]>([]);
+    const [reelVideoFiles, setReelVideoFiles] = useState<File[]>([]);
+    const postImagesInputRef = useRef<HTMLInputElement>(null);
+    const reelVideosInputRef = useRef<HTMLInputElement>(null);
+
+    const [postUrlsText, setPostUrlsText] = useState('');
+    const [reelUrlsText, setReelUrlsText] = useState('');
+
+    const [postImagesUploading, setPostImagesUploading] = useState(false);
+    const [reelVideosUploading, setReelVideosUploading] = useState(false);
+    const [postUrlsImporting, setPostUrlsImporting] = useState(false);
+    const [reelUrlsImporting, setReelUrlsImporting] = useState(false);
     const [removingPromoIndex, setRemovingPromoIndex] = useState<number | null>(null);
-    const promoVideoInputRef = useRef<HTMLInputElement>(null);
-    const promoPosterInputRef = useRef<HTMLInputElement>(null);
 
-    const submitHtml5PromoImport = () => {
-        if (!html5PromoUrls.trim()) return;
-        setHtml5PromoImporting(true);
-        router.post(
-            routes.importMedia,
-            {
-                urls_text: html5PromoUrls,
-                mode: 'promo_video',
-                append_promo: appendHtml5PromoToGallery,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => setHtml5PromoImporting(false),
-                onSuccess: () => setHtml5PromoUrls(''),
-            },
-        );
-    };
+    const appendFormBool = () => (appendPromoToGallery ? '1' : '0');
 
-    const submitPostPromoImport = () => {
-        if (!postPromoUrls.trim()) return;
-        setPostPromoImporting(true);
-        router.post(
-            routes.importMedia,
-            {
-                urls_text: postPromoUrls,
-                mode: 'promo_video',
-                append_promo: appendPostPromoToGallery,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => setPostPromoImporting(false),
-                onSuccess: () => setPostPromoUrls(''),
-            },
-        );
-    };
-
-    const submitPromoFileUpload = () => {
-        if (!promoVideoFile && !promoPosterFile) return;
-        setPromoUploading(true);
+    const submitPostImagesBulk = () => {
+        if (postImageFiles.length === 0) return;
+        setPostImagesUploading(true);
         const fd = new FormData();
-        if (promoVideoFile) {
-            fd.append('promo_video_upload', promoVideoFile);
-        }
-        if (promoPosterFile) {
-            fd.append('promo_poster_upload', promoPosterFile);
-        }
-        fd.append('append_promo', appendHtml5PromoToGallery ? '1' : '0');
+        postImageFiles.forEach((f) => fd.append('promo_post_images[]', f));
+        fd.append('append_promo', appendFormBool());
         router.post(routes.appendPromoFiles, fd, {
             preserveScroll: true,
             forceFormData: true,
-            onFinish: () => setPromoUploading(false),
+            onFinish: () => setPostImagesUploading(false),
             onSuccess: () => {
-                setPromoVideoFile(null);
-                setPromoPosterFile(null);
-                if (promoVideoInputRef.current) {
-                    promoVideoInputRef.current.value = '';
-                }
-                if (promoPosterInputRef.current) {
-                    promoPosterInputRef.current.value = '';
-                }
+                setPostImageFiles([]);
+                if (postImagesInputRef.current) postImagesInputRef.current.value = '';
             },
         });
     };
 
+    const submitReelVideosBulk = () => {
+        if (reelVideoFiles.length === 0) return;
+        setReelVideosUploading(true);
+        const fd = new FormData();
+        reelVideoFiles.forEach((f) => fd.append('promo_videos[]', f));
+        fd.append('append_promo', appendFormBool());
+        router.post(routes.appendPromoFiles, fd, {
+            preserveScroll: true,
+            forceFormData: true,
+            onFinish: () => setReelVideosUploading(false),
+            onSuccess: () => {
+                setReelVideoFiles([]);
+                if (reelVideosInputRef.current) reelVideosInputRef.current.value = '';
+            },
+        });
+    };
+
+    const submitPostUrlsImport = () => {
+        if (!postUrlsText.trim()) return;
+        setPostUrlsImporting(true);
+        router.post(
+            routes.importMedia,
+            {
+                urls_text: postUrlsText,
+                mode: 'promo_video',
+                append_promo: appendPromoToGallery,
+                promo_poster_embed_only: true,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => setPostUrlsImporting(false),
+                onSuccess: () => setPostUrlsText(''),
+            },
+        );
+    };
+
+    const submitReelUrlsImport = () => {
+        if (!reelUrlsText.trim()) return;
+        setReelUrlsImporting(true);
+        router.post(
+            routes.importMedia,
+            {
+                urls_text: reelUrlsText,
+                mode: 'promo_video',
+                append_promo: appendPromoToGallery,
+                ...(reelUrlsInBackground ? { promo_import_background: true } : {}),
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => setReelUrlsImporting(false),
+                onSuccess: () => setReelUrlsText(''),
+            },
+        );
+    };
+
     const clearPromoFromServer = () => {
-        if (!confirm('Tüm tanıtım videoları, önizleme görselleri ve bağlantılar kaldırılsın mı?')) return;
+        if (!confirm('Tüm tanıtım videoları, görseller ve bağlantılar kaldırılsın mı?')) return;
         router.post(routes.clearPromoMedia, {}, { preserveScroll: true });
     };
 
     const removePromoGalleryItem = (galleryIndex: number) => {
-        if (!confirm('Bu tanıtım öğesini kaldırmak istiyor musunuz?')) return;
+        if (!confirm('Bu öğeyi kaldırmak istiyor musunuz?')) return;
         setRemovingPromoIndex(galleryIndex);
         router.post(
             routes.removePromoItem,
@@ -203,7 +224,7 @@ export default function AdminEntityPromoGalleryPanel({
         return [];
     }, [entity.promo_gallery, entity.promo_video_path, entity.promo_embed_url]);
 
-    const adminStoryPreviewRows = useMemo(
+    const adminVideoPreviewRows = useMemo(
         () => adminPromoGalleryRows.filter((row) => adminPromoRowKind(row) === 'story'),
         [adminPromoGalleryRows],
     );
@@ -213,194 +234,180 @@ export default function AdminEntityPromoGalleryPanel({
     );
 
     return (
-        <div className="mt-10 space-y-4 rounded-lg border border-zinc-600/80 bg-zinc-950/40 p-4">
+        <div className="mt-10 max-w-3xl space-y-6 rounded-lg border border-zinc-600/80 bg-zinc-950/40 p-4 sm:p-5">
             <div>
-                <h2 className="text-sm font-semibold text-zinc-200">Tanıtım — hikâye ve gönderi galerisi</h2>
+                <h2 className="text-sm font-semibold text-zinc-200">Tanıtım: videolar ve gönderi görselleri</h2>
                 <p className="mt-1 text-xs text-zinc-500">{copy.lead}</p>
             </div>
 
-            <div className="mt-6 space-y-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-600/80 pb-2">
-                    <h3 className="text-base font-bold tracking-tight text-amber-200">
-                        Hikâyeler — video dosyası veya MP4/WebM bağlantısı
-                    </h3>
-                    <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-                        Dikey şerit / ızgara
-                    </span>
-                </div>
-                <p className="text-xs text-zinc-500">
-                    Sitede yalnızca sunucunuza inen <strong className="text-zinc-400">MP4 / WebM / MOV</strong> oynatılır. Instagram reel için{' '}
-                    <strong className="text-fuchsia-300">aşağıdaki pembe çerçeveli</strong> kutuyu kullanın.
-                </p>
-                <label className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-700/80 bg-zinc-900/50 p-3 text-xs text-zinc-400">
-                    <input
-                        type="checkbox"
-                        checked={appendHtml5PromoToGallery}
-                        onChange={(e) => setAppendHtml5PromoToGallery(e.target.checked)}
-                        className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
-                    />
-                    <span>
-                        Tanıtım galerisine <strong className="text-zinc-200">yanına ekle</strong>. İşaretsiz: önce tüm tanıtım öğeleri silinir.
-                    </span>
-                </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-700/80 bg-zinc-900/50 p-3 text-xs text-zinc-400">
+                <input
+                    type="checkbox"
+                    checked={appendPromoToGallery}
+                    onChange={(e) => setAppendPromoToGallery(e.target.checked)}
+                    className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-zinc-300"
+                />
+                <span>
+                    Mevcut öğelerin <strong className="text-zinc-200">yanına ekle</strong>. Kapalıysa her işlemden önce galeri sıfırlanır.
+                </span>
+            </label>
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <section
-                        aria-labelledby={`entity-promo-html5-file-${entity.id}`}
-                        className="flex flex-col rounded-xl border-2 border-amber-500/45 bg-zinc-950/70 p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
-                    >
-                        <h4 id={`entity-promo-html5-file-${entity.id}`} className="text-sm font-semibold text-amber-100">
-                            ① Video dosyası + poster
-                        </h4>
-                        <p className="mt-1 text-xs text-zinc-500">Bilgisayarınızdan seçin; poster isteğe bağlı.</p>
-                        <div className="mt-4 flex flex-1 flex-col gap-3">
-                            <div>
-                                <label htmlFor={`entity-promo-video-${entity.id}`} className="block text-xs font-medium text-zinc-400">
-                                    Video dosyası
-                                </label>
-                                <input
-                                    id={`entity-promo-video-${entity.id}`}
-                                    ref={promoVideoInputRef}
-                                    type="file"
-                                    accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
-                                    onChange={(e) => setPromoVideoFile(e.target.files?.[0] ?? null)}
-                                    className="mt-1 w-full text-sm text-zinc-300"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor={`entity-promo-poster-${entity.id}`} className="block text-xs font-medium text-zinc-400">
-                                    Poster (isteğe bağlı)
-                                </label>
-                                <input
-                                    id={`entity-promo-poster-${entity.id}`}
-                                    ref={promoPosterInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setPromoPosterFile(e.target.files?.[0] ?? null)}
-                                    className="mt-1 w-full text-sm text-zinc-300"
-                                />
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            disabled={promoUploading || (!promoVideoFile && !promoPosterFile)}
-                            onClick={submitPromoFileUpload}
-                            className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
-                        >
-                            {promoUploading ? 'Yükleniyor…' : 'Dosyayı galeriye kaydet'}
-                        </button>
-                    </section>
-
-                    <section
-                        aria-labelledby={`entity-promo-html5-url-${entity.id}`}
-                        className="flex flex-col rounded-xl border-2 border-amber-500/45 bg-zinc-950/70 p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
-                    >
-                        <h4 id={`entity-promo-html5-url-${entity.id}`} className="text-sm font-semibold text-amber-100">
-                            ② Doğrudan video URL’si
-                        </h4>
-                        <p className="mt-1 text-xs text-zinc-500">
-                            Yol <code className="text-amber-200/90">.mp4</code> veya <code className="text-amber-200/90">.webm</code> ile bitsin; satır
-                            başına bir adres.
-                        </p>
-                        <textarea
-                            id={`entity-html5-promo-urls-${entity.id}`}
-                            value={html5PromoUrls}
-                            onChange={(e) => setHtml5PromoUrls(e.target.value)}
-                            placeholder={'https://cdn.ornek.com/tanitim.mp4'}
-                            rows={6}
-                            className={cn(fieldResize, 'mt-3 min-h-[140px] flex-1')}
-                        />
-                        <button
-                            type="button"
-                            disabled={html5PromoImporting || !html5PromoUrls.trim()}
-                            onClick={submitHtml5PromoImport}
-                            className="mt-3 w-full rounded-lg bg-amber-600/90 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
-                        >
-                            {html5PromoImporting ? 'İndiriliyor…' : 'URL’lerden videoyu içe aktar'}
-                        </button>
-                    </section>
-                </div>
-            </div>
-
+            {/* —— Post görselleri —— */}
             <section
-                className="mt-8 space-y-5 rounded-xl border-2 border-fuchsia-500/50 bg-gradient-to-b from-fuchsia-950/20 to-zinc-950/40 p-5 shadow-lg shadow-fuchsia-950/20"
+                className="space-y-4 rounded-xl border border-fuchsia-500/35 bg-fuchsia-950/15 p-4 sm:p-5"
                 aria-labelledby={`entity-promo-posts-${entity.id}`}
             >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-base font-bold tracking-tight text-fuchsia-200" id={`entity-promo-posts-${entity.id}`}>
-                        Tanıtım postaları — Instagram / sosyal bağlantı
-                    </h3>
-                    <span className="rounded bg-fuchsia-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fuchsia-200">
-                        Reel &amp; gönderi
-                    </span>
-                </div>
-                <p className="text-xs text-zinc-500">{copy.postHint}</p>
-                <p className="text-xs text-zinc-500">
-                    Önizleme görseli alınır; video sunucuya indirilebiliyorsa sitede oynatılır. Gerekirse videoyu yukarıdaki amber bölümden yükleyin.
-                </p>
-                <label className="flex cursor-pointer items-start gap-2 rounded-md border border-fuchsia-500/25 bg-zinc-900/40 p-3 text-xs text-zinc-400">
-                    <input
-                        type="checkbox"
-                        checked={appendPostPromoToGallery}
-                        onChange={(e) => setAppendPostPromoToGallery(e.target.checked)}
-                        className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-fuchsia-500"
-                    />
-                    <span>
-                        Tanıtım galerisine <strong className="text-fuchsia-100">yanına ekle</strong> (yalnızca bu kutudaki post bağlantıları). İşaretsiz:
-                        önce tüm tanıtım öğeleri silinir.
-                    </span>
-                </label>
                 <div>
-                    <label htmlFor={`entity-post-promo-urls-${entity.id}`} className="block text-xs font-medium text-fuchsia-200/90">
-                        Post bağlantıları (satır başına bir URL)
-                    </label>
-                    <textarea
-                        id={`entity-post-promo-urls-${entity.id}`}
-                        value={postPromoUrls}
-                        onChange={(e) => setPostPromoUrls(e.target.value)}
-                        placeholder={'https://www.instagram.com/reel/…\nhttps://www.instagram.com/p/…'}
-                        rows={5}
-                        className={fieldResize}
+                    <h3 className="text-sm font-semibold text-fuchsia-200" id={`entity-promo-posts-${entity.id}`}>
+                        1 · Gönderi görselleri (Instagram / dosya)
+                    </h3>
+                    <p className="mt-1 text-xs text-zinc-500">{copy.postHint}</p>
+                </div>
+
+                <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-zinc-400">Dosyadan (JPG, PNG, WebP — çoklu)</p>
+                    <input
+                        ref={postImagesInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => setPostImageFiles(Array.from(e.target.files ?? []))}
+                        className="w-full text-sm text-zinc-300"
                     />
                     <button
                         type="button"
-                        disabled={postPromoImporting || !postPromoUrls.trim()}
-                        onClick={submitPostPromoImport}
-                        className="mt-3 w-full rounded-lg bg-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50 sm:w-auto"
+                        disabled={postImagesUploading || postImageFiles.length === 0}
+                        onClick={submitPostImagesBulk}
+                        className="rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50"
                     >
-                        {postPromoImporting ? 'İndiriliyor…' : 'Postaları içe aktar'}
+                        {postImagesUploading ? 'Yükleniyor…' : `Kaydet (${postImageFiles.length})`}
+                    </button>
+                </div>
+
+                <div className="border-t border-fuchsia-500/20 pt-4">
+                    <p className="text-[11px] font-medium text-zinc-400">Veya bağlantı (satır başına bir URL)</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-500">
+                        Burada yalnızca önizleme görseli alınır; tam reel/video indirilmez. Reel için 2. bölümü kullanın.
+                    </p>
+                    <textarea
+                        id={`entity-post-urls-${entity.id}`}
+                        value={postUrlsText}
+                        onChange={(e) => setPostUrlsText(e.target.value)}
+                        placeholder={
+                            'https://www.instagram.com/p/…\nhttps://www.instagram.com/stories/kullanici/1234567890/'
+                        }
+                        rows={4}
+                        className={cn(fieldResize, 'mt-2')}
+                    />
+                    <button
+                        type="button"
+                        disabled={postUrlsImporting || !postUrlsText.trim()}
+                        onClick={submitPostUrlsImport}
+                        className="mt-2 rounded-lg bg-fuchsia-600/90 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50"
+                    >
+                        {postUrlsImporting ? 'İşleniyor…' : 'URL’lerden içe aktar'}
+                    </button>
+                </div>
+            </section>
+
+            {/* —— Reels / videolar —— */}
+            <section
+                className="space-y-4 rounded-xl border border-amber-500/35 bg-amber-950/10 p-4 sm:p-5"
+                aria-labelledby={`entity-promo-reels-${entity.id}`}
+            >
+                <div>
+                    <h3 className="text-sm font-semibold text-amber-200" id={`entity-promo-reels-${entity.id}`}>
+                        2 · Tanıtım videoları (Reels / MP4)
+                    </h3>
+                    <p className="mt-1 text-xs text-zinc-500">{copy.reelHint}</p>
+                </div>
+
+                <label className="flex cursor-pointer items-start gap-2 rounded-md border border-amber-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                    <input
+                        type="checkbox"
+                        checked={reelUrlsInBackground}
+                        onChange={(e) => setReelUrlsInBackground(e.target.checked)}
+                        disabled={reelUrlsImporting}
+                        className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                    />
+                    <span>
+                        Video URL’lerini <strong className="text-amber-100/90">arka planda sırayla</strong> işle (uzun indirmelerde önerilir). Kapalı: istek
+                        bitene kadar beklenir.
+                    </span>
+                </label>
+
+                <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-zinc-400">Dosyadan (MP4, WebM, MOV — çoklu)</p>
+                    <input
+                        ref={reelVideosInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                        multiple
+                        onChange={(e) => setReelVideoFiles(Array.from(e.target.files ?? []))}
+                        className="w-full text-sm text-zinc-300"
+                    />
+                    <button
+                        type="button"
+                        disabled={reelVideosUploading || reelVideoFiles.length === 0}
+                        onClick={submitReelVideosBulk}
+                        className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
+                    >
+                        {reelVideosUploading ? 'Yükleniyor…' : `Kaydet (${reelVideoFiles.length})`}
+                    </button>
+                </div>
+
+                <div className="border-t border-amber-500/20 pt-4">
+                    <p className="text-[11px] font-medium text-zinc-400">Veya bağlantı (satır başına bir URL)</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-500">
+                        .mp4 / .webm veya Instagram reel. Sunucuda genelde yt-dlp + ffmpeg gerekir.
+                    </p>
+                    <textarea
+                        id={`entity-reel-urls-${entity.id}`}
+                        value={reelUrlsText}
+                        onChange={(e) => setReelUrlsText(e.target.value)}
+                        placeholder={'https://cdn.ornek.com/tanitim.mp4\nhttps://www.instagram.com/reel/…'}
+                        rows={4}
+                        className={cn(fieldResize, 'mt-2')}
+                    />
+                    <button
+                        type="button"
+                        disabled={reelUrlsImporting || !reelUrlsText.trim()}
+                        onClick={submitReelUrlsImport}
+                        className="mt-2 rounded-lg bg-amber-600/90 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
+                    >
+                        {reelUrlsImporting ? 'İşleniyor…' : 'Video URL’lerini içe aktar'}
                     </button>
                 </div>
             </section>
 
             {adminPromoGalleryRows.length > 0 && (
-                <div className="mt-8 space-y-6 rounded-lg border border-zinc-600/80 bg-zinc-950/40 p-4">
+                <div className="space-y-6 rounded-lg border border-zinc-600/80 bg-zinc-950/40 p-4">
                     <div>
-                        <p className="text-xs font-medium text-zinc-400">Tanıtım önizlemesi</p>
+                        <p className="text-xs font-medium text-zinc-400">Önizleme</p>
                         <p className="mt-1 text-xs text-zinc-500">
-                            Sitede <strong className="text-amber-200/90">hikâyeler</strong> ve{' '}
-                            <strong className="text-fuchsia-200/90">gönderiler</strong> ayrı ızgarada. Her kartın köşesinden tek öğe silebilirsiniz.
+                            Yayında sıra: önce <strong className="text-amber-200/90">tanıtım videoları</strong>, sonra{' '}
+                            <strong className="text-fuchsia-200/90">gönderi görselleri</strong> — her biri kendi ızgarasında.
                         </p>
                     </div>
 
-                    {adminStoryPreviewRows.length > 0 ? (
+                    {adminPostPreviewRows.length > 0 ? (
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400/90">Hikâyeler</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">Gönderi görselleri</p>
                             <ul className="mt-2 grid list-none grid-cols-3 gap-1 sm:grid-cols-4 sm:gap-2">
-                                {adminStoryPreviewRows.map((row) => (
+                                {adminPostPreviewRows.map((row) => (
                                     <li
-                                        key={`story-prev-${row.galleryIndex}`}
+                                        key={`post-prev-${row.galleryIndex}`}
                                         className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
                                     >
-                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-amber-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-zinc-950">
-                                            Hikâye
+                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-fuchsia-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-white">
+                                            Görsel
                                         </span>
                                         <button
                                             type="button"
                                             disabled={removingPromoIndex === row.galleryIndex}
                                             onClick={() => removePromoGalleryItem(row.galleryIndex)}
                                             className="absolute right-0.5 top-0.5 z-10 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-500 disabled:opacity-50"
-                                            title="Bu öğeyi kaldır"
+                                            title="Kaldır"
                                         >
                                             ×
                                         </button>
@@ -413,11 +420,7 @@ export default function AdminEntityPromoGalleryPanel({
                                                 poster={storageUrl(row.poster_path) ?? undefined}
                                             />
                                         ) : storageUrl(row.poster_path) ? (
-                                            <img
-                                                src={storageUrl(row.poster_path) ?? ''}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                            />
+                                            <img src={storageUrl(row.poster_path) ?? ''} alt="" className="h-full w-full object-cover" />
                                         ) : (
                                             <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-zinc-500">
                                                 {row.embed_url?.includes('instagram.com') ? 'IG' : '—'}
@@ -429,24 +432,24 @@ export default function AdminEntityPromoGalleryPanel({
                         </div>
                     ) : null}
 
-                    {adminPostPreviewRows.length > 0 ? (
+                    {adminVideoPreviewRows.length > 0 ? (
                         <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">Gönderiler</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400/90">Tanıtım videoları</p>
                             <ul className="mt-2 grid list-none grid-cols-3 gap-1 sm:grid-cols-4 sm:gap-2">
-                                {adminPostPreviewRows.map((row) => (
+                                {adminVideoPreviewRows.map((row) => (
                                     <li
-                                        key={`post-prev-${row.galleryIndex}`}
+                                        key={`video-prev-${row.galleryIndex}`}
                                         className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
                                     >
-                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-fuchsia-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-white">
-                                            Gönderi
+                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-amber-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-zinc-950">
+                                            Video
                                         </span>
                                         <button
                                             type="button"
                                             disabled={removingPromoIndex === row.galleryIndex}
                                             onClick={() => removePromoGalleryItem(row.galleryIndex)}
                                             className="absolute right-0.5 top-0.5 z-10 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-500 disabled:opacity-50"
-                                            title="Bu öğeyi kaldır"
+                                            title="Kaldır"
                                         >
                                             ×
                                         </button>
@@ -459,11 +462,7 @@ export default function AdminEntityPromoGalleryPanel({
                                                 poster={storageUrl(row.poster_path) ?? undefined}
                                             />
                                         ) : storageUrl(row.poster_path) ? (
-                                            <img
-                                                src={storageUrl(row.poster_path) ?? ''}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                            />
+                                            <img src={storageUrl(row.poster_path) ?? ''} alt="" className="h-full w-full object-cover" />
                                         ) : (
                                             <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-zinc-500">
                                                 {row.embed_url?.includes('instagram.com') ? 'IG' : '—'}
@@ -485,11 +484,7 @@ export default function AdminEntityPromoGalleryPanel({
                             {adminPromoGalleryRows.filter((r) => r.embed_url).length > 4 ? '…' : ''}
                         </p>
                     ) : null}
-                    <button
-                        type="button"
-                        onClick={clearPromoFromServer}
-                        className="text-sm font-medium text-red-400 hover:text-red-300"
-                    >
+                    <button type="button" onClick={clearPromoFromServer} className="text-sm font-medium text-red-400 hover:text-red-300">
                         Tüm tanıtımları kaldır
                     </button>
                 </div>

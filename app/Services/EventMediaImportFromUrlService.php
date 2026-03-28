@@ -15,7 +15,8 @@ use Symfony\Component\Process\Process;
 
 /**
  * Paylaşım / sayfa URL’sinden og:image ve (mümkünse) og:video indirir.
- * Instagram: /p/ ve /reel/ embed sayfaları, og:video:secure_url, JSON video_url / playback_url ve CDN .mp4 taraması.
+ * Instagram: /p/ ve /reel/ embed sayfaları; /stories/{kullanıcı}/{id}/ hikâye bağlantıları (yt-dlp ile doğrudan URL);
+ * og:video:secure_url, JSON video_url / playback_url ve CDN .mp4 taraması.
  * Instagram için /p/{shortcode}/media/?size=l ile önizleme görseli alınır (og:image olmasa da).
  * Tanıtım modunda birden fazla öğe promo_gallery JSON alanında tutulur.
  */
@@ -35,8 +36,11 @@ final class EventMediaImportFromUrlService
 
     private const MAX_BATCH_URLS = 20;
 
-    /** @param  list<string>  $urls */
-    public function importMany(Model $model, array $urls, string $mode, bool $appendPromoGallery): array
+    /**
+     * @param  list<string>  $urls
+     * @param  bool  $promoPosterEmbedOnly  true: yalnız önizleme + embed (Instagram’da yt-dlp yok); tam video «Tanıtım videoları» alanından
+     */
+    public function importMany(Model $model, array $urls, string $mode, bool $appendPromoGallery, bool $promoPosterEmbedOnly = false): array
     {
         $urls = array_values(array_unique(array_filter(array_map('trim', $urls), fn (string $u) => $u !== '')));
         if ($urls === []) {
@@ -58,7 +62,7 @@ final class EventMediaImportFromUrlService
         /** @var list<string> $failures */
         $failures = [];
         foreach ($urls as $u) {
-            $r = $this->import($model->fresh(), $u, $mode, true);
+            $r = $this->import($model->fresh(), $u, $mode, true, $promoPosterEmbedOnly);
             if ($r['success']) {
                 $ok++;
             } else {
@@ -226,8 +230,167 @@ final class EventMediaImportFromUrlService
         ];
     }
 
-    /** @return array{success: bool, message: string, details?: array<string, mixed>} */
-    public function import(Model $model, string $url, string $mode, bool $appendPromoGallery = true): array
+    /**
+     * Tanıtım galerisine yalnızca gönderi görselleri ekler (video yok). Öncesinde gerekirse denetleyici purge çağırır.
+     *
+     * @param  list<UploadedFile>  $images
+     * @return array{success: bool, message: string, details?: array<string, mixed>}
+     */
+    public function appendPromoPostImagesFromUploads(Model $model, array $images): array
+    {
+        $files = [];
+        foreach ($images as $f) {
+            if ($f instanceof UploadedFile && $f->isValid()) {
+                $files[] = $f;
+            }
+        }
+        if ($files === []) {
+            return ['success' => false, 'message' => 'En az bir geçerli görsel dosyası seçin.'];
+        }
+
+        $gallery = $this->currentPromoGallery($model);
+        $remaining = self::MAX_PROMO_GALLERY_ITEMS - count($gallery);
+        if ($remaining <= 0) {
+            return [
+                'success' => false,
+                'message' => 'En fazla '.self::MAX_PROMO_GALLERY_ITEMS.' tanıtım öğesi eklenebilir.',
+            ];
+        }
+
+        $added = 0;
+        $skipped = 0;
+        foreach (array_slice($files, 0, $remaining) as $poster) {
+            if ($poster->getSize() > self::MAX_IMAGE_BYTES) {
+                $skipped++;
+
+                continue;
+            }
+            $posterPath = $poster->store('event-promo-posters', 'public');
+            $gallery[] = [
+                'embed_url' => null,
+                'video_path' => null,
+                'poster_path' => $posterPath,
+                'promo_kind' => 'post',
+            ];
+            $added++;
+        }
+
+        if ($added === 0) {
+            return [
+                'success' => false,
+                'message' => $skipped > 0
+                    ? 'Görseller çok büyük veya galeri dolu (en fazla '.(int) (self::MAX_IMAGE_BYTES / 1024 / 1024).' MB / dosya).'
+                    : 'Görsel eklenemedi.',
+            ];
+        }
+
+        $this->syncLegacyPromoFieldsFromGallery($model, $gallery);
+        $model->promo_gallery = $gallery;
+        $model->save();
+
+        $msg = $added.' gönderi görseli galeriye eklendi.';
+        if ($skipped > 0) {
+            $msg .= ' '.$skipped.' dosya atlandı (boyut sınırı veya kota).';
+        }
+        if (count($files) > $remaining) {
+            $msg .= ' Galeri kotası nedeniyle yalnızca ilk '.$remaining.' dosya işlendi.';
+        }
+
+        return [
+            'success' => true,
+            'message' => $msg,
+            'details' => ['gallery_count' => count($gallery), 'added' => $added],
+        ];
+    }
+
+    /**
+     * Tanıtım galerisine ardışık video dosyaları ekler (her biri ayrı Reels / hikâye öğesi).
+     *
+     * @param  list<UploadedFile>  $videos
+     * @return array{success: bool, message: string, details?: array<string, mixed>}
+     */
+    public function appendPromoVideosFromUploads(Model $model, array $videos): array
+    {
+        $files = [];
+        foreach ($videos as $f) {
+            if ($f instanceof UploadedFile && $f->isValid()) {
+                $files[] = $f;
+            }
+        }
+        if ($files === []) {
+            return ['success' => false, 'message' => 'En az bir geçerli video dosyası seçin.'];
+        }
+
+        $gallery = $this->currentPromoGallery($model);
+        $remaining = self::MAX_PROMO_GALLERY_ITEMS - count($gallery);
+        if ($remaining <= 0) {
+            return [
+                'success' => false,
+                'message' => 'En fazla '.self::MAX_PROMO_GALLERY_ITEMS.' tanıtım öğesi eklenebilir.',
+            ];
+        }
+
+        $added = 0;
+        $skipped = 0;
+        foreach (array_slice($files, 0, $remaining) as $video) {
+            if ($video->getSize() > self::MAX_VIDEO_BYTES) {
+                $skipped++;
+
+                continue;
+            }
+            $mime = $video->getMimeType() ?: '';
+            if (! in_array($mime, ['video/mp4', 'video/webm', 'video/quicktime'], true)) {
+                $skipped++;
+
+                continue;
+            }
+            $ext = match ($mime) {
+                'video/webm' => 'webm',
+                'video/quicktime' => 'mov',
+                default => 'mp4',
+            };
+            $videoPath = $video->storeAs('event-promo', Str::uuid()->toString().'.'.$ext, 'public');
+            $gallery[] = [
+                'embed_url' => null,
+                'video_path' => $videoPath,
+                'poster_path' => null,
+                'promo_kind' => 'story',
+            ];
+            $added++;
+        }
+
+        if ($added === 0) {
+            return [
+                'success' => false,
+                'message' => $skipped > 0
+                    ? 'Videolar uygun formatta değil veya çok büyük (MP4/WebM/MOV, en fazla '.(int) (self::MAX_VIDEO_BYTES / 1024 / 1024).' MB).'
+                    : 'Video eklenemedi.',
+            ];
+        }
+
+        $this->syncLegacyPromoFieldsFromGallery($model, $gallery);
+        $model->promo_gallery = $gallery;
+        $model->save();
+
+        $msg = $added.' tanıtım videosu galeriye eklendi.';
+        if ($skipped > 0) {
+            $msg .= ' '.$skipped.' dosya atlandı (format veya boyut).';
+        }
+        if (count($files) > $remaining) {
+            $msg .= ' Galeri kotası nedeniyle yalnızca ilk '.$remaining.' dosya işlendi.';
+        }
+
+        return [
+            'success' => true,
+            'message' => $msg,
+            'details' => ['gallery_count' => count($gallery), 'added' => $added],
+        ];
+    }
+
+    /**
+     * @param  bool  $promoPosterEmbedOnly  Gönderi görseli akışı: doğrudan .mp4/.webm ve sunucu videosu indirilmez
+     */
+    public function import(Model $model, string $url, string $mode, bool $appendPromoGallery = true, bool $promoPosterEmbedOnly = false): array
     {
         try {
             $normalized = $this->assertSafeUrl($url);
@@ -237,7 +400,17 @@ final class EventMediaImportFromUrlService
             return ['success' => false, 'message' => $msg];
         }
 
-        if ($mode === 'promo_video') {
+        if ($mode === 'promo_video' && $promoPosterEmbedOnly) {
+            $pathOnly = parse_url($normalized, PHP_URL_PATH);
+            if (is_string($pathOnly) && preg_match('/\.(mp4|webm)$/i', $pathOnly)) {
+                return [
+                    'success' => false,
+                    'message' => 'Doğrudan video dosyası bağlantıları yalnızca «Tanıtım videoları» bölümünden eklenir.',
+                ];
+            }
+        }
+
+        if ($mode === 'promo_video' && ! $promoPosterEmbedOnly) {
             $direct = $this->tryImportDirectVideoUrl($model, $normalized, $appendPromoGallery);
             if ($direct !== null) {
                 return $direct;
@@ -263,10 +436,26 @@ final class EventMediaImportFromUrlService
 
         $isInstagram = $this->isInstagramHost($normalized);
         $shortcode = $isInstagram ? $this->extractInstagramShortcode($normalized) : null;
+        $instagramStoryCanonical = ($isInstagram && $shortcode === null)
+            ? $this->normalizeInstagramStoryCanonical($normalized)
+            : null;
 
         $ogImage = $this->firstMetaContent($html, 'og:image')
             ?? $this->firstMetaContent($html, 'twitter:image')
             ?? $this->firstMetaContent($html, 'twitter:image:src');
+
+        $storySupplementalHtml = '';
+        if ($instagramStoryCanonical !== null
+            && ($ogImage === null || trim((string) $ogImage) === '')) {
+            $altBody = $this->fetchInstagramHtmlBody($normalized, $this->browserHeadersInstagramMobile());
+            if ($altBody !== null) {
+                $storySupplementalHtml = $altBody;
+                $ogImage = $this->firstMetaContent($altBody, 'og:image')
+                    ?? $this->firstMetaContent($altBody, 'twitter:image')
+                    ?? $this->firstMetaContent($altBody, 'twitter:image:src')
+                    ?? $ogImage;
+            }
+        }
 
         $ogVideo = $this->firstMetaContent($html, 'og:video')
             ?? $this->firstMetaContent($html, 'og:video:url')
@@ -294,6 +483,15 @@ final class EventMediaImportFromUrlService
 
             foreach (array_filter([$html, $embedHtmlP, $embedHtmlReel], fn ($b) => is_string($b) && $b !== '') as $chunk) {
                 $this->appendInstagramVideoUrlCandidatesFromHtml($chunk, $promoVideoUrlCandidates);
+            }
+            $promoVideoUrlCandidates = $this->dedupePreserveOrderStringList($promoVideoUrlCandidates);
+        } elseif ($isInstagram && $instagramStoryCanonical !== null) {
+            $this->appendInstagramVideoUrlCandidatesFromHtml($html, $promoVideoUrlCandidates);
+            if ($storySupplementalHtml !== '') {
+                $this->appendInstagramVideoUrlCandidatesFromHtml($storySupplementalHtml, $promoVideoUrlCandidates);
+            }
+            if ($ogVideo !== null && trim((string) $ogVideo) !== '') {
+                $promoVideoUrlCandidates[] = trim((string) $ogVideo);
             }
             $promoVideoUrlCandidates = $this->dedupePreserveOrderStringList($promoVideoUrlCandidates);
         } else {
@@ -360,14 +558,21 @@ final class EventMediaImportFromUrlService
             return ['success' => false, 'message' => 'Geçersiz mod.'];
         }
 
+        $instagramStoryHtmlAggregate = ($instagramStoryCanonical !== null)
+            ? $html.($storySupplementalHtml !== '' ? "\n".$storySupplementalHtml : '')
+            : null;
+
         return $this->importPromoVideo(
             $model,
             $normalized,
             $ogImage !== null ? trim((string) $ogImage) : null,
-            $promoVideoUrlCandidates,
+            $promoPosterEmbedOnly ? [] : $promoVideoUrlCandidates,
             $isInstagram,
             $shortcode,
+            $instagramStoryCanonical,
+            $instagramStoryHtmlAggregate,
             $appendPromoGallery,
+            $promoPosterEmbedOnly,
         );
     }
 
@@ -424,10 +629,8 @@ final class EventMediaImportFromUrlService
     }
 
     /**
-     * @return array{success: bool, message: string, details?: array<string, mixed>}
-     */
-    /**
      * @param  list<string>  $videoUrlCandidates
+     * @return array{success: bool, message: string, details?: array<string, mixed>}
      */
     private function importPromoVideo(
         Model $model,
@@ -436,7 +639,10 @@ final class EventMediaImportFromUrlService
         array $videoUrlCandidates,
         bool $isInstagram,
         ?string $shortcode,
-        bool $appendPromoGallery
+        ?string $instagramStoryCanonical,
+        ?string $instagramStoryHtmlAggregate,
+        bool $appendPromoGallery,
+        bool $posterEmbedOnly = false,
     ): array {
         $messages = [];
         $videoSaved = false;
@@ -461,14 +667,26 @@ final class EventMediaImportFromUrlService
             }
         }
 
-        if (! $videoSaved && $isInstagram && $shortcode) {
-            if ($videoUrlCandidates !== []) {
-                Log::warning('Instagram tanıtım: gömülü/HTML adaylarından MP4 inmedi (çoğu gönderide artık yalnızca yt-dlp ile mümkün)', [
-                    'shortcode' => $shortcode,
-                    'http_candidate_count' => count($videoUrlCandidates),
-                ]);
+        if (! $posterEmbedOnly && ! $videoSaved && $isInstagram) {
+            if ($shortcode) {
+                if ($videoUrlCandidates !== []) {
+                    Log::warning('Instagram tanıtım: gömülü/HTML adaylarından MP4 inmedi (çoğu gönderide artık yalnızca yt-dlp ile mümkün)', [
+                        'shortcode' => $shortcode,
+                        'http_candidate_count' => count($videoUrlCandidates),
+                    ]);
+                }
+                $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized, $shortcode);
+            } elseif ($instagramStoryCanonical !== null) {
+                if ($videoUrlCandidates !== []) {
+                    Log::warning('Instagram tanıtım (hikâye): HTML adaylarından MP4 inmedi', [
+                        'story_url' => Str::limit($instagramStoryCanonical, 120),
+                        'http_candidate_count' => count($videoUrlCandidates),
+                    ]);
+                }
+                $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized, null);
+            } else {
+                $ytPath = null;
             }
-            $ytPath = $this->tryDownloadInstagramVideoWithYtDlp($normalized, $shortcode);
             if ($ytPath !== null) {
                 $videoPath = $ytPath;
                 $videoSaved = true;
@@ -483,18 +701,66 @@ final class EventMediaImportFromUrlService
                 $messages[] = 'Instagram önizleme görseli indirildi (ızgara / liste için).';
             }
         }
+        if ($posterPath === null && $instagramStoryCanonical !== null && $ogImage !== null && trim($ogImage) !== '') {
+            try {
+                $posterSrc = $this->assertSafeUrl($this->resolveUrl($normalized, trim($ogImage)));
+                $posterPath = $this->downloadImageToStorage(
+                    $posterSrc,
+                    'event-promo-posters',
+                    $this->instagramCdnImageReferer($posterSrc),
+                );
+                if ($posterPath !== null) {
+                    $messages[] = 'Hikâye önizleme görseli kaydedildi (ızgara / liste için).';
+                }
+            } catch (ValidationException) {
+                // skip
+            }
+        }
+        if ($posterPath === null && $instagramStoryCanonical !== null
+            && is_string($instagramStoryHtmlAggregate) && $instagramStoryHtmlAggregate !== '') {
+            foreach ($this->instagramStoryPosterUrlCandidates($instagramStoryHtmlAggregate) as $candidate) {
+                try {
+                    $safe = $this->assertSafeUrl($this->resolveUrl($normalized, $candidate));
+                    $posterPath = $this->downloadImageToStorage(
+                        $safe,
+                        'event-promo-posters',
+                        $this->instagramCdnImageReferer($safe),
+                    );
+                    if ($posterPath !== null) {
+                        $messages[] = 'Hikâye önizleme görseli sayfa verisinden alındı.';
+                        break;
+                    }
+                } catch (ValidationException) {
+                    // next candidate
+                }
+            }
+        }
 
-        $canonicalEmbed = ($isInstagram && $shortcode)
-            ? $this->instagramCanonicalPostUrl($shortcode)
-            : null;
+        if ($posterEmbedOnly && $posterPath === null && ! $isInstagram && $ogImage !== null && trim($ogImage) !== '') {
+            try {
+                $imgUrl = $this->assertSafeUrl($this->resolveUrl($normalized, trim($ogImage)));
+                $posterPath = $this->downloadImageToStorage($imgUrl, 'event-promo-posters');
+                if ($posterPath !== null) {
+                    $messages[] = 'Sayfa önizleme görseli kaydedildi.';
+                }
+            } catch (ValidationException) {
+                // skip
+            }
+        }
 
-        if (! $videoSaved && $isInstagram && $shortcode) {
+        $canonicalEmbed = $instagramStoryCanonical
+            ?? (($isInstagram && $shortcode) ? $this->instagramCanonicalPostUrl($shortcode) : null);
+
+        if (! $posterEmbedOnly && ! $videoSaved && $isInstagram && ($shortcode || $instagramStoryCanonical !== null)) {
             $binary = $this->resolveYtDlpBinary();
+            $storyNote = $instagramStoryCanonical !== null
+                ? ' Hikâyeler süresi dolabilir; indirme için giriş çerezi gerekebilir.'
+                : '';
             $hint = $binary !== null
-                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi (güncel yt-dlp; gerekirse .env’de YTDLP_COOKIES_FILE ile oturum çerezi).'
-                : 'Sunucuda yt-dlp bulunamadı (Linux: apt install yt-dlp veya pipx install yt-dlp; macOS: brew install yt-dlp). PHP çalışan kullanıcı için kurun veya .env içinde YTDLP_BINARY=/tam/yol/yt-dlp.';
+                ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi (güncel yt-dlp; sunucuda ffmpeg kurulu olmalı; gerekirse .env’de YTDLP_COOKIES_FILE).'.$storyNote
+                : 'Sunucuda yt-dlp bulunamadı (Linux: apt install yt-dlp veya pipx install yt-dlp; macOS: brew install yt-dlp). PHP için PATH veya .env YTDLP_BINARY; videoyu birleştirmek için ffmpeg.'.$storyNote;
             $messages[] = 'Doğrudan video indirilemedi; '.$hint;
-        } elseif (! $videoSaved && ! $isInstagram) {
+        } elseif (! $posterEmbedOnly && ! $videoSaved && ! $isInstagram) {
             $messages[] = 'Doğrudan indirilebilir video bulunamadı (og:video yok veya erişim engellendi).';
         }
 
@@ -521,9 +787,12 @@ final class EventMediaImportFromUrlService
             }
         }
 
+        if ($posterEmbedOnly) {
+            $videoPath = null;
+        }
         $hasStoredVideo = is_string($videoPath) && trim($videoPath) !== '';
         // Sunucuya inen MP4/WebM = hikaye; yalnızca afiş / gömülü bağlantı (video dosyası yok) = gönderi. İstekteki promo_kind güvenilmez (varsayılan story).
-        $resolvedKind = $hasStoredVideo ? 'story' : 'post';
+        $resolvedKind = ($posterEmbedOnly || ! $hasStoredVideo) ? 'post' : 'story';
         $newItem = [
             'embed_url' => $canonicalEmbed,
             'video_path' => $videoPath,
@@ -531,7 +800,7 @@ final class EventMediaImportFromUrlService
             'promo_kind' => $resolvedKind,
         ];
 
-        if (! $videoSaved && ! $isInstagram) {
+        if (! $videoSaved && ! $isInstagram && ! $posterEmbedOnly) {
             $model->save();
 
             return [
@@ -541,29 +810,43 @@ final class EventMediaImportFromUrlService
             ];
         }
 
-        if ($isInstagram && ! $shortcode) {
+        if ($posterEmbedOnly && ! $isInstagram && $posterPath === null && $canonicalEmbed === null) {
             $model->save();
 
             return [
                 'success' => false,
-                'message' => 'Instagram gönderi kodu URL’den okunamadı.',
+                'message' => 'Gönderi görseli modu: sayfada kullanılabilir bir önizleme görseli (og:image) bulunamadı.',
             ];
         }
 
-        if (! $videoSaved && $isInstagram && $shortcode && $posterPath === null) {
+        if ($isInstagram && ! $shortcode && $instagramStoryCanonical === null) {
             $model->save();
 
             return [
                 'success' => false,
-                'message' => 'Instagram gönderisi: video indirilemedi ve önizleme görseli de alınamadı. Bağlantıyı kontrol edin; veya MP4/WebM dosyası yükleyin. '.implode(' ', $messages),
+                'message' => 'Bu Instagram adresi tanınmadı. Gönderi (/p/… veya /reel/…) veya hikâye (/stories/kullanıcı/sayısal-id/) bağlantısı kullanın.',
             ];
         }
 
-        if (! $videoSaved && $isInstagram && $shortcode && $posterPath !== null) {
+        if (! $videoSaved && $isInstagram && ($shortcode || $instagramStoryCanonical !== null) && $posterPath === null) {
+            $model->save();
+
+            return [
+                'success' => false,
+                'message' => $posterEmbedOnly
+                    ? 'Instagram önizleme görseli alınamadı. Bağlantıyı kontrol edin veya tam video için «Tanıtım videoları» alanını kullanın.'
+                    : 'Instagram: video indirilemedi ve önizleme görseli de alınamadı. Bağlantıyı kontrol edin; sunucuda yt-dlp + ffmpeg kurulu mu bakın; veya MP4/WebM yükleyin. '.implode(' ', $messages),
+            ];
+        }
+
+        if (! $posterEmbedOnly && ! $videoSaved && $isInstagram && ($shortcode || $instagramStoryCanonical !== null) && $posterPath !== null) {
             array_unshift(
                 $messages,
-                'Tanıtım galerisine önizleme kaydedildi (video indirilemedi). Sitede oynatmak için panelden MP4/WebM yükleyin veya doğrudan video bağlantısı ekleyin.'
+                'Tanıtım galerisine önizleme kaydedildi (video indirilemedi). Üretim sunucusunda yt-dlp ve ffmpeg kurulu ve PHP için YTDLP_BINARY / FFMPEG_BINARY veya PATH ayarlı olmalı. Sitede oynatmak için panelden MP4/WebM yükleyin veya doğrudan video bağlantısı ekleyin.'
             );
+        }
+        if ($posterEmbedOnly && $posterPath !== null) {
+            array_unshift($messages, 'Gönderi görseli olarak kaydedildi (video indirilmedi — tam video için «Tanıtım videoları» alanını kullanın).');
         }
 
         if (! $appendPromoGallery) {
@@ -583,6 +866,19 @@ final class EventMediaImportFromUrlService
                 }
             }
             $gallery = array_values($gallery);
+        } elseif ($instagramStoryCanonical !== null) {
+            $storyId = $this->extractInstagramStoryMediaId($instagramStoryCanonical);
+            if ($storyId !== null) {
+                foreach ($gallery as $idx => $item) {
+                    $existingId = $this->extractInstagramStoryMediaId((string) ($item['embed_url'] ?? ''));
+                    if ($existingId === $storyId) {
+                        $this->deleteGalleryItemFiles($item);
+                        unset($gallery[$idx]);
+                        break;
+                    }
+                }
+                $gallery = array_values($gallery);
+            }
         }
 
         if (count($gallery) >= self::MAX_PROMO_GALLERY_ITEMS) {
@@ -726,6 +1022,41 @@ final class EventMediaImportFromUrlService
             return null;
         }
         if (preg_match('#/(?:p|reel|reels|tv)/([A-Za-z0-9_-]+)#', $path, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Hikâye URL’sini sorgu/parça olmadan saklamak ve eşleştirmek için normalize eder.
+     */
+    private function normalizeInstagramStoryCanonical(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+        if (! preg_match('#^/stories/[^/]+/(\d+)/?$#', $path)) {
+            return null;
+        }
+        $path = rtrim($path, '/').'/';
+        $scheme = parse_url($url, PHP_URL_SCHEME) ?: 'https';
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '' || ! str_contains($host, 'instagram.com')) {
+            return null;
+        }
+
+        return $scheme.'://'.$host.$path;
+    }
+
+    private function extractInstagramStoryMediaId(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path)) {
+            return null;
+        }
+        if (preg_match('#/stories/[^/]+/(\d+)/?$#', $path, $m)) {
             return $m[1];
         }
 
@@ -933,6 +1264,131 @@ final class EventMediaImportFromUrlService
         ];
     }
 
+    /** @return array<string, string> */
+    private function browserHeadersInstagramMobile(): array
+    {
+        return [
+            'User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            'Accept' => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+            'Accept-Language' => 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+        ];
+    }
+
+    /**
+     * Instagram sayfası (hikâye / gönderi) — alternatif UA ile ikinci deneme.
+     */
+    private function fetchInstagramHtmlBody(string $url, array $headers): ?string
+    {
+        $resp = Http::withHeaders($headers)
+            ->timeout(self::FETCH_TIMEOUT)
+            ->withOptions(['allow_redirects' => true])
+            ->get($url);
+        if (! $resp->successful()) {
+            return null;
+        }
+        $body = $resp->body();
+        if (strlen($body) > self::MAX_HTML_BYTES) {
+            return null;
+        }
+
+        return $body;
+    }
+
+    private function instagramCdnImageReferer(string $imageUrl): ?string
+    {
+        $host = strtolower((string) parse_url($imageUrl, PHP_URL_HOST));
+        if ($host === '' || ! str_contains($host, '.')) {
+            return null;
+        }
+        if (str_ends_with($host, '.cdninstagram.com') || $host === 'cdninstagram.com'
+            || str_ends_with($host, '.fbcdn.net') || $host === 'fbcdn.net'
+            || str_ends_with($host, '.instagram.com')) {
+            return 'https://www.instagram.com/';
+        }
+
+        return null;
+    }
+
+    /**
+     * Hikâye sayfasında og:image bazen yok; gömülü JSON ve CDN adreslerinden poster adayı toplanır.
+     *
+     * @return list<string>
+     */
+    private function instagramStoryPosterUrlCandidates(string $html): array
+    {
+        $keys = ['display_url', 'thumbnail_src', 'thumbnail_url', 'display_src', 'preview_url'];
+        $fromJson = $this->allInstagramJsonHttpsUrlsForKeys($html, $keys);
+        $fromCdn = $this->extractInstagramCdnImageUrlsFromHtml($html);
+        $merged = $this->dedupePreserveOrderStringList(array_merge($fromJson, $fromCdn));
+        usort($merged, fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        return $merged;
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    private function allInstagramJsonHttpsUrlsForKeys(string $html, array $keys): array
+    {
+        $out = [];
+        foreach ($keys as $key) {
+            $quotedKey = preg_quote($key, '/');
+            if (! preg_match_all('/"'.$quotedKey.'"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/s', $html, $matches, PREG_SET_ORDER)) {
+                continue;
+            }
+            foreach ($matches as $m) {
+                $decoded = stripcslashes($m[1]);
+                $decoded = str_replace(['\u0026', '\u003a'], ['&', ':'], $decoded);
+                if (! preg_match('#^https://#i', $decoded)) {
+                    continue;
+                }
+                try {
+                    $out[] = $this->assertSafeUrl($decoded);
+                } catch (ValidationException) {
+                    // skip
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractInstagramCdnImageUrlsFromHtml(string $html): array
+    {
+        $normalized = str_replace(['\\u0026', '\/', '\\/'], ['&', '/', '/'], $html);
+        if (! preg_match_all(
+            '#https://[a-zA-Z0-9.-]*(?:cdninstagram\.com|fbcdn\.net)/[^"\'\s<>]{1,6000}?\.(?:jpe?g|webp|png)(?:\?[^"\'\s<>]*)?#i',
+            $normalized,
+            $matches,
+        )) {
+            return [];
+        }
+        $urls = [];
+        foreach ($matches[0] as $raw) {
+            $u = html_entity_decode(trim($raw), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $u = preg_replace('/[),.;]+$/', '', $u) ?? $u;
+            if (filter_var($u, FILTER_VALIDATE_URL) !== false && preg_match('#^https://#i', $u)) {
+                $host = strtolower((string) parse_url($u, PHP_URL_HOST));
+                if (str_ends_with($host, '.cdninstagram.com')
+                    || $host === 'cdninstagram.com'
+                    || str_ends_with($host, '.fbcdn.net')
+                    || $host === 'fbcdn.net') {
+                    try {
+                        $urls[] = $this->assertSafeUrl($u);
+                    } catch (ValidationException) {
+                        // skip
+                    }
+                }
+            }
+        }
+
+        return $this->dedupePreserveOrderStringList($urls);
+    }
+
     private function resolveUrl(string $base, string $relative): string
     {
         if (preg_match('#^https?://#i', $relative)) {
@@ -961,7 +1417,7 @@ final class EventMediaImportFromUrlService
         return null;
     }
 
-    private function downloadImageToStorage(string $imageUrl, string $folder): ?string
+    private function downloadImageToStorage(string $imageUrl, string $folder, ?string $referer = null): ?string
     {
         try {
             $this->assertSafeUrl($imageUrl);
@@ -969,10 +1425,15 @@ final class EventMediaImportFromUrlService
             return null;
         }
 
-        $resp = Http::withHeaders([
-            'User-Agent' => 'Mozilla/5.0 (compatible; SahnebulMediaBot/1.0)',
+        $headers = [
+            'User-Agent' => $this->browserHeaders()['User-Agent'],
             'Accept' => 'image/avif,image/webp,image/*,*/*;q=0.8',
-        ])
+        ];
+        if ($referer !== null && $referer !== '') {
+            $headers['Referer'] = $referer;
+        }
+
+        $resp = Http::withHeaders($headers)
             ->timeout(self::FETCH_TIMEOUT)
             ->get($imageUrl);
 
@@ -1182,7 +1643,7 @@ final class EventMediaImportFromUrlService
         return $this->dedupePreserveOrderStringList($urls);
     }
 
-    private function tryDownloadInstagramVideoWithYtDlp(string $normalized, string $shortcode): ?string
+    private function tryDownloadInstagramVideoWithYtDlp(string $normalized, ?string $shortcode): ?string
     {
         $binary = $this->resolveYtDlpBinary();
         if ($binary === null) {
@@ -1191,51 +1652,84 @@ final class EventMediaImportFromUrlService
             return null;
         }
 
-        foreach ($this->instagramYtDlpSourceUrls($normalized, $shortcode) as $sourceUrl) {
-            $dest = $this->runYtDlpInstagramDownloadOnce($binary, $sourceUrl);
-            if ($dest !== null) {
-                Log::info('event promo: yt-dlp instagram video kaydedildi', [
-                    'shortcode' => $shortcode,
-                    'source_url' => Str::limit($sourceUrl, 120),
-                ]);
+        if ($shortcode !== null && $shortcode !== '') {
+            foreach ($this->instagramYtDlpSourceUrls($normalized, $shortcode) as $sourceUrl) {
+                $dest = $this->runYtDlpInstagramDownloadOnce($binary, $sourceUrl);
+                if ($dest !== null) {
+                    Log::info('event promo: yt-dlp instagram video kaydedildi', [
+                        'shortcode' => $shortcode,
+                        'source_url' => Str::limit($sourceUrl, 120),
+                    ]);
 
-                return $dest;
+                    return $dest;
+                }
             }
+
+            Log::warning('event promo: yt-dlp tüm Instagram URL varyantlarında başarısız', [
+                'shortcode' => $shortcode,
+                'tried_urls' => array_map(fn (string $u) => Str::limit($u, 100), $this->instagramYtDlpSourceUrls($normalized, $shortcode)),
+            ]);
+
+            return null;
         }
 
-        Log::warning('event promo: yt-dlp tüm Instagram URL varyantlarında başarısız', [
-            'shortcode' => $shortcode,
-            'tried_urls' => array_map(fn (string $u) => Str::limit($u, 100), $this->instagramYtDlpSourceUrls($normalized, $shortcode)),
+        $dest = $this->runYtDlpInstagramDownloadOnce($binary, $normalized);
+        if ($dest === null) {
+            $dest = $this->runYtDlpInstagramDownloadOnce(
+                $binary,
+                $normalized,
+                'bestvideo[ext=mp4]+bestaudio/bestvideo+bestaudio/best[ext=mp4]/best',
+            );
+        }
+        if ($dest === null) {
+            $dest = $this->runYtDlpInstagramDownloadOnce($binary, $normalized, 'best[ext=mp4]/best[ext=webm]/best');
+        }
+        if ($dest !== null) {
+            Log::info('event promo: yt-dlp instagram (doğrudan URL)', [
+                'source_url' => Str::limit($normalized, 120),
+            ]);
+
+            return $dest;
+        }
+
+        Log::warning('event promo: yt-dlp doğrudan Instagram URL başarısız (hikâye veya kısakodsuz)', [
+            'url' => Str::limit($normalized, 120),
         ]);
 
         return null;
     }
 
-    private function runYtDlpInstagramDownloadOnce(string $binary, string $httpsInstagramUrl): ?string
+    private function runYtDlpInstagramDownloadOnce(string $binary, string $httpsInstagramUrl, ?string $formatSpec = null): ?string
     {
         $timeout = (float) config('services.ytdlp.timeout', 300);
         $dir = sys_get_temp_dir();
         $base = 'sbn_ytdlp_'.Str::random(20);
         $outTemplate = $dir.DIRECTORY_SEPARATOR.$base.'.%(ext)s';
-        $cmd = [
-            $binary,
-            '-o',
-            $outTemplate,
+        $format = $formatSpec ?? 'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/best';
+
+        $cmd = [$binary];
+        $cookies = config('services.ytdlp.cookies_file');
+        if (is_string($cookies) && $cookies !== '') {
+            if (! is_readable($cookies)) {
+                Log::warning('event promo: YTDLP_COOKIES_FILE okunamıyor (Instagram için çerez dosyası gerekli olabilir)', [
+                    'path' => $cookies,
+                ]);
+            } else {
+                $cmd[] = '--cookies';
+                $cmd[] = $cookies;
+            }
+        }
+        $cmd = array_merge($cmd, [
+            '--add-header', 'Referer:https://www.instagram.com/',
+            '--add-header', 'Origin:https://www.instagram.com',
+            '-o', $outTemplate,
             '--no-playlist',
             '--no-progress',
             '--no-warnings',
-            // Önce DASH video + m4a ses (ses için gerekli). İlerlemeli «format 9» çoğu gönderide yalnızca video; ses kaybına yol açar.
-            // Birleştirme: yt-dlp (ffmpeg varsa) veya finalizeInstagramYtDlpDownloadFiles içinde ffmpeg mux.
-            '-f',
-            'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/best',
-            '--merge-output-format',
-            'mp4',
+            '-f', $format,
+            '--merge-output-format', 'mp4',
             $httpsInstagramUrl,
-        ];
-        $cookies = config('services.ytdlp.cookies_file');
-        if (is_string($cookies) && $cookies !== '' && is_readable($cookies)) {
-            array_splice($cmd, 1, 0, ['--cookies', $cookies]);
-        }
+        ]);
         try {
             $process = new Process($cmd, $dir, null, null, $timeout);
             $process->run();

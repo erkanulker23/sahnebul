@@ -299,6 +299,9 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
             </form>
 
             <div className="mt-10 max-w-2xl">
+                <p className="mb-3 text-sm text-zinc-500">
+                    Mekân sayfasında üstte tanıtım videoları, altta gönderi görselleri listelenir. Videolar için turuncu, görseller için pembe bölümü kullanın.
+                </p>
                 <AdminEntityPromoGalleryPanel
                     entity={venue}
                     variant="venue"

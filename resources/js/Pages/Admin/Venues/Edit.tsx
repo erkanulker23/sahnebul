@@ -253,7 +253,7 @@ export default function AdminVenueEdit({
                         tabs={[
                             { id: 'genel', label: 'Genel ve konum' },
                             { id: 'icerik', label: 'İçerik ve sosyal' },
-                            { id: 'tanitim', label: 'Kapak ve tanıtım' },
+                            { id: 'tanitim', label: 'Kapak, video ve gönderi tanıtımı' },
                             { id: 'galeri', label: 'Galeri' },
                         ]}
                     />
@@ -651,6 +651,9 @@ export default function AdminVenueEdit({
                         )}
                     </div>
 
+                    <p className="text-xs text-zinc-500">
+                        Ziyaretçi sayfasında üstte tanıtım videoları, altta gönderi görselleri sıralanır. «Galeri» sekmesindeki fotoğraflar ayrı bir bölümdür.
+                    </p>
                     <AdminEntityPromoGalleryPanel
                         entity={venue}
                         variant="venue"

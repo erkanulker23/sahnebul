@@ -423,6 +423,10 @@ export default function PublicArtistProfileEdit({
 
             {artist ? (
                 <div className="mb-10 max-w-3xl">
+                    <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        Onaylı profil sayfanızda üstte tanıtım videoları, altta gönderi görselleri (Instagram önizlemesi veya yüklenen görsel) görünür. İki
+                        kutuyu karıştırmayın.
+                    </p>
                     <AdminEntityPromoGalleryPanel
                         entity={artist}
                         variant="artist"

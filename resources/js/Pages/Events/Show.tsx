@@ -51,6 +51,8 @@ interface Event {
     ticket_price: number | null;
     entry_is_paid?: boolean;
     cover_image: string | null;
+    /** Kart görseli; kapak yokken kahraman alanında sanatçı yerine etkinliğe ait görsel olarak kullanılır */
+    listing_image?: string | null;
     venue: {
         name: string;
         slug: string;
@@ -277,9 +279,10 @@ export default function EventShow({
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
     const artistVisual = (a: Artist) => imageSrc(a.display_image ?? a.avatar);
+    /** Kapak yoksa sanatçı fotoğrafı kullanılmaz (yanıltıcı); önce liste görseli, sonra mekân kapak, yoksa varsayılan gradient. */
     const heroBackdrop =
         imageSrc(event.cover_image) ??
-        event.artists.map((a) => artistVisual(a)).find((src): src is string => Boolean(src)) ??
+        imageSrc(event.listing_image ?? null) ??
         imageSrc(event.venue.cover_image ?? null) ??
         null;
     const tiers = event.ticket_tiers ?? [];

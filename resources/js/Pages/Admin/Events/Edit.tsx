@@ -1,4 +1,5 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import AdminEventVenueField from '@/Components/AdminEventVenueField';
 import EventEntryPaidField from '@/Components/EventEntryPaidField';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -9,6 +10,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { adminEventPromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
 import { cn } from '@/lib/cn';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -84,30 +86,6 @@ function toTierRows(tiers: Tier[] | undefined): TierRow[] {
 
 type FlashProps = { success?: string | null; error?: string | null };
 
-type AdminPromoPreviewRow = {
-    video_path: string | null;
-    poster_path: string | null;
-    embed_url: string | null;
-    promo_kind: 'story' | 'post' | null;
-    galleryIndex: number;
-};
-
-function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video_path' | 'embed_url' | 'poster_path'>): 'story' | 'post' {
-    if (row.video_path) {
-        return 'story';
-    }
-    if (row.poster_path || row.embed_url?.includes('instagram.com')) {
-        return 'post';
-    }
-    if (row.promo_kind === 'post') {
-        return 'post';
-    }
-    if (row.promo_kind === 'story') {
-        return 'story';
-    }
-    return 'story';
-}
-
 export default function AdminEventEdit({
     event,
     venues,
@@ -121,21 +99,9 @@ export default function AdminEventEdit({
     const [imageImportUrls, setImageImportUrls] = useState('');
     const [imageImportMode, setImageImportMode] = useState<'image_cover' | 'image_listing'>('image_listing');
     const [imageImporting, setImageImporting] = useState(false);
-    const [html5PromoUrls, setHtml5PromoUrls] = useState('');
-    const [postPromoUrls, setPostPromoUrls] = useState('');
-    const [appendHtml5PromoToGallery, setAppendHtml5PromoToGallery] = useState(true);
-    const [appendPostPromoToGallery, setAppendPostPromoToGallery] = useState(true);
-    const [html5PromoImporting, setHtml5PromoImporting] = useState(false);
-    const [postPromoImporting, setPostPromoImporting] = useState(false);
-    const [promoVideoFile, setPromoVideoFile] = useState<File | null>(null);
-    const [promoPosterFile, setPromoPosterFile] = useState<File | null>(null);
-    const [promoUploading, setPromoUploading] = useState(false);
-    const [removingPromoIndex, setRemovingPromoIndex] = useState<number | null>(null);
     const [venueOptions, setVenueOptions] = useState(venues);
     const coverFileInputRef = useRef<HTMLInputElement>(null);
     const listingFileInputRef = useRef<HTMLInputElement>(null);
-    const promoVideoInputRef = useRef<HTMLInputElement>(null);
-    const promoPosterInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         setVenueOptions(venues);
     }, [venues]);
@@ -245,123 +211,6 @@ export default function AdminEventEdit({
             },
         );
     };
-
-    const submitHtml5PromoImport = () => {
-        if (!html5PromoUrls.trim()) return;
-        setHtml5PromoImporting(true);
-        router.post(
-            route('admin.events.import-media', event.id),
-            {
-                urls_text: html5PromoUrls,
-                mode: 'promo_video',
-                append_promo: appendHtml5PromoToGallery,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => setHtml5PromoImporting(false),
-                onSuccess: () => setHtml5PromoUrls(''),
-            },
-        );
-    };
-
-    const submitPostPromoImport = () => {
-        if (!postPromoUrls.trim()) return;
-        setPostPromoImporting(true);
-        router.post(
-            route('admin.events.import-media', event.id),
-            {
-                urls_text: postPromoUrls,
-                mode: 'promo_video',
-                append_promo: appendPostPromoToGallery,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => setPostPromoImporting(false),
-                onSuccess: () => setPostPromoUrls(''),
-            },
-        );
-    };
-
-    const submitPromoFileUpload = () => {
-        if (!promoVideoFile && !promoPosterFile) return;
-        setPromoUploading(true);
-        const fd = new FormData();
-        if (promoVideoFile) {
-            fd.append('promo_video_upload', promoVideoFile);
-        }
-        if (promoPosterFile) {
-            fd.append('promo_poster_upload', promoPosterFile);
-        }
-        fd.append('append_promo', appendHtml5PromoToGallery ? '1' : '0');
-        router.post(route('admin.events.append-promo-files', event.id), fd, {
-            preserveScroll: true,
-            forceFormData: true,
-            onFinish: () => setPromoUploading(false),
-            onSuccess: () => {
-                setPromoVideoFile(null);
-                setPromoPosterFile(null);
-                if (promoVideoInputRef.current) {
-                    promoVideoInputRef.current.value = '';
-                }
-                if (promoPosterInputRef.current) {
-                    promoPosterInputRef.current.value = '';
-                }
-            },
-        });
-    };
-
-    const clearPromoFromServer = () => {
-        if (!confirm('Tüm tanıtım videoları, önizleme görselleri ve Instagram gömüleri kaldırılsın mı?')) return;
-        router.post(route('admin.events.clear-promo-media', event.id), {}, { preserveScroll: true });
-    };
-
-    const removePromoGalleryItem = (galleryIndex: number) => {
-        if (!confirm('Bu tanıtım öğesini kaldırmak istiyor musunuz?')) return;
-        setRemovingPromoIndex(galleryIndex);
-        router.post(
-            route('admin.events.remove-promo-item', event.id),
-            { index: galleryIndex },
-            {
-                preserveScroll: true,
-                onFinish: () => setRemovingPromoIndex(null),
-            },
-        );
-    };
-
-    const adminPromoGalleryRows = useMemo((): AdminPromoPreviewRow[] => {
-        const g = event.promo_gallery;
-        if (Array.isArray(g) && g.length > 0) {
-            return g.map((row, galleryIndex) => ({
-                video_path: row.video_path?.trim() || null,
-                poster_path: row.poster_path?.trim() || null,
-                embed_url: row.embed_url?.trim() || null,
-                promo_kind:
-                    row.promo_kind === 'post' ? ('post' as const) : row.promo_kind === 'story' ? ('story' as const) : null,
-                galleryIndex,
-            }));
-        }
-        if (event.promo_video_path?.trim() || event.promo_embed_url?.trim()) {
-            return [
-                {
-                    video_path: event.promo_video_path?.trim() || null,
-                    poster_path: null,
-                    embed_url: event.promo_embed_url?.trim() || null,
-                    promo_kind: 'story' as const,
-                    galleryIndex: 0,
-                },
-            ];
-        }
-        return [];
-    }, [event.promo_gallery, event.promo_video_path, event.promo_embed_url]);
-
-    const adminStoryPreviewRows = useMemo(
-        () => adminPromoGalleryRows.filter((row) => adminPromoRowKind(row) === 'story'),
-        [adminPromoGalleryRows],
-    );
-    const adminPostPreviewRows = useMemo(
-        () => adminPromoGalleryRows.filter((row) => adminPromoRowKind(row) === 'post'),
-        [adminPromoGalleryRows],
-    );
 
     const validationSummary = useMemo(() => {
         const e = errors as Record<string, string | string[] | undefined>;
@@ -744,304 +593,15 @@ export default function AdminEventEdit({
                         </div>
                     </div>
 
-                    <div className="mt-10 space-y-4">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-600/80 pb-2">
-                            <h2 className="text-base font-bold tracking-tight text-amber-200">
-                                Hikayeler — video dosyası veya MP4/WebM bağlantısı
-                            </h2>
-                            <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-                                Dikey şerit / ızgara
-                            </span>
-                        </div>
-                        <p className="text-xs text-zinc-500">
-                            Sitede yalnızca sunucunuza inen <strong className="text-zinc-400">MP4 / WebM / MOV</strong> oynatılır. Instagram reel
-                            için <strong className="text-fuchsia-300">aşağıdaki pembe çerçeveli</strong> «Tanıtım postaları» kutusunu kullanın.
-                        </p>
-                        <label className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-700/80 bg-zinc-900/50 p-3 text-xs text-zinc-400">
-                            <input
-                                type="checkbox"
-                                checked={appendHtml5PromoToGallery}
-                                onChange={(e) => setAppendHtml5PromoToGallery(e.target.checked)}
-                                className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
-                            />
-                            <span>
-                                Tanıtım galerisine <strong className="text-zinc-200">yanına ekle</strong> (bu iki kutudaki işlemler). İşaretsiz:
-                                önce tüm tanıtım öğeleri silinir.
-                            </span>
-                        </label>
-
-                        <div className="grid gap-6 lg:grid-cols-2">
-                            <section
-                                aria-labelledby="admin-promo-html5-file-heading"
-                                className="flex flex-col rounded-xl border-2 border-amber-500/45 bg-zinc-950/70 p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
-                            >
-                                <h3
-                                    id="admin-promo-html5-file-heading"
-                                    className="text-sm font-semibold text-amber-100"
-                                >
-                                    ① Video dosyası + poster
-                                </h3>
-                                <p className="mt-1 text-xs text-zinc-500">Bilgisayarınızdan seçin; poster isteğe bağlı.</p>
-                                <div className="mt-4 flex flex-1 flex-col gap-3">
-                                    <div>
-                                        <label htmlFor="admin-event-promo-video-file" className="block text-xs font-medium text-zinc-400">
-                                            Video dosyası
-                                        </label>
-                                        <input
-                                            id="admin-event-promo-video-file"
-                                            ref={promoVideoInputRef}
-                                            type="file"
-                                            accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
-                                            onChange={(e) => setPromoVideoFile(e.target.files?.[0] ?? null)}
-                                            className="mt-1 w-full text-sm text-zinc-300"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="admin-event-promo-poster-file" className="block text-xs font-medium text-zinc-400">
-                                            Poster (isteğe bağlı)
-                                        </label>
-                                        <input
-                                            id="admin-event-promo-poster-file"
-                                            ref={promoPosterInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => setPromoPosterFile(e.target.files?.[0] ?? null)}
-                                            className="mt-1 w-full text-sm text-zinc-300"
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    disabled={promoUploading || (!promoVideoFile && !promoPosterFile)}
-                                    onClick={submitPromoFileUpload}
-                                    className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
-                                >
-                                    {promoUploading ? 'Yükleniyor…' : 'Dosyayı galeriye kaydet'}
-                                </button>
-                            </section>
-
-                            <section
-                                aria-labelledby="admin-promo-html5-url-heading"
-                                className="flex flex-col rounded-xl border-2 border-amber-500/45 bg-zinc-950/70 p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
-                            >
-                                <h3
-                                    id="admin-promo-html5-url-heading"
-                                    className="text-sm font-semibold text-amber-100"
-                                >
-                                    ② Doğrudan video URL’si
-                                </h3>
-                                <p className="mt-1 text-xs text-zinc-500">
-                                    Yol <code className="text-amber-200/90">.mp4</code> veya <code className="text-amber-200/90">.webm</code> ile
-                                    bitsin; satır başına bir adres.
-                                </p>
-                                <p className="mt-1 text-xs text-zinc-400">
-                                    Instagram / reel sayfa adresi de buraya yapıştırılabilir (pembe kutu ile aynı içe aktarma).{' '}
-                                    <code className="text-amber-200/90">.mp4</code>/<code className="text-amber-200/90">.webm</code> şartı yalnızca
-                                    doğrudan dosya indirme kısayolu içindir.
-                                </p>
-                                <textarea
-                                    id="admin-event-html5-promo-urls"
-                                    value={html5PromoUrls}
-                                    onChange={(e) => setHtml5PromoUrls(e.target.value)}
-                                    placeholder={'https://cdn.ornek.com/tanitim.mp4'}
-                                    rows={6}
-                                    className={cn(fieldResize, 'mt-3 min-h-[140px] flex-1')}
-                                />
-                                <button
-                                    type="button"
-                                    disabled={html5PromoImporting || !html5PromoUrls.trim()}
-                                    onClick={submitHtml5PromoImport}
-                                    className="mt-3 w-full rounded-lg bg-amber-600/90 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-500 disabled:opacity-50"
-                                >
-                                    {html5PromoImporting ? 'İndiriliyor…' : 'URL’lerden videoyu içe aktar'}
-                                </button>
-                            </section>
-                        </div>
-                    </div>
-
-                    <section
-                        className="mt-10 space-y-5 rounded-xl border-2 border-fuchsia-500/50 bg-gradient-to-b from-fuchsia-950/20 to-zinc-950/40 p-5 shadow-lg shadow-fuchsia-950/20"
-                        aria-labelledby="admin-promo-posts-heading"
-                    >
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h2 className="text-base font-bold tracking-tight text-fuchsia-200" id="admin-promo-posts-heading">
-                                Tanıtım postaları — Instagram / sosyal bağlantı
-                            </h2>
-                            <span className="rounded bg-fuchsia-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fuchsia-200">
-                                Reel &amp; gönderi
-                            </span>
-                        </div>
-                        <div>
-                            <p className="text-xs text-zinc-500">
-                                Gönderi veya reel bağlantılarından önizleme görseli alınır; video sunucuya indirilebiliyorsa sitede oynatılır.
-                                Sunucuda <code className="text-zinc-400">yt-dlp</code> (
-                                <code className="text-zinc-400">YTDLP_BINARY</code>) yoksa veya Instagram engellerse videoyu indirip yukarıdaki amber
-                                bölümden yükleyin.
-                            </p>
-                            <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-fuchsia-500/25 bg-zinc-900/40 p-3 text-xs text-zinc-400">
-                                <input
-                                    type="checkbox"
-                                    checked={appendPostPromoToGallery}
-                                    onChange={(e) => setAppendPostPromoToGallery(e.target.checked)}
-                                    className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-fuchsia-500"
-                                />
-                                <span>
-                                    Tanıtım galerisine <strong className="text-fuchsia-100">yanına ekle</strong> (yalnızca bu kutudaki post
-                                    bağlantıları). İşaretsiz: önce tüm tanıtım öğeleri silinir.
-                                </span>
-                            </label>
-                        </div>
-                        <div>
-                            <label htmlFor="admin-event-post-promo-urls" className="block text-xs font-medium text-fuchsia-200/90">
-                                Post bağlantıları (satır başına bir URL)
-                            </label>
-                            <textarea
-                                id="admin-event-post-promo-urls"
-                                value={postPromoUrls}
-                                onChange={(e) => setPostPromoUrls(e.target.value)}
-                                placeholder={'https://www.instagram.com/reel/…\nhttps://www.instagram.com/p/…'}
-                                rows={5}
-                                className={fieldResize}
-                            />
-                            <button
-                                type="button"
-                                disabled={postPromoImporting || !postPromoUrls.trim()}
-                                onClick={submitPostPromoImport}
-                                className="mt-3 w-full rounded-lg bg-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-500 disabled:opacity-50 sm:w-auto"
-                            >
-                                {postPromoImporting ? 'İndiriliyor…' : 'Postaları içe aktar'}
-                            </button>
-                        </div>
-                    </section>
-
-                    {adminPromoGalleryRows.length > 0 && (
-                        <div className="mt-10 space-y-6 rounded-lg border border-zinc-600/80 bg-zinc-950/40 p-4">
-                            <div>
-                                <p className="text-xs font-medium text-zinc-400">Tanıtım önizlemesi</p>
-                                <p className="mt-1 text-xs text-zinc-500">
-                                    Sitede <strong className="text-amber-200/90">hikayeler</strong> ve{' '}
-                                    <strong className="text-fuchsia-200/90">gönderiler</strong> ayrı ızgarada. Her kartın köşesinden tek öğe
-                                    silebilirsiniz.
-                                </p>
-                            </div>
-
-                            {adminStoryPreviewRows.length > 0 ? (
-                                <div>
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400/90">Hikayeler</p>
-                                    <ul className="mt-2 grid list-none grid-cols-3 gap-1 sm:grid-cols-4 sm:gap-2">
-                                        {adminStoryPreviewRows.map((row) => {
-                                            const kindLabel = 'Hikaye';
-                                            return (
-                                                <li
-                                                    key={`story-prev-${row.galleryIndex}`}
-                                                    className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
-                                                >
-                                                    <span className="absolute left-0.5 top-0.5 z-10 rounded bg-amber-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-zinc-950">
-                                                        {kindLabel}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        disabled={removingPromoIndex === row.galleryIndex}
-                                                        onClick={() => removePromoGalleryItem(row.galleryIndex)}
-                                                        className="absolute right-0.5 top-0.5 z-10 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-500 disabled:opacity-50"
-                                                        title="Bu öğeyi kaldır"
-                                                    >
-                                                        ×
-                                                    </button>
-                                                    {storageUrl(row.video_path) ? (
-                                                        <video
-                                                            src={storageUrl(row.video_path) ?? ''}
-                                                            controls
-                                                            playsInline
-                                                            className="h-full w-full object-cover"
-                                                            poster={storageUrl(row.poster_path) ?? undefined}
-                                                        />
-                                                    ) : storageUrl(row.poster_path) ? (
-                                                        <img
-                                                            src={storageUrl(row.poster_path) ?? ''}
-                                                            alt=""
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-zinc-500">
-                                                            {row.embed_url?.includes('instagram.com') ? 'IG' : '—'}
-                                                        </div>
-                                                    )}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
-                            ) : null}
-
-                            {adminPostPreviewRows.length > 0 ? (
-                                <div>
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-fuchsia-300/90">Gönderiler</p>
-                                    <ul className="mt-2 grid list-none grid-cols-3 gap-1 sm:grid-cols-4 sm:gap-2">
-                                        {adminPostPreviewRows.map((row) => {
-                                            const kindLabel = 'Gönderi';
-                                            return (
-                                                <li
-                                                    key={`post-prev-${row.galleryIndex}`}
-                                                    className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
-                                                >
-                                                    <span className="absolute left-0.5 top-0.5 z-10 rounded bg-fuchsia-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-white">
-                                                        {kindLabel}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        disabled={removingPromoIndex === row.galleryIndex}
-                                                        onClick={() => removePromoGalleryItem(row.galleryIndex)}
-                                                        className="absolute right-0.5 top-0.5 z-10 rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-500 disabled:opacity-50"
-                                                        title="Bu öğeyi kaldır"
-                                                    >
-                                                        ×
-                                                    </button>
-                                                    {storageUrl(row.video_path) ? (
-                                                        <video
-                                                            src={storageUrl(row.video_path) ?? ''}
-                                                            controls
-                                                            playsInline
-                                                            className="h-full w-full object-cover"
-                                                            poster={storageUrl(row.poster_path) ?? undefined}
-                                                        />
-                                                    ) : storageUrl(row.poster_path) ? (
-                                                        <img
-                                                            src={storageUrl(row.poster_path) ?? ''}
-                                                            alt=""
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-zinc-500">
-                                                            {row.embed_url?.includes('instagram.com') ? 'IG' : '—'}
-                                                        </div>
-                                                    )}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
-                            ) : null}
-
-                            {adminPromoGalleryRows.some((r) => r.embed_url) ? (
-                                <p className="text-[10px] text-zinc-500">
-                                    {adminPromoGalleryRows
-                                        .map((r) => r.embed_url)
-                                        .filter(Boolean)
-                                        .slice(0, 4)
-                                        .join(' · ')}
-                                    {adminPromoGalleryRows.filter((r) => r.embed_url).length > 4 ? '…' : ''}
-                                </p>
-                            ) : null}
-                            <button
-                                type="button"
-                                onClick={clearPromoFromServer}
-                                className="text-sm font-medium text-red-400 hover:text-red-300"
-                            >
-                                Tüm tanıtımları kaldır
-                            </button>
-                        </div>
-                    )}
+                    <p className="text-xs text-zinc-500">
+                        Etkinlik sayfasında üstte tanıtım videoları, altta gönderi görselleri (Instagram / görsel) gösterilir. Kapak ve liste görselleri
+                        yukarıdaki alanlardır; bu bloktan farklıdır.
+                    </p>
+                    <AdminEntityPromoGalleryPanel
+                        entity={event}
+                        variant="event"
+                        routes={adminEventPromoGalleryRoutes(event.id)}
+                    />
 
                     <div className="flex flex-wrap gap-3">
                         <button

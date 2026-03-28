@@ -296,7 +296,7 @@ export default function AdminArtistEdit({
                             { id: 'genel', label: 'Genel' },
                             { id: 'gorsel', label: 'Profil görselleri' },
                             { id: 'sosyal', label: 'Sosyal ve iletişim' },
-                            { id: 'icerik', label: 'Biyografi ve tanıtım' },
+                            { id: 'icerik', label: 'Biyografi ve tanıtım medyası' },
                             { id: 'galeri', label: 'Galeri' },
                         ]}
                     />
@@ -649,6 +649,10 @@ export default function AdminArtistEdit({
                         />
                     </div>
 
+                    <p className="text-xs text-zinc-500">
+                        Sanatçı sayfasında üstte tanıtım videoları, altta gönderi görselleri görünür. «Galeri» sekmesindeki fotoğraflar bu tanıtım alanından
+                        bağımsızdır.
+                    </p>
                     <AdminEntityPromoGalleryPanel
                         entity={artist}
                         variant="artist"

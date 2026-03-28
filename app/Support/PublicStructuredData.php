@@ -84,16 +84,6 @@ final class PublicStructuredData
         $cover = $event->cover_image !== null ? (string) $event->cover_image : '';
         $listing = $event->listing_image !== null ? (string) $event->listing_image : '';
         $ogImage = SeoFormatting::absoluteMediaUrl($listing !== '' ? $listing : $cover, $appUrl);
-        if ($ogImage === null && $event->relationLoaded('artists')) {
-            foreach ($event->artists as $a) {
-                $disp = isset($a->display_image) ? (string) $a->display_image : '';
-                $av = isset($a->avatar) ? (string) $a->avatar : '';
-                $ogImage = SeoFormatting::absoluteMediaUrl($disp !== '' ? $disp : $av, $appUrl);
-                if ($ogImage !== null) {
-                    break;
-                }
-            }
-        }
         if ($ogImage === null && $venue !== null && $venue->cover_image) {
             $ogImage = SeoFormatting::absoluteMediaUrl((string) $venue->cover_image, $appUrl);
         }

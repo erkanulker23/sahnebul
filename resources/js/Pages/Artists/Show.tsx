@@ -1078,7 +1078,7 @@ export default function ArtistShow({
                                                         className="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-950/40 sm:col-span-3 md:col-span-4"
                                                     >
                                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                                                            Tanıtım (Instagram)
+                                                            Instagram gömülü gönderi
                                                         </p>
                                                         <InstagramPostBlock permalink={ig} />
                                                     </div>

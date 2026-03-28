@@ -24,3 +24,14 @@ export function adminArtistPromoGalleryRoutes(artistId: number): AdminEntityProm
         removePromoItem: `${base}/tanitim-galeri-oge-sil`,
     };
 }
+
+export function adminEventPromoGalleryRoutes(eventId: number): AdminEntityPromoGalleryRoutes {
+    const base = `/admin/etkinlikler/${eventId}`;
+
+    return {
+        importMedia: `${base}/adresten-medya`,
+        appendPromoFiles: `${base}/tanitim-dosya-yukle`,
+        clearPromoMedia: `${base}/tanitim-medya-temizle`,
+        removePromoItem: `${base}/tanitim-galeri-oge-sil`,
+    };
+}

@@ -18,27 +18,33 @@ export type PublicPromoGalleryLabels = {
 };
 
 export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
-    storiesTitle: 'Etkinlik hikayeleri',
-    storiesDescription: 'Dikey tanıtım videoları ve görselleri',
-    postsTitle: 'Etkinlik gönderileri',
-    postsDescription: 'Gönderi önizlemeleri. Tam boyut için görsele tıklayın.',
-    linksTitle: 'Tanıtım bağlantıları',
+    storiesTitle: 'Tanıtım videoları',
+    storiesDescription:
+        'Dikey, sitede oynatılan videolar (yüklediğiniz dosya veya Reels’ten indirilen). Instagram «Hikâye» değil; tam video içeriği burada.',
+    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsDescription:
+        'Kare önizleme: Instagram gönderi/reel bağlantısı, yüklenen görsel veya gömülü paylaşım. Kartlara dokunarak büyütür veya Instagram’da açarsınız.',
+    linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
 export const venuePromoLabels: PublicPromoGalleryLabels = {
-    storiesTitle: 'Mekân hikayeleri',
-    storiesDescription: 'Mekân ve programınızla ilgili dikey tanıtım videoları.',
-    postsTitle: 'Mekân gönderileri',
-    postsDescription: 'Sahne ve etkinliklerinizle ilgili gönderi önizlemeleri. Tam boyut için görsele tıklayın.',
-    linksTitle: 'Tanıtım bağlantıları',
+    storiesTitle: 'Tanıtım videoları',
+    storiesDescription:
+        'Mekânınızı tanıtan dikey videolar (dosya yüklemesi veya Reels bağlantısı). Instagram Hikâyesi ile karıştırmayın — burada tam video oynatılır.',
+    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsDescription:
+        'Etkinlik ve mekân duyuruları için kare önizleme; Instagram veya yüklenen görsel. Dokunarak büyütün veya Instagram’da açın.',
+    linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
 export const artistPromoLabels: PublicPromoGalleryLabels = {
-    storiesTitle: 'Sanatçı hikayeleri',
-    storiesDescription: 'Sahne ve repertuarınızla ilgili dikey tanıtım videoları.',
-    postsTitle: 'Sanatçı gönderileri',
-    postsDescription: 'Performans ve duyurularınızla ilgili gönderi önizlemeleri. Tam boyut için görsele tıklayın.',
-    linksTitle: 'Tanıtım bağlantıları',
+    storiesTitle: 'Tanıtım videoları',
+    storiesDescription:
+        'Performans tanıtımı için dikey videolar (dosya veya Reels). Instagram Hikâyesi değil; oynatılabilir video içeriği.',
+    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsDescription:
+        'Duyuru ve paylaşımların kare önizlemesi; Instagram bağlantısı veya yüklenen görsel. Dokunarak büyütün veya Instagram’da açın.',
+    linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
 function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
@@ -397,7 +403,7 @@ export function PublicPromoGallerySection({
                         className="fixed inset-0 z-[200] flex flex-col bg-black/94 backdrop-blur-md"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Tanıtım galerisi"
+                        aria-label="Gönderi önizlemesi — büyük görünüm"
                     >
                         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
                             <p className="text-sm font-medium text-white">
@@ -529,6 +535,9 @@ export function PublicPromoGallerySection({
             {genericEmbedOnly.length > 0 ? (
                 <section className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                     <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white">{labels.linksTitle}</h2>
+                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                        Instagram dışı veya yalnız bağlantı olarak eklenen tanıtım adresleri.
+                    </p>
                     <div className="mt-3 space-y-2">
                         {genericEmbedOnly.map((it, idx) => {
                             const embed = it.embed_url?.trim() ?? '';
@@ -540,7 +549,7 @@ export function PublicPromoGallerySection({
                                     rel="noopener noreferrer"
                                     className="font-medium text-amber-600 underline dark:text-amber-400"
                                 >
-                                    Tanıtım bağlantısını aç
+                                    Bağlantıyı yeni sekmede aç
                                 </a>
                             );
                         })}

@@ -459,22 +459,13 @@ class EventController extends Controller
     {
         SahnebulMail::eventDeletedNotifyStakeholders($event);
 
-        foreach (['cover_image', 'listing_image', 'promo_video_path'] as $field) {
+        app(EventMediaImportFromUrlService::class)->purgePromoGallery($event);
+        $event->refresh();
+
+        foreach (['cover_image', 'listing_image'] as $field) {
             $path = $event->{$field} ?? null;
             if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
                 Storage::disk('public')->delete($path);
-            }
-        }
-        $gallery = is_array($event->promo_gallery) ? $event->promo_gallery : [];
-        foreach ($gallery as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-            foreach (['video_path', 'poster_path'] as $key) {
-                $path = $item[$key] ?? null;
-                if (is_string($path) && $path !== '' && ! Str::startsWith($path, ['http://', 'https://'])) {
-                    Storage::disk('public')->delete($path);
-                }
             }
         }
         $event->delete();
