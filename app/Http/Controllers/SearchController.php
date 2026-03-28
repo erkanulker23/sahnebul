@@ -26,7 +26,8 @@ class SearchController extends Controller
         $query = Event::query()
             ->published()
             ->whereHas('venue', fn ($v) => $v->listedPublicly())
-            ->where('start_date', '>=', now())
+            ->whereNotNull('start_date')
+            ->whereStillVisibleOnPublicListing()
             ->with(['venue:id,name'])
             ->orderByDesc('view_count')
             ->orderBy('start_date');
@@ -82,6 +83,8 @@ class SearchController extends Controller
         $events = Event::query()
             ->published()
             ->whereHas('venue', fn ($v) => $v->listedPublicly())
+            ->whereNotNull('start_date')
+            ->whereStillVisibleOnPublicListing()
             ->where('title', 'like', $like)
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')

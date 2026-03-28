@@ -143,14 +143,7 @@ class EventController extends Controller
 
         $events = Event::query()
             ->published()
-            ->where(function ($q) {
-                $q->where('start_date', '>=', now())
-                    ->orWhere(function ($q2) {
-                        $q2->whereNotNull('end_date')
-                            ->where('end_date', '>=', now())
-                            ->where('start_date', '<=', now());
-                    });
-            })
+            ->whereStillVisibleOnPublicListing()
             ->whereHas('venue', fn ($q) => $q->listedPublicly()->whereNotNull('latitude')->whereNotNull('longitude'))
             ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->select('events.*')

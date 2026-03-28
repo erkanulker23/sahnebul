@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Services\SahnebulMail;
 use App\Support\EventPromoVenueProfileModeration;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -210,6 +211,47 @@ class Event extends Model
     public function scopePast($query)
     {
         return $query->where('start_date', '<', now());
+    }
+
+    /**
+     * Genel liste, arama ve şehir seç: henüz “takvimde” sayılır — başlamamış veya end_date ile sürüyor.
+     * Tek gün + başlangıç geçmişse gösterilmez (yakın etkinlik API’si ile aynı kural).
+     *
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    public function scopeWhereStillVisibleOnPublicListing($query)
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->where(function ($q) use ($table) {
+            $q->where("{$table}.start_date", '>=', now())
+                ->orWhere(function ($q2) use ($table) {
+                    $q2->whereNotNull("{$table}.end_date")
+                        ->where("{$table}.end_date", '>=', now())
+                        ->where("{$table}.start_date", '<=', now());
+                });
+        });
+    }
+
+    /**
+     * scopeWhereStillVisibleOnPublicListing tersi — geçmiş (çok günlük sürüyor değil).
+     *
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    public function scopeWherePastOnPublicListing($query)
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->where(function ($q) use ($table) {
+            $q->where("{$table}.start_date", '<', now())
+                ->whereNot(function ($q2) use ($table) {
+                    $q2->whereNotNull("{$table}.end_date")
+                        ->where("{$table}.end_date", '>=', now())
+                        ->where("{$table}.start_date", '<=', now());
+                });
+        });
     }
 
     /**

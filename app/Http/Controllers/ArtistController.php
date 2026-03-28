@@ -289,14 +289,16 @@ class ArtistController extends Controller
             ->whereHas('venue', fn ($v) => $v->listedPublicly());
 
         $upcomingEvents = $baseArtistEvents()
-            ->where('start_date', '>', now())
+            ->whereNotNull('events.start_date')
+            ->whereStillVisibleOnPublicListing()
             ->with(['venue.city', 'venue.district'])
             ->orderBy('start_date')
             ->limit(120)
             ->get();
 
         $pastEvents = $baseArtistEvents()
-            ->where('start_date', '<', now())
+            ->whereNotNull('events.start_date')
+            ->wherePastOnPublicListing()
             ->with(['venue.city', 'venue.district'])
             ->orderByDesc('start_date')
             ->limit(24)
@@ -305,8 +307,8 @@ class ArtistController extends Controller
         $statsQuery = $baseArtistEvents();
         $stats = [
             'total_events' => (clone $statsQuery)->count(),
-            'upcoming_count' => (clone $statsQuery)->where('start_date', '>', now())->count(),
-            'past_count' => (clone $statsQuery)->where('start_date', '<', now())->count(),
+            'upcoming_count' => (clone $statsQuery)->whereNotNull('events.start_date')->whereStillVisibleOnPublicListing()->count(),
+            'past_count' => (clone $statsQuery)->whereNotNull('events.start_date')->wherePastOnPublicListing()->count(),
             'venue_count' => (clone $statsQuery)->distinct()->count('events.venue_id'),
         ];
 

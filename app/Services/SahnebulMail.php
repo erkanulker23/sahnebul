@@ -176,8 +176,8 @@ final class SahnebulMail
                 'Siteden iletişim formu ile yeni bir mesaj alındı.',
             ],
             detailLines: $lines,
-            actionUrl: route('admin.contact-messages.index', absolute: true),
-            actionLabel: 'İletişim mesajları (admin)',
+            actionUrl: route('admin.contact-messages.show', $message, absolute: true),
+            actionLabel: 'Mesajı aç',
         ), $admins);
     }
 

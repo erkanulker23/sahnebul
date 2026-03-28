@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Support\UpcomingSevenDayEventWindow;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -30,6 +31,8 @@ class DashboardController extends Controller
         $reminderEvents = $user->remindedEvents()
             ->published()
             ->whereHas('venue', fn ($q) => $q->listedPublicly())
+            ->whereNotNull('events.start_date')
+            ->whereStillVisibleOnPublicListing()
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(30)
@@ -44,6 +47,9 @@ class DashboardController extends Controller
         $upcomingEvents = Event::query()
             ->published()
             ->whereHas('venue', fn ($q) => $q->listedPublicly())
+            ->whereNotNull('start_date')
+            ->whereStillVisibleOnPublicListing()
+            ->where('start_date', '<=', UpcomingSevenDayEventWindow::upperBound())
             ->with(['venue:id,name,slug', 'artists:id,name,slug,avatar'])
             ->orderBy('start_date')
             ->limit(6)

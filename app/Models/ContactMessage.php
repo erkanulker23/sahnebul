@@ -14,5 +14,14 @@ class ContactMessage extends Model
         'message',
         'ip_address',
         'user_agent',
+        'is_spam',
+        'admin_note',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_spam' => 'boolean',
+        ];
+    }
 }

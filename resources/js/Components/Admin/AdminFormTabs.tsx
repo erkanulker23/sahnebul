@@ -25,7 +25,7 @@ export function AdminFormTabList({
             role="tablist"
             aria-label="Bölümler"
             className={cn(
-                'flex flex-wrap gap-1 border-b border-zinc-700/80 bg-zinc-950/40 p-1 sm:gap-0 sm:rounded-t-xl',
+                'flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-100/90 p-1 sm:gap-0 sm:rounded-t-xl dark:border-zinc-700/80 dark:bg-zinc-950/40',
                 className,
             )}
         >
@@ -44,8 +44,8 @@ export function AdminFormTabList({
                         className={cn(
                             'min-h-10 rounded-lg px-3 py-2 text-sm font-medium transition sm:rounded-b-none sm:rounded-t-lg sm:px-4',
                             active
-                                ? 'bg-zinc-800 text-amber-200 shadow-sm ring-1 ring-zinc-600/80'
-                                : 'text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300',
+                                ? 'bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-amber-200 dark:ring-zinc-600/80'
+                                : 'text-zinc-600 hover:bg-white/80 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-300',
                         )}
                     >
                         {t.label}

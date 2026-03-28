@@ -35,6 +35,17 @@ class ContactController extends Controller
 
         $validated = $request->validated();
 
+        $dup = ContactMessage::query()
+            ->where('email', $validated['email'])
+            ->where('message', $validated['message'])
+            ->where('created_at', '>=', now()->subMinutes(15))
+            ->exists();
+        if ($dup) {
+            return redirect()
+                ->route('contact')
+                ->with('success', 'Mesajınız alındı. En kısa sürede size dönüş yapacağız.');
+        }
+
         $message = ContactMessage::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],

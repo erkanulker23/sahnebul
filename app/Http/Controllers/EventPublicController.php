@@ -47,7 +47,7 @@ class EventPublicController extends Controller
 
             return Event::query()
                 ->published()
-                ->whereHas('venue', fn ($q) => $q->where('status', 'approved'))
+                ->whereHas('venue', fn ($q) => $q->listedPublicly())
                 ->whereKey($id)
                 ->firstOrFail();
         }
@@ -110,24 +110,13 @@ class EventPublicController extends Controller
                 ->orderByPivot('order'),
         ];
 
-        $stillVisible = function (\Illuminate\Database\Eloquent\Builder $q): void {
-            $q->where(function ($q2) {
-                $q2->where('start_date', '>=', now())
-                    ->orWhere(function ($q3) {
-                        $q3->whereNotNull('end_date')
-                            ->where('end_date', '>=', now())
-                            ->where('start_date', '<=', now());
-                    });
-            });
-        };
-
         $venueUpcomingEvents = Event::query()
             ->published()
             ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->where('venue_id', $event->venue_id)
             ->where('id', '!=', $event->id)
             ->whereNotNull('start_date')
-            ->tap($stillVisible)
+            ->whereStillVisibleOnPublicListing()
             ->orderBy('start_date')
             ->limit(12)
             ->with($upcomingRelations)
@@ -141,7 +130,7 @@ class EventPublicController extends Controller
                 ->where('venue_id', '!=', $event->venue_id)
                 ->where('id', '!=', $event->id)
                 ->whereNotNull('start_date')
-                ->tap($stillVisible)
+                ->whereStillVisibleOnPublicListing()
                 ->whereHas('artists', fn ($q) => $q->whereIn('artists.id', $artistIds))
                 ->orderBy('start_date')
                 ->limit(24)
