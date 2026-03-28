@@ -12,6 +12,7 @@ use App\Models\Neighborhood;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\ArtistProfileInputs;
+use App\Support\ArtistPublicUsername;
 use App\Support\EventListingTypes;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
@@ -644,7 +645,16 @@ final class AdminCatalogExcelService
                 if ($id !== null && Artist::query()->whereKey($id)->exists()) {
                     /** @var Artist $artist */
                     $artist = Artist::query()->findOrFail($id);
-                    $slug = Str::slug((string) ($payload['slug'] ?: $artist->slug));
+                    $slugRaw = trim((string) ($payload['slug'] ?? ''));
+                    if ($slugRaw !== '') {
+                        $assess = ArtistPublicUsername::assessAvailability($slugRaw, $artist->id);
+                        if (! $assess['ok']) {
+                            throw ValidationException::withMessages(['slug' => $assess['message'] ?? 'Geçersiz slug.']);
+                        }
+                        $slug = $assess['normalized'];
+                    } else {
+                        $slug = $artist->slug;
+                    }
                     Validator::make(['slug' => $slug], [
                         'slug' => ['required', 'string', 'max:255', Rule::unique('artists', 'slug')->ignore($artist->id)],
                     ])->validate();
@@ -652,10 +662,16 @@ final class AdminCatalogExcelService
                     $artist->update($payload);
                     $updated++;
                 } else {
-                    $slugBase = Str::slug($payload['name']);
-                    $slug = Str::slug((string) ($payload['slug'] ?: $slugBase.'-'.Str::lower(Str::random(4))));
-                    while (Artist::query()->where('slug', $slug)->exists()) {
-                        $slug = Str::slug($slugBase.'-'.Str::lower(Str::random(4)));
+                    $slugRaw = trim((string) ($payload['slug'] ?? ''));
+                    $name = (string) ($payload['name'] ?? '');
+                    if ($slugRaw !== '') {
+                        $assess = ArtistPublicUsername::assessAvailability($slugRaw, null);
+                        if (! $assess['ok']) {
+                            throw ValidationException::withMessages(['slug' => $assess['message'] ?? 'Geçersiz slug.']);
+                        }
+                        $slug = $assess['normalized'];
+                    } else {
+                        $slug = ArtistPublicUsername::makeUnique(ArtistPublicUsername::fromDisplayName($name), null);
                     }
                     Validator::make(['slug' => $slug], [
                         'slug' => ['required', 'string', 'max:255', Rule::unique('artists', 'slug')],

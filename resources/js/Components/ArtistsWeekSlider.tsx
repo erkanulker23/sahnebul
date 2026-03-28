@@ -16,6 +16,8 @@ export type WeekSliderArtist = {
     is_verified_profile?: boolean;
     is_new_on_platform?: boolean;
     week_first_show: string | null;
+    /** İlk gösterinin bitişi — “Devam ediyor” için */
+    week_first_show_end?: string | null;
     week_events_count?: number;
 };
 
@@ -153,14 +155,18 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                                 <CatalogNewBadge />
                                             </div>
                                         ) : null}
-                                        {eventRelativeDayKind(artist.week_first_show) ? (
+                                        {eventRelativeDayKind(artist.week_first_show, artist.week_first_show_end) ? (
                                             <div
                                                 className={cn(
                                                     'pointer-events-none absolute left-2.5 z-[3] sm:left-3',
                                                     artist.is_new_on_platform ? 'top-9 sm:top-10' : 'top-2.5 sm:top-3',
                                                 )}
                                             >
-                                                <EventRelativeDayPill startDate={artist.week_first_show} placement="overlay" />
+                                                <EventRelativeDayPill
+                                                    startDate={artist.week_first_show}
+                                                    endDate={artist.week_first_show_end}
+                                                    placement="overlay"
+                                                />
                                             </div>
                                         ) : null}
                                         {/** sm+: görsel alt şerit — etkinlik kartındaki konum/tarih bandı */}
@@ -189,7 +195,11 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                     <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
                                         {/** Mobil: meta üstte — PublicEventTicketCard ile aynı düzen */}
                                         <div className="mb-1.5 flex flex-col items-start gap-1 sm:hidden">
-                                            <EventRelativeDayPill startDate={artist.week_first_show} placement="panel" />
+                                            <EventRelativeDayPill
+                                                startDate={artist.week_first_show}
+                                                endDate={artist.week_first_show_end}
+                                                placement="panel"
+                                            />
                                             {n > 0 ? (
                                                 <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-400">
                                                     <IconTicket className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500" />

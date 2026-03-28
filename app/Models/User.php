@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'organization_tax_office', 'organization_tax_number', 'email', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active', 'browser_notifications_enabled'])]
+#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'organization_tax_office', 'organization_tax_number', 'email', 'phone', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active', 'browser_notifications_enabled', 'event_reminder_email_enabled', 'event_reminder_sms_enabled', 'event_reminder_email_hour'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
@@ -33,6 +33,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'interests' => 'array',
             'is_active' => 'boolean',
             'browser_notifications_enabled' => 'boolean',
+            'event_reminder_email_enabled' => 'boolean',
+            'event_reminder_sms_enabled' => 'boolean',
+            'event_reminder_email_hour' => 'integer',
         ];
     }
 

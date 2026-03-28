@@ -81,6 +81,14 @@ return [
     ],
 
     /**
+     * Etkinlik hatırlatması SMS — SAHNEBUL_SMS_ENABLED=true ve sağlayıcı ayarları olunca gönderilir.
+     * Kapalıyken tercih kaydedilir; EventReminderSmsService yalnızca log yazar.
+     */
+    'sms' => [
+        'enabled' => (bool) env('SAHNEBUL_SMS_ENABLED', false),
+    ],
+
+    /**
      * Admin panelde çoklu tanıtım video URL içe aktarımı (sıralı yt-dlp) için PHP süre sınırı (saniye).
      * Nginx/Forge: site → Nginx şablonunda fastcgi_read_timeout aynı mertebede olmalı (ör. 900s).
      */

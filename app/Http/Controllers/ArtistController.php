@@ -15,6 +15,7 @@ use App\Support\InertiaDocumentMeta;
 use App\Support\PublicStructuredData;
 use App\Support\TurkishAlphabet;
 use App\Support\UpcomingSevenDayEventWindow;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -106,6 +107,67 @@ class ArtistController extends Controller
     }
 
     /**
+     * @param  Collection<int, object>  $rows  `artist_id`, `first_show` (MIN start)
+     * @return array<int, string|null> artist_id → ilk gösterinin bitiş ISO’su
+     */
+    private function firstShowEndIsoByArtistId(Collection $rows): array
+    {
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $artistIds = $rows->pluck('artist_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+
+        $query = DB::table('event_artists as ea')
+            ->join('events as e', 'e.id', '=', 'ea.event_id')
+            ->join('venues as v', 'v.id', '=', 'e.venue_id')
+            ->join('artists', 'artists.id', '=', 'ea.artist_id')
+            ->where('e.status', 'published')
+            ->where('v.status', 'approved')
+            ->where('v.is_active', true)
+            ->where('artists.status', 'approved')
+            ->where(function ($q2) {
+                $q2->whereNull('artists.country_code')
+                    ->orWhere('artists.country_code', '!=', 'INT');
+            })
+            ->whereIn('ea.artist_id', $artistIds);
+
+        $query = UpcomingSevenDayEventWindow::applyToQuery($query, 'e.start_date');
+
+        $candidates = $query->get(['ea.artist_id', 'e.start_date', 'e.end_date']);
+
+        $tupleToEndIso = [];
+        foreach ($candidates as $row) {
+            $aid = (int) $row->artist_id;
+            $startNorm = Carbon::parse($row->start_date)->format('Y-m-d H:i:s');
+            $tupleKey = $aid."\0".$startNorm;
+            if (array_key_exists($tupleKey, $tupleToEndIso)) {
+                continue;
+            }
+            $end = $row->end_date;
+            $tupleToEndIso[$tupleKey] = $end !== null
+                ? Carbon::parse($end)->toIso8601String()
+                : null;
+        }
+
+        $out = [];
+        foreach ($rows as $r) {
+            $aid = (int) $r->artist_id;
+            $first = $r->first_show;
+            if ($first === null) {
+                $out[$aid] = null;
+
+                continue;
+            }
+            $startNorm = Carbon::parse($first)->format('Y-m-d H:i:s');
+            $tupleKey = $aid."\0".$startNorm;
+            $out[$aid] = $tupleToEndIso[$tupleKey] ?? null;
+        }
+
+        return $out;
+    }
+
+    /**
      * Sanatçılar: bugünden itibaren 7 günlük pencerede (yalnızca start_date >= şu an) en az bir yayınlanmış etkinliği olanlar.
      *
      * @return Collection<int, array<string, mixed>>
@@ -143,6 +205,7 @@ class ArtistController extends Controller
 
         $idsOrdered = $rows->pluck('artist_id')->map(fn ($id) => (int) $id)->all();
         $metaByArtistId = $rows->keyBy(fn ($r) => (int) $r->artist_id);
+        $firstShowEndIsoByArtist = $this->firstShowEndIsoByArtistId($rows);
 
         $loaded = Artist::query()
             ->whereIn('id', $idsOrdered)
@@ -154,7 +217,7 @@ class ArtistController extends Controller
             ->keyBy('id');
 
         return collect($idsOrdered)
-            ->map(function (int $id) use ($loaded, $metaByArtistId) {
+            ->map(function (int $id) use ($loaded, $metaByArtistId, $firstShowEndIsoByArtist) {
                 $artist = $loaded->get($id);
                 if (! $artist) {
                     return null;
@@ -175,6 +238,7 @@ class ArtistController extends Controller
                         CatalogEntityNew::artistEligible((string) $artist->status),
                     ),
                     'week_first_show' => $first ? (string) $first : null,
+                    'week_first_show_end' => $firstShowEndIsoByArtist[$id] ?? null,
                     'week_events_count' => $weekCount,
                 ];
             })

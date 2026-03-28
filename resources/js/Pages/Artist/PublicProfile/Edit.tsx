@@ -444,7 +444,7 @@ export default function PublicArtistProfileEdit({
                 <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
                     <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Kullanıcı adı (profil adresi)</h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                        Sitedeki adresiniz küçük harf, rakam ve tire ile oluşur. Türkçe karakterler kaydederken otomatik dönüştürülür.
+                        Sitedeki adres yalnız küçük harf (a-z) ve rakamlardan oluşur; boşluk ve tire kullanılmaz. Türkçe karakterler kaydederken otomatik dönüştürülür.
                     </p>
                     <div className="mt-4">
                         <label htmlFor="artist-public-slug" className="block text-sm font-medium text-zinc-400">
@@ -456,7 +456,7 @@ export default function PublicArtistProfileEdit({
                             onChange={(e) => setData('slug', e.target.value)}
                             autoComplete="off"
                             className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-mono text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
-                            placeholder="ornek-sanatci"
+                            placeholder="orneksanatci"
                         />
                         {errors.slug ? <p className="mt-1 text-sm text-red-400">{errors.slug}</p> : null}
                         <p className="mt-2 break-all text-xs text-zinc-500">

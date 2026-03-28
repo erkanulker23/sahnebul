@@ -1,5 +1,6 @@
 import BrowserNotificationsBar from '@/Components/BrowserNotificationsBar';
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
+import FlashMessage from '@/Components/FlashMessage';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import PanelNotificationsMenu from '@/Components/PanelNotificationsMenu';
@@ -137,6 +138,7 @@ export default function Authenticated({
 
             <BrowserNotificationsBar />
             <EmailVerificationBanner />
+            <FlashMessage />
 
             {header && (
                 <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50">

@@ -28,9 +28,9 @@ Schedule::command('marketplaces:crawl --source=bubilet --limit=250')
 Schedule::command('queue:prune-failed --hours=168')->weekly();
 
 Schedule::command('sahnebul:send-event-reminders')
-    ->dailyAt('10:00')
+    ->hourlyAt(7)
     ->timezone('Europe/Istanbul')
-    ->withoutOverlapping(30);
+    ->withoutOverlapping(25);
 
 Schedule::command('events:purge-ended-promo-media')
     ->dailyAt('04:30')

@@ -511,8 +511,8 @@ export default function EventShow({
                             </div>
                             {followUiVisible && eventCustomerActions.canToggle && !eventCustomerActions.hasReminder ? (
                                 <p className="max-w-xl text-xs leading-relaxed text-zinc-300">
-                                    Listeye eklediğinizde etkinlikten <strong className="text-zinc-200">bir gün önce</strong> e-posta alırsınız
-                                    (İstanbul saatiyle genelde <strong className="text-zinc-200">10:00</strong> civarı). Bildirimler sayfanızda da
+                                    Listeye eklediğinizde etkinlikten <strong className="text-zinc-200">bir gün önce</strong> panelde seçtiğiniz saatte (İstanbul)
+                                    e-posta ve/veya SMS hatırlatması alırsınız. Bildirimler sayfanızda da
                                     görünür. Rezervasyon yaptığınız etkinliklerde takip aynı kurala göre otomatik açılabilir.
                                 </p>
                             ) : null}
@@ -903,7 +903,7 @@ export default function EventShow({
                             <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
                                 <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Takip listesi</p>
                                 <p className="mt-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">
-                                    Etkinlikten bir gün önce e-posta hatırlatması (yaklaşık 10:00, İstanbul).
+                                    Etkinlikten bir gün önce — panelde seçtiğiniz saatte (İstanbul) e-posta veya SMS.
                                 </p>
                                 <div className="mt-4 space-y-2">
                                     {eventCustomerActions.canToggle ? (

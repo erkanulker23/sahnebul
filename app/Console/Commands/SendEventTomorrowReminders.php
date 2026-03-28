@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Event;
 use App\Models\User;
 use App\Notifications\EventTomorrowReminderDatabaseNotification;
+use App\Services\EventReminderSmsService;
 use App\Services\SahnebulMail;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -14,12 +15,13 @@ class SendEventTomorrowReminders extends Command
 {
     protected $signature = 'sahnebul:send-event-reminders';
 
-    protected $description = 'Yarın gerçekleşecek etkinlikler için kullanıcı e-posta hatırlatmalarını gönderir';
+    protected $description = 'Yarınki etkinlik hatırlatmaları — kullanıcının seçtiği İstanbul saatinde (e-posta / SMS / uygulama bildirimi)';
 
     public function handle(): int
     {
         $tz = 'Europe/Istanbul';
         $tomorrow = Carbon::tomorrow($tz)->toDateString();
+        $currentHour = (int) Carbon::now($tz)->format('G');
 
         $rows = DB::table('user_event_reminders as uer')
             ->join('events as e', 'e.id', '=', 'uer.event_id')
@@ -30,6 +32,7 @@ class SendEventTomorrowReminders extends Command
             ->where('v.status', 'approved')
             ->whereDate('e.start_date', $tomorrow)
             ->where('u.is_active', true)
+            ->where('u.event_reminder_email_hour', $currentHour)
             ->select('uer.id as reminder_row_id', 'uer.user_id', 'uer.event_id')
             ->get();
 
@@ -46,10 +49,32 @@ class SendEventTomorrowReminders extends Command
                 continue;
             }
 
-            if (! SahnebulMail::eventTomorrowReminder($user, $event)) {
-                $this->error('E-posta gönderilemedi (kullanıcı '.$user->id.', etkinlik '.$event->id.').');
+            $emailOn = (bool) $user->event_reminder_email_enabled;
+            $smsOn = (bool) $user->event_reminder_sms_enabled;
+            $phone = trim((string) ($user->phone ?? ''));
+
+            if ($smsOn && $phone === '') {
+                $this->warn("SMS açık ama telefon yok (kullanıcı {$user->id}); hatırlatma atlandı.");
 
                 continue;
+            }
+
+            if ($emailOn) {
+                if (! $user->hasVerifiedEmail()) {
+                    $this->warn("E-posta hatırlatması atlandı — doğrulanmamış adres (kullanıcı {$user->id}).");
+                } elseif (! SahnebulMail::eventTomorrowReminder($user, $event)) {
+                    $this->error("E-posta gönderilemedi (kullanıcı {$user->id}, etkinlik {$event->id}).");
+
+                    continue;
+                }
+            }
+
+            if ($smsOn) {
+                if (! EventReminderSmsService::sendTomorrowReminder($user, $event)) {
+                    $this->error("SMS gönderilemedi (kullanıcı {$user->id}, etkinlik {$event->id}).");
+
+                    continue;
+                }
             }
 
             $user->notify(new EventTomorrowReminderDatabaseNotification($event));

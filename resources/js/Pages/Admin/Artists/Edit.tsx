@@ -11,8 +11,9 @@ import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGal
 import AdminEntitySubscriptionPanel from '@/Components/Admin/AdminEntitySubscriptionPanel';
 import { cn } from '@/lib/cn';
 import { adminArtistPromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
+import axios from 'axios';
 import { Link, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface MediaItem {
     id: number;
@@ -118,6 +119,7 @@ export default function AdminArtistEdit({
     const pub = artist.public_contact ?? {};
     const { data, setData, put, post, processing, errors, progress, transform } = useForm({
         name: artist.name,
+        slug: artist.slug,
         music_genres: initialMusicGenres(artist.music_genres, artist.genre, musicGenreOptions),
         bio: artist.bio ?? '',
         avatar: artist.avatar ?? '',
@@ -148,6 +150,43 @@ export default function AdminArtistEdit({
         avatar_upload: null as File | null,
         banner_upload: null as File | null,
     });
+
+    const [slugCheck, setSlugCheck] = useState<{ ok: boolean; message: string } | null>(null);
+
+    useEffect(() => {
+        const raw = data.slug.trim();
+        if (raw === '') {
+            setSlugCheck(null);
+            return;
+        }
+        const t = globalThis.setTimeout(() => {
+            axios
+                .get<{ ok: boolean; message?: string | null }>(route('admin.artists.username-check'), {
+                    params: { q: raw, ignore: artist.id },
+                })
+                .then((res) => {
+                    setSlugCheck({
+                        ok: res.data.ok === true,
+                        message: (res.data.message ?? (res.data.ok ? 'Uygun.' : '')).trim(),
+                    });
+                })
+                .catch(() => setSlugCheck(null));
+        }, 400);
+        return () => globalThis.clearTimeout(t);
+    }, [data.slug, artist.id]);
+
+    const suggestSlugFromName = () => {
+        axios
+            .get<{ suggested: string }>(route('admin.artists.username-suggest'), {
+                params: { name: data.name, ignore: artist.id },
+            })
+            .then((res) => {
+                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
+                    setData('slug', res.data.suggested);
+                }
+            })
+            .catch(() => {});
+    };
 
     const field = cn('mt-1', inputBaseClass);
     const fieldMax = cn('mt-2 max-w-xl', inputBaseClass);
@@ -256,11 +295,13 @@ export default function AdminArtistEdit({
                             ← Sanatçı listesi
                         </Link>
                         <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı düzenle</h1>
-                        <p className="mt-1 text-sm text-zinc-500">/{artist.slug}</p>
+                        <p className="mt-1 text-sm text-zinc-500">
+                            Açık adres: /sanatcilar/{data.slug || artist.slug}
+                        </p>
                     </div>
                     <div className="flex gap-2">
                         <Link
-                            href={route('artists.show', artist.slug)}
+                            href={route('artists.show', data.slug || artist.slug)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -323,6 +364,41 @@ export default function AdminArtistEdit({
                                 <option value="approved">Onaylı</option>
                                 <option value="rejected">Reddedildi</option>
                             </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                            <div className="flex flex-wrap items-end justify-between gap-2">
+                                <label htmlFor="admin-artist-slug" className="block text-sm font-medium text-zinc-400">
+                                    Kullanıcı adı (URL) *
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => suggestSlugFromName()}
+                                    className="text-xs font-semibold text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+                                >
+                                    İsimden üret
+                                </button>
+                            </div>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                                Yalnız küçük harf ve rakam, boşluk veya tire yok (ör. ajdapekkan). Kaydederken Türkçe karakterler dönüştürülür.
+                            </p>
+                            <input
+                                id="admin-artist-slug"
+                                value={data.slug}
+                                onChange={(e) => setData('slug', e.target.value)}
+                                autoComplete="off"
+                                className={cn(fieldMax, 'font-mono')}
+                            />
+                            {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
+                            {slugCheck && !errors.slug ? (
+                                <p
+                                    className={cn(
+                                        'mt-1 text-sm',
+                                        slugCheck.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400',
+                                    )}
+                                >
+                                    {slugCheck.message}
+                                </p>
+                            ) : null}
                         </div>
                         <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-zinc-400">Organizasyon firması</label>

@@ -20,6 +20,14 @@
         @if (is_string($inertiaFavicon) && $inertiaFavicon !== '')
             <link rel="icon" href="{{ $inertiaFavicon }}" @if (str_ends_with(strtolower(parse_url($inertiaFavicon, PHP_URL_PATH) ?: ''), '.svg')) type="image/svg+xml" @endif>
         @endif
+        <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
+        <meta name="theme-color" content="#ea580c" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="Sahnebul">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <link rel="apple-touch-icon" href="{{ url('/icons/apple-touch-icon.png') }}">
         @if ($inertiaDocumentMeta !== null)
             @include('partials.inertia-document-meta', ['doc' => $inertiaDocumentMeta])
         @else

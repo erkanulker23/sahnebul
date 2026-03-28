@@ -109,6 +109,7 @@ final class SehirSecPlatformEvents
             'slug' => $event->slug,
             'title' => $event->title,
             'start_date' => $event->start_date?->toIso8601String() ?? '',
+            'end_date' => $event->end_date?->toIso8601String(),
             'cover_image' => $event->cover_image,
             'listing_image' => $event->listing_image,
             'status' => $event->status,

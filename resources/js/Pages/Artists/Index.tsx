@@ -45,6 +45,7 @@ interface Props {
         genre: string | null;
         is_verified_profile?: boolean;
         week_first_show: string | null;
+        week_first_show_end?: string | null;
         week_events_count?: number;
         is_new_on_platform?: boolean;
     }>;

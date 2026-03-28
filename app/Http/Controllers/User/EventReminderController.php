@@ -28,7 +28,7 @@ class EventReminderController extends Controller
 
         return back()->with(
             'success',
-            'Takip listesine eklendi. Etkinlikten bir gün önce (yaklaşık saat 10:00, İstanbul) e-posta ve hesabınızdaki bildirimler gönderilir.'
+            'Takip listesine eklendi. Etkinlikten bir gün önce, panelde «Takvim ve hatırlatmalar» bölümünde seçtiğiniz saatte (İstanbul) e-posta ve/veya SMS ile; ayrıca hesap bildirimlerinizde hatırlatma oluşur.'
         );
     }
 }

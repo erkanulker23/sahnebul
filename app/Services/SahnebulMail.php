@@ -453,7 +453,7 @@ final class SahnebulMail
             title: 'Etkinlik yarın',
             introLines: [
                 'Merhaba <strong>'.e($user->name).'</strong>,',
-                'Takip listesine eklediğiniz etkinlik <strong>yarın</strong> gerçekleşecek; bu mesaj etkinlik gününden bir gün önce gönderilir.',
+                'Takip listesine eklediğiniz etkinlik <strong>yarın</strong> gerçekleşecek; bu mesaj, hesabınızda belirttiğiniz İstanbul saatinde (etkinlikten bir gün önce) gönderilir.',
             ],
             detailLines: $detail,
             actionUrl: $url,

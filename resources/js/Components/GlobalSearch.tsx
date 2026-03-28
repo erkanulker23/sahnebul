@@ -1,6 +1,7 @@
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { cn } from '@/lib/cn';
+import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
 import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
@@ -25,6 +26,7 @@ type EventHit = {
     slug: string;
     title: string;
     start_date: string;
+    end_date?: string | null;
     venue_name?: string | null;
     /** listing_image veya cover_image */
     image?: string | null;
@@ -199,17 +201,24 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             const r = el.getBoundingClientRect();
             const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
             const pad = 12;
+            const vw = globalThis.innerWidth;
             if (narrow) {
                 setPanelBox({
                     top: r.bottom + 6,
                     left: pad,
-                    width: globalThis.innerWidth - pad * 2,
+                    width: vw - pad * 2,
                 });
             } else {
+                /** Üst bardaki arama kutusu flex yüzünden dar kalabiliyor; panel en az okunaklı genişlikte olmalı. */
+                const maxPanel = Math.min(672, vw - pad * 2);
+                const minPanel = Math.min(400, maxPanel);
+                const width = Math.min(maxPanel, Math.max(minPanel, r.width));
+                let left = r.left + (r.width - width) / 2;
+                left = Math.max(pad, Math.min(left, vw - pad - width));
                 setPanelBox({
                     top: r.bottom + 6,
-                    left: r.left,
-                    width: r.width,
+                    left,
+                    width,
                 });
             }
         };
@@ -362,6 +371,15 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                         className="group flex w-[6.5rem] shrink-0 snap-start flex-col sm:w-[7.5rem] lg:w-[8.25rem]"
                                                     >
                                                         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-zinc-100 ring-1 ring-zinc-200/80 transition group-hover:ring-amber-400/50 dark:bg-zinc-800 dark:ring-zinc-700">
+                                                            {ev.start_date && eventRelativeDayKind(ev.start_date, ev.end_date) ? (
+                                                                <div className="pointer-events-none absolute left-1 top-1 z-[2] sm:left-1.5 sm:top-1.5">
+                                                                    <EventRelativeDayPill
+                                                                        startDate={ev.start_date}
+                                                                        endDate={ev.end_date}
+                                                                        placement="overlay"
+                                                                    />
+                                                                </div>
+                                                            ) : null}
                                                             {src ? (
                                                                 <img
                                                                     src={src}
@@ -513,7 +531,11 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                                 {ev.title}
                                                             </span>
                                                             <span className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
-                                                                <EventRelativeDayPill startDate={ev.start_date} placement="compactLight" />
+                                                                <EventRelativeDayPill
+                                                                    startDate={ev.start_date}
+                                                                    endDate={ev.end_date}
+                                                                    placement="compactLight"
+                                                                />
                                                                 <span>
                                                                     {formatTurkishDateTime(ev.start_date)}
                                                                     {ev.venue_name ? ` · ${ev.venue_name}` : ''}

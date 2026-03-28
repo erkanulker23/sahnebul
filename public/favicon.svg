@@ -1,21 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Sahnebul">
-    <!--
-      Küçük boyutlarda (sekme, Google sonuçları) okunaklılık için:
-      tek şekil, düz dolgu, kalın harf — ince çizgi / gradient yok.
-    -->
+    <!-- Logo ile aynı mikrofon: beyaz işaret, turuncu zemin, ortalanmış -->
     <rect width="100" height="100" rx="22" fill="#ea580c"/>
-    <rect x="1" y="1" width="98" height="98" rx="21" fill="none" stroke="#000" stroke-opacity="0.1" stroke-width="1"/>
-    <!-- paint-order: kontur altta, dolgu üstte — turuncu üzerinde S net ayrılır -->
-    <text
-        x="50"
-        y="56"
-        text-anchor="middle"
-        font-family="Arial Black, Helvetica Neue, Arial, sans-serif"
-        font-size="58"
-        font-weight="900"
-        fill="#ffffff"
-        stroke="#7c2d12"
-        stroke-width="5"
-        paint-order="stroke fill"
-    >S</text>
+    <rect x="1" y="1" width="98" height="98" rx="21" fill="none" stroke="#000" stroke-opacity="0.08" stroke-width="1"/>
+    <g transform="translate(23 17.5) scale(1.35)" fill="none" stroke-linecap="round">
+        <path d="M5 17c-2.5 3-2.5 11 0 14" stroke="#ffffff" stroke-width="1.25" opacity="0.4"/>
+        <path d="M35 17c2.5 3 2.5 11 0 14" stroke="#ffffff" stroke-width="1.25" opacity="0.4"/>
+        <rect x="13" y="5" width="14" height="19" rx="7" fill="#ffffff" stroke="none"/>
+        <path
+            d="M16 9h8M16 13h8M16 17h8"
+            stroke="#c2410c"
+            stroke-opacity="0.35"
+            stroke-width="0.9"
+        />
+        <path d="M11 26c0 4.5 4.5 8 9 8s9-3.5 9-8" stroke="#ffffff" stroke-width="2"/>
+        <path d="M20 34v8" stroke="#ffffff" stroke-width="2.25"/>
+        <path d="M12 44h16" stroke="#ffffff" stroke-width="2.75"/>
+    </g>
 </svg>

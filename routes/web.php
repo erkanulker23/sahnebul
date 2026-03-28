@@ -61,6 +61,7 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\User\BrowserNotificationController;
 use App\Http\Controllers\User\EventIcsController;
 use App\Http\Controllers\User\EventReminderController;
+use App\Http\Controllers\User\EventReminderPreferenceController;
 use App\Http\Controllers\User\FavoriteArtistController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
@@ -170,6 +171,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/hesabim/etkinlik-hatirlat/{event}', [EventReminderController::class, 'toggle'])
         ->whereNumber('event')
         ->name('user.event-reminders.toggle');
+    Route::patch('/hesabim/etkinlik-hatirlat-tercihleri', [EventReminderPreferenceController::class, 'update'])
+        ->name('user.event-reminders.preferences');
     Route::get('/hesabim/etkinlikler/{event}/takvim.ics', [EventIcsController::class, 'show'])
         ->whereNumber('event')
         ->name('user.events.ics');
@@ -355,6 +358,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');
 
     Route::get('/sanatcilar', [AdminArtistController::class, 'index'])->name('artists.index');
+    Route::get('/sanatcilar/kullanici-adi-kontrol', [AdminArtistController::class, 'checkUsernameAvailability'])
+        ->middleware('throttle:60,1')
+        ->name('artists.username-check');
+    Route::get('/sanatcilar/kullanici-adi-oner', [AdminArtistController::class, 'suggestUsername'])
+        ->middleware('throttle:30,1')
+        ->name('artists.username-suggest');
     Route::get('/sanatcilar/excel', [AdminCatalogExcelController::class, 'exportArtists'])->name('artists.excel-export');
     Route::post('/sanatcilar/excel-ice-aktar', [AdminCatalogExcelController::class, 'importArtists'])->name('artists.excel-import');
     Route::get('/sanatcilar/ekle', [AdminArtistController::class, 'create'])->name('artists.create');

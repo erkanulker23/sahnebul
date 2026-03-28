@@ -10,12 +10,12 @@ use App\Models\MusicGenre;
 use App\Services\AppSettingsService;
 use App\Services\EventMediaImportFromUrlService;
 use App\Support\ArtistProfileInputs;
+use App\Support\ArtistPublicUsername;
 use App\Support\InstagramPostUrl;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -74,7 +74,7 @@ class PublicArtistProfileController extends Controller
             return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
         }
 
-        $slugNormalized = Str::slug(trim((string) $request->input('slug', '')), '-', 'tr');
+        $slugNormalized = ArtistPublicUsername::normalize(trim((string) $request->input('slug', '')));
         $request->merge([
             'slug' => $slugNormalized,
             'bio' => $request->input('bio') ?: null,
@@ -90,10 +90,15 @@ class PublicArtistProfileController extends Controller
             'slug' => [
                 'required',
                 'string',
-                'min:2',
-                'max:100',
-                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                'min:'.ArtistPublicUsername::MIN_LENGTH,
+                'max:'.ArtistPublicUsername::MAX_LENGTH,
+                'regex:/^[a-z0-9]+$/',
                 Rule::unique('artists', 'slug')->ignore($artist->id),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && ArtistPublicUsername::isReserved($value)) {
+                        $fail('Bu kullanıcı adı kullanılamaz.');
+                    }
+                },
             ],
             'bio' => 'nullable|string',
             'website' => 'nullable|url|max:255',

@@ -7,8 +7,10 @@ function capitalizeTr(s: string): string {
 }
 
 export type FormatTurkishDateTimeOptions = {
-    /** Varsayılan true. false iken sadece `06 Haziran Cumartesi` (takvim günü başlıkları vb.). */
+    /** Varsayılan true. false iken saat gösterilmez (tarih satırında yıl yine varsayılan olarak vardır). */
     withTime?: boolean;
+    /** Varsayılan true — `28 Mart Cumartesi 2026`. false iken yıl gösterilmez (nadir özetler). */
+    withYear?: boolean;
     /** Boş / geçersiz değerde dönecek metin */
     empty?: string;
     /**
@@ -19,7 +21,7 @@ export type FormatTurkishDateTimeOptions = {
 };
 
 /**
- * Tüm arayüzde tutarlı etkinlik / anlık gösterimi: `06 Haziran Cumartesi, 22:00`
+ * Tüm arayüzde tutarlı gösterim: `28 Mart Cumartesi 2026, 22:00` (yıl + İstanbul saati).
  */
 export function formatTurkishDateTime(
     value: string | number | Date | null | undefined,
@@ -35,17 +37,22 @@ export function formatTurkishDateTime(
     }
 
     const tz = options?.timeZone ?? SAHNE_EVENT_DISPLAY_TZ;
+    const withYear = options?.withYear !== false;
 
     const parts = new Intl.DateTimeFormat('tr-TR', {
         timeZone: tz,
         day: '2-digit',
         month: 'long',
         weekday: 'long',
+        ...(withYear ? { year: 'numeric' as const } : {}),
     }).formatToParts(d);
     const dayNum = parts.find((p) => p.type === 'day')?.value ?? '';
     const monthRaw = parts.find((p) => p.type === 'month')?.value ?? '';
     const weekdayRaw = parts.find((p) => p.type === 'weekday')?.value ?? '';
-    const datePart = `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)}`;
+    const yearRaw = parts.find((p) => p.type === 'year')?.value ?? '';
+    const datePart = withYear
+        ? `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)} ${yearRaw}`
+        : `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)}`;
     if (options?.withTime === false) {
         return datePart;
     }

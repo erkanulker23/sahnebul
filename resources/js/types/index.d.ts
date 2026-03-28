@@ -12,6 +12,12 @@ export interface User {
     organization_tax_number?: string | null;
     /** Tarayıcı bildirimi tercihi (hesap bildirimleri için) */
     browser_notifications_enabled?: boolean;
+    /** Cep — etkinlik hatırlatması SMS */
+    phone?: string | null;
+    event_reminder_email_enabled?: boolean;
+    event_reminder_sms_enabled?: boolean;
+    /** 0–23, Europe/Istanbul — hatırlatmanın gideceği saat (etkinlikten bir gün önce) */
+    event_reminder_email_hour?: number;
 }
 
 export interface LinkedArtistSummary {

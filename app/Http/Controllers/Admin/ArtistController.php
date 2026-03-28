@@ -11,8 +11,10 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\EventMediaImportFromUrlService;
 use App\Support\ArtistProfileInputs;
+use App\Support\ArtistPublicUsername;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -24,6 +26,34 @@ use Inertia\Inertia;
 class ArtistController extends Controller
 {
     use PromoGalleryImportActions;
+
+    public function checkUsernameAvailability(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'max:120'],
+            'ignore' => ['nullable', 'integer', 'exists:artists,id'],
+        ]);
+        $ignore = isset($validated['ignore']) ? (int) $validated['ignore'] : null;
+        $assess = ArtistPublicUsername::assessAvailability($validated['q'], $ignore);
+
+        return response()->json($assess);
+    }
+
+    public function suggestUsername(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ignore' => ['nullable', 'integer', 'exists:artists,id'],
+        ]);
+        $ignore = isset($validated['ignore']) ? (int) $validated['ignore'] : null;
+        $base = ArtistPublicUsername::fromDisplayName($validated['name']);
+        if ($base === '' || strlen($base) < ArtistPublicUsername::MIN_LENGTH) {
+            $base = ArtistPublicUsername::fallbackBase();
+        }
+        $suggested = ArtistPublicUsername::makeUnique($base, $ignore);
+
+        return response()->json(['suggested' => $suggested]);
+    }
 
     public function create()
     {
@@ -138,6 +168,7 @@ class ArtistController extends Controller
                 Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'manager_organization')),
             ],
             'spotify_auto_link_disabled' => 'boolean',
+            'slug' => 'nullable|string|max:120',
         ]);
 
         unset($validated['avatar_upload'], $validated['banner_upload']);
@@ -167,9 +198,26 @@ class ArtistController extends Controller
             ]);
         }
 
+        $slugInput = $request->input('slug');
+        if (is_string($slugInput) && trim($slugInput) !== '') {
+            $assess = ArtistPublicUsername::assessAvailability($slugInput, null);
+            if (! $assess['ok']) {
+                throw ValidationException::withMessages([
+                    'slug' => $assess['message'] ?? 'Geçersiz kullanıcı adı.',
+                ]);
+            }
+            $slug = $assess['normalized'];
+        } else {
+            $slug = ArtistPublicUsername::makeUnique(
+                ArtistPublicUsername::fromDisplayName($validated['name']),
+                null,
+            );
+        }
+        unset($validated['slug']);
+
         $artist = Artist::create([
             ...$validated,
-            'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(4)),
+            'slug' => $slug,
         ]);
 
         return redirect()->route('admin.artists.edit', $artist)->with('success', 'Sanatçı eklendi. Detayları düzenleyebilirsiniz.');
@@ -218,6 +266,7 @@ class ArtistController extends Controller
                 Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'manager_organization')),
             ],
             'spotify_auto_link_disabled' => 'boolean',
+            'slug' => 'nullable|string|max:120',
         ]);
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, [
@@ -250,8 +299,17 @@ class ArtistController extends Controller
             }
         }
 
-        if ($artist->name !== $validated['name']) {
-            $validated['slug'] = Str::slug($validated['name']).'-'.Str::lower(Str::random(4));
+        $slugInput = $request->input('slug');
+        if (is_string($slugInput) && trim($slugInput) !== '') {
+            $assess = ArtistPublicUsername::assessAvailability($slugInput, $artist->id);
+            if (! $assess['ok']) {
+                throw ValidationException::withMessages([
+                    'slug' => $assess['message'] ?? 'Geçersiz kullanıcı adı.',
+                ]);
+            }
+            $validated['slug'] = $assess['normalized'];
+        } else {
+            unset($validated['slug']);
         }
 
         $rawGenresUp = $validated['music_genres'] ?? [];

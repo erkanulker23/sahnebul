@@ -20,10 +20,29 @@ function splitFlashText(text: string): { headline: string; supporting?: string }
     return { headline: t };
 }
 
+const EMAIL_VERIFIED_LEGACY =
+    'E-posta adresiniz doğrulandı. Artık takip listesi ve hatırlatmalar için e-posta kullanabilirsiniz.';
+
 export default function FlashMessage() {
-    const { flash } = usePage().props as { flash?: { success?: string; error?: string } };
+    const page = usePage();
+    const { flash } = page.props as { flash?: { success?: string; error?: string } };
     const [visible, setVisible] = useState(false);
     const [rendered, setRendered] = useState(false);
+    const [legacySuccess, setLegacySuccess] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('verified') !== '1') {
+            return;
+        }
+        setLegacySuccess(EMAIL_VERIFIED_LEGACY);
+        params.delete('verified');
+        const q = params.toString();
+        window.history.replaceState(null, '', `${window.location.pathname}${q ? `?${q}` : ''}${window.location.hash}`);
+    }, [page.url]);
 
     const payload = useMemo(() => {
         if (flash?.error) {
@@ -32,15 +51,21 @@ export default function FlashMessage() {
         if (flash?.success) {
             return { variant: 'success' as const, raw: flash.success };
         }
+        if (legacySuccess) {
+            return { variant: 'success' as const, raw: legacySuccess };
+        }
         return null;
-    }, [flash?.error, flash?.success]);
+    }, [flash?.error, flash?.success, legacySuccess]);
 
     const { headline, supporting } = useMemo(
         () => (payload ? splitFlashText(payload.raw) : { headline: '', supporting: undefined as string | undefined }),
         [payload],
     );
 
-    const dismiss = useCallback(() => setVisible(false), []);
+    const dismiss = useCallback(() => {
+        setVisible(false);
+        setLegacySuccess(null);
+    }, []);
 
     useEffect(() => {
         if (!payload) {
@@ -50,7 +75,10 @@ export default function FlashMessage() {
         }
         setRendered(true);
         setVisible(true);
-        const t = setTimeout(() => setVisible(false), DISMISS_MS);
+        const t = setTimeout(() => {
+            setVisible(false);
+            setLegacySuccess(null);
+        }, DISMISS_MS);
         return () => clearTimeout(t);
     }, [payload]);
 

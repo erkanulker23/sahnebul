@@ -29,3 +29,12 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
+
+/** PWA: Ana ekrana ekle / kurulum — üretimde service worker kaydı (önbellek yok, sadece fetch iletir). */
+if (import.meta.env.PROD && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+            /* Kayıt başarısız — site normal çalışmaya devam eder */
+        });
+    });
+}

@@ -33,7 +33,7 @@ class DashboardController extends Controller
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(30)
-            ->get(['events.id', 'events.slug', 'events.title', 'events.start_date', 'events.venue_id']);
+            ->get(['events.id', 'events.slug', 'events.title', 'events.start_date', 'events.end_date', 'events.venue_id']);
 
         $recentReservations = $user->reservations()
             ->with(['venue', 'event'])
@@ -47,7 +47,7 @@ class DashboardController extends Controller
             ->with(['venue:id,name,slug', 'artists:id,name,slug,avatar'])
             ->orderBy('start_date')
             ->limit(6)
-            ->get(['id', 'slug', 'venue_id', 'title', 'start_date', 'ticket_price', 'entry_is_paid']);
+            ->get(['id', 'slug', 'venue_id', 'title', 'start_date', 'end_date', 'ticket_price', 'entry_is_paid']);
 
         return Inertia::render('Dashboard', [
             'recentReservations' => $recentReservations,

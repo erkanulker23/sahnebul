@@ -4,7 +4,35 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const DISMISS_KEY = 'sahnebul_browser_notif_prompt_dismissed';
+/** Eski tek anahtar — oturumdaki kullanıcıya taşınır */
+const LEGACY_DISMISS_KEY = 'sahnebul_browser_notif_prompt_dismissed';
+
+function dismissKeyForUser(userId: number): string {
+    return `sahnebul_browser_notif_prompt_dismissed_${userId}`;
+}
+
+function readDismissedFromStorage(userId: number): boolean {
+    try {
+        if (localStorage.getItem(dismissKeyForUser(userId)) === '1') {
+            return true;
+        }
+        if (localStorage.getItem(LEGACY_DISMISS_KEY) === '1') {
+            localStorage.setItem(dismissKeyForUser(userId), '1');
+            return true;
+        }
+    } catch {
+        /* private mode vb. */
+    }
+    return false;
+}
+
+function persistDismiss(userId: number): void {
+    try {
+        localStorage.setItem(dismissKeyForUser(userId), '1');
+    } catch {
+        /* ignore */
+    }
+}
 
 async function patchBrowserNotifications(enabled: boolean): Promise<void> {
     const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
@@ -36,12 +64,16 @@ export default function BrowserNotificationsBar() {
 
     useEffect(() => {
         setMounted(true);
-        try {
-            setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
-        } catch {
-            setDismissed(false);
+        if (!user) {
+            return;
         }
-    }, []);
+        const fromStorage = readDismissedFromStorage(user.id);
+        const permDenied = typeof Notification !== 'undefined' && Notification.permission === 'denied';
+        setDismissed(fromStorage || permDenied);
+        if (permDenied && !fromStorage) {
+            persistDismiss(user.id);
+        }
+    }, [user?.id]);
 
     const pollUnread = useCallback(async () => {
         if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -106,13 +138,20 @@ export default function BrowserNotificationsBar() {
         return null;
     }
 
-    const showPrompt = !user.browser_notifications_enabled && !dismissed;
+    const permissionDenied = Notification.permission === 'denied';
+    const showPrompt =
+        !user.browser_notifications_enabled && !dismissed && !permissionDenied;
 
     const onEnable = async () => {
         setDeniedHint(false);
         setBusy(true);
         try {
             const perm = await Notification.requestPermission();
+            if (perm === 'denied') {
+                persistDismiss(user.id);
+                setDismissed(true);
+                return;
+            }
             if (perm !== 'granted') {
                 setDeniedHint(true);
                 return;
@@ -126,12 +165,9 @@ export default function BrowserNotificationsBar() {
     };
 
     const onDismiss = () => {
-        try {
-            localStorage.setItem(DISMISS_KEY, '1');
-        } catch {
-            /* ignore */
-        }
+        persistDismiss(user.id);
         setDismissed(true);
+        setDeniedHint(false);
     };
 
     if (!showPrompt && !deniedHint) {
@@ -186,16 +222,14 @@ export default function BrowserNotificationsBar() {
                     </Link>
                 </div>
             </div>
-            {!deniedHint ? (
-                <button
-                    type="button"
-                    onClick={onDismiss}
-                    className="shrink-0 rounded-lg p-1 text-violet-700 hover:bg-violet-100 dark:text-violet-200 dark:hover:bg-violet-900/60"
-                    aria-label="Kapat"
-                >
-                    <X className="h-5 w-5" aria-hidden />
-                </button>
-            ) : null}
+            <button
+                type="button"
+                onClick={onDismiss}
+                className="shrink-0 rounded-lg p-1 text-violet-700 hover:bg-violet-100 dark:text-violet-200 dark:hover:bg-violet-900/60"
+                aria-label="Bir daha gösterme"
+            >
+                <X className="h-5 w-5" aria-hidden />
+            </button>
         </div>
     );
 }
