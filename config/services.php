@@ -121,6 +121,8 @@ return [
      */
     'ytdlp' => [
         'binary' => env('YTDLP_BINARY'),
+        /** PHP-FPM PATH dar olduğunda ek dizinler (örn. Laravel Forge: /home/forge/.local/bin) — virgül veya : ile ayırın */
+        'extra_search_paths' => env('YTDLP_EXTRA_PATHS', ''),
         'timeout' => (int) env('YTDLP_TIMEOUT', 300),
         'cookies_file' => env('YTDLP_COOKIES_FILE'),
     ],

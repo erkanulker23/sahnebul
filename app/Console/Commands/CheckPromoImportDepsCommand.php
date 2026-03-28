@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\YtDlpBinaryResolver;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
@@ -11,7 +12,7 @@ use Symfony\Component\Process\Process;
  */
 class CheckPromoImportDepsCommand extends Command
 {
-    protected $signature = 'sahnebul:promo-import-deps';
+    protected $signature = 'sahnebul:promo-import-deps {--warn-only : Eksik araç olsa da çıkış kodu 0 (deploy betiğinde kullanın)}';
 
     protected $description = 'yt-dlp ve ffmpeg kurulumunu kontrol eder (tanıtım video URL içe aktarımı)';
 
@@ -20,13 +21,10 @@ class CheckPromoImportDepsCommand extends Command
         $this->info('Tanıtım video URL içe aktarımı — sunucu bağımlılıkları');
         $this->newLine();
 
-        $ytConfigured = config('services.ytdlp.binary');
         $ffConfigured = config('services.ffmpeg.binary');
 
         $finder = new ExecutableFinder;
-        $ytPath = is_string($ytConfigured) && $ytConfigured !== '' && is_executable($ytConfigured)
-            ? $ytConfigured
-            : $finder->find('yt-dlp');
+        $ytPath = YtDlpBinaryResolver::resolve();
         $ffPath = is_string($ffConfigured) && $ffConfigured !== '' && is_executable($ffConfigured)
             ? $ffConfigured
             : $finder->find('ffmpeg');
@@ -73,6 +71,6 @@ class CheckPromoImportDepsCommand extends Command
 
         $this->error('Eksik araçlar var; Instagram reel tam video indirmesi çoğu sunucuda çalışmaz.');
 
-        return self::FAILURE;
+        return $this->option('warn-only') ? self::SUCCESS : self::FAILURE;
     }
 }

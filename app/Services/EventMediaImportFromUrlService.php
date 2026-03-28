@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Support\YtDlpBinaryResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
@@ -811,7 +812,7 @@ final class EventMediaImportFromUrlService
             $yt = $this->resolveYtDlpBinary();
             $hint = $yt !== null
                 ? 'yt-dlp çalışmadı veya Instagram erişimi engellendi; ffmpeg kurulu olmalı. Gerekirse .env YTDLP_COOKIES_FILE ile oturum çerezi deneyin.'
-                : 'Sunucuda yt-dlp bulunamadı (.env YTDLP_BINARY veya sistem PATH). Örnek: apt install yt-dlp ffmpeg / brew install yt-dlp ffmpeg.';
+                : 'Sunucuda yt-dlp bulunamadı. .env: tam yol ile YTDLP_BINARY (örn. /home/forge/.local/bin/yt-dlp), gerekirse YTDLP_EXTRA_PATHS veya ~/yt-dlp yolu. Kurulum: pipx install yt-dlp veya apt install yt-dlp. Kontrol: php artisan sahnebul:promo-import-deps. Ardından php artisan config:clear.';
 
             return [
                 'success' => false,
@@ -1629,78 +1630,7 @@ final class EventMediaImportFromUrlService
      */
     private function resolveYtDlpBinary(): ?string
     {
-        foreach ($this->ytDlpAbsolutePathCandidates() as $path) {
-            if (is_file($path) && is_executable($path)) {
-                return $path;
-            }
-        }
-
-        $finder = new ExecutableFinder;
-        $found = $finder->find('yt-dlp', null, $this->ytDlpSearchDirectories());
-
-        return (is_string($found) && $found !== '' && is_executable($found)) ? $found : null;
-    }
-
-    /** @return list<string> */
-    private function ytDlpSearchDirectories(): array
-    {
-        $dirs = [
-            '/usr/local/bin',
-            '/usr/bin',
-            '/bin',
-            '/opt/homebrew/bin',
-            '/snap/bin',
-            '/var/snap/bin',
-        ];
-
-        $home = getenv('HOME');
-        if (is_string($home) && $home !== '') {
-            $dirs[] = $home.DIRECTORY_SEPARATOR.'.local'.DIRECTORY_SEPARATOR.'bin';
-        }
-
-        if (function_exists('posix_geteuid') && function_exists('posix_getpwuid')) {
-            $pw = @posix_getpwuid(posix_geteuid());
-            if (is_array($pw) && isset($pw['dir']) && is_string($pw['dir']) && $pw['dir'] !== '') {
-                $dirs[] = rtrim($pw['dir'], '/').DIRECTORY_SEPARATOR.'.local'.DIRECTORY_SEPARATOR.'bin';
-            }
-        }
-
-        $pathEnv = getenv('PATH');
-        if (is_string($pathEnv) && $pathEnv !== '') {
-            foreach (explode(PATH_SEPARATOR, $pathEnv) as $segment) {
-                $segment = trim($segment);
-                if ($segment !== '') {
-                    $dirs[] = $segment;
-                }
-            }
-        }
-
-        /** @var list<string> $unique */
-        $unique = array_values(array_unique(array_filter($dirs, fn (string $d) => $d !== '')));
-
-        return $unique;
-    }
-
-    /**
-     * Tam yol adayları: yapılandırma + her arama dizininde yt-dlp (ve Windows’ta yt-dlp.exe).
-     *
-     * @return list<string>
-     */
-    private function ytDlpAbsolutePathCandidates(): array
-    {
-        $name = PHP_OS_FAMILY === 'Windows' ? 'yt-dlp.exe' : 'yt-dlp';
-        $out = [];
-
-        $configured = config('services.ytdlp.binary');
-        if (is_string($configured) && trim($configured) !== '') {
-            $out[] = trim($configured);
-        }
-
-        foreach ($this->ytDlpSearchDirectories() as $dir) {
-            $out[] = rtrim($dir, '/\\').DIRECTORY_SEPARATOR.$name;
-        }
-
-        return array_values(array_unique($out));
+        return YtDlpBinaryResolver::resolve();
     }
 
     /**
