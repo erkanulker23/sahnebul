@@ -548,4 +548,12 @@ class Event extends Model
 
         return $end !== null && $at->greaterThan($end);
     }
+
+    /**
+     * JSON/Inertia’da offset’siz ISO üretilmesini engelle; tarayıcı TZ’sinden bağımsız İstanbul anı.
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return Carbon::instance($date)->timezone('Europe/Istanbul')->toIso8601String();
+    }
 }

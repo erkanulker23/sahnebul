@@ -1,3 +1,5 @@
+import { parseSahnebulEventInstant } from '@/lib/sahneEventInstant';
+
 /** Etkinlik listesi / detay — Türkiye duvar saati (admin ve ön yüz aynı gösterim). */
 export const SAHNE_EVENT_DISPLAY_TZ = 'Europe/Istanbul';
 
@@ -31,7 +33,15 @@ export function formatTurkishDateTime(
     if (value == null || value === '') {
         return empty;
     }
-    const d = value instanceof Date ? value : new Date(value);
+    let d: Date;
+    if (value instanceof Date) {
+        d = value;
+    } else if (typeof value === 'string') {
+        const ms = parseSahnebulEventInstant(value);
+        d = new Date(ms);
+    } else {
+        d = new Date(value);
+    }
     if (Number.isNaN(d.getTime())) {
         return typeof value === 'string' ? value : empty;
     }

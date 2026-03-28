@@ -1,5 +1,6 @@
 import { SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
 import { isEventOngoingNow } from '@/lib/eventRuntime';
+import { parseSahnebulEventInstant } from '@/lib/sahneEventInstant';
 
 function ymdKeyInTimeZone(d: Date, timeZone: string): string {
     return new Intl.DateTimeFormat('en-CA', {
@@ -8,6 +9,14 @@ function ymdKeyInTimeZone(d: Date, timeZone: string): string {
         month: '2-digit',
         day: '2-digit',
     }).format(d);
+}
+
+function ymdKeyFromStartIso(startIso: string, timeZone: string): string {
+    const ms = parseSahnebulEventInstant(startIso);
+    if (Number.isNaN(ms)) {
+        return '';
+    }
+    return ymdKeyInTimeZone(new Date(ms), timeZone);
 }
 
 /** Takvim günü +1 (YYYY-MM-DD); İstanbul takvim kıyası için yeterli (TR’de DST yok). */
@@ -39,15 +48,17 @@ export function eventRelativeDayKind(
     if (startIso == null || startIso === '') {
         return null;
     }
-    const eventDate = new Date(startIso);
-    if (Number.isNaN(eventDate.getTime())) {
+    if (Number.isNaN(parseSahnebulEventInstant(startIso))) {
         return null;
     }
     if (isEventOngoingNow(startIso, endIso ?? null)) {
         return 'ongoing';
     }
     const tz = SAHNE_EVENT_DISPLAY_TZ;
-    const eventKey = ymdKeyInTimeZone(eventDate, tz);
+    const eventKey = ymdKeyFromStartIso(startIso, tz);
+    if (eventKey === '') {
+        return null;
+    }
     const todayKey = ymdKeyInTimeZone(new Date(), tz);
     if (eventKey === todayKey) {
         return 'today';
