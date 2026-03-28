@@ -95,12 +95,14 @@ export default function EventCalendarSlider({
     }, [calendarMonth]);
 
     const scrollEventSlider = useCallback((dir: -1 | 1) => {
-        const el = sliderRef.current;
-        if (!el) return;
-        const gap = 16;
-        const firstCard = el.querySelector<HTMLElement>('[data-slider-card]');
-        const step = firstCard ? firstCard.offsetWidth + gap : Math.min(440, el.clientWidth * 0.92);
-        el.scrollBy({ left: dir * step, behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            const el = sliderRef.current;
+            if (!el) return;
+            const gap = 16;
+            const firstCard = el.querySelector<HTMLElement>('[data-slider-card]');
+            const step = firstCard ? firstCard.offsetWidth + gap : Math.min(440, el.clientWidth * 0.92);
+            el.scrollBy({ left: dir * step, behavior: 'smooth' });
+        });
     }, []);
 
     const todayKey = localDateKey(new Date());
@@ -326,7 +328,7 @@ export default function EventCalendarSlider({
                                                         {stripHtmlToText(event.description)}
                                                     </p>
                                                 )}
-                                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400/90">
+                                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-800 dark:text-amber-300">
                                                     Detaylar
                                                     <svg
                                                         className="h-4 w-4 transition group-hover:translate-x-0.5"

@@ -97,16 +97,18 @@ export default function EventCarousel({
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const scrollByDir = useCallback((dir: -1 | 1) => {
-        const el = scrollRef.current;
-        if (!el) return;
-        const card = el.querySelector<HTMLElement>('[data-carousel-card]');
-        const w = card?.offsetWidth ?? 300;
-        const gap = parseFloat(getComputedStyle(el).gap || '16') || 16;
-        el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            const el = scrollRef.current;
+            if (!el) return;
+            const card = el.querySelector<HTMLElement>('[data-carousel-card]');
+            const w = card?.offsetWidth ?? 300;
+            const gap = globalThis.matchMedia('(min-width: 640px)').matches ? 16 : 12;
+            el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        });
     }, []);
 
     const subtitleClass =
-        accent === 'violet' ? 'text-violet-400/80' : 'text-amber-400/70';
+        accent === 'violet' ? 'text-violet-800 dark:text-violet-300' : 'text-amber-800 dark:text-amber-300';
 
     return (
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -216,11 +218,11 @@ export default function EventCarousel({
                                     ) : null}
                                     <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:mt-2 sm:text-sm">{event.venue.name}</p>
                                     {event.venue.category?.name ? (
-                                        <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">
+                                        <p className="mt-0.5 truncate text-[10px] font-medium text-amber-900 dark:text-amber-200 sm:mt-1 sm:text-xs">
                                             {event.venue.category.name}
                                         </p>
                                     ) : null}
-                                    <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400 sm:gap-1.5 sm:pt-4 sm:text-sm">
+                                    <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-800 transition group-hover:gap-2 dark:text-amber-300 sm:gap-1.5 sm:pt-4 sm:text-sm">
                                         Detaylar
                                         <svg className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />

@@ -17,5 +17,8 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
+        $link = $response->headers->get('Link', '');
+        $this->assertStringContainsString('rel=preload', $link);
+        $this->assertStringContainsString('as=image', $link);
     }
 }

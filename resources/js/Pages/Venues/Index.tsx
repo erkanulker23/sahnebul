@@ -152,7 +152,7 @@ function HomeHeroCarousel({
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-900/40 to-zinc-950/20" />
             <div className="relative z-[2] mx-auto max-w-7xl px-3 py-16 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
                 <div key={safeIdx} className="max-w-3xl transition-opacity duration-500">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/80">{copy.eyebrow}</p>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-200">{copy.eyebrow}</p>
                     <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
                         <span className="block">{copy.headline}</span>
                         <span className="mt-2 block bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent sm:mt-3">
@@ -246,25 +246,29 @@ export default function VenuesIndex({
     const nearbyEventsScrollRef = useRef<HTMLDivElement>(null);
 
     const scrollNearbyEventsBy = useCallback((dir: -1 | 1) => {
-        const el = nearbyEventsScrollRef.current;
-        if (!el) {
-            return;
-        }
-        const card = el.querySelector<HTMLElement>('[data-nearby-event-card]');
-        const w = card?.offsetWidth ?? 300;
-        const gap = globalThis.matchMedia('(min-width: 640px)').matches ? 16 : 8;
-        el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            const el = nearbyEventsScrollRef.current;
+            if (!el) {
+                return;
+            }
+            const card = el.querySelector<HTMLElement>('[data-nearby-event-card]');
+            const w = card?.offsetWidth ?? 300;
+            const gap = globalThis.matchMedia('(min-width: 640px)').matches ? 16 : 8;
+            el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        });
     }, []);
 
     const scrollNearbyVenuesBy = useCallback((dir: -1 | 1) => {
-        const el = nearbyVenuesScrollRef.current;
-        if (!el) {
-            return;
-        }
-        const card = el.querySelector<HTMLElement>('[data-nearby-venue-card]');
-        const w = card?.offsetWidth ?? 300;
-        const gap = 16;
-        el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            const el = nearbyVenuesScrollRef.current;
+            if (!el) {
+                return;
+            }
+            const card = el.querySelector<HTMLElement>('[data-nearby-venue-card]');
+            const w = card?.offsetWidth ?? 300;
+            const gap = 16;
+            el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
+        });
     }, []);
 
     const imageSrc = (path: string | null) => {
@@ -408,7 +412,7 @@ export default function VenuesIndex({
                 <section className="mx-auto max-w-7xl px-0 py-12 sm:px-4 sm:py-16 lg:px-8">
                     <div className="mb-10 flex items-end justify-between">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400/70">Trend</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300">Trend</p>
                             <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white">En çok bakılan sanatçılar</h2>
                         </div>
                         <Link href={route('artists.index')} className="hidden text-sm font-medium text-amber-700 transition hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 sm:block">

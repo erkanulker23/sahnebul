@@ -34,10 +34,7 @@
             <title inertia>{{ config('app.name', 'Sahnebul') }}</title>
         @endif
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
+        {{-- Plus Jakarta Sans: Vite / @fontsource (app.css) — Google Fonts kritik zinciri kaldırıldı --}}
 
         {{-- FOUC önleme: React yüklenmeden önce .dark sınıfı --}}
         <script>

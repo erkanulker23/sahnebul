@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
+use Inertia\Support\Header;
 
 class VenueController extends Controller
 {
@@ -134,7 +135,10 @@ class VenueController extends Controller
         $rawHomeCopy = is_array($site['home_hero_slide_copy'] ?? null) ? $site['home_hero_slide_copy'] : null;
         $rawVenuesCopy = is_array($site['venues_hero_slide_copy'] ?? null) ? $site['venues_hero_slide_copy'] : null;
 
-        return Inertia::render('Venues/Index', [
+        $defaultHeroLcp = 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=85&w=2400&auto=format&fit=crop';
+        $lcpHeroUrl = $heroImageUrls[0] ?? $defaultHeroLcp;
+
+        $inertia = Inertia::render('Venues/Index', [
             'isVenuesPage' => $request->is('mekanlar'),
             'heroImageUrls' => $heroImageUrls,
             'homeHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawHomeCopy, HomeHeroSlideDefaults::homeDefaults()),
@@ -148,6 +152,18 @@ class VenueController extends Controller
             'categories' => $categories,
             'filters' => $request->only(['city', 'category', 'search']),
         ]);
+
+        $response = $inertia->toResponse($request);
+
+        if (! $request->header(Header::INERTIA)) {
+            $response->headers->set(
+                'Link',
+                '<'.$lcpHeroUrl.'>; rel=preload; as=image; fetchpriority=high',
+                false
+            );
+        }
+
+        return $response;
     }
 
     public function show(Request $request, Venue $venue)

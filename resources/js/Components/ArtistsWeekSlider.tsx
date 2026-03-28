@@ -74,11 +74,13 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
     const scrollerRef = useRef<HTMLDivElement>(null);
 
     const scrollByDir = useCallback((dir: -1 | 1) => {
-        const el = scrollerRef.current;
-        if (!el) return;
-        const firstCard = el.querySelector<HTMLElement>('a');
-        const step = firstCard ? firstCard.offsetWidth + 12 : Math.round(el.clientWidth * 0.5);
-        el.scrollBy({ left: step * dir, behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            const el = scrollerRef.current;
+            if (!el) return;
+            const firstCard = el.querySelector<HTMLElement>('a');
+            const step = firstCard ? firstCard.offsetWidth + 12 : Math.round(el.clientWidth * 0.5);
+            el.scrollBy({ left: step * dir, behavior: 'smooth' });
+        });
     }, []);
 
     if (artists.length === 0) {
@@ -92,7 +94,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
             <div className="mx-auto max-w-7xl px-0 sm:px-4 lg:px-8">
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400/90">Önümüzdeki 7 gün</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-800 dark:text-amber-300">Önümüzdeki 7 gün</p>
                         <h2 className="font-display mt-1 text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">
                             Yaklaşan etkinlikleri olan sanatçılar
                         </h2>
@@ -222,10 +224,10 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                         <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:mt-2 sm:text-sm">
                                             {artist.genre ?? 'Sanatçı'}
                                         </p>
-                                        <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">
+                                        <p className="mt-0.5 truncate text-[10px] font-medium text-amber-900 dark:text-amber-200 sm:mt-1 sm:text-xs">
                                             Önümüzdeki 7 gün
                                         </p>
-                                        <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-600 transition group-hover:gap-2 dark:text-amber-400 sm:gap-1.5 sm:pt-4 sm:text-sm">
+                                        <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-amber-800 transition group-hover:gap-2 dark:text-amber-300 sm:gap-1.5 sm:pt-4 sm:text-sm">
                                             Detaylar
                                             <svg className="h-3 w-3 shrink-0 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
