@@ -394,6 +394,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('/rezervasyonlar/{reservation}/durum', [AdminReservationController::class, 'updateStatus'])->name('reservations.updateStatus');
 
     Route::get('/iletisim-mesajlari', [AdminContactMessageController::class, 'index'])->name('contact-messages.index');
+    Route::get('/iletisim-mesajlari/{contactMessage}', [AdminContactMessageController::class, 'show'])->name('contact-messages.show');
+    Route::get('/iletisim-mesajlari/{contactMessage}/duzenle', [AdminContactMessageController::class, 'edit'])->name('contact-messages.edit');
+    Route::put('/iletisim-mesajlari/{contactMessage}', [AdminContactMessageController::class, 'update'])->name('contact-messages.update');
+    Route::delete('/iletisim-mesajlari/{contactMessage}', [AdminContactMessageController::class, 'destroy'])->name('contact-messages.destroy');
+    Route::post('/iletisim-mesajlari/{contactMessage}/spam', [AdminContactMessageController::class, 'toggleSpam'])->name('contact-messages.toggle-spam');
 
     Route::get('/yorumlar', [AdminReviewController::class, 'index'])->name('reviews.index');
     Route::get('/duzenme-onerileri', [AdminPublicEditSuggestionController::class, 'index'])->name('edit-suggestions.index');

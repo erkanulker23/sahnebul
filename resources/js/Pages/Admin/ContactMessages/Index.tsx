@@ -51,7 +51,7 @@ export default function AdminContactMessagesIndex({ messages, filter, counts }: 
             <div className="space-y-6">
                 <AdminPageHeader
                     title="İletişim mesajları"
-                    description="Her mesajı ayrı sayfada görüntüleyebilir, düzenleyebilir veya silebilirsiniz. Spam işaretli kayıtlar gelen kutusunda listelenmez."
+                    description="Satıra tıklayarak detay; orada düzenle, sil veya spam durumunu değiştir. Çok link / şüpheli metin veya aynı IP’den saatte 5+ gönderim otomatik spam işaretlenir (yine de yönetici düzeltebilir)."
                 />
 
                 {flash?.success ? (
@@ -85,7 +85,7 @@ export default function AdminContactMessagesIndex({ messages, filter, counts }: 
                     <Link href={route('contact')} className="font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400">
                         İletişim formu
                     </Link>{' '}
-                    için sınırlama: aynı IP’den dakikada en fazla 8 gönderim; aynı e-posta + metin 15 dakika içinde tekrarlanırsa sessizce kabul bildirimi (çift kayıt oluşmaz).
+                    için: dakikada en fazla 8 gönderim (IP); aynı e-posta + aynı metin 15 dk içinde tekrarlanırsa çift kayıt oluşmaz; gizli tuzak alanı doldurulursa sessiz kabul; çok URL / bilinen spam kalıpları / saatte aynı IP’den 5+ kayıt otomatik spam.
                 </p>
 
                 <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50">

@@ -329,7 +329,7 @@ export default function AdminArtistEdit({
                     ownerSubscription={artistOwnerSubscription}
                 />
 
-                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
                     <AdminFormTabList
                         activeId={editTab}
                         onChange={(id) => setEditTab(id as typeof editTab)}
@@ -345,7 +345,7 @@ export default function AdminArtistEdit({
                         <AdminFormTabPanel id="genel" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Ad *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Ad *</label>
                             <input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
@@ -354,7 +354,7 @@ export default function AdminArtistEdit({
                             {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Durum *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Durum *</label>
                             <select
                                 value={data.status}
                                 onChange={(e) => setData('status', e.target.value)}
@@ -367,7 +367,7 @@ export default function AdminArtistEdit({
                         </div>
                         <div className="sm:col-span-2">
                             <div className="flex flex-wrap items-end justify-between gap-2">
-                                <label htmlFor="admin-artist-slug" className="block text-sm font-medium text-zinc-400">
+                                <label htmlFor="admin-artist-slug" className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">
                                     Kullanıcı adı (URL) *
                                 </label>
                                 <button
@@ -401,7 +401,7 @@ export default function AdminArtistEdit({
                             ) : null}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Organizasyon firması</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Organizasyon firması</label>
                             <p className="mt-0.5 text-xs text-zinc-500">
                                 Yalnızca «Organizasyon firması» rolündeki kullanıcı hesapları. Sitede sanatçı profilinde organizasyon notu gösterilir.
                             </p>
@@ -422,7 +422,7 @@ export default function AdminArtistEdit({
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Website</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Website</label>
                             <input
                                 type="url"
                                 value={data.website}
@@ -445,7 +445,7 @@ export default function AdminArtistEdit({
 
                         <AdminFormTabPanel id="gorsel" activeId={editTab} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Profil görseli (URL)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Profil görseli (URL)</label>
                         <input
                             value={data.avatar}
                             onChange={(e) => setData('avatar', e.target.value)}
@@ -454,7 +454,7 @@ export default function AdminArtistEdit({
                         />
                         <div className="mt-2 flex flex-wrap items-center gap-3">
                             {storageUrl(data.avatar) && (
-                                <img src={storageUrl(data.avatar) ?? ''} alt="" className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-700" />
+                                <img src={storageUrl(data.avatar) ?? ''} alt="" className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700" />
                             )}
                             {(data.avatar?.trim() || artist.avatar) && (
                                 <button
@@ -463,23 +463,23 @@ export default function AdminArtistEdit({
                                         setData('avatar', '');
                                         setData('avatar_upload', null);
                                     }}
-                                    className="rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm font-medium text-red-300 transition hover:border-red-400 hover:bg-red-950/60"
+                                    className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 transition hover:border-red-400 hover:bg-red-100 dark:border-red-500/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:border-red-400 dark:hover:bg-red-950/60"
                                 >
                                     Profil görselini kaldır
                                 </button>
                             )}
                         </div>
                         <p className="mt-2 text-xs text-zinc-500">
-                            Kaldır dedikten sonra değişikliği kaydetmek için <strong className="text-zinc-400">Kaydet</strong>’e basın.
+                            Kaldır dedikten sonra değişikliği kaydetmek için <strong className="text-zinc-800 dark:text-zinc-400">Kaydet</strong>’e basın.
                         </p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Profil görseli (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Profil görseli (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('avatar_upload', e.target.files?.[0] ?? null)}
-                            className="mt-1 w-full text-sm text-zinc-300"
+                            className="mt-1 w-full text-sm text-zinc-800 dark:text-zinc-300"
                         />
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
@@ -487,7 +487,7 @@ export default function AdminArtistEdit({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak / banner (URL, isteğe bağlı)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak / banner (URL, isteğe bağlı)</label>
                         <input
                             value={data.banner_image}
                             onChange={(e) => setData('banner_image', e.target.value)}
@@ -495,7 +495,7 @@ export default function AdminArtistEdit({
                             className={field}
                         />
                         {storageUrl(data.banner_image) && (
-                            <div className="mt-2 overflow-hidden rounded-lg border border-zinc-700">
+                            <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
                                 <img
                                     src={storageUrl(data.banner_image) ?? ''}
                                     alt=""
@@ -510,20 +510,20 @@ export default function AdminArtistEdit({
                                     setData('banner_image', '');
                                     setData('banner_upload', null);
                                 }}
-                                className="mt-2 rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm font-medium text-red-300 transition hover:border-red-400 hover:bg-red-950/60"
+                                className="mt-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 transition hover:border-red-400 hover:bg-red-100 dark:border-red-500/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:border-red-400 dark:hover:bg-red-950/60"
                             >
                                 Banner URL&apos;sini kaldır
                             </button>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak / banner (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak / banner (dosya)</label>
                         <p className="mt-0.5 text-xs text-zinc-500">Geniş yatay görsel; sanatçı sayfasında yalnızca yüklüyse gösterilir.</p>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('banner_upload', e.target.files?.[0] ?? null)}
-                            className="mt-1 w-full text-sm text-zinc-300"
+                            className="mt-1 w-full text-sm text-zinc-800 dark:text-zinc-300"
                         />
                     </div>
                         </AdminFormTabPanel>
@@ -531,7 +531,7 @@ export default function AdminArtistEdit({
                         <AdminFormTabPanel id="sosyal" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Instagram</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Instagram</label>
                             <input
                                 value={data.social_links.instagram}
                                 onChange={(e) =>
@@ -541,7 +541,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">X / Twitter</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">X / Twitter</label>
                             <input
                                 value={data.social_links.twitter}
                                 onChange={(e) =>
@@ -551,7 +551,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">YouTube</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">YouTube</label>
                             <input
                                 value={data.social_links.youtube}
                                 onChange={(e) =>
@@ -561,16 +561,16 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Spotify</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Spotify</label>
                             <p className="mt-1 text-xs text-zinc-500">
                                 Sanatçı sayfasındaki gömülü oynatıcı ve bağlantı buradan gelir. Aynı isimde başka bir sanatçıya denk gelen
                                 yanlış eşleşmeyi kaldırmak için aşağıdaki kutuyu işaretleyip kaydedin; arka plandaki isimle otomatik eşleştirme de
                                 bu sanatçı için kapatılır.
                             </p>
-                            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-700/80 bg-zinc-800/40 px-3 py-2.5">
+                            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-700/80 dark:bg-zinc-800/40">
                                 <input
                                     type="checkbox"
-                                    className="mt-1 h-4 w-4 rounded border-zinc-600 text-amber-500 focus:ring-amber-500"
+                                    className="mt-1 h-4 w-4 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:text-amber-500"
                                     checked={data.spotify_auto_link_disabled}
                                     onChange={(e) => {
                                         const on = e.target.checked;
@@ -580,9 +580,9 @@ export default function AdminArtistEdit({
                                         }
                                     }}
                                 />
-                                <span className="text-sm text-zinc-300">
-                                    <span className="font-medium text-white">Spotify yok / gösterme</span>
-                                    <span className="mt-0.5 block text-zinc-500">
+                                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                    <span className="font-medium text-zinc-900 dark:text-white">Spotify yok / gösterme</span>
+                                    <span className="mt-0.5 block text-zinc-600 dark:text-zinc-500">
                                         Profilde Spotify bölümünü kapatır; sunucudaki otomatik isimle Spotify eşleştirmesinin bu sanatçıyı yeniden
                                         bağlamasını engeller.
                                     </span>
@@ -604,7 +604,7 @@ export default function AdminArtistEdit({
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">TikTok</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">TikTok</label>
                             <input
                                 value={data.social_links.tiktok}
                                 onChange={(e) =>
@@ -614,7 +614,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Facebook</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Facebook</label>
                             <input
                                 value={data.social_links.facebook}
                                 onChange={(e) =>
@@ -627,11 +627,11 @@ export default function AdminArtistEdit({
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <h3 className="text-sm font-semibold text-zinc-300">Yayındaki iletişim (opsiyonel)</h3>
+                            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-300">Yayındaki iletişim (opsiyonel)</h3>
                             <p className="mt-1 text-xs text-zinc-500">Boş alanlar sitede gösterilmez.</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">İletişim e-posta</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">İletişim e-posta</label>
                             <input
                                 type="email"
                                 value={data.public_contact.email}
@@ -645,7 +645,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">İletişim telefon</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">İletişim telefon</label>
                             <PhoneInput
                                 value={data.public_contact.phone ?? ''}
                                 onChange={(v) => setData('public_contact', { ...data.public_contact, phone: v })}
@@ -653,7 +653,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">İletişim notu</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">İletişim notu</label>
                             <textarea
                                 value={data.public_contact.note}
                                 onChange={(e) =>
@@ -667,10 +667,10 @@ export default function AdminArtistEdit({
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <h3 className="text-sm font-semibold text-zinc-300">Menajer (opsiyonel)</h3>
+                            <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-300">Menajer (opsiyonel)</h3>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Ad / unvan</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Ad / unvan</label>
                             <input
                                 value={data.manager_info.name}
                                 onChange={(e) =>
@@ -680,7 +680,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Ajans / şirket</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Ajans / şirket</label>
                             <input
                                 value={data.manager_info.company}
                                 onChange={(e) =>
@@ -690,7 +690,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Menajer telefon</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Menajer telefon</label>
                             <PhoneInput
                                 value={data.manager_info.phone ?? ''}
                                 onChange={(v) => setData('manager_info', { ...data.manager_info, phone: v })}
@@ -698,7 +698,7 @@ export default function AdminArtistEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Menajer e-posta</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Menajer e-posta</label>
                             <input
                                 type="email"
                                 value={data.manager_info.email}
@@ -716,7 +716,7 @@ export default function AdminArtistEdit({
 
                         <AdminFormTabPanel id="icerik" activeId={editTab} className="space-y-6">
                     <div>
-                        <span className="block text-sm font-medium text-zinc-400">Biyografi</span>
+                        <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Biyografi</span>
                         <RichTextEditor
                             value={data.bio}
                             onChange={(html) => setData('bio', html)}
@@ -737,13 +737,13 @@ export default function AdminArtistEdit({
                         </AdminFormTabPanel>
                     </form>
 
-                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-700/80 p-6">
-                    <h2 className="text-lg font-semibold text-zinc-100">Fotoğraf galerisi</h2>
-                    <p className="text-sm text-zinc-500">Fotoğraf ekleyin veya silin. Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
+                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-200 p-6 dark:border-zinc-700/80">
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Fotoğraf galerisi</h2>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-500">Fotoğraf ekleyin veya silin. Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
                     <input
                         type="file"
                         accept="image/*"
-                        className="mt-4 block text-sm text-zinc-300"
+                        className="mt-4 block text-sm text-zinc-800 dark:text-zinc-300"
                         onChange={(e) => {
                             const f = e.target.files?.[0];
                             if (f) addGallery(f);
@@ -756,7 +756,7 @@ export default function AdminArtistEdit({
                                 <img
                                     src={storageUrl(m.path) ?? ''}
                                     alt=""
-                                    className="h-28 w-28 rounded-lg object-cover ring-1 ring-zinc-700"
+                                    className="h-28 w-28 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
                                 />
                                 <button
                                     type="button"
@@ -770,7 +770,7 @@ export default function AdminArtistEdit({
                     </div>
                     </AdminFormTabPanel>
 
-                    <div className="flex flex-wrap gap-3 border-t border-zinc-700/80 bg-zinc-950/30 px-6 py-4">
+                    <div className="flex flex-wrap gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-700/80 dark:bg-zinc-950/30">
                         <button
                             type="submit"
                             form="admin-artist-edit-form"

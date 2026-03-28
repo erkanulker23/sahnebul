@@ -246,7 +246,7 @@ export default function AdminVenueEdit({
                     ownerSubscription={venueOwnerSubscription}
                 />
 
-                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60">
+                <div className="max-w-3xl overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
                     <AdminFormTabList
                         activeId={editTab}
                         onChange={(id) => setEditTab(id as typeof editTab)}
@@ -261,7 +261,7 @@ export default function AdminVenueEdit({
                         <AdminFormTabPanel id="genel" activeId={editTab} className="space-y-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Mekan adı *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Mekan adı *</label>
                             <input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
@@ -270,7 +270,7 @@ export default function AdminVenueEdit({
                             {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">URL slug *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">URL slug *</label>
                             <p className="mt-0.5 text-xs text-zinc-500">Küçük harf, rakam ve tire. Örnek: harbiye-acikhava</p>
                             <input
                                 value={data.slug}
@@ -279,20 +279,20 @@ export default function AdminVenueEdit({
                             />
                             {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
                         </div>
-                        <div className="sm:col-span-2 rounded-2xl border border-amber-500/35 bg-gradient-to-br from-amber-500/[0.12] via-zinc-900/90 to-zinc-950 p-5 shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/20">
-                            <div className="flex items-center gap-2 text-amber-400">
-                                <Star className="h-5 w-5 fill-amber-400/30" strokeWidth={1.5} aria-hidden />
-                                <h3 className="text-sm font-semibold tracking-wide text-amber-100/95">
+                        <div className="sm:col-span-2 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-50/80 p-5 shadow-sm ring-1 ring-amber-200/80 dark:border-amber-500/35 dark:from-amber-500/[0.12] dark:via-zinc-900/90 dark:to-zinc-950 dark:shadow-lg dark:shadow-amber-950/20 dark:ring-amber-500/20">
+                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                                <Star className="h-5 w-5 fill-amber-400/40 dark:fill-amber-400/30" strokeWidth={1.5} aria-hidden />
+                                <h3 className="text-sm font-semibold tracking-wide text-amber-900 dark:text-amber-100/95">
                                     Onay, yayında görünürlük ve vitrin
                                 </h3>
                             </div>
-                            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-                                <strong className="font-medium text-zinc-300">Onaylı</strong>, kaydın yönetici tarafından doğrulandığını ve bir mekân sahibi hesabıyla eşleştirildiğini ifade eder.
-                                Sitede listelenmesi için ayrıca <strong className="font-medium text-zinc-300">yayında (aktif)</strong> olmalıdır; pasif mekânlar ziyaretçilere gösterilmez.
+                            <p className="mt-2 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                <strong className="font-medium text-zinc-800 dark:text-zinc-300">Onaylı</strong>, kaydın yönetici tarafından doğrulandığını ve bir mekân sahibi hesabıyla eşleştirildiğini ifade eder.
+                                Sitede listelenmesi için ayrıca <strong className="font-medium text-zinc-800 dark:text-zinc-300">yayında (aktif)</strong> olmalıdır; pasif mekânlar ziyaretçilere gösterilmez.
                             </p>
                             <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-zinc-400">Yönetici onayı *</label>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Yönetici onayı *</label>
                                     <select
                                         value={data.status}
                                         onChange={(e) => setData('status', e.target.value)}
@@ -304,38 +304,38 @@ export default function AdminVenueEdit({
                                     </select>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-700/80 bg-zinc-950/40 px-3 py-3 text-sm text-zinc-200">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-800 dark:border-zinc-700/80 dark:bg-zinc-950/40 dark:text-zinc-200">
                                         <input
                                             type="checkbox"
                                             checked={data.is_active}
                                             onChange={(e) => setData('is_active', e.target.checked)}
-                                            className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                                            className="mt-0.5 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-amber-500"
                                         />
                                         <span>
-                                            <span className="font-medium text-white">Yayında (aktif)</span>
-                                            <span className="mt-1 block text-xs font-normal text-zinc-500">
+                                            <span className="font-medium text-zinc-900 dark:text-white">Yayında (aktif)</span>
+                                            <span className="mt-1 block text-xs font-normal text-zinc-600 dark:text-zinc-500">
                                                 İşaretliyse ve onaylıysa mekân /mekanlar ve aramalarda listelenir. Pasif bırakarak geçici olarak gizleyebilirsiniz.
                                             </span>
                                         </span>
                                     </label>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-600/35 bg-gradient-to-r from-amber-950/50 to-zinc-950/40 px-3 py-3 text-sm text-zinc-200">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-300 bg-gradient-to-r from-amber-50 to-amber-100/50 px-3 py-3 text-sm text-zinc-800 dark:border-amber-600/35 dark:from-amber-950/50 dark:to-zinc-950/40 dark:text-zinc-200">
                                         <input
                                             type="checkbox"
                                             checked={data.is_featured}
                                             onChange={(e) => setData('is_featured', e.target.checked)}
-                                            className="mt-0.5 rounded border-amber-700/60 bg-zinc-900 text-amber-500"
+                                            className="mt-0.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500 dark:border-amber-700/60 dark:bg-zinc-900 dark:text-amber-500"
                                         />
                                         <span className="flex min-w-0 flex-1 items-start gap-2">
                                             <Star
-                                                className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
+                                                className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
                                                 strokeWidth={2}
                                                 aria-hidden
                                             />
                                             <span>
-                                                <span className="font-medium text-amber-100">Öne çıkan mekân</span>
-                                                <span className="mt-1 block text-xs font-normal text-zinc-500">
+                                                <span className="font-medium text-amber-900 dark:text-amber-100">Öne çıkan mekân</span>
+                                                <span className="mt-1 block text-xs font-normal text-zinc-600 dark:text-zinc-500">
                                                     Listelerde üst sıralarda yer alır; kartlarda yıldız ve altın çerçeve ile vurgulanır.
                                                 </span>
                                             </span>
@@ -345,7 +345,7 @@ export default function AdminVenueEdit({
                             </div>
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Mekân sahibi (kullanıcı)</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Mekân sahibi (kullanıcı)</label>
                             <p className="mt-0.5 text-xs text-zinc-500">
                                 Yalnızca «Mekân sahibi» rolündeki aktif kullanıcılar seçilebilir. Rol atamak için{' '}
                                 <Link
@@ -482,7 +482,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Adres *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Adres *</label>
                             <input
                                 value={data.address}
                                 onChange={(e) => setData('address', e.target.value)}
@@ -509,7 +509,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Kategori *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kategori *</label>
                             <select
                                 value={data.category_id}
                                 onChange={(e) => setData('category_id', e.target.value)}
@@ -523,7 +523,7 @@ export default function AdminVenueEdit({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Enlem</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Enlem</label>
                             <input
                                 value={data.latitude}
                                 onChange={(e) => setData('latitude', e.target.value)}
@@ -531,7 +531,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Boylam</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Boylam</label>
                             <input
                                 value={data.longitude}
                                 onChange={(e) => setData('longitude', e.target.value)}
@@ -539,7 +539,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Kapasite</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapasite</label>
                             <input
                                 type="number"
                                 min={1}
@@ -549,7 +549,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Telefon</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Telefon</label>
                             <PhoneInput
                                 value={data.phone ?? ''}
                                 onChange={(v) => setData('phone', v)}
@@ -557,7 +557,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">WhatsApp</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">WhatsApp</label>
                             <input
                                 value={data.whatsapp ?? ''}
                                 onChange={(e) => {
@@ -572,7 +572,7 @@ export default function AdminVenueEdit({
                             />
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Website</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Website</label>
                             <input
                                 type="url"
                                 value={data.website}
@@ -585,12 +585,12 @@ export default function AdminVenueEdit({
 
                         <AdminFormTabPanel id="icerik" activeId={editTab} className="space-y-6">
                     <div>
-                        <h3 className="text-sm font-semibold text-zinc-300">Sosyal medya</h3>
+                        <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-300">Sosyal medya</h3>
                         <p className="mt-1 text-xs text-zinc-500">Tam URL (https://…). Boş bırakılanlar sitede gösterilmez.</p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                             {venueSocialKeys.map((key) => (
                                 <div key={key}>
-                                    <label className="block text-sm font-medium capitalize text-zinc-400">{key}</label>
+                                    <label className="block text-sm font-medium capitalize text-zinc-700 dark:text-zinc-400">{key}</label>
                                     <input
                                         type="url"
                                         value={data.social_links[key]}
@@ -606,7 +606,7 @@ export default function AdminVenueEdit({
                     </div>
 
                     <div>
-                        <span className="block text-sm font-medium text-zinc-400">Açıklama</span>
+                        <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Açıklama</span>
                         <RichTextEditor
                             value={data.description ?? ''}
                             onChange={(html) => setData('description', html)}
@@ -619,7 +619,7 @@ export default function AdminVenueEdit({
 
                         <AdminFormTabPanel id="tanitim" activeId={editTab} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli (URL)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak görseli (URL)</label>
                         <p className="mt-0.5 text-xs text-zinc-500">
                             Google ile yer seçildiğinde kapak otomatik sunucuya indirilir; canlı sitede harici bağlantı kullanılmaz.
                         </p>
@@ -639,12 +639,12 @@ export default function AdminVenueEdit({
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak görseli (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak görseli (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('cover_upload', e.target.files?.[0] ?? null)}
-                            className="mt-1 w-full text-sm text-zinc-300"
+                            className="mt-1 w-full text-sm text-zinc-800 dark:text-zinc-300"
                         />
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
@@ -662,15 +662,15 @@ export default function AdminVenueEdit({
                         </AdminFormTabPanel>
                     </form>
 
-                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-700/80 p-6">
-                    <h2 className="text-lg font-semibold text-zinc-100">Mekân galerisi</h2>
-                    <p className="text-sm text-zinc-500">Birden fazla fotoğraf seçebilirsiniz (aynı anda toplu yükleme). Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
+                    <AdminFormTabPanel id="galeri" activeId={editTab} className="space-y-4 border-t border-zinc-200 p-6 dark:border-zinc-700/80">
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Mekân galerisi</h2>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-500">Birden fazla fotoğraf seçebilirsiniz (aynı anda toplu yükleme). Yükleme anında kaydedilir; «Kaydet» gerekmez.</p>
                     <input
                         type="file"
                         accept="image/*"
                         multiple
                         disabled={galleryUploading}
-                        className="mt-4 block text-sm text-zinc-300 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-700 file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-zinc-600 disabled:opacity-50"
+                        className="mt-4 block text-sm text-zinc-800 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-600 file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-amber-500 disabled:opacity-50 dark:text-zinc-300 dark:file:bg-zinc-700 dark:hover:file:bg-zinc-600"
                         onChange={(e) => {
                             const list = e.target.files;
                             if (list?.length) addGallery(list);
@@ -686,7 +686,7 @@ export default function AdminVenueEdit({
                                 <img
                                     src={storageUrl(m.path) ?? ''}
                                     alt=""
-                                    className="h-28 w-28 rounded-lg object-cover ring-1 ring-zinc-700"
+                                    className="h-28 w-28 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
                                 />
                                 <button
                                     type="button"
@@ -700,7 +700,7 @@ export default function AdminVenueEdit({
                     </div>
                     </AdminFormTabPanel>
 
-                    <div className="flex flex-wrap gap-3 border-t border-zinc-700/80 bg-zinc-950/30 px-6 py-4">
+                    <div className="flex flex-wrap gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-700/80 dark:bg-zinc-950/30">
                         <button
                             type="submit"
                             form="admin-venue-edit-form"

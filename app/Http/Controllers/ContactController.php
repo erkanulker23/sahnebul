@@ -46,14 +46,22 @@ class ContactController extends Controller
                 ->with('success', 'Mesajınız alındı. En kısa sürede size dönüş yapacağız.');
         }
 
+        $ip = $request->ip();
+        $isSpam = self::contactSubmissionLooksLikeSpam(
+            $validated['message'],
+            $validated['email'],
+            $ip
+        );
+
         $message = ContactMessage::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'subject' => $validated['subject'] ?? null,
             'message' => $validated['message'],
-            'ip_address' => $request->ip(),
+            'ip_address' => $ip,
             'user_agent' => substr((string) $request->userAgent(), 0, 512),
+            'is_spam' => $isSpam,
         ]);
 
         $footer = $this->appSettings->getJsonCached('footer');
@@ -77,5 +85,41 @@ class ContactController extends Controller
         return redirect()
             ->route('contact')
             ->with('success', 'Mesajınız alındı. En kısa sürede size dönüş yapacağız.');
+    }
+
+    /**
+     * Otomatik spam işareti: çok link, şüpheli anahtar kelime, aynı IP’den kısa sürede çok gönderim.
+     */
+    private static function contactSubmissionLooksLikeSpam(string $message, string $email, ?string $ip): bool
+    {
+        $msg = $message."\n".$email;
+        $lower = mb_strtolower($msg);
+
+        $urlHits = preg_match_all('#https?://#i', $message);
+        if ($urlHits !== false && $urlHits >= 4) {
+            return true;
+        }
+
+        $needles = [
+            'viagra', 'cialis', 'casino', 'seo hizmet', 'click here', 'bitcoin', 'crypto wallet',
+            'telegram.me/', 't.me/', 'whatsapp.com/chat', 'buy followers', 'instagram takipçi',
+        ];
+        foreach ($needles as $n) {
+            if (str_contains($lower, $n)) {
+                return true;
+            }
+        }
+
+        if ($ip !== null && $ip !== '') {
+            $recentFromIp = ContactMessage::query()
+                ->where('ip_address', $ip)
+                ->where('created_at', '>=', now()->subHour())
+                ->count();
+            if ($recentFromIp >= 5) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

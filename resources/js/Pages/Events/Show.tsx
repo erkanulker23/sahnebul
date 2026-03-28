@@ -858,18 +858,22 @@ export default function EventShow({
                 {event.artists.length > 0 && (
                     <div className="mt-8">
                         <h2 className="mb-4 font-display text-2xl font-bold">Performans Sanatçıları</h2>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {event.artists.map((artist) => (
-                                <Link key={artist.id} href={route('artists.show', artist.slug)} className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-amber-400 dark:border-white/10 dark:bg-zinc-900/60">
-                                    <div className="flex items-center gap-3">
+                                <Link
+                                    key={artist.id}
+                                    href={route('artists.show', artist.slug)}
+                                    className="flex h-full min-h-[5.25rem] rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-amber-400 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-none dark:hover:shadow-none"
+                                >
+                                    <div className="flex w-full min-w-0 items-start gap-3">
                                         {artistVisual(artist) ? (
-                                            <img src={artistVisual(artist) ?? ''} alt={artist.name} className="h-14 w-14 rounded-full object-cover" />
+                                            <img src={artistVisual(artist) ?? ''} alt={artist.name} className="h-14 w-14 shrink-0 rounded-full object-cover" />
                                         ) : (
-                                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700">🎤</div>
+                                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-200 dark:bg-zinc-700">🎤</div>
                                         )}
-                                        <div>
-                                            <p className="font-semibold">{artist.name}</p>
-                                            <p className="text-sm text-zinc-500">{artist.genre ?? 'Sanatçı'}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-semibold text-zinc-900 dark:text-white">{artist.name}</p>
+                                            <p className="mt-0.5 text-sm leading-snug text-zinc-600 line-clamp-3 dark:text-zinc-400">{artist.genre ?? 'Sanatçı'}</p>
                                         </div>
                                     </div>
                                 </Link>
