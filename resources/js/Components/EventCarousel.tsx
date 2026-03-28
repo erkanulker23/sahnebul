@@ -111,7 +111,7 @@ export default function EventCarousel({
         if (!el) return;
         const card = el.querySelector<HTMLElement>('[data-carousel-card]');
         const w = card?.offsetWidth ?? 300;
-        const gap = 16;
+        const gap = parseFloat(getComputedStyle(el).gap || '16') || 16;
         el.scrollBy({ left: dir * (w + gap), behavior: 'smooth' });
     }, []);
 
@@ -154,7 +154,7 @@ export default function EventCarousel({
             ) : (
                 <div
                     ref={scrollRef}
-                    className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 pr-4 pt-0.5 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] [scroll-padding-inline:1rem] sm:gap-4 sm:pr-6 [&::-webkit-scrollbar]:hidden"
                 >
                     {events.map((event) => {
                         const headliner = event.artists[0];
@@ -172,7 +172,7 @@ export default function EventCarousel({
                                 key={event.id}
                                 data-carousel-card
                                 href={route('events.show', eventShowParam(event))}
-                                className={`${cardShellClass} min-w-[min(100%,320px)] max-w-[320px] shrink-0 snap-start`}
+                                className={`${cardShellClass} min-w-[min(100%,300px)] max-w-[300px] shrink-0 snap-start sm:min-w-[min(100%,320px)] sm:max-w-[320px]`}
                             >
                                 <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800/80">
                                     {bg ? (
@@ -188,25 +188,28 @@ export default function EventCarousel({
                                             </span>
                                         </div>
                                     )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-80 transition group-hover:opacity-100" />
-                                    {showLocationOverlay ? (
-                                        <div className="pointer-events-none absolute left-1.5 top-1.5 z-[2] max-w-[calc(100%-5.5rem)] sm:left-3 sm:top-3">
-                                            <span
-                                                className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-gradient-to-r from-zinc-800 via-zinc-900 to-amber-700 px-2.5 py-1.5 text-white shadow-lg shadow-black/35 ring-1 ring-white/20 sm:gap-2 sm:px-3 sm:py-1.5"
-                                                title={locationLine}
-                                            >
-                                                <IconMapPin className="h-3 w-3 shrink-0 text-white/95 sm:h-3.5 sm:w-3.5" />
-                                                <span className="min-w-0 flex-1 truncate text-left text-[9px] font-semibold leading-tight tracking-tight text-white sm:text-[11px]">
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent opacity-90" />
+                                </div>
+                                <div className="border-b border-zinc-200/90 bg-zinc-50/95 px-3 py-2.5 dark:border-white/[0.08] dark:bg-zinc-950/50">
+                                    <div className="flex flex-col gap-2">
+                                        {showLocationOverlay ? (
+                                            <div className="flex min-w-0 items-start gap-2" title={locationLine}>
+                                                <IconMapPin
+                                                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-amber-600 dark:text-amber-400'}`}
+                                                />
+                                                <span className="min-w-0 text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
                                                     {locationLine}
                                                 </span>
+                                            </div>
+                                        ) : null}
+                                        <div className="flex min-w-0 items-start gap-2">
+                                            <IconCalendar
+                                                className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-amber-600 dark:text-amber-400'}`}
+                                            />
+                                            <span className="min-w-0 text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
+                                                {whenLabel}
                                             </span>
                                         </div>
-                                    ) : null}
-                                    <div className="absolute right-1.5 top-1.5 z-[2] max-w-[min(100%,11.5rem)] rounded-lg bg-gradient-to-br from-white/90 via-amber-50/95 to-amber-100/90 px-2 py-1 shadow-lg shadow-amber-900/10 ring-1 ring-amber-200/80 backdrop-blur-md dark:from-zinc-900/90 dark:via-zinc-900/85 dark:to-amber-950/40 dark:ring-amber-500/20 sm:right-3 sm:top-3 sm:rounded-xl sm:px-2.5 sm:py-1.5">
-                                        <p className="flex items-start gap-1.5 text-left text-[9px] font-semibold leading-tight text-zinc-900 dark:text-amber-50 sm:gap-2 sm:text-[11px] sm:leading-snug">
-                                            <IconCalendar className="mt-0.5 h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400 sm:h-3.5 sm:w-3.5" />
-                                            <span className="min-w-0">{whenLabel}</span>
-                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
