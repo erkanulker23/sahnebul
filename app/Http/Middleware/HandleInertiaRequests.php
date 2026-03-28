@@ -144,6 +144,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                'promo_import_status_id' => $request->session()->get('promo_import_status_id'),
             ],
             'settings' => [
                 'footer' => fn () => $appSettings->getFooterSettingsForPublic(),

@@ -657,7 +657,6 @@ export default function AdminArtistEdit({
                         entity={artist}
                         variant="artist"
                         routes={adminArtistPromoGalleryRoutes(artist.id)}
-                        showVideoUrlBackgroundOption={false}
                     />
                         </AdminFormTabPanel>
                     </form>

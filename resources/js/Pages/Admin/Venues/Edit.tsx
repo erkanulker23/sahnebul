@@ -658,7 +658,6 @@ export default function AdminVenueEdit({
                         entity={venue}
                         variant="venue"
                         routes={adminVenuePromoGalleryRoutes(venue.id)}
-                        showVideoUrlBackgroundOption={false}
                     />
                         </AdminFormTabPanel>
                     </form>

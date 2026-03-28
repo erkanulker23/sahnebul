@@ -597,12 +597,7 @@ export default function AdminEventEdit({
                         Etkinlik sayfasında üstte tanıtım videoları, altta gönderi görselleri (Instagram / görsel) gösterilir. Kapak ve liste görselleri
                         yukarıdaki alanlardır; bu bloktan farklıdır.
                     </p>
-                    <AdminEntityPromoGalleryPanel
-                        entity={event}
-                        variant="event"
-                        routes={adminEventPromoGalleryRoutes(event.id)}
-                        showVideoUrlBackgroundOption={false}
-                    />
+                    <AdminEntityPromoGalleryPanel entity={event} variant="event" routes={adminEventPromoGalleryRoutes(event.id)} />
 
                     <div className="flex flex-wrap gap-3">
                         <button

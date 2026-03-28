@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Jobs\ProcessPromoGalleryUrlImportJob;
 use App\Services\EventMediaImportFromUrlService;
+use App\Support\PromoGalleryUrlImportStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -42,91 +43,41 @@ trait PromoGalleryImportActions
             return back()->with('error', 'En az bir bağlantı veya satır girin.');
         }
 
-        // Admin paneli: her zaman senkron yanıt (gerçek başarı/hata mesajı). Arka plan yalnızca sanatçı/mekân panelinde.
-        $useQueue = ! $request->is('admin/*')
-            && $validated['mode'] === 'promo_video'
+        $useQueue = $validated['mode'] === 'promo_video'
+            && ! $posterEmbedOnly
             && $request->has('promo_import_background')
             && $request->boolean('promo_import_background');
 
         if ($useQueue) {
-            $modelClass = $model::class;
-            $modelId = $model->getKey();
-            $mode = $validated['mode'];
-            $urlsCopy = $urls;
-            $append = $appendPromo;
-            $posterOnly = $posterEmbedOnly;
+            $user = $request->user();
+            if ($user === null) {
+                return back()->with('error', 'Oturum gerekli.');
+            }
 
-            dispatch(function () use ($modelClass, $modelId, $urlsCopy, $mode, $append, $posterOnly): void {
-                if ($mode !== 'promo_video') {
-                    Log::warning('promo URL import (afterResponse): yalnızca promo_video desteklenir.', ['mode' => $mode]);
+            $statusId = (string) Str::uuid();
+            PromoGalleryUrlImportStatus::boot($statusId, (int) $user->id, count($urls));
 
-                    return;
-                }
-                if (! class_exists($modelClass) || ! is_a($modelClass, Model::class, true)) {
-                    return;
-                }
-                /** @var Model|null $freshModel */
-                $freshModel = $modelClass::query()->find($modelId);
-                if ($freshModel === null) {
-                    Log::warning('promo URL import (afterResponse): model bulunamadı.', ['class' => $modelClass, 'id' => $modelId]);
-
-                    return;
-                }
-
-                $importer = app(EventMediaImportFromUrlService::class);
-
-                try {
-                    if (! $append) {
-                        $importer->purgePromoGallery($freshModel);
-                        $freshModel->refresh();
-                    }
-
-                    $failures = [];
-                    $ok = 0;
-                    foreach ($urlsCopy as $url) {
-                        $url = trim((string) $url);
-                        if ($url === '') {
-                            continue;
-                        }
-                        $r = $importer->import($freshModel->fresh(), $url, $mode, true, $posterOnly);
-                        if ($r['success']) {
-                            $ok++;
-                        } else {
-                            $failures[] = Str::limit($url, 96).' — '.$r['message'];
-                        }
-                    }
-
-                    Log::info('promo gallery URL import (afterResponse) tamamlandı', [
-                        'model' => $modelClass,
-                        'id' => $modelId,
-                        'ok' => $ok,
-                        'lines' => count($urlsCopy),
-                        'failures' => array_slice($failures, 0, 12),
-                    ]);
-
-                    if ($failures !== [] && $ok === 0) {
-                        Log::warning('promo gallery URL import: tüm satırlar başarısız', [
-                            'model' => $modelClass,
-                            'id' => $modelId,
-                            'failures' => $failures,
-                        ]);
-                    }
-                } catch (\Throwable $e) {
-                    Log::error('promo gallery URL import (afterResponse) istisna', [
-                        'model' => $modelClass,
-                        'id' => $modelId,
-                        'exception' => $e->getMessage(),
-                    ]);
-                    report($e);
-                }
-            })->afterResponse();
+            ProcessPromoGalleryUrlImportJob::dispatch(
+                $statusId,
+                $model::class,
+                $model->getKey(),
+                $urls,
+                $appendPromo,
+                $posterEmbedOnly,
+                (int) $user->id,
+            );
 
             $n = count($urls);
+            $queueHint = config('queue.default') === 'sync'
+                ? ' '
+                : ' Sunucuda «php artisan queue:work» çalışıyor olmalı. ';
 
-            return back()->with(
-                'success',
-                $n.' bağlantı yanıt gönderildikten sonra sunucuda sırayla işleniyor (queue worker gerekmez). Bir süre sonra sayfayı yenileyin; sorun olursa sunucu günlüğüne bakın.'
-            );
+            return back()
+                ->with(
+                    'success',
+                    $n.' bağlantı arka planda işleniyor.'.$queueHint.'İlerleme aşağıda görünür; bittiğinde liste yenilenir.'
+                )
+                ->with('promo_import_status_id', $statusId);
         }
 
         if (count($urls) > 1) {

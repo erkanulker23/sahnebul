@@ -151,8 +151,8 @@ return [
      */
     'instagram' => [
         'fetch_cookies' => env('INSTAGRAM_FETCH_COOKIES'),
-        /** Çoklu URL içe aktarımda ardışık Instagram istekleri arası bekleme (429 azaltır). 0 = kapalı. */
-        'batch_delay_seconds' => max(0, min(90, (int) env('INSTAGRAM_BATCH_DELAY_SECONDS', 6))),
+        /** Çoklu URL içe aktarımda ardışık Instagram istekleri arası bekleme (429 azaltır). Varsayılan 0 (hızlı içe aktarma); üretimde 429 görürseniz 4–8 deneyin. */
+        'batch_delay_seconds' => max(0, min(90, (int) env('INSTAGRAM_BATCH_DELAY_SECONDS', 0))),
     ],
 
     /**

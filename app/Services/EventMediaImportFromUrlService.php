@@ -72,7 +72,7 @@ final class EventMediaImportFromUrlService
         $failures = [];
         foreach ($urls as $idx => $u) {
             if ($idx > 0 && $mode === 'promo_video') {
-                $delay = (int) config('services.instagram.batch_delay_seconds', 6);
+                $delay = (int) config('services.instagram.batch_delay_seconds', 0);
                 $prev = $urls[$idx - 1];
                 if ($delay > 0 && ($this->isInstagramHost($u) || $this->isInstagramHost($prev))) {
                     sleep($delay);
@@ -1665,12 +1665,33 @@ final class EventMediaImportFromUrlService
      */
     private function instagramYtDlpFormatFallbackList(): array
     {
+        // İlk satır çoğu gönderiyi kapsar; ikinci yalnızca uç durumlar (tek parça «best»).
         return [
-            'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/best',
-            'bestvideo+bestaudio/best',
-            'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
+            'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best[ext=mp4]/bestvideo+bestaudio/best',
             'best',
         ];
+    }
+
+    /**
+     * Bu hata türünde başka format veya aynı kısakod için /p/↔/reel/ denemek genelde işe yaramaz.
+     */
+    private function ytdlpStderrIndicatesTerminalFailure(?string $stderr): bool
+    {
+        if ($stderr === null || trim($stderr) === '') {
+            return false;
+        }
+        $l = mb_strtolower($stderr);
+
+        return str_contains($l, 'login required')
+            || str_contains($l, 'log in to')
+            || str_contains($l, 'private video')
+            || str_contains($l, 'video unavailable')
+            || str_contains($l, 'no video formats')
+            || str_contains($l, 'no formats found')
+            || str_contains($l, 'there is no video in this post')
+            || str_contains($l, 'this post does not contain a video')
+            || str_contains($l, 'content is no longer available')
+            || str_contains($l, 'instagram sent an empty media');
     }
 
     /**
@@ -1725,6 +1746,9 @@ final class EventMediaImportFromUrlService
 
                     return ['path' => $dest, 'ytdlp_error' => null];
                 }
+                if ($lastCombinedErr !== null && $this->ytdlpStderrIndicatesTerminalFailure($lastCombinedErr)) {
+                    break;
+                }
             }
 
             Log::warning('event promo: yt-dlp tüm Instagram URL varyantlarında başarısız', [
@@ -1765,6 +1789,9 @@ final class EventMediaImportFromUrlService
             }
             if ($dest !== null) {
                 return $dest;
+            }
+            if ($attemptErr !== null && $this->ytdlpStderrIndicatesTerminalFailure($attemptErr)) {
+                break;
             }
         }
 
