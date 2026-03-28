@@ -1,4 +1,4 @@
-import { InstagramExternalOpenCard } from '@/Components/InstagramPostEmbed';
+import { InstagramPromoPreviewOnly } from '@/Components/InstagramPostEmbed';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -21,9 +21,9 @@ export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
         'Dikey, sitede oynatılan videolar (yüklediğiniz dosya veya Reels’ten indirilen). Instagram «Hikâye» değil; tam video içeriği burada.',
-    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsTitle: 'Gönderi görselleri',
     postsDescription:
-        'Kare önizleme: Instagram gönderi/reel bağlantısı, yüklenen görsel veya gömülü paylaşım. Kartlara dokunarak büyütür veya Instagram’da açarsınız.',
+        'Kare önizleme: sosyal gönderi bağlantısından veya yüklenen görselden oluşan kapaklar. Karta dokunarak büyütün.',
     linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
@@ -31,9 +31,9 @@ export const venuePromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
         'Mekânınızı tanıtan dikey videolar (dosya yüklemesi veya Reels bağlantısı). Instagram Hikâyesi ile karıştırmayın — burada tam video oynatılır.',
-    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsTitle: 'Gönderi görselleri',
     postsDescription:
-        'Etkinlik ve mekân duyuruları için kare önizleme; Instagram veya yüklenen görsel. Dokunarak büyütün veya Instagram’da açın.',
+        'Etkinlik ve mekân duyuruları için kare önizleme; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
     linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
@@ -41,9 +41,9 @@ export const artistPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
         'Performans tanıtımı için dikey videolar (dosya veya Reels). Instagram Hikâyesi değil; oynatılabilir video içeriği.',
-    postsTitle: 'Gönderi görselleri ve Instagram',
+    postsTitle: 'Gönderi görselleri',
     postsDescription:
-        'Duyuru ve paylaşımların kare önizlemesi; Instagram bağlantısı veya yüklenen görsel. Dokunarak büyütün veya Instagram’da açın.',
+        'Duyuru ve paylaşımların kare önizlemesi; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
     linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
@@ -299,7 +299,6 @@ export function PublicPromoGallerySection({
                             const slide = postSlides[idx];
                             const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
                             const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-                            const igEmbed = it.embed_url?.trim().includes('instagram.com') ?? false;
                             const canOpen = Boolean(slide);
                             return (
                                 <li
@@ -329,9 +328,9 @@ export function PublicPromoGallerySection({
                                                     className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-cover transition group-hover:brightness-95"
                                                 />
                                             ) : slide?.kind === 'instagram' ? (
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] px-2 text-center">
-                                                    <span className="text-[11px] font-bold text-white">Instagram</span>
-                                                    <span className="text-[9px] font-medium leading-tight text-white/90">Oynatmak için dokunun</span>
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-zinc-800 to-zinc-950 px-2 text-center">
+                                                    <span className="text-[10px] font-semibold text-zinc-400">Önizleme yok</span>
+                                                    <span className="text-[9px] font-medium leading-tight text-zinc-600">Büyütmek için dokunun</span>
                                                 </div>
                                             ) : posterSrc ? (
                                                 <img
@@ -341,7 +340,7 @@ export function PublicPromoGallerySection({
                                                 />
                                             ) : null}
                                             <span className="pointer-events-none absolute bottom-1 left-1 right-1 rounded bg-black/60 py-0.5 text-center text-[9px] font-medium text-white opacity-0 transition group-hover:opacity-100">
-                                                {igEmbed && !videoSrc ? 'Instagram’da oynat' : 'Büyüt'}
+                                                Büyüt
                                             </span>
                                         </button>
                                     ) : videoSrc ? (
@@ -430,11 +429,7 @@ export function PublicPromoGallerySection({
                                         Tarayıcınız bu videoyu oynatamıyor.
                                     </video>
                                 ) : lbSlide.kind === 'instagram' ? (
-                                    <InstagramExternalOpenCard
-                                        permalink={lbSlide.permalink}
-                                        posterSrc={lbSlide.poster}
-                                        className="w-full max-w-md"
-                                    />
+                                    <InstagramPromoPreviewOnly posterSrc={lbSlide.poster} className="w-full max-w-md" />
                                 ) : (
                                     <img
                                         src={lbSlide.src}
@@ -488,7 +483,7 @@ export function PublicPromoGallerySection({
                                             }}
                                             className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 text-[10px] font-bold sm:h-16 sm:w-16 ${
                                                 igOnly
-                                                    ? 'border-transparent bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white'
+                                                    ? 'border-transparent bg-zinc-800 text-zinc-400'
                                                     : ''
                                             } ${
                                                 i === lbIndex ? 'border-amber-400' : 'border-transparent opacity-50 hover:opacity-90'
@@ -497,7 +492,7 @@ export function PublicPromoGallerySection({
                                             {thumb ? (
                                                 <img src={thumb} alt="" className="h-full w-full object-cover" />
                                             ) : (
-                                                'IG'
+                                                '—'
                                             )}
                                         </button>
                                     );

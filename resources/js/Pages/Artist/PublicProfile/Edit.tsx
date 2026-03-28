@@ -324,9 +324,8 @@ export default function PublicArtistProfileEdit({
                 <section className="mb-10 max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
                     <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Galeri</h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                        Fotoğraf yükleyebilir, Instagram gönderi veya reel bağlantısı ekleyebilir veya öğeleri silebilirsiniz. Instagram
-                        öğeleri etkinlik sayfalarındaki gibi sitede gömülü oynatıcı ile gösterilir (ayrıca Instagram&apos;a yönlendiren bir
-                        kapak düğmesi kullanılmaz).
+                        Fotoğraf yükleyebilir, gönderi veya reel bağlantısı ekleyebilir veya öğeleri silebilirsiniz. Kamu sayfada bağlantılı
+                        öğeler yalnızca sunucuya inen kapak görseliyle listelenir; gömülü oynatıcı veya «Instagram&apos;da aç» yoktur.
                         {artistProfileApproved
                             ? ' Onaylı sanatçı profiliniz olduğu için görseller doğrudan sayfanızda yayınlanır.'
                             : ' Profiliniz henüz onaylı değilse yüklemeler yönetici onayına gider; onaylanana kadar kamu sayfasında görünmez.'}
@@ -381,7 +380,7 @@ export default function PublicArtistProfileEdit({
                                             <span className="text-2xl" aria-hidden>
                                                 ▶
                                             </span>
-                                            <span className="text-xs font-semibold text-amber-200">Instagram (gömülü)</span>
+                                            <span className="text-xs font-semibold text-amber-200">Bağlantı kaydı</span>
                                             <span className="line-clamp-3 break-all text-[10px] text-zinc-400">{g.embed_url}</span>
                                         </div>
                                     ) : g.url ? (

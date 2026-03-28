@@ -180,7 +180,7 @@ class PublicArtistProfileController extends Controller
     }
 
     /**
-     * Instagram gönderi / reel URL’si — kamu sayfasında gömülü oynatıcı ile gösterilir (etkinlik tanıtımı ile aynı mantık).
+     * Instagram gönderi / reel URL’si — kamu sayfada yalnızca önizleme görseli hedeflenir (harici Instagram bağlantısı gösterilmez).
      */
     public function storeGalleryInstagramEmbed(Request $request)
     {
@@ -250,7 +250,7 @@ class PublicArtistProfileController extends Controller
             'success',
             $mod === ArtistMedia::MODERATION_PENDING
                 ? 'Instagram içeriği eklendi. Onay sonrası kamu sayfasında gösterilir.'
-                : 'Instagram içeriği galerinize eklendi; sayfanızda önizleme ve Instagram’da aç bağlantısı olarak görünür.'
+                : 'Instagram içeriği galerinize eklendi; sayfanızda yalnızca önizleme görseli gösterilir (harici Instagram bağlantısı yok).'
         );
     }
 

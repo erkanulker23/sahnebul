@@ -3,7 +3,7 @@ import {
     artistPromoLabels,
     promoGalleryItemsFromEntity,
 } from '@/Components/PublicPromoGallerySection';
-import { InstagramExternalOpenCard } from '@/Components/InstagramPostEmbed';
+import { InstagramPromoPreviewOnly } from '@/Components/InstagramPostEmbed';
 import PhoneInput from '@/Components/PhoneInput';
 import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Components/DetailEventList';
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
@@ -57,7 +57,7 @@ interface ArtistMediaItem {
     path: string;
     title: string | null;
     type: string;
-    /** Instagram gönderi/reel — sitede önizleme + Instagram’da aç (gömülü widget yok) */
+    /** Instagram kaynaklı galeri öğesi — yalnızca sunucudaki önizleme görseli (dışa Instagram bağlantısı yok) */
     embed_url?: string | null;
     thumbnail?: string | null;
 }
@@ -1073,9 +1073,9 @@ export default function ArtistShow({
                                                         className="col-span-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-950/40 sm:col-span-3 md:col-span-4"
                                                     >
                                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                                                            Instagram gönderisi
+                                                            Gönderi önizlemesi
                                                         </p>
-                                                        <InstagramExternalOpenCard permalink={ig} posterSrc={thumb} className="mx-auto" />
+                                                        <InstagramPromoPreviewOnly posterSrc={thumb} className="mx-auto max-w-lg" />
                                                     </div>
                                                 );
                                             }
