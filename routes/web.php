@@ -334,6 +334,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('throttle:30,1')
         ->name('events.remove-promo-item');
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');
+    Route::post('/etkinlikler/{event}/mekan-profil-tanitim-onayla', [AdminEventController::class, 'approvePromoVenueProfile'])
+        ->name('events.approve-promo-venue-profile');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');
     Route::post('/dis-kaynak-etkinlikler/veri-cek', [AdminExternalEventController::class, 'crawl'])

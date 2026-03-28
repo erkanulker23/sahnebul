@@ -10,6 +10,7 @@ use App\Models\Venue;
 use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
 use App\Support\DailyUniqueEntityView;
+use App\Support\EventPromoVenueProfileModeration;
 use App\Support\HomeHeroSlideDefaults;
 use App\Support\HomeHeroSlides;
 use App\Support\UpcomingSevenDayEventWindow;
@@ -185,9 +186,43 @@ class VenueController extends Controller
 
         $appUrl = rtrim((string) config('app.url'), '/');
 
+        $venueEventPromoSections = [];
+        if (Schema::hasColumn('events', 'promo_show_on_venue_profile_posts')) {
+            $promoQuery = Event::query()
+                ->where('venue_id', $venue->id)
+                ->published()
+                ->where(function ($q): void {
+                    $q->where('promo_show_on_venue_profile_posts', true)
+                        ->orWhere('promo_show_on_venue_profile_videos', true);
+                });
+            if (Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
+                $promoQuery->where('promo_venue_profile_moderation', EventPromoVenueProfileModeration::APPROVED);
+            }
+            foreach ($promoQuery
+                ->with(['artists:id,name,slug,avatar'])
+                ->orderBy('start_date')
+                ->limit(80)
+                ->get() as $ev) {
+                if (! $ev instanceof Event || ! $ev->isPromoEligibleForVenueProfilePage()) {
+                    continue;
+                }
+                $items = $ev->promoItemsForVenueProfilePage();
+                if ($items === []) {
+                    continue;
+                }
+                $venueEventPromoSections[] = [
+                    'event_id' => $ev->id,
+                    'title' => $ev->title,
+                    'slug_segment' => $ev->publicUrlSegment(),
+                    'items' => $items,
+                ];
+            }
+        }
+
         return Inertia::render('Venues/Show', [
             'venue' => $venue,
             'venuePageSeo' => VenuePageSeo::forLoadedVenue($venue, $appUrl),
+            'venueEventPromoSections' => $venueEventPromoSections,
             'claimStatus' => auth()->check()
                 ? VenueClaimRequest::where('venue_id', $venue->id)->where('user_id', auth()->id())->value('status')
                 : null,

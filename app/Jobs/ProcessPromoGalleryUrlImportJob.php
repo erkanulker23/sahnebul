@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\Event;
 use App\Services\EventMediaImportFromUrlService;
+use App\Support\EventPromoVenueProfileModeration;
 use App\Support\PromoGalleryUrlImportStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,6 +32,7 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
         public bool $appendPromo,
         public bool $posterEmbedOnly,
         public int $userId,
+        public bool $promoFromAdmin = true,
     ) {}
 
     public function handle(EventMediaImportFromUrlService $importer): void
@@ -121,6 +124,11 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
                 'ok' => $ok,
                 'failures' => $failures,
             ]);
+
+            $finalModel = $this->modelClass::query()->find($this->modelId);
+            if ($finalModel instanceof Event) {
+                EventPromoVenueProfileModeration::syncAfterPromoMutationFromAdminFlag($finalModel->fresh(), $this->promoFromAdmin);
+            }
         } catch (Throwable $e) {
             report($e);
             PromoGalleryUrlImportStatus::put($this->statusId, [

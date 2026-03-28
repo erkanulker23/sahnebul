@@ -219,7 +219,7 @@ export default function EventCalendarSlider({
                         <div className="flex items-center justify-between gap-4">
                             <h3 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">
                                 {selectedDateKey
-                                    ? formatTurkishDateTime(`${selectedDateKey}T12:00:00`, { withTime: false })
+                                    ? formatTurkishDateTime(`${selectedDateKey}T12:00:00+03:00`, { withTime: false })
                                     : 'Yaklaşan etkinlikler'}
                             </h3>
                             <div className="flex gap-2">

@@ -1,3 +1,4 @@
+import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { eventTicketBadge } from '@/lib/eventTicketBadge';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -140,25 +141,14 @@ function groupVenueEventsByMonth(events: DetailEventListItem[]): { upcoming: Mon
 
 function thumbVisual(
     ev: DetailEventListItem,
-    context: 'artist' | 'venue',
     imageSrcFn: (p: string | null | undefined) => string | null,
 ): { url: string | null; objectFit: 'contain' | 'cover' } {
-    const listing = ev.listing_image?.trim();
-    if (listing) {
-        const url = listing.startsWith('http://') || listing.startsWith('https://') ? listing : imageSrcFn(listing);
-        return { url, objectFit: 'contain' };
+    const raw = pickEventListingThumbPath(ev.listing_image, ev.cover_image);
+    if (!raw) {
+        return { url: null, objectFit: 'cover' };
     }
-    const cover = ev.cover_image?.trim();
-    if (cover) {
-        const url = cover.startsWith('http://') || cover.startsWith('https://') ? cover : imageSrcFn(cover);
-        return { url, objectFit: 'contain' };
-    }
-    if (context === 'venue') {
-        const av = ev.artists?.find((a) => a.avatar)?.avatar ?? ev.artists?.[0]?.avatar;
-        const url = av ? imageSrcFn(av) : null;
-        return { url, objectFit: 'cover' };
-    }
-    return { url: null, objectFit: 'cover' };
+    const url = raw.startsWith('http://') || raw.startsWith('https://') ? raw : imageSrcFn(raw);
+    return { url, objectFit: 'contain' };
 }
 
 function EventListRow({
@@ -174,7 +164,7 @@ function EventListRow({
     const whenLabel = formatTurkishDateTime(ev.start_date);
     const badge = eventTicketBadge(ev);
     const sub = subtitleForEvent(ev, context);
-    const thumb = thumbVisual(ev, context, imageSrc);
+    const thumb = thumbVisual(ev, imageSrc);
     const ended = start.getTime() < Date.now();
 
     return (

@@ -2,6 +2,7 @@ import {
     PublicPromoGallerySection,
     promoGalleryItemsFromEntity,
     venuePromoLabels,
+    type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
 import PhoneInput from '@/Components/PhoneInput';
 import { AdSlot } from '@/Components/AdSlot';
@@ -89,10 +90,18 @@ interface VenuePageSeo {
     structuredData: Record<string, unknown>;
 }
 
+interface VenueEventPromoSection {
+    event_id: number;
+    title: string;
+    slug_segment: string;
+    items: PromoGalleryItem[];
+}
+
 interface Props {
     venue: Venue;
     venuePageSeo?: VenuePageSeo | null;
     claimStatus?: string | null;
+    venueEventPromoSections?: VenueEventPromoSection[];
 }
 
 function buildVenueJsonLd(params: {
@@ -212,7 +221,12 @@ function buildVenueJsonLd(params: {
     };
 }
 
-export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: Readonly<Props>) {
+export default function VenueShow({
+    venue,
+    venuePageSeo = null,
+    claimStatus,
+    venueEventPromoSections = [],
+}: Readonly<Props>) {
     const page = usePage();
     const auth = page.props.auth as { user: { id: number; role?: string } | null; is_platform_admin?: boolean };
     const seo = (page.props as { seo?: SharedSeo }).seo;
@@ -484,6 +498,42 @@ export default function VenueShow({ venue, venuePageSeo = null, claimStatus }: R
                             {galleryPhotos.length > 0 && (
                                 <VenuePhotoGallery key={venue.slug} photos={galleryPhotos} venueName={venue.name} />
                             )}
+
+                            {venueEventPromoSections.length > 0 ? (
+                                <div className="mt-8 space-y-10">
+                                    {venueEventPromoSections.map((section) => (
+                                        <section
+                                            key={section.event_id}
+                                            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-8"
+                                        >
+                                            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+                                                <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">
+                                                    {section.title}
+                                                </h2>
+                                                <Link
+                                                    href={route('events.show', section.slug_segment)}
+                                                    className="text-sm font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                                                >
+                                                    Etkinlik sayfası
+                                                </Link>
+                                            </div>
+                                            <p className="mb-4 text-xs text-zinc-600 dark:text-zinc-500">
+                                                Bu etkinliğin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
+                                            </p>
+                                            <PublicPromoGallerySection
+                                                items={section.items}
+                                                resolveStorageSrc={(path) => {
+                                                    if (!path) return null;
+                                                    return path.startsWith('http://') || path.startsWith('https://')
+                                                        ? path
+                                                        : `/storage/${path}`;
+                                                }}
+                                                labels={venuePromoLabels}
+                                            />
+                                        </section>
+                                    ))}
+                                </div>
+                            ) : null}
 
                             <div className="mt-8">
                                 <PublicPromoGallerySection

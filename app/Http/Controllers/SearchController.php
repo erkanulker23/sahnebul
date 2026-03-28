@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Support\EventPublicListingImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -42,7 +43,7 @@ class SearchController extends Controller
                 'start_date' => $e->start_date?->toIso8601String(),
                 'end_date' => $e->end_date?->toIso8601String(),
                 'venue_name' => $e->venue?->name,
-                'image' => $e->listing_image ?: $e->cover_image,
+                'image' => EventPublicListingImage::pickListingThumb($e->listing_image, $e->cover_image),
             ]),
         ]);
     }
@@ -96,7 +97,7 @@ class SearchController extends Controller
                 'title' => $e->title,
                 'start_date' => $e->start_date,
                 'venue_name' => $e->venue?->name,
-                'image' => $e->listing_image ?: $e->cover_image,
+                'image' => EventPublicListingImage::pickListingThumb($e->listing_image, $e->cover_image),
             ]),
         ]);
     }

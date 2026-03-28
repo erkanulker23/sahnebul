@@ -1,3 +1,4 @@
+import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -20,19 +21,6 @@ export interface CarouselEvent {
     artists: { id: number; name: string; slug: string; avatar?: string | null }[];
     cover_image?: string | null;
     listing_image?: string | null;
-}
-
-function imageSrc(path: string | null | undefined): string | null {
-    if (!path) return null;
-    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
-}
-
-function eventCardImageSrc(listing: string | null | undefined, cover: string | null | undefined): string | null {
-    const list = listing?.trim();
-    if (list) {
-        return imageSrc(list);
-    }
-    return imageSrc(cover ?? null);
 }
 
 function IconMapPin({ className }: Readonly<{ className?: string }>) {
@@ -159,10 +147,7 @@ export default function EventCarousel({
                     {events.map((event) => {
                         const headliner = event.artists[0];
                         const displayName = headliner?.name ?? event.title;
-                        const bg =
-                            eventCardImageSrc(event.listing_image, event.cover_image) ??
-                            imageSrc(headliner?.avatar ?? null) ??
-                            null;
+                        const bg = resolveEventListingThumbUrl(event.listing_image, event.cover_image);
                         const whenLabel = formatTurkishDateTime(event.start_date);
                         const locationLine = formatVenueLocationLine(event.venue.city?.name, event.venue.district?.name);
                         const showLocationOverlay = locationLine !== '';

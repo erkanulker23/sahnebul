@@ -25,6 +25,14 @@ type EntityWithPromo = {
     promo_embed_url?: string | null;
 };
 
+export type EventVenueProfilePromoToggles = {
+    showPosts: boolean;
+    showVideos: boolean;
+    onChangeShowPosts: (v: boolean) => void;
+    onChangeShowVideos: (v: boolean) => void;
+    moderationStatus?: string | null;
+};
+
 type AdminPromoPreviewRow = {
     video_path: string | null;
     poster_path: string | null;
@@ -78,12 +86,15 @@ export default function AdminEntityPromoGalleryPanel({
     routes,
     variant,
     showVideoUrlBackgroundOption = true,
+    eventVenueProfilePromoToggles = null,
 }: Readonly<{
     entity: EntityWithPromo;
     routes: AdminEntityPromoGalleryRoutes;
     variant: 'venue' | 'artist' | 'event';
     /** false: yönetim paneli — sunucu zaten senkron işler; arka plan kutusu gösterilmez */
     showVideoUrlBackgroundOption?: boolean;
+    /** Yalnız etkinlik: mekân sayfasında gönderi / video tanıtımı tikleri */
+    eventVenueProfilePromoToggles?: EventVenueProfilePromoToggles | null;
 }>) {
     const copy = COPY[variant];
     const fieldResize = cn(
@@ -362,6 +373,13 @@ export default function AdminEntityPromoGalleryPanel({
                 </span>
             </label>
 
+            {variant === 'event' && eventVenueProfilePromoToggles?.moderationStatus === 'pending_review' ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-950/35 px-3 py-2 text-[11px] text-amber-100/95">
+                    Mekân profili tanıtımı <strong className="text-amber-50">onay bekliyor</strong>. Yönetici onayladıktan sonra mekân sayfasında görünür.
+                    Tanıtım dosyası yükleyen kişi yönetici değilse bu akış uygulanır; yönetici düzenlemeleri doğrudan onaylı sayılır.
+                </p>
+            ) : null}
+
             {/* —— Post görselleri —— */}
             <section
                 className="space-y-4 rounded-xl border border-fuchsia-500/35 bg-fuchsia-950/15 p-4 sm:p-5"
@@ -372,6 +390,21 @@ export default function AdminEntityPromoGalleryPanel({
                         1 · Gönderi görselleri (Instagram / dosya)
                     </h3>
                     <p className="mt-1 text-xs text-zinc-500">{copy.postHint}</p>
+                    {variant === 'event' && eventVenueProfilePromoToggles ? (
+                        <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-fuchsia-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                            <input
+                                type="checkbox"
+                                checked={eventVenueProfilePromoToggles.showPosts}
+                                onChange={(e) => eventVenueProfilePromoToggles.onChangeShowPosts(e.target.checked)}
+                                className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-fuchsia-500"
+                            />
+                            <span>
+                                Bu gönderi görsellerini <strong className="text-fuchsia-100/90">mekân profil sayfasında</strong> göster. Etkinlik günü
+                                sonuna kadar listelenir; süre bittikten sonra dosyalar sunucudan otomatik silinir (etkinlik kaydı kalır). Sayfanın altındaki{' '}
+                                <strong className="text-zinc-300">Kaydet</strong> ile tikleri kaydedin.
+                            </span>
+                        </label>
+                    ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -442,6 +475,21 @@ export default function AdminEntityPromoGalleryPanel({
                         2 · Tanıtım videoları (Reels / MP4)
                     </h3>
                     <p className="mt-1 text-xs text-zinc-500">{copy.reelHint}</p>
+                    {variant === 'event' && eventVenueProfilePromoToggles ? (
+                        <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-amber-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                            <input
+                                type="checkbox"
+                                checked={eventVenueProfilePromoToggles.showVideos}
+                                onChange={(e) => eventVenueProfilePromoToggles.onChangeShowVideos(e.target.checked)}
+                                className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-amber-500"
+                            />
+                            <span>
+                                Bu tanıtım videolarını <strong className="text-amber-100/90">mekân profil sayfasında</strong> göster. Etkinlik günü sonuna
+                                kadar; ardından video dosyaları sistemden kaldırılır. Tikleri genel <strong className="text-zinc-300">Kaydet</strong> ile
+                                kaydedin.
+                            </span>
+                        </label>
+                    ) : null}
                 </div>
 
                 {showVideoUrlBackgroundOption ? (

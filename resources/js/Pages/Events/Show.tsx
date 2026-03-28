@@ -7,6 +7,7 @@ import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
 import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEventList';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
+import { AdSlot } from '@/Components/AdSlot';
 import EventHeroFallbackBackdrop from '@/Components/EventHeroFallbackBackdrop';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -15,7 +16,8 @@ import {
     googleMapsOpenUrl,
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
-import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
+import { isRemoteSocialOgJunkUrl } from '@/lib/eventPublicImage';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -280,8 +282,10 @@ export default function EventShow({
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
     const artistVisual = (a: Artist) => imageSrc(a.display_image ?? a.avatar);
-    /** Yalnız etkinliğin kendi görselleri; mekân/sanatçı kapak hero’da kullanılmaz. Yoksa özel varsayılan sahne tasarımı. */
-    const heroBackdrop = imageSrc(event.cover_image) ?? imageSrc(event.listing_image ?? null) ?? null;
+    /** Yalnız «kapak» (detay); liste görseli veya IG önizleme URL’si hero’da kullanılmaz. */
+    const coverRaw = event.cover_image?.trim() ?? '';
+    const heroBackdrop =
+        coverRaw !== '' && !isRemoteSocialOgJunkUrl(coverRaw) ? imageSrc(coverRaw) : null;
     const tiers = event.ticket_tiers ?? [];
     const hasTiers = tiers.length > 0;
     const entryFree = event.entry_is_paid === false;
@@ -359,7 +363,7 @@ export default function EventShow({
             ? sortVenueSocialEntries(event.venue.social_links)
             : [];
     const dateSummary = event.start_date
-        ? `Tarih: ${formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}.`
+        ? `Tarih: ${formatTurkishDateTime(event.start_date)}.`
         : 'Tarih yakında açıklanacak.';
     const followUiVisible = eventCustomerActions.followUiVisible === true;
     const eventDesc = metaDescriptionFromContent(
@@ -427,7 +431,7 @@ export default function EventShow({
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
                             {event.start_date ? (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                    {formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}
+                                    {formatTurkishDateTime(event.start_date)}
                                 </span>
                             ) : (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200">Tarih duyurulacak</span>
@@ -855,11 +859,12 @@ export default function EventShow({
                     </div>
 
                     <aside className="mt-10 space-y-6 lg:mt-0">
+                        <AdSlot slotKey="event_detail_sidebar" variant="sidebar" />
                         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Etkinlik tarihi</p>
                             {event.start_date ? (
                                 <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-white">
-                                    {formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}
+                                    {formatTurkishDateTime(event.start_date)}
                                 </p>
                             ) : (
                                 <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>

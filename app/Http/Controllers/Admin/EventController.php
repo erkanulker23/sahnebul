@@ -13,9 +13,11 @@ use App\Services\EventMediaImportFromUrlService;
 use App\Services\SahnebulMail;
 use App\Support\AdminDatetimeLocal;
 use App\Support\EventListingTypes;
+use App\Support\EventPromoVenueProfileModeration;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -223,6 +225,8 @@ class EventController extends Controller
             'cover_image' => $request->input('cover_image') ?: null,
             'listing_image' => $request->input('listing_image') ?: null,
             'event_type' => $request->input('event_type') ?: null,
+            'promo_show_on_venue_profile_posts' => $request->boolean('promo_show_on_venue_profile_posts'),
+            'promo_show_on_venue_profile_videos' => $request->boolean('promo_show_on_venue_profile_videos'),
         ]);
 
         $validated = $request->validate([
@@ -272,6 +276,8 @@ class EventController extends Controller
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
+            'promo_show_on_venue_profile_posts' => 'boolean',
+            'promo_show_on_venue_profile_videos' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -321,6 +327,16 @@ class EventController extends Controller
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::lower(Str::random(4));
         }
 
+        if (Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
+            $validated['promo_venue_profile_moderation'] = EventPromoVenueProfileModeration::APPROVED;
+        }
+        if (! Schema::hasColumn('events', 'promo_show_on_venue_profile_posts')) {
+            unset($validated['promo_show_on_venue_profile_posts'], $validated['promo_show_on_venue_profile_videos']);
+        }
+        if (! Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
+            unset($validated['promo_venue_profile_moderation']);
+        }
+
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
 
@@ -343,6 +359,18 @@ class EventController extends Controller
         $event->update(['status' => 'published']);
 
         return back()->with('success', 'Etkinlik yayınlandı.');
+    }
+
+    public function approvePromoVenueProfile(Event $event)
+    {
+        if (! Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
+            return back()->with('error', 'Bu özellik henüz veritabanında yok; migrasyon çalıştırın.');
+        }
+        $event->forceFill([
+            'promo_venue_profile_moderation' => EventPromoVenueProfileModeration::APPROVED,
+        ])->save();
+
+        return back()->with('success', 'Etkinlik tanıtımı mekân profili için onaylandı.');
     }
 
     public function bulkPublish(Request $request)

@@ -12,8 +12,8 @@ export type FormatTurkishDateTimeOptions = {
     /** Boş / geçersiz değerde dönecek metin */
     empty?: string;
     /**
-     * IANA zaman dilimi (örn. Europe/Istanbul). Verilmezse tarayıcının yerel dilimi kullanılır.
-     * Etkinlik saatleri için İstanbul duvar saati: `Europe/Istanbul`.
+     * IANA zaman dilimi. Verilmezse `Europe/Istanbul` (tarayıcı yerel saati kullanılmaz — yurtdışından
+     * bakan kullanıcıda da etkinlik saati İstanbul ile aynı kalır).
      */
     timeZone?: string;
 };
@@ -34,34 +34,27 @@ export function formatTurkishDateTime(
         return typeof value === 'string' ? value : empty;
     }
 
-    const tz = options?.timeZone;
+    const tz = options?.timeZone ?? SAHNE_EVENT_DISPLAY_TZ;
 
-    if (tz) {
-        const parts = new Intl.DateTimeFormat('tr-TR', {
-            timeZone: tz,
-            day: '2-digit',
-            month: 'long',
-            weekday: 'long',
-        }).formatToParts(d);
-        const dayNum = parts.find((p) => p.type === 'day')?.value ?? '';
-        const monthRaw = parts.find((p) => p.type === 'month')?.value ?? '';
-        const weekdayRaw = parts.find((p) => p.type === 'weekday')?.value ?? '';
-        const datePart = `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)}`;
-        if (options?.withTime === false) {
-            return datePart;
-        }
-        const time = d.toLocaleTimeString('tr-TR', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
-        return `${datePart}, ${time}`;
-    }
-
-    const dayNum = String(d.getDate()).padStart(2, '0');
-    const monthRaw = d.toLocaleDateString('tr-TR', { month: 'long' });
-    const weekdayRaw = d.toLocaleDateString('tr-TR', { weekday: 'long' });
+    const parts = new Intl.DateTimeFormat('tr-TR', {
+        timeZone: tz,
+        day: '2-digit',
+        month: 'long',
+        weekday: 'long',
+    }).formatToParts(d);
+    const dayNum = parts.find((p) => p.type === 'day')?.value ?? '';
+    const monthRaw = parts.find((p) => p.type === 'month')?.value ?? '';
+    const weekdayRaw = parts.find((p) => p.type === 'weekday')?.value ?? '';
     const datePart = `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)}`;
     if (options?.withTime === false) {
         return datePart;
     }
-    const time = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString('tr-TR', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
     return `${datePart}, ${time}`;
 }
 
@@ -77,8 +70,10 @@ export function formatTurkishDateTimeFromParts(
     }
     const t = (timeStr ?? '').trim();
     if (!t) {
-        return formatTurkishDateTime(dateStr, options);
+        return formatTurkishDateTime(`${dateStr.trim()}T12:00:00+03:00`, { ...options, withTime: false });
     }
     const timePart = t.length === 5 && /^\d{1,2}:\d{2}$/.test(t) ? `${t}:00` : t;
-    return formatTurkishDateTime(`${dateStr}T${timePart}`, options);
+    /** Sunucu / form bu ikiliyi İstanbul duvar saati olarak saklar; `T` ile birleşik ISO yerel yorumlanmasın. */
+    const istanbulInstant = `${dateStr.trim()}T${timePart}+03:00`;
+    return formatTurkishDateTime(istanbulInstant, options);
 }

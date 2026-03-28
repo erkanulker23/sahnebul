@@ -1,7 +1,8 @@
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import { cn } from '@/lib/cn';
+import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
 import type { PageProps } from '@/types';
 import axios from 'axios';
 import { Link, usePage } from '@inertiajs/react';
@@ -44,6 +45,15 @@ type TrendingEvent = {
     image?: string | null;
 };
 
+function istanbulYmd(d: Date): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: SAHNE_EVENT_DISPLAY_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(d);
+}
+
 function formatTrendDateLine(start: string | null | undefined, end: string | null | undefined): string {
     if (start == null || start === '') {
         return '—';
@@ -52,7 +62,7 @@ function formatTrendDateLine(start: string | null | undefined, end: string | nul
     if (Number.isNaN(s.getTime())) {
         return '—';
     }
-    const d1 = s.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+    const d1 = formatTurkishDateTime(s, { withTime: false, timeZone: SAHNE_EVENT_DISPLAY_TZ });
     if (end == null || end === '') {
         return d1;
     }
@@ -60,12 +70,11 @@ function formatTrendDateLine(start: string | null | undefined, end: string | nul
     if (Number.isNaN(e.getTime())) {
         return d1;
     }
-    const sameDay =
-        s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
+    const sameDay = istanbulYmd(s) === istanbulYmd(e);
     if (sameDay) {
         return d1;
     }
-    const d2 = e.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+    const d2 = formatTurkishDateTime(e, { withTime: false, timeZone: SAHNE_EVENT_DISPLAY_TZ });
     return `${d1}, ${d2}`;
 }
 
@@ -342,7 +351,8 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                         <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-pb-2 scroll-pl-1 scroll-pr-3 pb-2 pt-0.5 [-webkit-overflow-scrolling:touch]">
                                             {trending.map((ev) => {
                                                 const href = route('events.show', eventShowParam(ev));
-                                                const src = storageUrl(ev.image);
+                                                const raw = pickEventListingThumbPath(ev.image, null);
+                                                const src = raw ? storageUrl(raw) : null;
                                                 return (
                                                     <Link
                                                         key={ev.id}
@@ -493,7 +503,7 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                         onClick={() => setOpen(false)}
                                                     >
                                                         <QuickSearchThumb
-                                                            src={ev.image}
+                                                            src={pickEventListingThumbPath(ev.image, null)}
                                                             fallback={<Calendar className="h-4 w-4 text-violet-500" aria-hidden />}
                                                             className="mt-0.5"
                                                         />

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Jobs\ProcessPromoGalleryUrlImportJob;
+use App\Models\Event;
 use App\Services\EventMediaImportFromUrlService;
+use App\Support\EventPromoVenueProfileModeration;
 use App\Support\PromoGalleryUrlImportStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +15,14 @@ use Illuminate\Validation\Rule;
 
 trait PromoGalleryImportActions
 {
+    protected function syncEventPromoVenueModerationIfEvent(Model $model): void
+    {
+        if (! $model instanceof Event) {
+            return;
+        }
+        EventPromoVenueProfileModeration::syncAfterPromoMutation(request(), $model->fresh());
+    }
+
     protected function promoImportMediaFromUrlResponse(
         Request $request,
         Model $model,
@@ -89,6 +99,8 @@ trait PromoGalleryImportActions
         if (! $result['success']) {
             return back()->with('error', $result['message']);
         }
+
+        $this->syncEventPromoVenueModerationIfEvent($model->fresh());
 
         return back()->with('success', $result['message']);
     }
@@ -178,6 +190,8 @@ trait PromoGalleryImportActions
                 $messages[] = $legacy['message'];
             }
 
+            $this->syncEventPromoVenueModerationIfEvent($model->fresh());
+
             return back()->with('success', implode(' ', $messages));
         }
 
@@ -186,12 +200,16 @@ trait PromoGalleryImportActions
             return back()->with('error', $result['message']);
         }
 
+        $this->syncEventPromoVenueModerationIfEvent($model->fresh());
+
         return back()->with('success', $result['message']);
     }
 
     protected function promoClearResponse(Model $model, EventMediaImportFromUrlService $importer): RedirectResponse
     {
         $importer->purgePromoGallery($model);
+
+        $this->syncEventPromoVenueModerationIfEvent($model->fresh());
 
         return back()->with('success', 'Tanıtım medyası kaldırıldı.');
     }
@@ -210,6 +228,8 @@ trait PromoGalleryImportActions
         if (! $result['success']) {
             return back()->with('error', $result['message']);
         }
+
+        $this->syncEventPromoVenueModerationIfEvent($model->fresh());
 
         return back()->with('success', $result['message']);
     }

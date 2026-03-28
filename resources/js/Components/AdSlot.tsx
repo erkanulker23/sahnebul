@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn';
-import { usePage } from '@inertiajs/react';
+import { safeRoute } from '@/lib/safeRoute';
+import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 export type AdSlotKey =
@@ -8,6 +9,7 @@ export type AdSlotKey =
     | 'venues_list_top'
     | 'events_index_top'
     | 'venue_sidebar'
+    | 'event_detail_sidebar'
     | 'blog_sidebar'
     | 'footer_above';
 
@@ -41,6 +43,32 @@ function AdHtmlEmbed({ html, className }: Readonly<{ html: string; className?: s
     return <div ref={ref} className={cn('ad-html-embed min-h-0 w-full', className)} />;
 }
 
+function eventDetailSidebarCard(inner: ReactNode) {
+    return (
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/80 sm:p-5">
+            {inner}
+        </div>
+    );
+}
+
+function eventDetailSponsorFallback() {
+    return (
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center dark:border-white/15 dark:bg-zinc-950/40">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Sponsor alanı</p>
+            <p className="font-display text-lg font-bold text-zinc-900 dark:text-white">Sponsor başvurusu</p>
+            <p className="max-w-[14rem] text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Etkinlik sayfalarında markanızı göstermek için bizimle iletişime geçin.
+            </p>
+            <Link
+                href={safeRoute('contact')}
+                className="mt-1 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+                İletişim
+            </Link>
+        </div>
+    );
+}
+
 export function AdSlot({
     slotKey,
     className,
@@ -60,6 +88,8 @@ export function AdSlot({
         return null;
     }
 
+    const isEventDetailSidebar = slotKey === 'event_detail_sidebar';
+
     const innerMax =
         variant === 'sidebar'
             ? 'max-w-full min-w-0'
@@ -69,11 +99,15 @@ export function AdSlot({
 
     const wrap = (inner: ReactNode) => (
         <aside
-            className={cn('ad-slot flex justify-center px-2 py-3', className)}
+            className={cn(
+                'ad-slot flex justify-center',
+                isEventDetailSidebar ? 'px-0 py-0' : 'px-2 py-3',
+                className,
+            )}
             data-ad-slot={slotKey}
             aria-label="Reklam"
         >
-            <div className={innerMax}>{inner}</div>
+            <div className={innerMax}>{isEventDetailSidebar ? eventDetailSidebarCard(inner) : inner}</div>
         </aside>
     );
 
@@ -100,8 +134,16 @@ export function AdSlot({
         return wrap(inner);
     }
 
+    if (cfg.type === 'banner' && isEventDetailSidebar) {
+        return wrap(eventDetailSponsorFallback());
+    }
+
     if ((cfg.type === 'adsense' || cfg.type === 'custom_html') && cfg.html?.trim()) {
         return wrap(<AdHtmlEmbed html={cfg.html} />);
+    }
+
+    if (isEventDetailSidebar && (cfg.type === 'adsense' || cfg.type === 'custom_html')) {
+        return wrap(eventDetailSponsorFallback());
     }
 
     return null;

@@ -31,3 +31,8 @@ Schedule::command('sahnebul:send-event-reminders')
     ->dailyAt('10:00')
     ->timezone('Europe/Istanbul')
     ->withoutOverlapping(30);
+
+Schedule::command('events:purge-ended-promo-media')
+    ->dailyAt('04:30')
+    ->timezone('Europe/Istanbul')
+    ->withoutOverlapping(60);

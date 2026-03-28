@@ -38,6 +38,8 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/giris/sahne';
         case 'login.admin':
             return '/yonetim/giris';
+        case 'contact':
+            return '/iletisim';
         case 'login.store': {
             const portal = params?.portal;
             if (typeof portal === 'string' && portal !== '') {

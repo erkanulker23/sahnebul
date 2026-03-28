@@ -28,25 +28,36 @@ interface Props {
 const fieldClass = `mt-1 ${inputBaseClass}`;
 
 export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Readonly<Props>) {
-    const { data, setData, post, processing } = useForm({
+    const form = useForm({
         slots: slotsProp,
+        event_detail_sidebar_upload: null as File | null,
+        remove_event_detail_sidebar_image: false,
     });
 
     useEffect(() => {
-        setData('slots', slotsProp);
-    }, [slotsProp, setData]);
+        form.setData('slots', slotsProp);
+        form.setData('event_detail_sidebar_upload', null);
+        form.setData('remove_event_detail_sidebar_image', false);
+    }, [slotsProp]); // eslint-disable-line react-hooks/exhaustive-deps -- yalnızca sunucu slots senkronu
 
     const patchSlot = (key: string, patch: Partial<SlotRow>) => {
-        const cur = data.slots[key] ?? slotsProp[key];
+        const cur = form.data.slots[key] ?? slotsProp[key];
         if (!cur) return;
-        setData('slots', {
-            ...data.slots,
+        form.setData('slots', {
+            ...form.data.slots,
             [key]: { ...cur, ...patch },
         });
     };
 
     const save = () => {
-        post(route('admin.ad-slots.update'));
+        form.post(route('admin.ad-slots.update'), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                form.setData('event_detail_sidebar_upload', null);
+                form.setData('remove_event_detail_sidebar_image', false);
+            },
+        });
     };
 
     return (
@@ -59,6 +70,9 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                     <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
                         Her alan sitede sabit bir konuma bağlıdır.{' '}
                         <strong className="text-zinc-800 dark:text-zinc-300">Banner</strong> için görsel URL ve isteğe bağlı tıklama linki kullanın.{' '}
+                        <strong className="text-zinc-800 dark:text-zinc-300">Etkinlik detay — sponsor</strong> alanında dosya yükleyebilir veya URL
+                        girebilirsiniz; alan <strong className="text-zinc-800 dark:text-zinc-300">Aktif</strong> iken görsel yoksa sitede «Sponsor başvurusu»
+                        kutusu çıkar.{' '}
                         <strong className="text-zinc-800 dark:text-zinc-300">Google AdSense</strong> veya özel kod için{' '}
                         <strong className="text-zinc-800 dark:text-zinc-300">AdSense / özel HTML</strong> seçip reklam sağlayıcınızın verdiği kodu (script
                         dahil) yapıştırın.
@@ -67,7 +81,7 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
 
                 <div className="space-y-4">
                     {placements.map((p) => {
-                        const row = data.slots[p.key];
+                        const row = form.data.slots[p.key];
                         if (!row) return null;
                         return (
                             <details
@@ -109,14 +123,61 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
 
                                     {row.type === 'banner' && (
                                         <div className="grid gap-3 sm:grid-cols-2">
+                                            {p.key === 'event_detail_sidebar' && row.image_url.trim() !== '' && (
+                                                <div className="sm:col-span-2">
+                                                    <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Önizleme</p>
+                                                    <img
+                                                        src={
+                                                            /^https?:\/\//i.test(row.image_url.trim())
+                                                                ? row.image_url.trim()
+                                                                : `/storage/${row.image_url.trim()}`
+                                                        }
+                                                        alt=""
+                                                        className="mt-2 max-h-48 w-auto max-w-full rounded-lg border border-zinc-200 object-contain dark:border-zinc-700"
+                                                    />
+                                                </div>
+                                            )}
+                                            {p.key === 'event_detail_sidebar' && (
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                                        Görsel yükle (kaydet ile sunucuya gider)
+                                                    </label>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                                        className={`${fieldClass} text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950`}
+                                                        onChange={(e) =>
+                                                            form.setData('event_detail_sidebar_upload', e.target.files?.[0] ?? null)
+                                                        }
+                                                    />
+                                                    {row.image_url.trim().startsWith('ads/') && (
+                                                        <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.data.remove_event_detail_sidebar_image}
+                                                                onChange={(e) =>
+                                                                    form.setData(
+                                                                        'remove_event_detail_sidebar_image',
+                                                                        e.target.checked,
+                                                                    )
+                                                                }
+                                                                className="h-4 w-4 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600"
+                                                            />
+                                                            Yüklenen panel görselini kaldır
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="sm:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Görsel URL</label>
+                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                                    Görsel URL {p.key === 'event_detail_sidebar' ? '(isteğe bağlı; harici CDN vb.)' : ''}
+                                                </label>
                                                 <input
-                                                    type="url"
+                                                    type="text"
                                                     className={fieldClass}
                                                     value={row.image_url}
                                                     onChange={(e) => patchSlot(p.key, { image_url: e.target.value })}
-                                                    placeholder="https://… veya /storage/…"
+                                                    placeholder="https://… veya ads/… (panel yüklemesi)"
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
@@ -175,10 +236,10 @@ export default function AdminAdSlotsIndex({ placements, slots: slotsProp }: Read
                 <button
                     type="button"
                     onClick={save}
-                    disabled={processing}
+                    disabled={form.processing}
                     className="rounded-lg bg-amber-500 px-5 py-2.5 font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50 dark:hover:bg-amber-400"
                 >
-                    {processing ? 'Kaydediliyor…' : 'Tümünü kaydet'}
+                    {form.processing ? 'Kaydediliyor…' : 'Tümünü kaydet'}
                 </button>
             </div>
         </AdminLayout>

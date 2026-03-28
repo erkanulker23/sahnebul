@@ -36,6 +36,11 @@ final class AdPlacementCatalog
                 'description' => 'Mekan detay sayfasında sağ sütunda, iletişim kutusunun üstünde.',
             ],
             [
+                'key' => 'event_detail_sidebar',
+                'label' => 'Etkinlik detay — sponsor / yan reklam',
+                'description' => 'Etkinlik detay sayfasında sağ sütunda (tarih kutusunun üstü). Görsel yoksa «Sponsor başvurusu» alanı gösterilir.',
+            ],
+            [
                 'key' => 'blog_sidebar',
                 'label' => 'Blog — yan sütun',
                 'description' => 'Blog liste sayfasında yazı ızgarasının sağında (masaüstü).',

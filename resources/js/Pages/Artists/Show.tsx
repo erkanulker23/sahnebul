@@ -17,6 +17,7 @@ import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SuggestEditModal from '@/Components/SuggestEditModal';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
+import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Music2, Pause, PenLine, Play } from 'lucide-react';
@@ -42,14 +43,6 @@ interface Event {
     ticket_acquisition_mode?: string;
     sahnebul_reservation_enabled?: boolean;
     venue: Venue;
-}
-
-interface SpotifyAlbumPreview {
-    id: string;
-    name: string;
-    release_date: string | null;
-    image: string | null;
-    url: string | null;
 }
 
 interface ArtistMediaItem {
@@ -213,7 +206,6 @@ interface Artist {
     promo_video_path?: string | null;
     promo_embed_url?: string | null;
     promo_gallery?: unknown;
-    spotify_albums?: SpotifyAlbumPreview[] | null;
     /** Admin: Spotify bölümü ve yedek (iTunes) müzik önizlemesi kapalı */
     spotify_auto_link_disabled?: boolean;
     media?: ArtistMediaItem[];
@@ -458,7 +450,6 @@ export default function ArtistShow({
     }, [artist.slug]);
 
     const bannerPhoto = imageSrc(artist.banner_image ?? null);
-    const hasHeroBanner = Boolean(bannerPhoto);
     const avatarUrl = profilePhoto;
     const shareUrlForSocial = resolvedShareUrl;
     const copyShareLink = useCallback(async () => {
@@ -495,80 +486,73 @@ export default function ArtistShow({
             />
 
             <div className="min-h-screen">
-                {!hasHeroBanner ? (
-                    <div className="mx-auto max-w-7xl px-0 pt-6 sm:px-4 sm:pt-8 lg:px-8">
-                        <Link
-                            href={route('artists.index')}
-                            className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-amber-400"
-                        >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                            Tüm Sanatçılar
+                <section
+                    className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${
+                        bannerPhoto ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'
+                    }`}
+                >
+                    {bannerPhoto ? (
+                        <img src={bannerPhoto} alt={artist.name} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                        <ArtistHeroFallbackBackdrop />
+                    )}
+                    <div
+                        className={
+                            bannerPhoto
+                                ? 'absolute inset-0 bg-zinc-950/70'
+                                : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
+                        }
+                        aria-hidden
+                    />
+                    <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
+                        <Link href={route('artists.index')} className="text-sm text-amber-300 transition hover:text-amber-200">
+                            ← Tüm Sanatçılar
                         </Link>
-                    </div>
-                ) : null}
-
-                {hasHeroBanner && bannerPhoto ? (
-                    <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden bg-zinc-950">
-                        <img
-                            src={bannerPhoto}
-                            alt={artist.name}
-                            className="absolute inset-0 h-full w-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-zinc-950/70" aria-hidden />
-                        <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
-                            <Link href={route('artists.index')} className="text-sm text-amber-300 transition hover:text-amber-200">
-                                ← Tüm Sanatçılar
-                            </Link>
-                            <div className="mt-6 max-w-4xl">
-                                <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">{artist.name}</h1>
-                                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-                                    <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">
-                                        {artist.genre ?? 'Sanatçı'}
-                                    </span>
-                                    {artist.is_verified_profile ? (
-                                        <VerifiedArtistProfileBadge size="md" className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100" />
-                                    ) : null}
-                                    {artistFavorite.canToggle ? (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
-                                            }
-                                            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                                                artistFavorite.isFavorited
-                                                    ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
-                                                    : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
-                                            }`}
-                                        >
-                                            {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
-                                        </button>
-                                    ) : !user ? (
-                                        <Link
-                                            href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
-                                            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                                        >
-                                            Favoriler için giriş
-                                        </Link>
-                                    ) : null}
+                        <div className="mt-6 max-w-4xl">
+                            <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">{artist.name}</h1>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                                <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">
+                                    {artist.genre ?? 'Sanatçı'}
+                                </span>
+                                {artist.is_verified_profile ? (
+                                    <VerifiedArtistProfileBadge size="md" className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100" />
+                                ) : null}
+                                {artistFavorite.canToggle ? (
                                     <button
                                         type="button"
-                                        onClick={() => setSuggestEditOpen(true)}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                                        onClick={() =>
+                                            router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                        }
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                            artistFavorite.isFavorited
+                                                ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
+                                                : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+                                        }`}
                                     >
-                                        <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
-                                        Düzenleme öner
+                                        {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
                                     </button>
-                                </div>
+                                ) : !user ? (
+                                    <Link
+                                        href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                        className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                    >
+                                        Favoriler için giriş
+                                    </Link>
+                                ) : null}
+                                <button
+                                    type="button"
+                                    onClick={() => setSuggestEditOpen(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                                >
+                                    <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
+                                    Düzenleme öner
+                                </button>
                             </div>
                         </div>
-                    </section>
-                ) : null}
+                    </div>
+                </section>
 
-                <div
-                    className={`relative mx-auto max-w-7xl px-0 sm:px-4 lg:px-8 ${hasHeroBanner ? 'mt-6 sm:mt-8' : 'mt-4 sm:mt-6'}`}
-                >
+                <div className="relative mx-auto max-w-7xl px-0 sm:px-4 lg:px-8 mt-6 sm:mt-8">
                     <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-14">
                         {/* Sol: Fotoğraf + sosyal */}
                         <div className="shrink-0 lg:w-80">
@@ -793,51 +777,6 @@ export default function ArtistShow({
 
                         {/* Sağ: Bio + Etkinlikler */}
                         <div className="min-w-0 flex-1">
-                            {!hasHeroBanner ? (
-                                <>
-                                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                                        <span className="inline-block rounded-full bg-amber-500/20 px-4 py-1.5 text-sm font-medium text-amber-400">
-                                            {artist.genre ?? 'Sanatçı'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <h1 className="font-display text-4xl font-bold text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
-                                            {artist.name}
-                                        </h1>
-                                        {artist.is_verified_profile && <VerifiedArtistProfileBadge size="md" className="self-center" />}
-                                        {artistFavorite.canToggle ? (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
-                                                }
-                                                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                                                    artistFavorite.isFavorited
-                                                        ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
-                                                        : 'border border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40'
-                                                }`}
-                                            >
-                                                {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
-                                            </button>
-                                        ) : !user ? (
-                                            <Link
-                                                href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
-                                                className="rounded-full border border-amber-500/40 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
-                                            >
-                                                Favoriler için giriş
-                                            </Link>
-                                        ) : null}
-                                        <button
-                                            type="button"
-                                            onClick={() => setSuggestEditOpen(true)}
-                                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:text-amber-300"
-                                        >
-                                            <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
-                                            Düzenleme öner
-                                        </button>
-                                    </div>
-                                </>
-                            ) : null}
                             {shareUrlForSocial ? (
                                 <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10">
                                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -1251,45 +1190,6 @@ export default function ArtistShow({
                                     <p className="text-sm text-zinc-400">
                                         Bu sanatçı için önizlemeli şarkı listesi bulunamadı (isim eşleşmesi veya katalog boş olabilir).
                                     </p>
-                                )}
-
-                                {artist.spotify_albums && artist.spotify_albums.length > 0 && (
-                                    <div className="mt-8">
-                                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
-                                            Albümler &amp; single&apos;lar
-                                        </h3>
-                                        <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                            {artist.spotify_albums.map((al) => (
-                                                <a
-                                                    key={al.id}
-                                                    href={al.url ?? '#'}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-36 shrink-0 rounded-lg bg-[#181818] p-2 transition hover:bg-[#282828] sm:w-40"
-                                                >
-                                                    <div className="relative aspect-square w-full overflow-hidden rounded bg-zinc-800 ring-1 ring-white/10">
-                                                        {al.image ? (
-                                                            <img
-                                                                src={al.image}
-                                                                alt=""
-                                                                className="h-full w-full object-cover"
-                                                                loading="lazy"
-                                                                decoding="async"
-                                                            />
-                                                        ) : (
-                                                            <span className="flex h-full w-full items-center justify-center">
-                                                                <Music2 className="h-8 w-8 text-zinc-600" strokeWidth={1.75} aria-hidden />
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <p className="mt-2 line-clamp-2 text-xs font-medium text-white">{al.name}</p>
-                                                    {al.release_date && (
-                                                        <p className="mt-0.5 text-[10px] text-zinc-500">{al.release_date}</p>
-                                                    )}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
                                 )}
 
                                 <div className="mt-8 border-t border-white/[0.08] pt-6">
