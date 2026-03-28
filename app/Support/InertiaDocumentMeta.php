@@ -242,11 +242,44 @@ final class InertiaDocumentMeta
             }
             $url = SeoFormatting::normalizeCanonical($appUrl, '/etkinlikler/'.$slug.'-'.$id);
             $name = trim((string) ($row['title'] ?? ''));
+            $displayName = $name !== '' ? $name : $slug;
+            $startIso = self::isoFromEventProp($row['start_date'] ?? null);
+            $endIso = self::isoFromEventProp($row['end_date'] ?? null);
+            $venue = is_array($row['venue'] ?? null) ? $row['venue'] : [];
+            $venueName = trim((string) ($venue['name'] ?? ''));
+            $venueAddress = trim((string) ($venue['address'] ?? ''));
+            $cityName = is_array($venue['city'] ?? null) ? trim((string) ($venue['city']['name'] ?? '')) : '';
+
+            $musicEvent = [
+                '@type' => 'MusicEvent',
+                'name' => $displayName,
+                'url' => $url,
+                'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+                'eventStatus' => 'https://schema.org/EventScheduled',
+            ];
+            if ($startIso !== '') {
+                $musicEvent['startDate'] = $startIso;
+            }
+            if ($endIso !== '') {
+                $musicEvent['endDate'] = $endIso;
+            }
+            if ($venueName !== '' || $venueAddress !== '' || $cityName !== '') {
+                $musicEvent['location'] = [
+                    '@type' => 'Place',
+                    'name' => $venueName !== '' ? $venueName : $displayName,
+                    'address' => [
+                        '@type' => 'PostalAddress',
+                        'streetAddress' => $venueAddress,
+                        'addressLocality' => $cityName,
+                        'addressCountry' => 'TR',
+                    ],
+                ];
+            }
+
             $elements[] = [
                 '@type' => 'ListItem',
                 'position' => $pos,
-                'item' => $url,
-                'name' => $name !== '' ? $name : $slug,
+                'item' => $musicEvent,
             ];
             $pos++;
             if ($pos > 24) {
@@ -458,6 +491,7 @@ final class InertiaDocumentMeta
         $description = isset($event['description']) ? (string) $event['description'] : '';
         $cover = isset($event['cover_image']) ? (string) $event['cover_image'] : '';
         $start = $event['start_date'] ?? null;
+        $end = $event['end_date'] ?? null;
         $venue = is_array($event['venue'] ?? null) ? $event['venue'] : [];
         $venueName = (string) ($venue['name'] ?? '');
         $venueAddress = (string) ($venue['address'] ?? '');
@@ -467,7 +501,6 @@ final class InertiaDocumentMeta
         $pageTitle = $title.' - Etkinlik';
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $plainDesc = SeoFormatting::stripHtmlToText($description);
-        $dateStr = is_string($start) ? $start : (is_object($start) && method_exists($start, 'format') ? $start->format('c') : '');
         $localDate = '';
         if (is_string($start) && $start !== '') {
             try {
@@ -476,7 +509,22 @@ final class InertiaDocumentMeta
                 $localDate = $start;
             }
         }
-        $dateLine = $localDate !== '' ? 'Tarih: '.$localDate.'.' : 'Tarih yakında açıklanacak.';
+        $startIsoForMeta = '';
+        if (is_string($start) && $start !== '') {
+            $startIsoForMeta = $start;
+        } elseif (is_object($start) && method_exists($start, 'format')) {
+            $startIsoForMeta = $start->format('c');
+        }
+        $endIsoForMeta = '';
+        if (is_string($end) && $end !== '') {
+            $endIsoForMeta = $end;
+        } elseif (is_object($end) && method_exists($end, 'format')) {
+            $endIsoForMeta = $end->format('c');
+        }
+        $dateLine = self::eventMetaDateLine($startIsoForMeta !== '' ? $startIsoForMeta : null, $endIsoForMeta !== '' ? $endIsoForMeta : null);
+        if ($dateLine === '') {
+            $dateLine = $localDate !== '' ? 'Tarih: '.$localDate.'.' : 'Tarih yakında açıklanacak.';
+        }
         $desc = SeoFormatting::truncateMetaDescription(
             $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. '.$dateLine.' Bilet ve detaylar Sahnebul’da.',
         );
@@ -511,6 +559,14 @@ final class InertiaDocumentMeta
                 $startIso = $start;
             }
         }
+        $endIso = '';
+        if (is_string($end) && $end !== '') {
+            try {
+                $endIso = (new \DateTimeImmutable($end))->format('c');
+            } catch (\Throwable) {
+                $endIso = $end;
+            }
+        }
 
         $performer = [];
         foreach ($artists as $a) {
@@ -536,6 +592,7 @@ final class InertiaDocumentMeta
                 $venueAddress,
                 $cityName,
                 $startIso,
+                $endIso,
                 $performer,
                 (string) ($event['status'] ?? 'published'),
             );
@@ -560,6 +617,7 @@ final class InertiaDocumentMeta
         string $venueAddress,
         string $cityName,
         string $startIso,
+        string $endIso,
         array $performer,
         string $status,
     ): array {
@@ -588,6 +646,9 @@ final class InertiaDocumentMeta
         ];
         if ($startIso !== '') {
             $jsonLd['startDate'] = $startIso;
+        }
+        if ($endIso !== '') {
+            $jsonLd['endDate'] = $endIso;
         }
         if ($ogImage !== null) {
             $jsonLd['image'] = [$ogImage];
@@ -894,6 +955,53 @@ final class InertiaDocumentMeta
         }
 
         return $tags;
+    }
+
+    private static function eventMetaDateLine(?string $startIso, ?string $endIso): string
+    {
+        if ($startIso === null || $startIso === '') {
+            return '';
+        }
+        try {
+            $s = new \DateTimeImmutable($startIso);
+        } catch (\Throwable) {
+            return 'Tarih: '.$startIso.'.';
+        }
+        if ($endIso === null || $endIso === '') {
+            return 'Tarih: '.$s->format('d.m.Y H:i').'.';
+        }
+        try {
+            $e = new \DateTimeImmutable($endIso);
+        } catch (\Throwable) {
+            return 'Tarih: '.$s->format('d.m.Y H:i').'.';
+        }
+        if ($s->format('Y-m-d') === $e->format('Y-m-d')) {
+            return sprintf('Tarih: %s, %s – %s.', $s->format('d.m.Y'), $s->format('H:i'), $e->format('H:i'));
+        }
+
+        return sprintf('Tarih: %s – %s.', $s->format('d.m.Y H:i'), $e->format('d.m.Y H:i'));
+    }
+
+    /**
+     * @param  mixed  $value
+     */
+    private static function isoFromEventProp(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        if (is_string($value)) {
+            try {
+                return (new \DateTimeImmutable($value))->format('c');
+            } catch (\Throwable) {
+                return '';
+            }
+        }
+        if (is_object($value) && method_exists($value, 'format')) {
+            return $value->format('c');
+        }
+
+        return '';
     }
 
     /**

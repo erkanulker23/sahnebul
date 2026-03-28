@@ -2,7 +2,7 @@ import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { pickEventListingThumbPath } from '@/lib/eventPublicImage';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { eventTicketBadge } from '@/lib/eventTicketBadge';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishEventTimeRange, isEventFinishedAt } from '@/lib/eventRuntime';
 import { Link } from '@inertiajs/react';
 import { ChevronRight, Clock } from 'lucide-react';
 import { useMemo } from 'react';
@@ -12,6 +12,7 @@ export type DetailEventListItem = {
     slug: string;
     title: string;
     start_date: string;
+    end_date?: string | null;
     cover_image?: string | null;
     listing_image?: string | null;
     status?: string | null;
@@ -161,12 +162,11 @@ function EventListRow({
     context: 'artist' | 'venue';
     imageSrc: (path: string | null | undefined) => string | null;
 }>) {
-    const start = new Date(ev.start_date);
-    const whenLabel = formatTurkishDateTime(ev.start_date);
+    const whenLabel = formatTurkishEventTimeRange(ev.start_date, ev.end_date ?? null);
     const badge = eventTicketBadge(ev);
     const sub = subtitleForEvent(ev, context);
     const thumb = thumbVisual(ev, imageSrc);
-    const ended = start.getTime() < Date.now();
+    const ended = isEventFinishedAt(ev.start_date, ev.end_date ?? null);
 
     return (
         <li>
@@ -180,7 +180,7 @@ function EventListRow({
                 <span className={`w-1 shrink-0 ${ended ? 'bg-zinc-400 dark:bg-zinc-600' : 'bg-[#e9785c]'}`} aria-hidden />
                 <div className="flex min-w-0 flex-1 items-stretch gap-3 py-3 pl-3 pr-2 sm:gap-4 sm:pl-4 sm:pr-3">
                     <div className="flex w-[min(100%,7.5rem)] shrink-0 flex-col items-center justify-center gap-1.5 border-r border-zinc-200 px-1.5 py-1 text-center dark:border-white/10 sm:w-32">
-                        <EventRelativeDayPill startDate={ev.start_date} placement="listTime" />
+                        <EventRelativeDayPill startDate={ev.start_date} endDate={ev.end_date} placement="listTime" />
                         <span className="inline-flex items-start gap-1 text-center text-[11px] font-semibold leading-snug text-zinc-800 dark:text-zinc-200 sm:text-xs">
                             <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2} aria-hidden />
                             {whenLabel}
@@ -195,7 +195,10 @@ function EventListRow({
                             ) : null}
                             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge.pillClass}`}>{badge.label}</span>
                         </div>
-                        <p className="mt-1 truncate text-sm font-bold text-zinc-900 dark:text-white sm:text-base">{sub}</p>
+                        <p className="mt-1 truncate text-sm font-bold text-zinc-900 dark:text-white sm:text-base">{ev.title}</p>
+                        {sub.trim() !== '' && sub !== ev.title ? (
+                            <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">{sub}</p>
+                        ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                         {thumb.url ? (

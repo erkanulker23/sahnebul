@@ -7,8 +7,9 @@ final class SeoFormatting
     public static function stripHtmlToText(string $html): string
     {
         $plain = preg_replace('/<[^>]*>/', ' ', $html) ?? '';
+        $decoded = html_entity_decode($plain, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        return preg_replace('/\s+/u', ' ', trim($plain)) ?? '';
+        return preg_replace('/\s+/u', ' ', trim($decoded)) ?? '';
     }
 
     public static function truncateMetaDescription(string $text, int $max = 160): string

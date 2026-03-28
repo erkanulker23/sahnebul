@@ -4,7 +4,7 @@ import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, MapPin, Ticket } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /** Sunucu yakınlık sıralamasında opsiyonel km */
 interface CityEventsRow extends PublicEventTicketCardEvent {
@@ -90,31 +90,25 @@ export default function SehirSecCityEvents({
     const desc = `${cityName} etkinlikleri — /etkinlikler ile aynı platform kaydı. İlçe, tür ve kategoriye göre süzebilirsiniz.`;
     const [geoHint, setGeoHint] = useState<string | null>(null);
     const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
-    const geoStarted = useRef(false);
+    const [geoDenied, setGeoDenied] = useState(false);
 
-    const nearPair =
-        nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng)
-            ? { near_lat: nearLat, near_lng: nearLng }
-            : {};
+    const hasServerNear =
+        nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng);
+
+    const nearPair = hasServerNear ? { near_lat: nearLat, near_lng: nearLng } : {};
 
     useEffect(() => {
-        geoStarted.current = false;
         setDetectedLocation(null);
+        setGeoHint(null);
+        setGeoDenied(false);
     }, [citySlug]);
 
-    /** Konum yalnızca near_lat/near_lng ile sunucuda sıralamada kullanılır; ilçe URL’ye yazılmaz. */
-    useEffect(() => {
-        if (geoStarted.current) {
-            return;
-        }
+    const requestLocationSort = () => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            setGeoDenied(true);
             return;
         }
-        if (nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng)) {
-            geoStarted.current = true;
-            return;
-        }
-        geoStarted.current = true;
+        setGeoDenied(false);
         setGeoHint('Konumunuz alınıyor…');
 
         navigator.geolocation.getCurrentPosition(
@@ -164,16 +158,17 @@ export default function SehirSecCityEvents({
             },
             () => {
                 setGeoHint(null);
+                setGeoDenied(true);
             },
-            { enableHighAccuracy: false, timeout: 12_000, maximumAge: 300_000 },
+            { enableHighAccuracy: false, timeout: 15_000, maximumAge: 0 },
         );
-    }, [citySlug, nearLat, nearLng]);
+    };
 
     return (
         <AppLayout>
             <SeoHead title={`${cityName} — Popüler etkinlikler`} description={desc} />
 
-            <div className="-mx-4 -mt-5 sm:-mx-6 sm:-mt-6 lg:-mx-8">
+            <div className="-mx-2.5 -mt-5 w-[calc(100%+1.25rem)] max-w-none sm:-mx-4 sm:-mt-6 sm:w-[calc(100%+2rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]">
                 <section className="relative overflow-hidden border-b border-zinc-200 bg-zinc-950 px-4 py-10 dark:border-zinc-800 sm:px-6 lg:px-8">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-950 to-zinc-950" />
                     <div className="relative z-10 mx-auto max-w-7xl">
@@ -197,6 +192,40 @@ export default function SehirSecCityEvents({
                                 Sahnebul etkinlikleri
                             </span>
                         </div>
+
+                        {!hasServerNear ? (
+                            <div className="mt-5 max-w-xl rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-zinc-200">
+                                <p className="leading-relaxed text-zinc-300">
+                                    Yakınınızdaki mekânlara göre sıralamak için konum izni gerekir. İzin vermezseniz liste varsayılan sırayla
+                                    kalır; dilediğiniz zaman tekrar deneyebilirsiniz.
+                                </p>
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={requestLocationSort}
+                                        disabled={geoHint !== null}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-600/90 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                        {geoHint ? 'Konum alınıyor…' : 'Konumuma göre sırala'}
+                                    </button>
+                                    {geoDenied && !geoHint ? (
+                                        <button
+                                            type="button"
+                                            onClick={requestLocationSort}
+                                            className="rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-emerald-200 hover:border-emerald-400/50"
+                                        >
+                                            Tekrar dene
+                                        </button>
+                                    ) : null}
+                                </div>
+                                {geoDenied && !geoHint ? (
+                                    <p className="mt-2 text-xs text-zinc-500">
+                                        İzin reddedildiyse tarayıcıda site ayarlarından konumu açıp yeniden deneyin.
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
 
                         {geoHint && (
                             <p className="mt-4 inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
@@ -362,7 +391,7 @@ export default function SehirSecCityEvents({
                     </div>
                 </section>
 
-                <div className="mx-auto max-w-7xl px-0 py-8 sm:px-4 sm:py-10 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 py-8 sm:px-4 sm:py-10 lg:px-8">
                     {events.data.length === 0 && (
                         <p className="rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
                             Bu şehir ve seçili filtrelere uygun etkinlik yok. Tüm şehirler ve filtreler için{' '}

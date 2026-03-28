@@ -58,6 +58,7 @@ use App\Http\Controllers\SehirSecCityController;
 use App\Http\Controllers\SehirSecController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\User\BrowserNotificationController;
 use App\Http\Controllers\User\EventIcsController;
 use App\Http\Controllers\User\EventReminderController;
 use App\Http\Controllers\User\FavoriteArtistController;
@@ -172,6 +173,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/hesabim/etkinlikler/{event}/takvim.ics', [EventIcsController::class, 'show'])
         ->whereNumber('event')
         ->name('user.events.ics');
+
+    Route::middleware(['throttle:notifications-summary', 'json.same-site'])->group(function () {
+        Route::get('/api/bildirim-ozeti', [BrowserNotificationController::class, 'summary'])->name('api.notifications.summary');
+    });
+    Route::patch('/hesabim/tarayici-bildirimleri', [BrowserNotificationController::class, 'update'])->name('user.browser-notifications');
 });
 
 Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(function () {

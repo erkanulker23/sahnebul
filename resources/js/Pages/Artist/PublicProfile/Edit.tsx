@@ -108,6 +108,7 @@ export default function PublicArtistProfileEdit({
     const [igBusy, setIgBusy] = useState(false);
 
     const { data, setData, put, processing, errors, progress } = useForm({
+        slug: artist?.slug ?? '',
         bio: artist?.bio ?? '',
         website: artist?.website ?? '',
         music_genres: artist
@@ -440,6 +441,43 @@ export default function PublicArtistProfileEdit({
             ) : null}
 
             <form onSubmit={submit} className="max-w-3xl space-y-10">
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
+                    <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Kullanıcı adı (profil adresi)</h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                        Sitedeki adresiniz küçük harf, rakam ve tire ile oluşur. Türkçe karakterler kaydederken otomatik dönüştürülür.
+                    </p>
+                    <div className="mt-4">
+                        <label htmlFor="artist-public-slug" className="block text-sm font-medium text-zinc-400">
+                            Kullanıcı adı
+                        </label>
+                        <input
+                            id="artist-public-slug"
+                            value={data.slug}
+                            onChange={(e) => setData('slug', e.target.value)}
+                            autoComplete="off"
+                            className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-mono text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:border-white/10 dark:bg-zinc-950/60 dark:text-white dark:focus:border-amber-500/40"
+                            placeholder="ornek-sanatci"
+                        />
+                        {errors.slug ? <p className="mt-1 text-sm text-red-400">{errors.slug}</p> : null}
+                        <p className="mt-2 break-all text-xs text-zinc-500">
+                            Önizleme:{' '}
+                            {(() => {
+                                const previewSlug = data.slug.trim() !== '' ? data.slug.trim() : artist.slug;
+                                return (
+                                    <Link
+                                        href={route('artists.show', previewSlug)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-medium text-amber-600 hover:underline dark:text-amber-400"
+                                    >
+                                        {route('artists.show', previewSlug)}
+                                    </Link>
+                                );
+                            })()}
+                        </p>
+                    </div>
+                </section>
+
                 <section className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-white/10 dark:bg-zinc-900/50">
                     <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Hakkında ve web</h2>
                     <p className="mt-1 text-sm text-zinc-500">Kısa tanıtım ve resmi site bağlantısı (opsiyonel).</p>

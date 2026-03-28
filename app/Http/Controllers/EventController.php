@@ -19,7 +19,7 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = EventListingQuery::base()->with([
-            'venue:id,name,slug,cover_image,category_id,city_id,district_id',
+            'venue:id,name,slug,address,cover_image,category_id,city_id,district_id',
             'venue.category:id,name,slug',
             'venue.city:id,name',
             'venue.district:id,name',
@@ -37,7 +37,18 @@ class EventController extends Controller
             // $request->string() returns Stringable; strict === against 'tomorrow' etc. never matches.
             $period = (string) $request->string('period');
             if ($period === 'today') {
-                $query->whereDate('start_date', today());
+                $todayStart = now()->startOfDay();
+                $todayEnd = now()->endOfDay();
+                $query->where(function ($q) use ($todayStart, $todayEnd) {
+                    $q->where(function ($q1) use ($todayStart, $todayEnd) {
+                        $q1->where('events.start_date', '<=', $todayEnd)
+                            ->whereNotNull('events.end_date')
+                            ->where('events.end_date', '>=', $todayStart);
+                    })->orWhere(function ($q2) use ($todayStart, $todayEnd) {
+                        $q2->whereNull('events.end_date')
+                            ->whereBetween('events.start_date', [$todayStart, $todayEnd]);
+                    });
+                });
             } elseif ($period === 'tomorrow') {
                 $query->whereDate('start_date', today()->addDay());
             } elseif ($period === 'week') {
@@ -132,7 +143,14 @@ class EventController extends Controller
 
         $events = Event::query()
             ->published()
-            ->where('start_date', '>=', now())
+            ->where(function ($q) {
+                $q->where('start_date', '>=', now())
+                    ->orWhere(function ($q2) {
+                        $q2->whereNotNull('end_date')
+                            ->where('end_date', '>=', now())
+                            ->where('start_date', '<=', now());
+                    });
+            })
             ->whereHas('venue', fn ($q) => $q->listedPublicly()->whereNotNull('latitude')->whereNotNull('longitude'))
             ->join('venues', 'venues.id', '=', 'events.venue_id')
             ->select('events.*')

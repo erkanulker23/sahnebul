@@ -18,6 +18,7 @@ import {
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
 import { isRemoteSocialOgJunkUrl } from '@/lib/eventPublicImage';
+import { formatTurkishEventTimeRange, isEventOngoingNow } from '@/lib/eventRuntime';
 import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
@@ -82,6 +83,8 @@ interface Event {
     promo_video_path?: string | null;
     promo_embed_url?: string | null;
     promo_gallery?: PromoGalleryItem[] | null;
+    /** Sunucu: başlangıç–bitiş aralığında (PHP ile aynı mantık) */
+    is_ongoing?: boolean;
 }
 
 interface EventReviewRow {
@@ -184,6 +187,7 @@ function ArtistOtherUpcomingOnEventShow({
                 slug: ev.slug,
                 title: ev.title,
                 start_date: ev.start_date,
+                end_date: ev.end_date ?? null,
                 cover_image: ev.cover_image,
                 listing_image: ev.listing_image,
                 status: ev.status,
@@ -365,8 +369,10 @@ export default function EventShow({
             ? sortVenueSocialEntries(event.venue.social_links)
             : [];
     const dateSummary = event.start_date
-        ? `Tarih: ${formatTurkishDateTime(event.start_date)}.`
+        ? `Tarih: ${formatTurkishEventTimeRange(event.start_date, event.end_date)}.`
         : 'Tarih yakında açıklanacak.';
+    const eventOngoing =
+        event.is_ongoing === true || isEventOngoingNow(event.start_date, event.end_date ?? null);
     const followUiVisible = eventCustomerActions.followUiVisible === true;
     const eventDesc = metaDescriptionFromContent(
         event.description,
@@ -429,14 +435,24 @@ export default function EventShow({
                             </Link>
                         </p>
                         <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl">{event.title}</h1>
+                        {eventOngoing ? (
+                            <p className="mt-3 max-w-2xl rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100">
+                                Bu etkinlik şu anda devam ediyor
+                                {event.end_date ? (
+                                    <span className="mt-0.5 block text-xs font-normal text-amber-100/85">
+                                        Tahmini bitiş: {formatTurkishDateTime(event.end_date)}
+                                    </span>
+                                ) : null}
+                            </p>
+                        ) : null}
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
-                            {event.start_date && eventRelativeDayKind(event.start_date) ? (
-                                <EventRelativeDayPill startDate={event.start_date} placement="overlay" />
+                            {event.start_date && eventRelativeDayKind(event.start_date, event.end_date) ? (
+                                <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="overlay" />
                             ) : null}
                             {event.start_date ? (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                    {formatTurkishDateTime(event.start_date)}
+                                    {formatTurkishEventTimeRange(event.start_date, event.end_date)}
                                 </span>
                             ) : (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200">Tarih duyurulacak</span>
@@ -869,11 +885,11 @@ export default function EventShow({
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Etkinlik tarihi</p>
                             {event.start_date ? (
                                 <div className="mt-2 flex flex-col items-start gap-2">
-                                    {eventRelativeDayKind(event.start_date) ? (
-                                        <EventRelativeDayPill startDate={event.start_date} placement="panel" />
+                                    {eventRelativeDayKind(event.start_date, event.end_date) ? (
+                                        <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="panel" />
                                     ) : null}
                                     <p className="text-base font-semibold text-zinc-900 dark:text-white">
-                                        {formatTurkishDateTime(event.start_date)}
+                                        {formatTurkishEventTimeRange(event.start_date, event.end_date)}
                                     </p>
                                 </div>
                             ) : (

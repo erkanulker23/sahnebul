@@ -502,4 +502,50 @@ class Event extends Model
 
         return $validated;
     }
+
+    /**
+     * Ziyaretçi arayüzünde “etkinlik bitmiş” kabulü (bitiş yoksa başlangıç gününün İstanbul takvim günü sonu).
+     */
+    public function effectiveEndAt(): ?Carbon
+    {
+        if ($this->start_date === null) {
+            return null;
+        }
+        if ($this->end_date !== null) {
+            return $this->end_date->copy();
+        }
+
+        return $this->start_date->copy()->endOfDay();
+    }
+
+    public function isOngoingNow(?Carbon $at = null): bool
+    {
+        $at ??= now();
+        if ($this->start_date === null || $this->status !== 'published') {
+            return false;
+        }
+        $end = $this->effectiveEndAt();
+        if ($end === null) {
+            return false;
+        }
+
+        return $at->greaterThanOrEqualTo($this->start_date) && $at->lessThanOrEqualTo($end);
+    }
+
+    public function hasFinishedAt(?Carbon $at = null): bool
+    {
+        $at ??= now();
+        if ($this->start_date === null) {
+            return false;
+        }
+        if ($this->isOngoingNow($at)) {
+            return false;
+        }
+        if ($at->lessThan($this->start_date)) {
+            return false;
+        }
+        $end = $this->effectiveEndAt();
+
+        return $end !== null && $at->greaterThan($end);
+    }
 }

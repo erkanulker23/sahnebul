@@ -1,4 +1,5 @@
 import { AdSlot } from '@/Components/AdSlot';
+import BrowserNotificationsBar from '@/Components/BrowserNotificationsBar';
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import FlashMessage from '@/Components/FlashMessage';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
         <div className="flex min-h-[100dvh] flex-col overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
             <AppHeader />
             <EmailVerificationBanner />
+            <BrowserNotificationsBar />
             <FlashMessage />
 
             <AdSlot

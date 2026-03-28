@@ -3,7 +3,23 @@ import { eventRelativeDayKind, eventRelativeDayTrLabel } from '@/lib/eventRelati
 
 export type EventRelativeDayPlacement = 'overlay' | 'panel' | 'listTime' | 'compactLight' | 'compactDark';
 
-function toneClasses(placement: EventRelativeDayPlacement, isToday: boolean): string {
+function toneClasses(placement: EventRelativeDayPlacement, variant: 'today' | 'tomorrow' | 'ongoing'): string {
+    if (variant === 'ongoing') {
+        if (placement === 'overlay') {
+            return 'self-start bg-amber-950/65 px-2.5 py-1 text-amber-50 shadow-[0_2px_14px_rgba(0,0,0,0.45)] ring-2 ring-amber-400/60 backdrop-blur-md';
+        }
+        if (placement === 'panel') {
+            return 'self-start bg-amber-500/[0.22] px-2.5 py-1 text-amber-950 ring-2 ring-amber-500/45 dark:bg-amber-500/[0.28] dark:text-amber-50 dark:ring-amber-400/50';
+        }
+        if (placement === 'listTime') {
+            return 'bg-amber-500/[0.2] px-2 py-0.5 text-amber-950 ring-2 ring-amber-500/35 dark:bg-amber-500/[0.18] dark:text-amber-50 dark:ring-amber-400/45';
+        }
+        if (placement === 'compactDark') {
+            return 'bg-amber-500/28 px-2 py-0.5 text-amber-50 ring-2 ring-amber-400/45';
+        }
+        return 'bg-amber-500/[0.18] px-2 py-0.5 text-amber-950 ring-2 ring-amber-600/30 dark:bg-amber-400/[0.2] dark:text-amber-50 dark:ring-amber-400/45';
+    }
+    const isToday = variant === 'today';
     if (placement === 'overlay') {
         return isToday
             ? 'self-start bg-emerald-950/55 px-2.5 py-1 text-emerald-50 shadow-[0_2px_14px_rgba(0,0,0,0.45)] ring-2 ring-emerald-400/55 backdrop-blur-md'
@@ -44,26 +60,29 @@ function sizeClasses(placement: EventRelativeDayPlacement): string {
  */
 export default function EventRelativeDayPill({
     startDate,
+    endDate,
     placement,
     className,
 }: Readonly<{
     startDate: string | null | undefined;
+    /** Bitiş ISO — geceyi aşan etkinliklerde “Devam ediyor” için gerekli */
+    endDate?: string | null;
     placement: EventRelativeDayPlacement;
     className?: string;
 }>) {
-    const kind = eventRelativeDayKind(startDate);
+    const kind = eventRelativeDayKind(startDate, endDate);
     if (!kind) {
         return null;
     }
     const label = eventRelativeDayTrLabel(kind);
-    const isToday = kind === 'today';
+    const variant = kind === 'ongoing' ? 'ongoing' : kind === 'today' ? 'today' : 'tomorrow';
 
     return (
         <span
             className={cn(
                 'inline-flex max-w-max shrink-0 items-center justify-center rounded-full font-semibold tracking-tight',
                 sizeClasses(placement),
-                toneClasses(placement, isToday),
+                toneClasses(placement, variant),
                 className,
             )}
         >

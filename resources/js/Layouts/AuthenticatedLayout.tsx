@@ -1,3 +1,4 @@
+import BrowserNotificationsBar from '@/Components/BrowserNotificationsBar';
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
@@ -15,7 +16,7 @@ export default function Authenticated({
     children,
 }: Readonly<PropsWithChildren<{ header?: ReactNode }>>) {
     const page = usePage<PageProps>();
-    const user = page.props.auth.user;
+    const user = page.props.auth.user!;
     const hidePanelNotif = page.props.auth.is_platform_admin === true;
     const { theme, toggleTheme } = useTheme();
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -134,6 +135,7 @@ export default function Authenticated({
                 </div>
             </nav>
 
+            <BrowserNotificationsBar />
             <EmailVerificationBanner />
 
             {header && (

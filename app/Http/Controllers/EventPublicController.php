@@ -96,7 +96,7 @@ class EventPublicController extends Controller
         $artistIds = $event->artists->pluck('id')->all();
 
         $upcomingColumns = [
-            'id', 'slug', 'title', 'start_date', 'ticket_price', 'entry_is_paid', 'venue_id', 'is_full',
+            'id', 'slug', 'title', 'start_date', 'end_date', 'ticket_price', 'entry_is_paid', 'venue_id', 'is_full',
             'cover_image', 'listing_image', 'status', 'ticket_acquisition_mode', 'sahnebul_reservation_enabled',
         ];
 
@@ -110,13 +110,24 @@ class EventPublicController extends Controller
                 ->orderByPivot('order'),
         ];
 
+        $stillVisible = function (\Illuminate\Database\Eloquent\Builder $q): void {
+            $q->where(function ($q2) {
+                $q2->where('start_date', '>=', now())
+                    ->orWhere(function ($q3) {
+                        $q3->whereNotNull('end_date')
+                            ->where('end_date', '>=', now())
+                            ->where('start_date', '<=', now());
+                    });
+            });
+        };
+
         $venueUpcomingEvents = Event::query()
             ->published()
             ->whereHas('venue', fn ($q) => $q->listedPublicly())
             ->where('venue_id', $event->venue_id)
             ->where('id', '!=', $event->id)
             ->whereNotNull('start_date')
-            ->where('start_date', '>=', now())
+            ->tap($stillVisible)
             ->orderBy('start_date')
             ->limit(12)
             ->with($upcomingRelations)
@@ -130,7 +141,7 @@ class EventPublicController extends Controller
                 ->where('venue_id', '!=', $event->venue_id)
                 ->where('id', '!=', $event->id)
                 ->whereNotNull('start_date')
-                ->where('start_date', '>=', now())
+                ->tap($stillVisible)
                 ->whereHas('artists', fn ($q) => $q->whereIn('artists.id', $artistIds))
                 ->orderBy('start_date')
                 ->limit(24)
@@ -153,6 +164,8 @@ class EventPublicController extends Controller
             $decoded = json_decode(json_encode($event->promo_gallery), true);
             $event->setAttribute('promo_gallery', is_array($decoded) ? array_values($decoded) : null);
         }
+
+        $event->setAttribute('is_ongoing', $event->isOngoingNow());
 
         return Inertia::render('Events/Show', [
             'event' => $event,

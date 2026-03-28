@@ -22,10 +22,11 @@ final class EventListingQuery
         return $query
             ->orderByRaw(
                 'CASE
-                    WHEN DATE(events.start_date) = CURDATE() THEN 0
-                    WHEN DATE(events.start_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) THEN 1
-                    WHEN events.start_date > NOW() THEN 2
-                    ELSE 3
+                    WHEN events.end_date IS NOT NULL AND events.start_date <= NOW() AND events.end_date >= NOW() THEN 0
+                    WHEN DATE(events.start_date) = CURDATE() THEN 1
+                    WHEN DATE(events.start_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) THEN 2
+                    WHEN events.start_date > NOW() THEN 3
+                    ELSE 4
                  END'
             )
             ->orderBy('events.start_date');

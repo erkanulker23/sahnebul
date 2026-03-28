@@ -15,6 +15,7 @@ use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -73,7 +74,9 @@ class PublicArtistProfileController extends Controller
             return redirect()->route('artist.public-profile')->with('error', 'Bağlı sanatçı profili bulunamadı.');
         }
 
+        $slugNormalized = Str::slug(trim((string) $request->input('slug', '')), '-', 'tr');
         $request->merge([
+            'slug' => $slugNormalized,
             'bio' => $request->input('bio') ?: null,
             'website' => $request->input('website') ?: null,
             'music_genres' => $request->input('music_genres') ?: [],
@@ -84,6 +87,14 @@ class PublicArtistProfileController extends Controller
 
         $allowedTypes = MusicGenre::optionNamesOrdered();
         $validated = $request->validate([
+            'slug' => [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique('artists', 'slug')->ignore($artist->id),
+            ],
             'bio' => 'nullable|string',
             'website' => 'nullable|url|max:255',
             'music_genres' => 'nullable|array',
@@ -101,6 +112,8 @@ class PublicArtistProfileController extends Controller
             'public_contact.note' => 'nullable|string|max:2000',
             'banner_upload' => 'nullable|image|max:15360',
             'remove_banner' => 'sometimes|boolean',
+        ], [
+            'slug.unique' => 'Bu kullanıcı adı kullanılmaktadır.',
         ]);
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, [

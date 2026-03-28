@@ -10,6 +10,8 @@ export interface User {
     organization_display_name?: string | null;
     organization_tax_office?: string | null;
     organization_tax_number?: string | null;
+    /** Tarayıcı bildirimi tercihi (hesap bildirimleri için) */
+    browser_notifications_enabled?: boolean;
 }
 
 export interface LinkedArtistSummary {
@@ -36,7 +38,7 @@ export type PageProps<
     };
     panelNotifications?: PanelNotificationsPayload | null;
     auth: {
-        user: User;
+        user: User | null;
         /** Hesaba bağlı sanatçı profili (varsa /sahne/sanatci-sayfam) */
         linkedArtist?: LinkedArtistSummary | null;
         /** false: saf sanatçı — yan menüde Mekanlarım / Rezervasyonlar yok */

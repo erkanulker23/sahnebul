@@ -50,7 +50,7 @@ export default function UpdateProfileInformation({
     omitInterestsField?: boolean;
 }>) {
     const { auth } = usePage<PageProps>().props;
-    const user = auth.user;
+    const user = auth.user!;
     const linkedArtist = auth.linkedArtist;
     const isManagerOrganization = auth.is_manager_organization === true;
     const [interestInput, setInterestInput] = useState('');

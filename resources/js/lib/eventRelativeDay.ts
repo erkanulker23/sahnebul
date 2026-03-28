@@ -1,4 +1,5 @@
 import { SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
+import { isEventOngoingNow } from '@/lib/eventRuntime';
 
 function ymdKeyInTimeZone(d: Date, timeZone: string): string {
     return new Intl.DateTimeFormat('en-CA', {
@@ -25,18 +26,25 @@ function addOneCalendarDayYmd(ymd: string): string {
     return `${yy}-${mm}-${dd}`;
 }
 
-export type EventRelativeDayKind = 'today' | 'tomorrow';
+export type EventRelativeDayKind = 'today' | 'tomorrow' | 'ongoing';
 
 /**
  * Etkinlik başlangıcı İstanbul takvimine göre bugün mü, yarın mı?
+ * `endIso` verilirse ve şu an aralık içindeyse `ongoing` döner (Bugün/Yarın yerine).
  */
-export function eventRelativeDayKind(startIso: string | null | undefined): EventRelativeDayKind | null {
+export function eventRelativeDayKind(
+    startIso: string | null | undefined,
+    endIso?: string | null,
+): EventRelativeDayKind | null {
     if (startIso == null || startIso === '') {
         return null;
     }
     const eventDate = new Date(startIso);
     if (Number.isNaN(eventDate.getTime())) {
         return null;
+    }
+    if (isEventOngoingNow(startIso, endIso ?? null)) {
+        return 'ongoing';
     }
     const tz = SAHNE_EVENT_DISPLAY_TZ;
     const eventKey = ymdKeyInTimeZone(eventDate, tz);
@@ -51,5 +59,8 @@ export function eventRelativeDayKind(startIso: string | null | undefined): Event
 }
 
 export function eventRelativeDayTrLabel(kind: EventRelativeDayKind): string {
+    if (kind === 'ongoing') {
+        return 'Devam ediyor';
+    }
     return kind === 'today' ? 'Bugün' : 'Yarın';
 }

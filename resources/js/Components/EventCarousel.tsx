@@ -2,7 +2,7 @@ import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishEventTimeRange } from '@/lib/eventRuntime';
 import { Link } from '@inertiajs/react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -11,6 +11,7 @@ export interface CarouselEvent {
     slug: string;
     title: string;
     start_date: string;
+    end_date?: string | null;
     venue: {
         id: number;
         name: string;
@@ -147,9 +148,14 @@ export default function EventCarousel({
                 >
                     {events.map((event) => {
                         const headliner = event.artists[0];
-                        const displayName = headliner?.name ?? event.title;
+                        const displayName = event.title;
+                        const artistSub =
+                            headliner?.name?.trim() &&
+                            headliner.name.trim() !== event.title.trim()
+                                ? headliner.name
+                                : null;
                         const bg = resolveEventListingThumbUrl(event.listing_image, event.cover_image);
-                        const whenLabel = formatTurkishDateTime(event.start_date);
+                        const whenLabel = formatTurkishEventTimeRange(event.start_date, event.end_date ?? null);
                         const locationLine = formatVenueLocationLine(event.venue.city?.name, event.venue.district?.name);
                         const showLocationOverlay = locationLine !== '';
 
@@ -189,7 +195,7 @@ export default function EventCarousel({
                                             </div>
                                         ) : null}
                                         <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-1.5">
-                                            <EventRelativeDayPill startDate={event.start_date} placement="panel" />
+                                            <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="panel" />
                                             <div className="flex min-w-0 flex-1 items-start gap-2">
                                                 <IconCalendar
                                                     className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent === 'violet' ? 'text-violet-600 dark:text-violet-400' : 'text-amber-600 dark:text-amber-400'}`}
@@ -205,6 +211,9 @@ export default function EventCarousel({
                                     <h3 className="font-display text-xs font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
                                         <span className="line-clamp-2">{displayName}</span>
                                     </h3>
+                                    {artistSub ? (
+                                        <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 sm:text-xs">{artistSub}</p>
+                                    ) : null}
                                     <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:mt-2 sm:text-sm">{event.venue.name}</p>
                                     {event.venue.category?.name ? (
                                         <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">

@@ -1,3 +1,4 @@
+import BrowserNotificationsBar from '@/Components/BrowserNotificationsBar';
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import FlashMessage from '@/Components/FlashMessage';
 import PanelNotificationsMenu from '@/Components/PanelNotificationsMenu';
@@ -236,6 +237,7 @@ export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) 
                         Çıkış Yap
                     </Link>
                 </header>
+                <BrowserNotificationsBar />
                 <EmailVerificationBanner />
                 <FlashMessage />
                 <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</div>

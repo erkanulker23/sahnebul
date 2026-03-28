@@ -2,13 +2,14 @@
 
 namespace App\Providers;
 
+use App\Listeners\SendEmailVerificationNotificationSafely;
 use App\Services\AppSettingsService;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -30,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Event::listen(Registered::class, SendEmailVerificationNotification::class);
+        Event::listen(Registered::class, SendEmailVerificationNotificationSafely::class);
 
         App::setLocale(config('app.locale'));
 
@@ -58,7 +59,12 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->make(AppSettingsService::class)->applySmtpMailConfig();
+        try {
+            $this->app->make(AppSettingsService::class)->applySmtpMailConfig();
+        } catch (\Throwable $e) {
+            // Bozuk panel SMTP kaydı veya ortam: uygulama ayağa kalkmaya devam etsin
+            Log::warning('SMTP ön yüklemesi atlandı', ['message' => $e->getMessage()]);
+        }
     }
 
     private function configureRateLimiting(): void
@@ -81,6 +87,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(
                 (int) config('services.rate_limits.reverse_geocode_per_minute', 24)
             )->by($request->ip());
+        });
+
+        RateLimiter::for('notifications-summary', function (Request $request) {
+            return Limit::perMinute(45)->by((string) $request->user()?->getAuthIdentifier());
         });
 
         RateLimiter::for('search-quick', function (Request $request) {

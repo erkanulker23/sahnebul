@@ -3,7 +3,7 @@ import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
 import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { eventShowParam } from '@/lib/eventShowUrl';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishEventTimeRange } from '@/lib/eventRuntime';
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ export type PublicEventTicketCardEvent = {
     slug: string;
     title: string;
     start_date: string;
+    end_date?: string | null;
     cover_image?: string | null;
     listing_image?: string | null;
     status?: string | null;
@@ -88,11 +89,15 @@ export default function PublicEventTicketCard({
     distanceKm,
 }: Readonly<{ event: PublicEventTicketCardEvent; distanceKm?: number | null }>) {
     const headliner = event.artists[0];
-    const displayName = headliner?.name ?? event.title;
+    const displayName = event.title;
+    const artistSubtitle =
+        headliner?.name && headliner.name.trim() !== '' && headliner.name.trim() !== event.title.trim()
+            ? headliner.name
+            : null;
     /** Yalnız etkinlik liste/kapak görselleri; sanatçı / mekân fotoğrafı kartta kullanılmaz. */
     const bg = resolveEventListingThumbUrl(event.listing_image, event.cover_image);
 
-    const whenLabel = formatTurkishDateTime(event.start_date);
+    const whenLabel = formatTurkishEventTimeRange(event.start_date, event.end_date ?? null);
     const locationLine = formatVenueLocationLine(event.venue.city?.name, event.venue.district?.name);
     const showLocationOverlay = locationLine !== '';
 
@@ -119,9 +124,9 @@ export default function PublicEventTicketCard({
                     {/** Hafif üstten gölge — afiş yüzü açık kalsın; meta bilgi altta şeritte */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 opacity-90 transition group-hover:opacity-100" />
                     {/** Bugün/Yarın: üst sol — alttaki şeridi kaplamaz */}
-                    {eventRelativeDayKind(event.start_date) ? (
+                    {eventRelativeDayKind(event.start_date, event.end_date) ? (
                         <div className="pointer-events-none absolute left-2.5 top-2.5 z-[3] sm:left-3 sm:top-3">
-                            <EventRelativeDayPill startDate={event.start_date} placement="overlay" />
+                            <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="overlay" />
                         </div>
                     ) : null}
                     {/** sm altı: poster temiz; konum/tarih kart metninde. sm ve üstü: görsel alt şerit. */}
@@ -155,7 +160,7 @@ export default function PublicEventTicketCard({
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
                     <div className="mb-1.5 flex flex-col items-start gap-1 sm:hidden">
-                        <EventRelativeDayPill startDate={event.start_date} placement="panel" />
+                        <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="panel" />
                         {showLocationOverlay ? (
                             <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-400" title={locationLine}>
                                 <IconMapPin className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-500" />
@@ -170,6 +175,9 @@ export default function PublicEventTicketCard({
                     <h2 className="font-display text-xs font-bold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-lg">
                         <span className="line-clamp-2">{displayName}</span>
                     </h2>
+                    {artistSubtitle ? (
+                        <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 sm:text-xs">{artistSubtitle}</p>
+                    ) : null}
                     <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:mt-2 sm:text-sm">{event.venue.name}</p>
                     {event.venue.category?.name ? (
                         <p className="mt-0.5 truncate text-[10px] font-medium text-amber-700/90 dark:text-amber-400/90 sm:mt-1 sm:text-xs">{event.venue.category.name}</p>
