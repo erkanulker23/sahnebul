@@ -178,6 +178,7 @@ export default function AdminEntityPromoGalleryPanel({
             {
                 preserveScroll: true,
                 onFinish: () => setReelUrlsImporting(false),
+                onError: () => setReelUrlsImporting(false),
                 onSuccess: () => setReelUrlsText(''),
             },
         );
@@ -370,7 +371,11 @@ export default function AdminEntityPromoGalleryPanel({
                 <div className="border-t border-amber-500/20 pt-4">
                     <p className="text-[11px] font-medium text-zinc-400">Veya bağlantı (satır başına bir URL)</p>
                     <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-500">
-                        .mp4 / .webm veya Instagram reel. Sunucuda genelde yt-dlp + ffmpeg gerekir.
+                        .mp4 / .webm veya Instagram reel / hikâye. Sunucuda güncel <strong className="text-zinc-500">yt-dlp</strong> + ffmpeg gerekir (
+                        <code className="text-zinc-400">apt</code> sürümü çoğu zaman eski; Instagram için{' '}
+                        <code className="text-zinc-400">pipx install yt-dlp</code> önerilir). Çoklu satırda işlem dakikalar sürebilir; HTTP 429 için{' '}
+                        <code className="text-zinc-400">YTDLP_COOKIES_FILE</code> / <code className="text-zinc-400">INSTAGRAM_FETCH_COOKIES</code> ve Forge’da{' '}
+                        <code className="text-zinc-400">fastcgi_read_timeout</code> yükseltin.
                     </p>
                     <textarea
                         id={`entity-reel-urls-${entity.id}`}

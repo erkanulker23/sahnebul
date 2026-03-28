@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -58,10 +59,24 @@ final class EventMediaImportFromUrlService
             $model->refresh();
         }
 
+        if ($mode === 'promo_video') {
+            $tl = (int) config('sahnebul.promo_url_import_time_limit', 900);
+            if ($tl > 0) {
+                @set_time_limit($tl);
+            }
+        }
+
         $ok = 0;
         /** @var list<string> $failures */
         $failures = [];
-        foreach ($urls as $u) {
+        foreach ($urls as $idx => $u) {
+            if ($idx > 0 && $mode === 'promo_video') {
+                $delay = (int) config('services.instagram.batch_delay_seconds', 6);
+                $prev = $urls[$idx - 1];
+                if ($delay > 0 && ($this->isInstagramHost($u) || $this->isInstagramHost($prev))) {
+                    sleep($delay);
+                }
+            }
             $r = $this->import($model->fresh(), $u, $mode, true, $promoPosterEmbedOnly);
             if ($r['success']) {
                 $ok++;
@@ -417,15 +432,15 @@ final class EventMediaImportFromUrlService
             }
         }
 
-        $htmlResp = Http::withHeaders($this->browserHeaders())
-            ->timeout(self::FETCH_TIMEOUT)
-            ->withOptions(['allow_redirects' => true])
-            ->get($normalized);
+        $pageHeaders = $this->isInstagramHost($normalized)
+            ? $this->mergeOptionalInstagramCookies($this->browserHeaders())
+            : $this->browserHeaders();
+        $htmlResp = $this->httpGetAllowingInstagram429Retry($normalized, $pageHeaders);
 
         if (! $htmlResp->successful()) {
             return [
                 'success' => false,
-                'message' => 'Sayfa alınamadı (HTTP '.$htmlResp->status().').',
+                'message' => $this->httpFetchFailureMessage($htmlResp->status(), $this->isInstagramHost($normalized)),
             ];
         }
 
@@ -1086,10 +1101,10 @@ final class EventMediaImportFromUrlService
     {
         $segment = $pathSegment === 'reel' ? 'reel' : 'p';
         $url = 'https://www.instagram.com/'.$segment.'/'.rawurlencode($shortcode).'/embed/captioned/';
-        $resp = Http::withHeaders($this->browserHeaders())
-            ->timeout(self::FETCH_TIMEOUT)
-            ->withOptions(['allow_redirects' => true])
-            ->get($url);
+        $resp = $this->httpGetAllowingInstagram429Retry(
+            $url,
+            $this->mergeOptionalInstagramCookies($this->browserHeaders())
+        );
         if (! $resp->successful()) {
             return null;
         }
@@ -1205,10 +1220,10 @@ final class EventMediaImportFromUrlService
     private function downloadInstagramStillToStorage(string $shortcode, string $folder): ?string
     {
         $mediaPageUrl = 'https://www.instagram.com/p/'.rawurlencode($shortcode).'/media/?size=l';
-        $resp = Http::withHeaders($this->browserHeaders())
-            ->timeout(self::FETCH_TIMEOUT)
-            ->withOptions(['allow_redirects' => true])
-            ->get($mediaPageUrl);
+        $resp = $this->httpGetAllowingInstagram429Retry(
+            $mediaPageUrl,
+            $this->mergeOptionalInstagramCookies($this->browserHeaders())
+        );
 
         if (! $resp->successful()) {
             return null;
@@ -1265,6 +1280,58 @@ final class EventMediaImportFromUrlService
         return $url;
     }
 
+    /**
+     * @return array<string, string>
+     */
+    private function mergeOptionalInstagramCookies(array $headers): array
+    {
+        $raw = config('services.instagram.fetch_cookies');
+        if (! is_string($raw)) {
+            return $headers;
+        }
+        $raw = trim($raw);
+        if ($raw === '') {
+            return $headers;
+        }
+
+        $headers['Cookie'] = $raw;
+
+        return $headers;
+    }
+
+    /**
+     * Instagram kaynaklı 429 için kısa gecikmeyle tek ek deneme.
+     *
+     * @param  array<string, string>  $headers
+     */
+    private function httpGetAllowingInstagram429Retry(string $url, array $headers): Response
+    {
+        $resp = Http::withHeaders($headers)
+            ->timeout(self::FETCH_TIMEOUT)
+            ->withOptions(['allow_redirects' => true])
+            ->get($url);
+        if ($this->isInstagramHost($url) && $resp->status() === 429) {
+            sleep(3);
+            $resp = Http::withHeaders($headers)
+                ->timeout(self::FETCH_TIMEOUT)
+                ->withOptions(['allow_redirects' => true])
+                ->get($url);
+        }
+
+        return $resp;
+    }
+
+    private function httpFetchFailureMessage(int $status, bool $isInstagram): string
+    {
+        if ($status === 429 && $isInstagram) {
+            return 'Instagram bu isteği geçici olarak reddetti (HTTP 429 — çok fazla istek veya veri merkezi engeli). '
+                .'Bir süre sonra tekrar deneyin. Sunucuda yt-dlp + ffmpeg kurun; .env içinde YTDLP_COOKIES_FILE ve isteğe bağlı INSTAGRAM_FETCH_COOKIES (tarayıcıdan oturum çerezleri) tanımlayın. '
+                .'En sorunsuz yöntem: videoyu cihazdan indirip MP4 olarak yüklemek veya doğrudan .mp4 bağlantısı kullanmak.';
+        }
+
+        return 'Sayfa alınamadı (HTTP '.$status.').';
+    }
+
     /** @return array<string, string> */
     private function browserHeaders(): array
     {
@@ -1290,10 +1357,10 @@ final class EventMediaImportFromUrlService
      */
     private function fetchInstagramHtmlBody(string $url, array $headers): ?string
     {
-        $resp = Http::withHeaders($headers)
-            ->timeout(self::FETCH_TIMEOUT)
-            ->withOptions(['allow_redirects' => true])
-            ->get($url);
+        $resp = $this->httpGetAllowingInstagram429Retry(
+            $url,
+            $this->mergeOptionalInstagramCookies($headers)
+        );
         if (! $resp->successful()) {
             return null;
         }

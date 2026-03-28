@@ -126,6 +126,17 @@ return [
     ],
 
     /**
+     * instagram.com HTML istekleri (og meta, hikâye sayfası). Sunucu IP’lerinde HTTP 429 sık;
+     * tarayıcıdan kopyalanan ham Cookie değeri (sessionid=…; csrftoken=…) isteği biraz “oturumlu” gösterir.
+     * Gizli tutun; yt-dlp için ayrıca YTDLP_COOKIES_FILE (Netscape) kullanılır.
+     */
+    'instagram' => [
+        'fetch_cookies' => env('INSTAGRAM_FETCH_COOKIES'),
+        /** Çoklu URL içe aktarımda ardışık Instagram istekleri arası bekleme (429 azaltır). 0 = kapalı. */
+        'batch_delay_seconds' => max(0, min(90, (int) env('INSTAGRAM_BATCH_DELAY_SECONDS', 6))),
+    ],
+
+    /**
      * yt-dlp DASH video + m4a sesi birleştirmek için (brew install ffmpeg).
      */
     'ffmpeg' => [

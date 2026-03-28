@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Symfony\Component\Process\ExecutableFinder;
+use Symfony\Component\Process\Process;
 
 /**
  * Tanıtım galerisi Instagram / reel URL içe aktarımı için sunucu bağımlılıklarını listeler.
@@ -33,6 +34,17 @@ class CheckPromoImportDepsCommand extends Command
         $this->line('yt-dlp: '.($ytPath ? "<fg=green>{$ytPath}</>" : '<fg=red>bulunamadı</>'));
         if (! $ytPath) {
             $this->line('  → .env YTDLP_BINARY=/tam/yol/yt-dlp veya PATH’e ekleyin (apt install yt-dlp, brew install yt-dlp)');
+        } elseif (is_string($ytPath) && $ytPath !== '') {
+            $verProcess = new Process([$ytPath, '--version']);
+            $verProcess->setTimeout(15);
+            $verProcess->run();
+            $ver = trim($verProcess->getOutput());
+            if ($ver !== '') {
+                $this->line('  sürüm: '.$ver);
+                if (preg_match('/^(\d{4})\.(\d{2})\.(\d{2})/', $ver, $m) && (int) $m[1] < 2024) {
+                    $this->warn('  → Sürüm çok eski; Instagram çıkarıcıları sık güncellenir. apt paketi yetmez: pipx install yt-dlp veya pip install -U yt-dlp; YTDLP_BINARY yolunu güncelleyin.');
+                }
+            }
         }
 
         $this->line('ffmpeg: '.($ffPath ? "<fg=green>{$ffPath}</>" : '<fg=red>bulunamadı</>'));
@@ -46,6 +58,11 @@ class CheckPromoImportDepsCommand extends Command
         } else {
             $this->line('YTDLP_COOKIES_FILE: <fg=gray>tanımlı değil (Instagram engelinde isteğe bağlı)</>');
         }
+
+        $igCookie = config('services.instagram.fetch_cookies');
+        $this->line('INSTAGRAM_FETCH_COOKIES: '.(is_string($igCookie) && trim($igCookie) !== ''
+            ? '<fg=green>tanımlı</> (Laravel’in Instagram HTML istekleri; HTTP 429 azaltmaya yardımcı olabilir)'
+            : '<fg=gray>tanımlı değil</>'));
 
         $this->newLine();
         if ($ytPath && $ffPath) {

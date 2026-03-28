@@ -79,4 +79,10 @@ return [
             'tiktok' => null,
         ],
     ],
+
+    /**
+     * Admin panelde çoklu tanıtım video URL içe aktarımı (sıralı yt-dlp) için PHP süre sınırı (saniye).
+     * Nginx/Forge: site → Nginx şablonunda fastcgi_read_timeout aynı mertebede olmalı (ör. 900s).
+     */
+    'promo_url_import_time_limit' => (int) env('PROMO_URL_IMPORT_TIME_LIMIT', 900),
 ];
