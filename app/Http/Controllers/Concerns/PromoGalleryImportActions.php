@@ -98,15 +98,31 @@ trait PromoGalleryImportActions
         Model $model,
         EventMediaImportFromUrlService $importer,
     ): RedirectResponse {
-        $validated = $request->validate([
-            'promo_video_upload' => ['nullable', 'file', 'max:102400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
-            'promo_poster_upload' => ['nullable', 'file', 'max:12288', 'image'],
-            'promo_videos' => ['nullable', 'array', 'max:24'],
-            'promo_videos.*' => ['file', 'max:102400', 'mimetypes:video/mp4,video/webm,video/quicktime'],
-            'promo_post_images' => ['nullable', 'array', 'max:24'],
-            'promo_post_images.*' => ['file', 'max:12288', 'image'],
-            'append_promo' => ['sometimes', 'boolean'],
-        ]);
+        $videoFileRules = ['file', 'max:102400', 'mimes:mp4,m4v,webm,mov'];
+
+        $validated = $request->validate(
+            [
+                'promo_video_upload' => array_merge(['nullable'], $videoFileRules),
+                'promo_poster_upload' => ['nullable', 'file', 'max:12288', 'image'],
+                'promo_videos' => ['nullable', 'array', 'max:24'],
+                'promo_videos.*' => $videoFileRules,
+                'promo_post_images' => ['nullable', 'array', 'max:24'],
+                'promo_post_images.*' => ['file', 'max:12288', 'image'],
+                'append_promo' => ['sometimes', 'boolean'],
+            ],
+            [
+                'promo_video_upload.uploaded' => 'Video sunucuya yüklenemedi. PHP upload_max_filesize / post_max_size ve Nginx client_max_body_size (ör. 128M) sınırlarını kontrol edin.',
+                'promo_video_upload.max' => 'Tek video en fazla 100 MB olabilir.',
+                'promo_video_upload.mimes' => 'Video yalnız MP4, M4V, WebM veya MOV olabilir.',
+                'promo_videos.*.uploaded' => 'Tanıtım videosu sunucuya yüklenemedi. Ağ kesintisi veya boyut sınırı (PHP post_max_size, upload_max_filesize, Nginx client_max_body_size) olabilir.',
+                'promo_videos.*.max' => 'Tek video en fazla 100 MB olabilir.',
+                'promo_videos.*.mimes' => 'Tanıtım videosu yalnız MP4, M4V, WebM veya MOV olabilir.',
+            ],
+            [
+                'promo_video_upload' => 'video dosyası',
+                'promo_videos.*' => 'tanıtım videosu',
+            ],
+        );
 
         $append = (bool) ($validated['append_promo'] ?? true);
         $video = $request->file('promo_video_upload');

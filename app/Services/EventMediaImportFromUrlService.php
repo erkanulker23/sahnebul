@@ -36,6 +36,53 @@ final class EventMediaImportFromUrlService
 
     private const MAX_PROMO_GALLERY_ITEMS = 12;
 
+    /**
+     * Tanıtım video yüklemesi: MIME sunucuya göre değişir; uzantı + kısa imza ile doğrula.
+     *
+     * @return non-empty-string|null public diske yazılacak uzantı: mp4, webm veya mov
+     */
+    private function promoUploadVideoStorageExt(UploadedFile $video): ?string
+    {
+        $mime = strtolower($video->getMimeType() ?: '');
+        $byMime = [
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'video/quicktime' => 'mov',
+            'video/x-msvideo' => 'mp4',
+            'video/x-matroska' => 'webm',
+            'video/3gpp' => 'mp4',
+        ];
+        if (isset($byMime[$mime])) {
+            return $byMime[$mime];
+        }
+
+        $ext = strtolower($video->getClientOriginalExtension());
+        if (in_array($ext, ['mp4', 'm4v', 'webm', 'mov'], true)) {
+            if ($mime === 'application/octet-stream' || $mime === '' || str_starts_with($mime, 'video/')) {
+                return match ($ext) {
+                    'webm' => 'webm',
+                    'mov', 'm4v' => 'mov',
+                    default => 'mp4',
+                };
+            }
+        }
+
+        if ($mime === 'application/octet-stream') {
+            $path = $video->getRealPath();
+            if (is_string($path) && is_readable($path)) {
+                $head = @file_get_contents($path, false, null, 0, 16);
+                if (is_string($head) && str_contains($head, 'ftyp')) {
+                    return 'mp4';
+                }
+                if (is_string($head) && str_starts_with($head, "\x1a\x45\xdf\xa3")) {
+                    return 'webm';
+                }
+            }
+        }
+
+        return null;
+    }
+
     private const MAX_BATCH_URLS = 20;
 
     /**
@@ -183,15 +230,10 @@ final class EventMediaImportFromUrlService
             if ($video->getSize() > self::MAX_VIDEO_BYTES) {
                 return ['success' => false, 'message' => 'Video dosyası çok büyük (en fazla '.(int) (self::MAX_VIDEO_BYTES / 1024 / 1024).' MB).'];
             }
-            $mime = $video->getMimeType() ?: '';
-            if (! in_array($mime, ['video/mp4', 'video/webm', 'video/quicktime'], true)) {
-                return ['success' => false, 'message' => 'Video: yalnızca MP4, WebM veya MOV kabul edilir.'];
+            $ext = $this->promoUploadVideoStorageExt($video);
+            if ($ext === null) {
+                return ['success' => false, 'message' => 'Video: yalnızca MP4, M4V, WebM veya MOV kabul edilir (MIME tanınmadıysa uzantıyı kontrol edin).'];
             }
-            $ext = match ($mime) {
-                'video/webm' => 'webm',
-                'video/quicktime' => 'mov',
-                default => 'mp4',
-            };
             $videoPath = $video->storeAs('event-promo', Str::uuid()->toString().'.'.$ext, 'public');
         }
 
@@ -354,17 +396,12 @@ final class EventMediaImportFromUrlService
 
                 continue;
             }
-            $mime = $video->getMimeType() ?: '';
-            if (! in_array($mime, ['video/mp4', 'video/webm', 'video/quicktime'], true)) {
+            $ext = $this->promoUploadVideoStorageExt($video);
+            if ($ext === null) {
                 $skipped++;
 
                 continue;
             }
-            $ext = match ($mime) {
-                'video/webm' => 'webm',
-                'video/quicktime' => 'mov',
-                default => 'mp4',
-            };
             $videoPath = $video->storeAs('event-promo', Str::uuid()->toString().'.'.$ext, 'public');
             $gallery[] = [
                 'embed_url' => null,
