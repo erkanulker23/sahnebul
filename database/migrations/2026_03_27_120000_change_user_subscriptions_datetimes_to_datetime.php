@@ -12,6 +12,10 @@ return new class extends Migration
             return;
         }
 
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         // TIMESTAMP: MySQL ~2038 üst sınırı; admin sınırsız üyelik 2099 kullanıyor.
         DB::statement('ALTER TABLE `user_subscriptions` MODIFY `starts_at` DATETIME NOT NULL');
         DB::statement('ALTER TABLE `user_subscriptions` MODIFY `ends_at` DATETIME NOT NULL');
@@ -20,6 +24,10 @@ return new class extends Migration
     public function down(): void
     {
         if (! Schema::hasTable('user_subscriptions')) {
+            return;
+        }
+
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
             return;
         }
 

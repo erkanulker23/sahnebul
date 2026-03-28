@@ -209,7 +209,7 @@ export default function PublicArtistProfileEdit({
     if (!artist) {
         return (
             <ArtistLayout>
-                <SeoHead title="Sanatçı sayfam - Mekan Paneli" description="Genel sanatçı profili." noindex />
+                <SeoHead title="Sanatçı sayfam - Sahne paneli" description="Genel sanatçı profili." noindex />
                 <h1 className="font-display mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı sayfam</h1>
                 <p className="mb-6 max-w-xl text-sm text-zinc-400">
                     Bu bölüm, hesabınıza bağlı bir sanatçı profili olduğunda açılır. Önce bir sanatçı sayfasında

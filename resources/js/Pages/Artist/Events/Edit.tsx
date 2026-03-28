@@ -138,7 +138,7 @@ export default function ArtistEventEdit({
         event_type: event.event_type ?? '',
         description: event.description ?? '',
         event_rules: event.event_rules ?? '',
-        start_date: event.start_date.slice(0, 16),
+        start_date: event.start_date ? event.start_date.slice(0, 16) : '',
         end_date: event.end_date ? event.end_date.slice(0, 16) : '',
         ticket_price: event.ticket_price?.toString() ?? '',
         entry_is_paid: event.entry_is_paid !== false,

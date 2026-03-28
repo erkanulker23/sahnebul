@@ -13,6 +13,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use App\Support\AdminDatetimeLocal;
 use App\Support\ArtistProfileInputs;
 use App\Support\EventListingTypes;
 use App\Support\TurkishPhone;
@@ -590,8 +591,12 @@ class EventController extends Controller
             ->values()
             ->all();
 
+        $eventPayload = $event->toArray();
+        $eventPayload['start_date'] = AdminDatetimeLocal::format($event->start_date);
+        $eventPayload['end_date'] = AdminDatetimeLocal::format($event->end_date);
+
         return Inertia::render('Artist/Events/Edit', [
-            'event' => $event,
+            'event' => $eventPayload,
             'venues' => $venues,
             'artists' => $artists,
             'venueReviews' => $venueReviews,

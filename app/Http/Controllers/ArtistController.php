@@ -55,7 +55,7 @@ class ArtistController extends Controller
             $query->where('name', 'like', '%'.$request->search.'%');
         }
         if ($request->filled('genre')) {
-            $query->where('genre', $request->genre);
+            $query->whereGenreLabelMatches((string) $request->string('genre'));
         }
         if ($request->filled('letter')) {
             $letter = mb_strtoupper((string) $request->letter, 'UTF-8');
@@ -68,15 +68,15 @@ class ArtistController extends Controller
             ->withQueryString();
 
         $artistsThisWeek = $this->artistsWithShowsInUpcomingWindow();
-        $genres = Artist::approved()
+        $genreRows = Artist::approved()
             ->notIntlImport()
             ->whereNotNull('genre')
             ->where('genre', '!=', '')
             ->distinct()
-            ->pluck('genre')
-            ->filter(fn ($g) => Artist::isUsableCatalogGenre($g))
-            ->sort()
-            ->values();
+            ->orderBy('genre')
+            ->pluck('genre');
+
+        $genres = collect(Artist::normalizeDistinctCatalogGenreLabels($genreRows))->values();
         $letters = Artist::approved()->notIntlImport()
             ->selectRaw('upper(substr(name, 1, 1)) as first_letter')
             ->pluck('first_letter')

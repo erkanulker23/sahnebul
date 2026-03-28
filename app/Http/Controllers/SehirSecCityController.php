@@ -73,13 +73,11 @@ class SehirSecCityController extends Controller
             ->orderBy('genre')
             ->pluck('genre');
 
+        $genreLabels = Artist::normalizeDistinctCatalogGenreLabels($genreRows);
+
         $genres = [];
         $usedGenreSlugs = [];
-        foreach ($genreRows as $genreName) {
-            $g = trim((string) $genreName);
-            if ($g === '') {
-                continue;
-            }
+        foreach ($genreLabels as $g) {
             $slug = Str::slug($g);
             if ($slug === '') {
                 continue;
@@ -176,7 +174,7 @@ class SehirSecCityController extends Controller
                 }
             }
             if ($genreLabel !== null) {
-                $listQuery->whereHas('artists', fn ($q) => $q->where('genre', $genreLabel));
+                $listQuery->whereHas('artists', fn ($q) => $q->whereGenreLabelMatches($genreLabel));
             }
         }
 

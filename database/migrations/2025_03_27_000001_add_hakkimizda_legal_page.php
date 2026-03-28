@@ -2,6 +2,7 @@
 
 use App\Models\AppSetting;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasTable('app_settings')) {
+            return;
+        }
+
         $row = AppSetting::query()->where('key', 'legal_pages')->first();
         if ($row === null || ! is_string($row->value) || $row->value === '') {
             return;
@@ -44,6 +49,10 @@ TXT
 
     public function down(): void
     {
+        if (! Schema::hasTable('app_settings')) {
+            return;
+        }
+
         $row = AppSetting::query()->where('key', 'legal_pages')->first();
         if ($row === null || ! is_string($row->value) || $row->value === '') {
             return;

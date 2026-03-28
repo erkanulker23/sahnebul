@@ -6,6 +6,7 @@ use App\Models\Artist;
 use App\Models\BlogPost;
 use App\Models\Event;
 use App\Models\Venue;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Response;
 
@@ -29,20 +30,39 @@ class SitemapController extends Controller
             $urls[] = $row;
         };
 
-        $push('/', null, 'daily', '1.0');
-        $push('/etkinlikler', null, 'daily', '0.95');
-        $push('/sanatcilar', null, 'daily', '0.95');
-        $push('/mekanlar', null, 'daily', '0.95');
-        $push('/blog', null, 'weekly', '0.7');
+        $eventsMaxAt = Event::query()
+            ->published()
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
+            ->max('updated_at');
+        $venuesMaxAt = Venue::query()->listedPublicly()->max('updated_at');
+        $artistsMaxAt = Artist::query()->approved()->notIntlImport()->max('updated_at');
+        $blogMaxAt = BlogPost::query()->published()->whereNotNull('published_at')->max('updated_at');
+
+        $toCarbon = static fn (?string $v): ?Carbon => $v !== null && $v !== '' ? Carbon::parse($v) : null;
+        $eventsLm = $toCarbon($eventsMaxAt);
+        $venuesLm = $toCarbon($venuesMaxAt);
+        $artistsLm = $toCarbon($artistsMaxAt);
+        $blogLm = $toCarbon($blogMaxAt);
+
+        $catalogTouchStrings = array_filter([$eventsMaxAt, $venuesMaxAt, $artistsMaxAt]);
+        $catalogHubLm = count($catalogTouchStrings) > 0
+            ? Carbon::parse(max($catalogTouchStrings))
+            : null;
+
+        $push('/', $catalogHubLm, 'hourly', '1.0');
+        $push('/etkinlikler', $eventsLm, 'hourly', '0.95');
+        $push('/sanatcilar', $artistsLm, 'hourly', '0.95');
+        $push('/mekanlar', $venuesLm, 'hourly', '0.95');
+        $push('/blog', $blogLm, 'hourly', '0.7');
         $push('/iletisim', null, 'monthly', '0.4');
-        $push('/sehir-sec', null, 'weekly', '0.6');
+        $push('/sehir-sec', $eventsLm, 'hourly', '0.6');
 
         foreach (['hakkimizda', 'gizlilik-politikasi', 'cerez-politikasi', 'kvkk', 'ticari-elektronik-ileti', 'sss'] as $slug) {
             $push('/sayfalar/'.$slug, null, 'yearly', '0.3');
         }
 
         foreach (['istanbul', 'ankara', 'izmir', 'antalya', 'bursa', 'eskisehir'] as $city) {
-            $push('/sehir-sec/'.$city, null, 'daily', '0.65');
+            $push('/sehir-sec/'.$city, $eventsLm, 'hourly', '0.65');
         }
 
         Event::query()
@@ -53,7 +73,7 @@ class SitemapController extends Controller
             ->chunkById(500, function ($events) use (&$push): void {
                 foreach ($events as $e) {
                     /** @var Event $e */
-                    $push('/etkinlikler/'.$e->publicUrlSegment(), $e->updated_at, 'weekly', '0.85');
+                    $push('/etkinlikler/'.$e->publicUrlSegment(), $e->updated_at, 'daily', '0.9');
                 }
             });
 
@@ -63,7 +83,7 @@ class SitemapController extends Controller
             ->orderBy('id')
             ->chunkById(500, function ($venues) use (&$push): void {
                 foreach ($venues as $v) {
-                    $push('/mekanlar/'.$v->slug, $v->updated_at, 'weekly', '0.8');
+                    $push('/mekanlar/'.$v->slug, $v->updated_at, 'daily', '0.82');
                 }
             });
 
@@ -74,7 +94,7 @@ class SitemapController extends Controller
             ->orderBy('id')
             ->chunkById(500, function ($artists) use (&$push): void {
                 foreach ($artists as $a) {
-                    $push('/sanatcilar/'.$a->slug, $a->updated_at, 'weekly', '0.8');
+                    $push('/sanatcilar/'.$a->slug, $a->updated_at, 'daily', '0.82');
                 }
             });
 
@@ -104,9 +124,26 @@ class SitemapController extends Controller
         }
         $xml .= '</urlset>';
 
-        return response($xml, 200)
+        $newest = null;
+        foreach ($urls as $u) {
+            if (! isset($u['lastmod'])) {
+                continue;
+            }
+            $c = Carbon::parse($u['lastmod']);
+            if ($newest === null || $c->gt($newest)) {
+                $newest = $c;
+            }
+        }
+
+        $response = response($xml, 200)
             ->header('Content-Type', 'application/xml; charset=UTF-8')
-            ->header('Cache-Control', 'public, max-age=3600');
+            ->header('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=3600');
+
+        if ($newest !== null) {
+            $response->header('Last-Modified', $newest->clone()->utc()->format('D, d M Y H:i:s').' GMT');
+        }
+
+        return $response;
     }
 
     private static function xmlEscape(string $s): string

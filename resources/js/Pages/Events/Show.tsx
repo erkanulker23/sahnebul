@@ -14,7 +14,7 @@ import {
     googleMapsOpenUrl,
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -362,7 +362,7 @@ export default function EventShow({
             ? sortVenueSocialEntries(event.venue.social_links)
             : [];
     const dateSummary = event.start_date
-        ? `Tarih: ${formatTurkishDateTime(event.start_date)}.`
+        ? `Tarih: ${formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}.`
         : 'Tarih yakında açıklanacak.';
     const followUiVisible = eventCustomerActions.followUiVisible === true;
     const eventDesc = metaDescriptionFromContent(
@@ -440,7 +440,7 @@ export default function EventShow({
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
                             {event.start_date ? (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                    {formatTurkishDateTime(event.start_date)}
+                                    {formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}
                                 </span>
                             ) : (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-200">Tarih duyurulacak</span>
@@ -872,7 +872,7 @@ export default function EventShow({
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Etkinlik tarihi</p>
                             {event.start_date ? (
                                 <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-white">
-                                    {formatTurkishDateTime(event.start_date)}
+                                    {formatTurkishDateTime(event.start_date, { timeZone: SAHNE_EVENT_DISPLAY_TZ })}
                                 </p>
                             ) : (
                                 <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>

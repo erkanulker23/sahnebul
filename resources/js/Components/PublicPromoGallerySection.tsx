@@ -1,4 +1,5 @@
 import { InstagramPromoPreviewOnly } from '@/Components/InstagramPostEmbed';
+import { router } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -141,6 +142,17 @@ type PromoPostSlide =
     | { kind: 'image'; src: string; poster: string | null }
     | { kind: 'instagram'; permalink: string; poster: string | null };
 
+function promoVideoSrcLooksLikeWebm(src: string): boolean {
+    return /\.webm(\?|#|$)/i.test(src);
+}
+
+function iosLikeUserAgent(): boolean {
+    if (typeof navigator === 'undefined') {
+        return false;
+    }
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function resolvePromoPostSlide(it: PromoGalleryItem, resolveStorageSrc: (path: string | null) => string | null): PromoPostSlide | null {
     const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
     const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
@@ -174,6 +186,19 @@ export function PublicPromoGallerySection({
     const postItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'post'), [visible]);
 
     const [postLightbox, setPostLightbox] = useState<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, []);
+
+    useEffect(() => {
+        const remove = router.on('start', () => {
+            document.body.style.overflow = '';
+        });
+        return remove;
+    }, []);
 
     const postSlides = useMemo(
         () => postItems.map((it) => resolvePromoPostSlide(it, resolveStorageSrc)),
@@ -243,22 +268,30 @@ export function PublicPromoGallerySection({
         const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
         const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
         const embed = it.embed_url?.trim() ?? '';
+        const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
         return (
             <li
                 key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
                 className={storyCell}
             >
                 {videoSrc ? (
-                    <video
-                        src={videoSrc}
-                        controls
-                        playsInline
-                        preload="metadata"
-                        className="absolute inset-0 box-border h-full w-full max-w-full object-cover"
-                        poster={posterSrc ?? undefined}
-                    >
-                        Tarayıcınız bu videoyu oynatamıyor.
-                    </video>
+                    <>
+                        <video
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="absolute inset-0 box-border h-full w-full max-w-full object-cover"
+                            poster={posterSrc ?? undefined}
+                        >
+                            <source src={videoSrc} type={promoVideoSrcLooksLikeWebm(videoSrc) ? 'video/webm' : 'video/mp4'} />
+                            Tarayıcınız bu videoyu oynatamıyor.
+                        </video>
+                        {webmOnIos ? (
+                            <p className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-black/75 px-1.5 py-1 text-center text-[9px] font-medium leading-tight text-amber-100">
+                                iPhone/iPad Safari WebM desteklemez. MP4 yükleyin veya Chrome deneyin.
+                            </p>
+                        ) : null}
+                    </>
                 ) : posterSrc ? (
                     <img
                         src={posterSrc}

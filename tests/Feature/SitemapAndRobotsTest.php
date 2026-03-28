@@ -15,6 +15,7 @@ class SitemapAndRobotsTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
+        $this->assertStringContainsString('max-age=300', (string) $response->headers->get('Cache-Control'));
         $content = $response->getContent();
         $this->assertStringContainsString('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', $content);
         $this->assertStringContainsString('<loc>', $content);

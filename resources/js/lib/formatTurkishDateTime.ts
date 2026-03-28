@@ -1,3 +1,6 @@
+/** Etkinlik listesi / detay — Türkiye duvar saati (admin ve ön yüz aynı gösterim). */
+export const SAHNE_EVENT_DISPLAY_TZ = 'Europe/Istanbul';
+
 function capitalizeTr(s: string): string {
     if (!s) return s;
     return s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1);
@@ -8,6 +11,11 @@ export type FormatTurkishDateTimeOptions = {
     withTime?: boolean;
     /** Boş / geçersiz değerde dönecek metin */
     empty?: string;
+    /**
+     * IANA zaman dilimi (örn. Europe/Istanbul). Verilmezse tarayıcının yerel dilimi kullanılır.
+     * Etkinlik saatleri için İstanbul duvar saati: `Europe/Istanbul`.
+     */
+    timeZone?: string;
 };
 
 /**
@@ -25,6 +33,27 @@ export function formatTurkishDateTime(
     if (Number.isNaN(d.getTime())) {
         return typeof value === 'string' ? value : empty;
     }
+
+    const tz = options?.timeZone;
+
+    if (tz) {
+        const parts = new Intl.DateTimeFormat('tr-TR', {
+            timeZone: tz,
+            day: '2-digit',
+            month: 'long',
+            weekday: 'long',
+        }).formatToParts(d);
+        const dayNum = parts.find((p) => p.type === 'day')?.value ?? '';
+        const monthRaw = parts.find((p) => p.type === 'month')?.value ?? '';
+        const weekdayRaw = parts.find((p) => p.type === 'weekday')?.value ?? '';
+        const datePart = `${dayNum} ${capitalizeTr(monthRaw)} ${capitalizeTr(weekdayRaw)}`;
+        if (options?.withTime === false) {
+            return datePart;
+        }
+        const time = d.toLocaleTimeString('tr-TR', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+        return `${datePart}, ${time}`;
+    }
+
     const dayNum = String(d.getDate()).padStart(2, '0');
     const monthRaw = d.toLocaleDateString('tr-TR', { month: 'long' });
     const weekdayRaw = d.toLocaleDateString('tr-TR', { weekday: 'long' });

@@ -53,8 +53,8 @@ class EventController extends Controller
         }
 
         if ($request->filled('genre')) {
-            $genre = $request->string('genre');
-            $query->whereHas('artists', fn ($q) => $q->where('genre', $genre));
+            $genre = trim((string) $request->string('genre'));
+            $query->whereHas('artists', fn ($q) => $q->whereGenreLabelMatches($genre));
         }
 
         if ($request->filled('city_id')) {
@@ -76,7 +76,7 @@ class EventController extends Controller
 
         $categories = Category::query()->orderBy('order')->get(['id', 'name', 'slug']);
 
-        $genres = Artist::query()
+        $genreRows = Artist::query()
             ->approved()
             ->notIntlImport()
             ->whereNotNull('genre')
@@ -84,6 +84,8 @@ class EventController extends Controller
             ->distinct()
             ->orderBy('genre')
             ->pluck('genre');
+
+        $genres = Artist::normalizeDistinctCatalogGenreLabels($genreRows);
 
         $tickerItems = $tickerEvents
             ->map(fn (Event $e) => [

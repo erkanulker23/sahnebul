@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\CatalogEntityNew;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -174,6 +175,84 @@ class Artist extends Model
         }
 
         return true;
+    }
+
+    /**
+     * `genre` sütununda virgülle ayrılmış birden fazla etiket olabilir.
+     *
+     * @return list<string>
+     */
+    public static function splitGenreFieldIntoLabels(?string $field): array
+    {
+        if ($field === null) {
+            return [];
+        }
+        $field = trim($field);
+        if ($field === '') {
+            return [];
+        }
+        $parts = preg_split('/\s*,\s*/u', $field) ?: [];
+        $out = [];
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part !== '') {
+                $out[] = $part;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  iterable<int, string|null>  $genreColumnValues
+     * @return list<string>
+     */
+    public static function normalizeDistinctCatalogGenreLabels(iterable $genreColumnValues): array
+    {
+        $set = [];
+        foreach ($genreColumnValues as $row) {
+            if (! is_string($row)) {
+                continue;
+            }
+            foreach (self::splitGenreFieldIntoLabels($row) as $label) {
+                if (self::isUsableCatalogGenre($label)) {
+                    $set[$label] = true;
+                }
+            }
+        }
+        $labels = array_keys($set);
+        sort($labels);
+
+        return $labels;
+    }
+
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
+     * Tek bir katalog etiketi; `genre` değeri virgülle ayrılmış liste içinde geçebilir.
+     *
+     * @param  Builder<Artist>  $query
+     * @return Builder<Artist>
+     */
+    public function scopeWhereGenreLabelMatches(Builder $query, string $label): Builder
+    {
+        $label = trim($label);
+        if ($label === '') {
+            return $query->whereRaw('1 = 0');
+        }
+        $e = self::escapeLike($label);
+
+        return $query->where(function ($q) use ($label, $e) {
+            $q->where('genre', $label)
+                ->orWhere('genre', 'like', $e.',%')
+                ->orWhere('genre', 'like', '%, '.$e)
+                ->orWhere('genre', 'like', '%,'.$e)
+                ->orWhere('genre', 'like', '%, '.$e.',%')
+                ->orWhere('genre', 'like', '%,'.$e.',%');
+        });
     }
 
     /**

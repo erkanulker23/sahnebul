@@ -11,6 +11,7 @@ use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Services\EventMediaImportFromUrlService;
 use App\Services\SahnebulMail;
+use App\Support\AdminDatetimeLocal;
 use App\Support\EventListingTypes;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -193,8 +194,12 @@ class EventController extends Controller
         $event->repairSwappedStorageFoldersIfNeeded();
         $event->refresh();
 
+        $eventPayload = $event->toArray();
+        $eventPayload['start_date'] = AdminDatetimeLocal::format($event->start_date);
+        $eventPayload['end_date'] = AdminDatetimeLocal::format($event->end_date);
+
         return Inertia::render('Admin/Events/Edit', [
-            'event' => $event,
+            'event' => $eventPayload,
             'venues' => Venue::approved()->orderBy('name')->get(['id', 'name']),
             'artists' => Artist::approved()->notIntlImport()->orderBy('name')->get(['id', 'name', 'avatar']),
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
