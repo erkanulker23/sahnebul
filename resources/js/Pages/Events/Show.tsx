@@ -9,6 +9,7 @@ import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEv
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { AdSlot } from '@/Components/AdSlot';
 import EventHeroFallbackBackdrop from '@/Components/EventHeroFallbackBackdrop';
+import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import {
@@ -17,6 +18,7 @@ import {
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
 import { isRemoteSocialOgJunkUrl } from '@/lib/eventPublicImage';
+import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
@@ -429,6 +431,9 @@ export default function EventShow({
                         <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl">{event.title}</h1>
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
+                            {event.start_date && eventRelativeDayKind(event.start_date) ? (
+                                <EventRelativeDayPill startDate={event.start_date} placement="overlay" />
+                            ) : null}
                             {event.start_date ? (
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-zinc-100">
                                     {formatTurkishDateTime(event.start_date)}
@@ -863,9 +868,14 @@ export default function EventShow({
                         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
                             <p className="text-xs font-bold uppercase tracking-wide text-zinc-500">Etkinlik tarihi</p>
                             {event.start_date ? (
-                                <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-white">
-                                    {formatTurkishDateTime(event.start_date)}
-                                </p>
+                                <div className="mt-2 flex flex-col items-start gap-2">
+                                    {eventRelativeDayKind(event.start_date) ? (
+                                        <EventRelativeDayPill startDate={event.start_date} placement="panel" />
+                                    ) : null}
+                                    <p className="text-base font-semibold text-zinc-900 dark:text-white">
+                                        {formatTurkishDateTime(event.start_date)}
+                                    </p>
+                                </div>
                             ) : (
                                 <p className="mt-2 font-semibold text-zinc-600 dark:text-zinc-400">Henüz açıklanmadı</p>
                             )}

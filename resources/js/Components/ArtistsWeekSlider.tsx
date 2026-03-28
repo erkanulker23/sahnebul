@@ -1,6 +1,8 @@
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
+import { cn } from '@/lib/cn';
+import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link } from '@inertiajs/react';
 import { useCallback, useRef } from 'react';
@@ -151,6 +153,16 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                                 <CatalogNewBadge />
                                             </div>
                                         ) : null}
+                                        {eventRelativeDayKind(artist.week_first_show) ? (
+                                            <div
+                                                className={cn(
+                                                    'pointer-events-none absolute left-2.5 z-[3] sm:left-3',
+                                                    artist.is_new_on_platform ? 'top-9 sm:top-10' : 'top-2.5 sm:top-3',
+                                                )}
+                                            >
+                                                <EventRelativeDayPill startDate={artist.week_first_show} placement="overlay" />
+                                            </div>
+                                        ) : null}
                                         {/** sm+: görsel alt şerit — etkinlik kartındaki konum/tarih bandı */}
                                         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] hidden bg-gradient-to-t from-black/85 from-[18%] via-black/45 via-[55%] to-transparent px-2 pb-2 pt-10 sm:block sm:px-3 sm:pb-2.5 sm:pt-12">
                                             <div className="flex min-w-0 flex-col gap-0.5">
@@ -176,7 +188,7 @@ export default function ArtistsWeekSlider({ artists, weekRange, imageSrc }: Read
                                     </div>
                                     <div className="flex min-h-0 flex-1 flex-col p-2.5 pt-2 sm:p-4 sm:pt-3.5">
                                         {/** Mobil: meta üstte — PublicEventTicketCard ile aynı düzen */}
-                                        <div className="mb-1.5 flex flex-col gap-1 sm:hidden">
+                                        <div className="mb-1.5 flex flex-col items-start gap-1 sm:hidden">
                                             <EventRelativeDayPill startDate={artist.week_first_show} placement="panel" />
                                             {n > 0 ? (
                                                 <p className="flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-zinc-600 dark:text-zinc-400">

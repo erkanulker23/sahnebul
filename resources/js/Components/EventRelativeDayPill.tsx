@@ -3,8 +3,44 @@ import { eventRelativeDayKind, eventRelativeDayTrLabel } from '@/lib/eventRelati
 
 export type EventRelativeDayPlacement = 'overlay' | 'panel' | 'listTime' | 'compactLight' | 'compactDark';
 
+function toneClasses(placement: EventRelativeDayPlacement, isToday: boolean): string {
+    if (placement === 'overlay') {
+        return isToday
+            ? 'self-start bg-emerald-950/55 px-2.5 py-1 text-emerald-50 shadow-[0_2px_14px_rgba(0,0,0,0.45)] ring-2 ring-emerald-400/55 backdrop-blur-md'
+            : 'self-start bg-sky-950/55 px-2.5 py-1 text-sky-50 shadow-[0_2px_14px_rgba(0,0,0,0.45)] ring-2 ring-sky-400/55 backdrop-blur-md';
+    }
+    if (placement === 'panel') {
+        return isToday
+            ? 'self-start bg-emerald-500/[0.18] px-2.5 py-1 text-emerald-900 ring-2 ring-emerald-500/35 dark:bg-emerald-500/[0.22] dark:text-emerald-50 dark:ring-emerald-400/45'
+            : 'self-start bg-sky-500/[0.18] px-2.5 py-1 text-sky-950 ring-2 ring-sky-500/35 dark:bg-sky-500/[0.22] dark:text-sky-50 dark:ring-sky-400/45';
+    }
+    if (placement === 'listTime') {
+        return isToday
+            ? 'bg-emerald-500/[0.14] px-2 py-0.5 text-emerald-900 ring-2 ring-emerald-500/28 dark:bg-emerald-400/[0.14] dark:text-emerald-100 dark:ring-emerald-400/35'
+            : 'bg-sky-500/[0.14] px-2 py-0.5 text-sky-950 ring-2 ring-sky-500/28 dark:bg-sky-400/[0.14] dark:text-sky-50 dark:ring-sky-400/35';
+    }
+    if (placement === 'compactDark') {
+        return isToday
+            ? 'bg-emerald-500/22 px-2 py-0.5 text-emerald-50 ring-2 ring-emerald-400/35'
+            : 'bg-sky-500/22 px-2 py-0.5 text-sky-50 ring-2 ring-sky-400/35';
+    }
+    return isToday
+        ? 'bg-emerald-500/[0.14] px-2 py-0.5 text-emerald-950 ring-2 ring-emerald-600/25 dark:bg-emerald-400/[0.18] dark:text-emerald-50 dark:ring-emerald-400/40'
+        : 'bg-sky-500/[0.14] px-2 py-0.5 text-sky-950 ring-2 ring-sky-600/25 dark:bg-sky-400/[0.18] dark:text-sky-50 dark:ring-sky-400/40';
+}
+
+function sizeClasses(placement: EventRelativeDayPlacement): string {
+    if (placement === 'listTime') {
+        return 'text-[10px] leading-tight sm:text-[11px]';
+    }
+    if (placement === 'overlay' || placement === 'panel') {
+        return 'text-[11px] leading-snug sm:text-[12px]';
+    }
+    return 'text-[10px] leading-tight sm:text-[11px]';
+}
+
 /**
- * Bugün / Yarın etiketi — tarih satırına komşu; görsel üst köşede ayrı rozet kullanılmaz.
+ * Bugün / Yarın — kart ve listelerde hafif cam / ince çerçeve; afiş üzerinde üst köşede kullanılmalı (PublicEventTicketCard).
  */
 export default function EventRelativeDayPill({
     startDate,
@@ -22,85 +58,13 @@ export default function EventRelativeDayPill({
     const label = eventRelativeDayTrLabel(kind);
     const isToday = kind === 'today';
 
-    const base = cn(
-        'inline-flex max-w-full shrink-0 items-center justify-center rounded-full font-semibold uppercase tracking-wide',
-        placement === 'listTime' && 'text-[9px] leading-none sm:text-[10px]',
-        (placement === 'overlay' || placement === 'panel') && 'text-[9px] leading-tight sm:text-[10px]',
-        (placement === 'compactLight' || placement === 'compactDark') && 'text-[9px] leading-none sm:text-[10px]',
-        className,
-    );
-
-    if (placement === 'overlay') {
-        return (
-            <span
-                className={cn(
-                    base,
-                    'px-2 py-0.5 shadow-sm ring-1 ring-white/30',
-                    isToday
-                        ? 'bg-emerald-300/95 text-emerald-950 dark:bg-emerald-400/95'
-                        : 'bg-sky-300/95 text-sky-950 dark:bg-sky-400/95',
-                )}
-            >
-                {label}
-            </span>
-        );
-    }
-
-    if (placement === 'panel') {
-        return (
-            <span
-                className={cn(
-                    base,
-                    'px-2 py-0.5 shadow-sm ring-1 ring-black/10 dark:ring-white/10',
-                    isToday
-                        ? 'bg-emerald-600 text-white dark:bg-emerald-500'
-                        : 'bg-sky-600 text-white dark:bg-sky-600',
-                )}
-            >
-                {label}
-            </span>
-        );
-    }
-
-    if (placement === 'listTime') {
-        return (
-            <span
-                className={cn(
-                    base,
-                    'px-2 py-0.5',
-                    isToday
-                        ? 'bg-emerald-500/15 text-emerald-800 ring-1 ring-emerald-500/25 dark:bg-emerald-400/15 dark:text-emerald-200 dark:ring-emerald-400/30'
-                        : 'bg-sky-500/15 text-sky-900 ring-1 ring-sky-500/25 dark:bg-sky-400/15 dark:text-sky-100 dark:ring-sky-400/30',
-                )}
-            >
-                {label}
-            </span>
-        );
-    }
-
-    if (placement === 'compactDark') {
-        return (
-            <span
-                className={cn(
-                    base,
-                    'px-1.5 py-0.5',
-                    isToday ? 'bg-emerald-500/25 text-emerald-100' : 'bg-sky-500/25 text-sky-100',
-                )}
-            >
-                {label}
-            </span>
-        );
-    }
-
-    /* compactLight — arama / açık zemin */
     return (
         <span
             className={cn(
-                base,
-                'px-1.5 py-0.5',
-                isToday
-                    ? 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-100 dark:ring-emerald-500/30'
-                    : 'bg-sky-100 text-sky-900 ring-1 ring-sky-200 dark:bg-sky-500/20 dark:text-sky-100 dark:ring-sky-500/30',
+                'inline-flex max-w-max shrink-0 items-center justify-center rounded-full font-semibold tracking-tight',
+                sizeClasses(placement),
+                toneClasses(placement, isToday),
+                className,
             )}
         >
             {label}
