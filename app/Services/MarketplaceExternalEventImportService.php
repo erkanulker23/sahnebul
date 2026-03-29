@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ExternalEvent;
+use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -206,7 +207,7 @@ class MarketplaceExternalEventImportService
             try {
                 $rows = $this->crawler->crawl($source);
             } catch (\Throwable $e) {
-                $errors[] = "{$source}: ".$e->getMessage();
+                $errors[] = "{$source}: ".CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage());
 
                 continue;
             }

@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\ExternalEvent;
 use App\Services\ExternalEventDomainSyncService;
 use App\Services\MarketplaceExternalEventImportService;
+use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -307,7 +308,7 @@ class ExternalEventController extends Controller
             );
         } catch (\Throwable $e) {
             report($e);
-            $msg = 'Veri çekilirken hata oluştu: '.$e->getMessage();
+            $msg = 'Veri çekilirken hata oluştu: '.CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage());
             $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
 
             return back()->with('error', $msg);

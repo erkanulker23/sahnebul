@@ -35,6 +35,19 @@ return [
         ],
     ],
     'user_agent' => 'SahnebulBot/1.0 (+https://sahnebul.com)',
+
+    /**
+     * Bubilet Cloudflare sık sık bot istemcilerini keser. Boş bırakılırsa tarayıcıya yakın UA kullanılır.
+     * Özel bot kimliği için .env: BUBILET_USER_AGENT="SahnebulBot/1.0 (+https://sahnebul.com)"
+     */
+    'bubilet_user_agent' => env('BUBILET_USER_AGENT', ''),
+
+    /** Tarayıcıdan kopyalanan çerezler (cf_clearance vb.); Cloudflare engelini aşmak için deneysel */
+    'bubilet_cookies' => env('BUBILET_COOKIES', ''),
+
+    /** İlk istek için Referer (boş string ise header gönderilmez) */
+    'bubilet_referer' => env('BUBILET_REFERER', 'https://www.bubilet.com.tr/'),
+
     'timeout' => 20,
 
     /** Bubilet etiket sayfaları arasında istekler arası bekleme (mikrosaniye) */

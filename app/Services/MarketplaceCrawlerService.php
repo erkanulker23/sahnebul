@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\City;
+use App\Support\CrawlerHttpResponseInspector;
 use App\Support\SehirSecCityDistricts;
 use App\Support\SehirSecMetaInference;
 use DOMElement;
@@ -79,11 +80,7 @@ class MarketplaceCrawlerService
             if ($idx > 0 && $delayListingUs > 0) {
                 usleep($delayListingUs);
             }
-            $html = Http::timeout((int) config('crawler.timeout', 20))
-                ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
-                ->get($listingUrl)
-                ->throw()
-                ->body();
+            $html = $this->bubiletGet($listingUrl);
 
             foreach ($this->extractBubiletEventPathsFromListingHtml($html) as $path) {
                 $pathToListing[$path] = $listingUrl;
@@ -100,12 +97,9 @@ class MarketplaceCrawlerService
             }
             $url = $this->normalizeUrl($path, $base);
             $listingUrl = $pathToListing[$path] ?? '';
+            $listingRef = $listingUrl !== '' ? $listingUrl : null;
             try {
-                $detailHtml = Http::timeout((int) config('crawler.timeout', 20))
-                    ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
-                    ->get($url)
-                    ->throw()
-                    ->body();
+                $detailHtml = $this->bubiletGet($url, $listingRef);
             } catch (\Throwable) {
                 continue;
             }
@@ -142,11 +136,7 @@ class MarketplaceCrawlerService
     private function crawlBubiletSehirSecPage(array $sourceConfig): array
     {
         $listingUrl = (string) ($sourceConfig['url'] ?? 'https://www.bubilet.com.tr/sehir-sec');
-        $html = Http::timeout((int) config('crawler.timeout', 30))
-            ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
-            ->get($listingUrl)
-            ->throw()
-            ->body();
+        $html = $this->bubiletGet($listingUrl, null, (int) config('crawler.timeout', 30));
 
         $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
@@ -253,6 +243,78 @@ class MarketplaceCrawlerService
         }
 
         return $rows;
+    }
+
+    private function bubiletGet(string $url, ?string $referer = null, ?int $timeoutOverride = null): string
+    {
+        $timeout = $timeoutOverride ?? (int) config('crawler.timeout', 20);
+        $response = Http::timeout($timeout)
+            ->withHeaders($this->bubiletRequestHeaders($referer))
+            ->get($url);
+
+        $body = $response->body();
+
+        if (CrawlerHttpResponseInspector::looksLikeCloudflareChallenge($body)) {
+            throw new RuntimeException(CrawlerHttpResponseInspector::cloudflareBlockedMessage());
+        }
+
+        if (! $response->successful()) {
+            $snippet = Str::limit(trim(strip_tags($body)), 200, '…');
+            if ($snippet === '') {
+                $snippet = 'Yanıt özeti yok.';
+            }
+
+            throw new RuntimeException('HTTP '.$response->status().': '.$snippet);
+        }
+
+        return $body;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function bubiletRequestHeaders(?string $refererOverride): array
+    {
+        $ua = trim((string) config('crawler.bubilet_user_agent', ''));
+        if ($ua === '') {
+            $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+        }
+
+        $referer = $refererOverride;
+        if ($referer === null || $referer === '') {
+            $referer = trim((string) config('crawler.bubilet_referer', 'https://www.bubilet.com.tr/'));
+        }
+
+        $headers = [
+            'User-Agent' => $ua,
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language' => 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control' => 'no-cache',
+            'Pragma' => 'no-cache',
+            'Sec-Ch-Ua' => '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+            'Sec-Ch-Ua-Mobile' => '?0',
+            'Sec-Ch-Ua-Platform' => '"Windows"',
+            'Sec-Fetch-Dest' => 'document',
+            'Sec-Fetch-Mode' => 'navigate',
+            'Sec-Fetch-User' => '?1',
+            'Upgrade-Insecure-Requests' => '1',
+        ];
+
+        if ($referer !== '') {
+            $headers['Referer'] = $referer;
+        }
+
+        $headers['Sec-Fetch-Site'] = ($refererOverride !== null && $refererOverride !== '')
+            ? 'same-origin'
+            : 'none';
+
+        $cookies = trim((string) config('crawler.bubilet_cookies', ''));
+
+        if ($cookies !== '') {
+            $headers['Cookie'] = $cookies;
+        }
+
+        return $headers;
     }
 
     /**

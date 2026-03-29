@@ -386,7 +386,9 @@ export default function AdminExternalEventsIndex({
                         İşlem uzun sürebilir; proxy zaman aşımı varsa tarayıcı hata verebilir — o durumda sunucu loglarına bakın.{' '}
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
-                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve çekimde atlanır.
+                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
+                            açıklanır. Gelişmiş kullanım: sunucu .env içinde BUBILET_COOKIES (tarayıcıdan kopyalanan çerezler). Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
+                            çekimde atlanır.
                         </span>
                     </p>
                     {crawlBusy ? (
