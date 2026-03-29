@@ -237,8 +237,6 @@ interface Props {
         past_count: number;
         venue_count: number;
     };
-    /** TurkiyeAPI ile senkron 81 il adı (şehir filtresi). */
-    provinceNames?: string[];
     claimStatus?: string | null;
     artistFavorite?: { canToggle: boolean; isFavorited: boolean };
     organizationAffiliation?: { label: string } | null;
@@ -318,7 +316,6 @@ export default function ArtistShow({
     pastEvents,
     latestTracks = [],
     stats,
-    provinceNames = [],
     claimStatus,
     artistFavorite = { canToggle: false, isFavorited: false },
     organizationAffiliation = null,
@@ -343,17 +340,23 @@ export default function ArtistShow({
     const [shareCopied, setShareCopied] = useState(false);
     const hasEvents = upcomingEvents.length > 0 || pastEvents.length > 0;
     const nextEvent = upcomingEvents[0];
+    /** Yalnızca yaklaşan etkinliklerde gerçekten bulunan şehirler (tüm iller listesi kullanılmaz). */
     const cityOptions = useMemo(() => {
-        if (provinceNames.length > 0) {
-            return ['Tümü', ...provinceNames];
-        }
         const set = new Set<string>();
         upcomingEvents.forEach((ev) => {
-            if (ev.venue?.city?.name) set.add(ev.venue.city.name);
+            const n = ev.venue?.city?.name;
+            if (n && n.trim() !== '') {
+                set.add(n.trim());
+            }
         });
         return ['Tümü', ...Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'))];
-    }, [provinceNames, upcomingEvents]);
+    }, [upcomingEvents]);
     const [selectedCity, setSelectedCity] = useState('Tümü');
+    useEffect(() => {
+        if (!cityOptions.includes(selectedCity)) {
+            setSelectedCity('Tümü');
+        }
+    }, [cityOptions, selectedCity]);
     const filteredUpcoming = useMemo(
         () => upcomingEvents.filter((ev) => selectedCity === 'Tümü' || ev.venue?.city?.name === selectedCity),
         [upcomingEvents, selectedCity],
@@ -786,8 +789,14 @@ export default function ArtistShow({
 
                         {/* Sağ: Bio + Etkinlikler */}
                         <div className="min-w-0 flex-1">
+                            <p
+                                className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl"
+                                aria-hidden="true"
+                            >
+                                {artist.name}
+                            </p>
                             {shareUrlForSocial ? (
-                                <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10">
+                                <div className="mt-6 border-t border-zinc-200 pt-6 dark:border-white/10">
                                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                                         Sosyal medyada paylaş
                                     </p>

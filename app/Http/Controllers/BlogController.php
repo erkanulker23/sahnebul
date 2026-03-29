@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class BlogController extends Controller
@@ -32,7 +31,7 @@ class BlogController extends Controller
             ->published()
             ->where('id', '!=', $post->id)
             ->latest('published_at')
-            ->limit(4)
+            ->limit(6)
             ->get(['id', 'title', 'slug', 'cover_image', 'published_at']);
 
         return Inertia::render('Blog/Show', [

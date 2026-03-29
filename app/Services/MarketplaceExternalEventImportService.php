@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ExternalEvent;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class MarketplaceExternalEventImportService
@@ -70,6 +71,7 @@ class MarketplaceExternalEventImportService
 
         if ($merged !== []) {
             $filtered = $this->rowFilter->filter($merged, $dateFrom, $dateTo, $cityNames, $categoryNames);
+            $filtered = $this->excludeCrawlRowsAlreadySyncedToDomain($filtered);
             $filtered = array_slice($filtered, 0, $limit);
 
             foreach ($filtered as $row) {
@@ -77,9 +79,24 @@ class MarketplaceExternalEventImportService
                 unset($row['_import_source']);
 
                 $title = Str::of((string) $row['title'])->replaceMatches('/\s+/', ' ')->trim()->limit(240, '')->toString();
-                $fingerprint = $sourceKey === 'bubilet_sehir_sec' && ! empty($row['external_url'])
-                    ? sha1((string) $row['external_url'])
-                    : sha1($title.'|'.($row['venue_name'] ?? '').'|'.($row['start_date'] ?? '').'|'.($row['external_url'] ?? ''));
+                $normUrl = $this->normalizedCrawlExternalUrl((string) ($row['external_url'] ?? ''));
+
+                if ($normUrl !== '') {
+                    $synced = ExternalEvent::query()
+                        ->where('source', $sourceKey)
+                        ->where('external_url', $normUrl)
+                        ->whereNotNull('synced_event_id')
+                        ->exists();
+                    if ($synced) {
+                        continue;
+                    }
+                }
+
+                $fingerprint = $normUrl !== ''
+                    ? sha1($sourceKey.'|url|'.$normUrl)
+                    : ($sourceKey === 'bubilet_sehir_sec' && ! empty($row['external_url'])
+                        ? sha1((string) $row['external_url'])
+                        : sha1($title.'|'.($row['venue_name'] ?? '').'|'.($row['start_date'] ?? '').'|'.($row['external_url'] ?? '')));
 
                 $rawImage = $row['image_url'] ?? null;
                 $rawImage = is_string($rawImage) && $rawImage !== '' ? $rawImage : null;
@@ -88,20 +105,39 @@ class MarketplaceExternalEventImportService
                     : null;
                 $imageUrl = $storedImage ?? $rawImage;
 
-                $external = ExternalEvent::updateOrCreate(
-                    ['source' => $sourceKey, 'fingerprint' => $fingerprint],
-                    [
-                        'title' => $title,
-                        'external_url' => $row['external_url'] ?: null,
-                        'image_url' => $imageUrl,
-                        'venue_name' => $row['venue_name'] ?: null,
-                        'city_name' => $row['city_name'] ?: null,
-                        'category_name' => $row['category_name'] ?: null,
-                        'start_date' => $row['start_date'],
-                        'description' => $row['description'] ?: null,
-                        'meta' => $row['meta'] ?? null,
-                    ]
-                );
+                $payload = [
+                    'title' => $title,
+                    'external_url' => $normUrl !== '' ? $normUrl : ($row['external_url'] ?: null),
+                    'image_url' => $imageUrl,
+                    'venue_name' => $row['venue_name'] ?: null,
+                    'city_name' => $row['city_name'] ?: null,
+                    'category_name' => $row['category_name'] ?: null,
+                    'start_date' => $row['start_date'],
+                    'description' => $row['description'] ?: null,
+                    'meta' => $row['meta'] ?? null,
+                    'fingerprint' => $fingerprint,
+                ];
+
+                if ($normUrl !== '') {
+                    $existing = ExternalEvent::query()
+                        ->where('source', $sourceKey)
+                        ->where('external_url', $normUrl)
+                        ->first();
+                    if ($existing !== null) {
+                        $existing->update($payload);
+                        $external = $existing->fresh();
+                    } else {
+                        $external = ExternalEvent::updateOrCreate(
+                            ['source' => $sourceKey, 'fingerprint' => $fingerprint],
+                            $payload
+                        );
+                    }
+                } else {
+                    $external = ExternalEvent::updateOrCreate(
+                        ['source' => $sourceKey, 'fingerprint' => $fingerprint],
+                        $payload
+                    );
+                }
 
                 $processedBySource[$sourceKey] = ($processedBySource[$sourceKey] ?? 0) + 1;
 
@@ -183,6 +219,7 @@ class MarketplaceExternalEventImportService
 
         $rawTotal = count($merged);
         $filtered = $this->rowFilter->filter($merged, $dateFrom, $dateTo, $cityNames, $categoryNames);
+        $filtered = $this->excludeCrawlRowsAlreadySyncedToDomain($filtered);
         $afterFilter = count($filtered);
         $shown = min(max(0, $sampleCap), $afterFilter);
         $slice = array_slice($filtered, 0, $shown);
@@ -236,6 +273,67 @@ class MarketplaceExternalEventImportService
     /**
      * @param  array<string, mixed>  $raw
      */
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function excludeCrawlRowsAlreadySyncedToDomain(array $rows): array
+    {
+        if ($rows === [] || ! Schema::hasTable('external_events')) {
+            return $rows;
+        }
+
+        $keys = [];
+        try {
+            foreach (
+                ExternalEvent::query()
+                    ->whereNotNull('synced_event_id')
+                    ->whereNotNull('external_url')
+                    ->cursor() as $ev
+            ) {
+                $u = $this->normalizedCrawlExternalUrl((string) $ev->external_url);
+                if ($u !== '') {
+                    $keys[(string) $ev->source.'|'.$u] = true;
+                }
+            }
+        } catch (\Throwable) {
+            return $rows;
+        }
+
+        return array_values(array_filter($rows, function (array $row) use ($keys): bool {
+            $src = (string) ($row['_import_source'] ?? '');
+            $u = $this->normalizedCrawlExternalUrl((string) ($row['external_url'] ?? ''));
+            if ($u === '') {
+                return true;
+            }
+
+            return ! isset($keys[$src.'|'.$u]);
+        }));
+    }
+
+    /**
+     * Aynı harici etkinlik satırını tekrar işlerken eşleştirme için (şema + sorgu parametreleri atılır).
+     */
+    private function normalizedCrawlExternalUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        if (! preg_match('#^https?://#i', $url)) {
+            return rtrim($url, '/');
+        }
+        $parts = parse_url($url);
+        if ($parts === false || empty($parts['host'])) {
+            return rtrim($url, '/');
+        }
+        $host = strtolower((string) $parts['host']);
+        $path = $parts['path'] ?? '';
+        $path = $path === '' ? '/' : rtrim($path, '/');
+
+        return 'https://'.$host.$path;
+    }
+
     private function formatPerformerLabel(array $raw): string
     {
         $p = Arr::get($raw, 'performer');

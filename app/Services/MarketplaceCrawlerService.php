@@ -66,15 +66,31 @@ class MarketplaceCrawlerService
      */
     private function crawlBubiletTagListing(array $sourceConfig): array
     {
-        $listingUrl = (string) $sourceConfig['url'];
-        $html = Http::timeout((int) config('crawler.timeout', 20))
-            ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
-            ->get($listingUrl)
-            ->throw()
-            ->body();
+        $listingUrls = $sourceConfig['listing_urls'] ?? null;
+        if (! is_array($listingUrls) || $listingUrls === []) {
+            $listingUrls = [(string) $sourceConfig['url']];
+        }
+        $listingUrls = array_values(array_unique(array_filter(array_map('strval', $listingUrls))));
 
-        $paths = $this->extractBubiletEventPathsFromListingHtml($html);
-        $paths = array_values(array_unique($paths));
+        $pathToListing = [];
+        $delayListingUs = max(0, (int) config('crawler.bubilet_listing_delay_us', 200_000));
+
+        foreach ($listingUrls as $idx => $listingUrl) {
+            if ($idx > 0 && $delayListingUs > 0) {
+                usleep($delayListingUs);
+            }
+            $html = Http::timeout((int) config('crawler.timeout', 20))
+                ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                ->get($listingUrl)
+                ->throw()
+                ->body();
+
+            foreach ($this->extractBubiletEventPathsFromListingHtml($html) as $path) {
+                $pathToListing[$path] = $listingUrl;
+            }
+        }
+
+        $paths = array_keys($pathToListing);
         $normalized = [];
         $base = 'https://www.bubilet.com.tr';
 
@@ -83,6 +99,7 @@ class MarketplaceCrawlerService
                 usleep(150000);
             }
             $url = $this->normalizeUrl($path, $base);
+            $listingUrl = $pathToListing[$path] ?? '';
             try {
                 $detailHtml = Http::timeout((int) config('crawler.timeout', 20))
                     ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
@@ -102,6 +119,11 @@ class MarketplaceCrawlerService
                 $event['url'] = $url;
                 $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
                 if ($row !== null) {
+                    $meta = is_array($row['meta'] ?? null) ? $row['meta'] : [];
+                    if ($listingUrl !== '') {
+                        $meta['bubilet_listing_url'] = $listingUrl;
+                    }
+                    $row['meta'] = $meta;
                     $normalized[] = $row;
                 }
                 break;
@@ -346,8 +368,8 @@ class MarketplaceCrawlerService
     private function extractBubiletEventPathsFromListingHtml(string $html): array
     {
         $paths = [];
-        if (preg_match_all('#href="(/[^"]+/etkinlik/[^"]+)"#u', $html, $matches)) {
-            foreach ($matches[1] as $path) {
+        if (preg_match_all('#href=(["\'])(/[^"\']+/etkinlik/[^"\']+)\1#u', $html, $matches)) {
+            foreach ($matches[2] as $path) {
                 $path = html_entity_decode($path, ENT_QUOTES | ENT_HTML5);
                 if (str_contains($path, '/etkinlik/')) {
                     $paths[] = $path;

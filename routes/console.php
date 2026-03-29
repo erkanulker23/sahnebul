@@ -19,7 +19,7 @@ Schedule::command('marketplaces:crawl --source=bubilet_sehir_sec --limit=400')
     ->withoutOverlapping(120)
     ->runInBackground();
 
-Schedule::command('marketplaces:crawl --source=bubilet --limit=250')
+Schedule::command('marketplaces:crawl --source=bubilet --limit=400')
     ->dailyAt('04:00')
     ->timezone('Europe/Istanbul')
     ->withoutOverlapping(120)

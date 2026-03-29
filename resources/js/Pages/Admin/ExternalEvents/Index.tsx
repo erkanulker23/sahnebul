@@ -96,7 +96,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
     });
     const crawlForm = useForm({
         source: sources.includes('biletinial') ? 'biletinial' : sources.length > 0 ? sources[0]! : 'all',
-        limit: 200,
+        limit: 350,
         date_from: '' as string,
         date_to: '' as string,
         city_ids: [] as number[],
@@ -264,7 +264,11 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; adayları
-                        veritabanına yazar. İşlem uzun sürebilir.
+                        veritabanına yazar. İşlem uzun sürebilir.{' '}
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                            Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
+                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve çekimde atlanır.
+                        </span>
                     </p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">

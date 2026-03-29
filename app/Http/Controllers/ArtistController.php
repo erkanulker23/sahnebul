@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\ArtistClaimRequest;
 use App\Models\ArtistMedia;
-use App\Models\City;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
@@ -358,7 +357,6 @@ class ArtistController extends Controller
         }
 
         app(TurkeyProvincesSync::class)->sync();
-        $provinceNames = City::query()->turkiyeProvinces()->pluck('name')->values()->all();
         $artist->setAttribute('spotify_artist_image_url', null);
 
         $artist->loadExists([
@@ -387,7 +385,6 @@ class ArtistController extends Controller
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,
             'stats' => $stats,
-            'provinceNames' => $provinceNames,
             'latestTracks' => $latestTracks,
             'claimStatus' => auth()->check()
                 ? ArtistClaimRequest::where('artist_id', $artist->id)->where('user_id', auth()->id())->value('status')

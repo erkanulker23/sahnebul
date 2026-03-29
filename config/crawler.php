@@ -12,8 +12,22 @@ return [
             'city' => 'İstanbul',
         ],
         'bubilet' => [
+            /** @deprecated Tek URL; `listing_urls` kullanın */
             'url' => 'https://www.bubilet.com.tr/istanbul/etiket/konser',
             'city' => 'İstanbul',
+            /**
+             * Bubilet etiket sayfaları SSR’da her biri ~20–24 kart veriyor; sayfa parametresi ek veri döndürmüyor.
+             * Farklı etiketler birleştirilerek kapsam artırılır (ör. konser + tiyatro + festival…).
+             */
+            'listing_urls' => [
+                'https://www.bubilet.com.tr/istanbul/etiket/konser',
+                'https://www.bubilet.com.tr/istanbul/etiket/tiyatro',
+                'https://www.bubilet.com.tr/istanbul/etiket/festival',
+                'https://www.bubilet.com.tr/istanbul/etiket/elektronik-muzik',
+                'https://www.bubilet.com.tr/istanbul/etiket/stand-up',
+                'https://www.bubilet.com.tr/istanbul/etiket/cocuk-aktiviteleri',
+                'https://www.bubilet.com.tr/istanbul/etiket/workshop',
+            ],
         ],
         /** https://www.bubilet.com.tr/sehir-sec — şehir bazlı popüler etkinlik kartları (HTML) */
         'bubilet_sehir_sec' => [
@@ -22,6 +36,9 @@ return [
     ],
     'user_agent' => 'SahnebulBot/1.0 (+https://sahnebul.com)',
     'timeout' => 20,
+
+    /** Bubilet etiket sayfaları arasında istekler arası bekleme (mikrosaniye) */
+    'bubilet_listing_delay_us' => (int) env('BUBILET_LISTING_DELAY_US', 200_000),
 
     /**
      * Admin “Verileri çek” / önizleme HTTP isteği — çok sayıda harici sayfa açıldığı için
