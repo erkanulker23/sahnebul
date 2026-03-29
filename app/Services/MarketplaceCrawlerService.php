@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\City;
 use App\Support\CrawlerHttpResponseInspector;
+use App\Support\NetscapeCookieFileReader;
 use App\Support\SehirSecCityDistricts;
 use App\Support\SehirSecMetaInference;
 use DOMElement;
@@ -308,13 +309,28 @@ class MarketplaceCrawlerService
             ? 'same-origin'
             : 'none';
 
-        $cookies = trim((string) config('crawler.bubilet_cookies', ''));
-
-        if ($cookies !== '') {
-            $headers['Cookie'] = $cookies;
+        $cookieHeader = $this->bubiletCookieHeaderString();
+        if ($cookieHeader !== '') {
+            $headers['Cookie'] = $cookieHeader;
         }
 
         return $headers;
+    }
+
+    private function bubiletCookieHeaderString(): string
+    {
+        $file = trim((string) config('crawler.bubilet_cookies_file', ''));
+        $pairs = [];
+        if ($file !== '' && is_file($file) && is_readable($file)) {
+            $pairs = NetscapeCookieFileReader::bubiletPairsFromNetscapeFile($file);
+        }
+
+        $envRaw = trim((string) config('crawler.bubilet_cookies', ''));
+        foreach (NetscapeCookieFileReader::pairsFromSemicolonString($envRaw) as $k => $v) {
+            $pairs[$k] = $v;
+        }
+
+        return NetscapeCookieFileReader::cookieHeaderFromPairs($pairs);
     }
 
     /**

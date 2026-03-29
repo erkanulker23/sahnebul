@@ -25,11 +25,19 @@ final class CrawlerHttpResponseInspector
             || str_contains($lower, 'checking your browser');
     }
 
-    public static function cloudflareBlockedMessage(): string
+    public static function cloudflareBlockedMessage(?string $sentCookieHeader = null): string
     {
-        return 'Bubilet isteği güvenlik duvarı (Cloudflare) tarafından engellendi. Sunucudan yapılan düz HTTP istekleri '
-            .'«Just a moment…» doğrulamasını (JavaScript) tamamlayamaz. Geçici çözüm: sunucu .env içinde BUBILET_COOKIES ile '
-            .'tarayıcıdan kopyalanan çerezleri (ör. cf_clearance) tanımlayın; kalıcı çözüm: resmi veri ortaklığı veya kuyrukta headless tarayıcı.';
+        $base = 'Bubilet isteği güvenlik duvarı (Cloudflare) tarafından engellendi. Sunucudan yapılan düz HTTP istekleri '
+            .'«Just a moment…» doğrulamasını (JavaScript) tamamlayamaz. Geçici çözüm: .env içinde BUBILET_COOKIES (ör. name=value; …) '
+            .'veya BUBILET_COOKIES_FILE ile Netscape cookies.txt yolu; Cloudflare için özellikle cf_clearance (çoğu durumda __cf_bm) gerekir — '
+            .'yalnızca _ga, _fbp veya cityId gibi çerezler yetmez. Kalıcı çözüm: resmi veri ortaklığı veya kuyrukta headless tarayıcı.';
+
+        $c = $sentCookieHeader ?? '';
+        if ($c !== '' && stripos($c, 'cf_clearance') === false) {
+            return $base.' Şu an gönderilen çerez satırında cf_clearance yok; Bubilet’i tarayıcıda açıp challenge bittikten sonra çerezleri yeniden export edin veya cf_clearance’ı elle BUBILET_COOKIES içine ekleyin.';
+        }
+
+        return $base;
     }
 
     /**
