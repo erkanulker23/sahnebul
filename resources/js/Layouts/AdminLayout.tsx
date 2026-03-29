@@ -21,6 +21,7 @@ import {
     Image,
     Inbox,
     LayoutDashboard,
+    LogIn,
     Mail,
     MapPin,
     Megaphone,
@@ -30,6 +31,7 @@ import {
     PenLine,
     Mic2,
     Search,
+    ShieldCheck,
     NotebookText,
     Settings,
     Tags,
@@ -80,6 +82,18 @@ const navItems: AdminNavItem[] = [
     { navKey: 'admin.ad-slots.index', href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
     { navKey: 'admin.smtp.index', href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
     { navKey: 'admin.settings.index', href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
+    {
+        navKey: 'admin.google-sign-in.index',
+        href: 'admin.google-sign-in.index',
+        label: 'Google ile giriş (kullanıcı)',
+        icon: LogIn,
+    },
+    {
+        navKey: 'admin.verification-scripts.index',
+        href: 'admin.verification-scripts.index',
+        label: 'Doğrulama ve özel kodlar',
+        icon: ShieldCheck,
+    },
     { navKey: 'admin.content-sliders.index', href: 'admin.content-sliders.index', label: 'Slider ekle', icon: GalleryHorizontal },
     { navKey: 'admin.page-seo.index', href: 'admin.page-seo.index', label: 'SEO sayfaları', icon: NotebookText },
     { navKey: 'admin.paytr.index', href: 'admin.paytr.index', label: 'PayTR ödeme', icon: CreditCard },
@@ -108,6 +122,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                 : navItems.filter(
                       (i) =>
                           i.navKey !== 'admin.smtp.index' &&
+                          i.navKey !== 'admin.google-sign-in.index' &&
+                          i.navKey !== 'admin.verification-scripts.index' &&
                           i.navKey !== 'admin.page-seo.index' &&
                           i.navKey !== 'admin.paytr.index',
                   ),
@@ -168,6 +184,12 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             return true;
         }
         if (item.href === 'admin.external-events.index' && currentUrl.startsWith('/admin/dis-kaynak-etkinlikler')) {
+            return true;
+        }
+        if (item.href === 'admin.google-sign-in.index' && currentUrl.startsWith('/admin/google-ile-kullanici-girisi')) {
+            return true;
+        }
+        if (item.href === 'admin.verification-scripts.index' && currentUrl.startsWith('/admin/dogrulama-ve-ozel-kodlar')) {
             return true;
         }
         try {

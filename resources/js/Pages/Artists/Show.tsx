@@ -17,12 +17,13 @@ import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SuggestEditModal from '@/Components/SuggestEditModal';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
+import { EditorialShareStrip } from '@/Components/EditorialShareStrip';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Music2, Pause, PenLine, Play } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
     name: string;
@@ -337,7 +338,6 @@ export default function ArtistShow({
     const [claimEmail, setClaimEmail] = useState('');
     const [claimLoading, setClaimLoading] = useState(false);
     const [playingTrackKey, setPlayingTrackKey] = useState<string | null>(null);
-    const [shareCopied, setShareCopied] = useState(false);
     const hasEvents = upcomingEvents.length > 0 || pastEvents.length > 0;
     const nextEvent = upcomingEvents[0];
     /** Yalnızca yaklaşan etkinliklerde gerçekten bulunan şehirler (tüm iller listesi kullanılmaz). */
@@ -456,21 +456,6 @@ export default function ArtistShow({
     const bannerPhoto = imageSrc(artist.banner_image ?? null);
     const avatarUrl = profilePhoto;
     const shareUrlForSocial = resolvedShareUrl;
-    const copyShareLink = useCallback(async () => {
-        const u =
-            shareUrlForSocial ||
-            (typeof globalThis.window !== 'undefined' ? globalThis.window.location.href.split('#')[0] : '');
-        if (!u || !navigator.clipboard?.writeText) return;
-        try {
-            await navigator.clipboard.writeText(u);
-            setShareCopied(true);
-            window.setTimeout(() => setShareCopied(false), 2000);
-        } catch {
-            /* ignore */
-        }
-    }, [shareUrlForSocial]);
-    const shareBtnClass =
-        'rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm transition hover:border-amber-400 hover:bg-amber-50 dark:border-white/15 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-amber-500/50 dark:hover:bg-zinc-800/80';
     const seoKeywordLead = `${artist.name} konserleri, performansları ve etkinlikleri`;
     const bioPlain = metaDescriptionFromContent(artist.bio, '');
     const seoGenreSuffix = artist.genre ? ` Tür: ${artist.genre}.` : '';
@@ -795,61 +780,19 @@ export default function ArtistShow({
                             >
                                 {artist.name}
                             </p>
-                            {shareUrlForSocial ? (
-                                <div className="mt-6 border-t border-zinc-200 pt-6 dark:border-white/10">
-                                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                                        Sosyal medyada paylaş
-                                    </p>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <a
-                                            href={`https://twitter.com/intent/tweet?${new URLSearchParams({
-                                                text: artist.name,
-                                                url: shareUrlForSocial,
-                                            }).toString()}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={shareBtnClass}
-                                        >
-                                            X (Twitter)
-                                        </a>
-                                        <a
-                                            href={`https://www.facebook.com/sharer/sharer.php?${new URLSearchParams({ u: shareUrlForSocial }).toString()}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={shareBtnClass}
-                                        >
-                                            Facebook
-                                        </a>
-                                        <a
-                                            href={`https://api.whatsapp.com/send?${new URLSearchParams({
-                                                text: `${artist.name}\n${shareUrlForSocial}`,
-                                            }).toString()}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={shareBtnClass}
-                                        >
-                                            WhatsApp
-                                        </a>
-                                        <a
-                                            href={`https://www.linkedin.com/shareArticle?${new URLSearchParams({
-                                                mini: 'true',
-                                                url: shareUrlForSocial,
-                                                title: artist.name,
-                                            }).toString()}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={shareBtnClass}
-                                        >
-                                            LinkedIn
-                                        </a>
-                                        <button type="button" onClick={() => void copyShareLink()} className={shareBtnClass}>
-                                            {shareCopied ? 'Bağlantı kopyalandı' : 'Bağlantıyı kopyala'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : null}
+                            <div
+                                className={`mt-6 border-t border-zinc-200 pt-6 dark:border-white/10 ${shareUrlForSocial ? 'flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10' : ''}`}
+                            >
+                                {shareUrlForSocial ? (
+                                    <EditorialShareStrip
+                                        shareUrl={shareUrlForSocial}
+                                        shareTitle={artist.name}
+                                        variant="article"
+                                    />
+                                ) : null}
+                                <div className="flex min-w-0 flex-1 flex-col gap-3">
                             {organizationAffiliation ? (
-                                <p className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+                                <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
                                     <span className="font-semibold text-amber-700 dark:text-amber-400">{organizationAffiliation.label}</span>{' '}
                                     organizasyonu bünyesinde listelenmektedir.
                                 </p>
@@ -1239,6 +1182,8 @@ export default function ArtistShow({
                                 </div>
                             </div>
                             )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

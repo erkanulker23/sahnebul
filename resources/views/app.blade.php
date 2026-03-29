@@ -65,11 +65,31 @@
             @viteReactRefresh
             @vite(['resources/js/app.tsx'])
             @inertiaHead
+            @php
+                $customHeadHtml = null;
+                if (isset($page) && is_array($page) && isset($page['props']['seo']['customHeadHtml']) && is_string($page['props']['seo']['customHeadHtml'])) {
+                    $t = trim($page['props']['seo']['customHeadHtml']);
+                    $customHeadHtml = $t !== '' ? $t : null;
+                }
+            @endphp
+            @if (is_string($customHeadHtml) && $customHeadHtml !== '')
+                {!! $customHeadHtml !!}
+            @endif
         @endif
     </head>
     <body class="font-sans antialiased bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
         @if ($viteReady)
             @inertia
+            @php
+                $customBodyHtml = null;
+                if (isset($page) && is_array($page) && isset($page['props']['seo']['customBodyHtml']) && is_string($page['props']['seo']['customBodyHtml'])) {
+                    $tb = trim($page['props']['seo']['customBodyHtml']);
+                    $customBodyHtml = $tb !== '' ? $tb : null;
+                }
+            @endphp
+            @if (is_string($customBodyHtml) && $customBodyHtml !== '')
+                {!! $customBodyHtml !!}
+            @endif
         @else
             <div class="mx-auto max-w-lg px-6 py-16 text-center">
                 <p class="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Dağıtım</p>

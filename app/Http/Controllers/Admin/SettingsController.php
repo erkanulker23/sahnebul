@@ -37,8 +37,6 @@ class SettingsController extends Controller
 
         $site = $this->appSettings->getSitePublicSettings();
         $seo = is_array($site['seo'] ?? null) ? $site['seo'] : [];
-        $gsi = is_array($site['google_sign_in'] ?? null) ? $site['google_sign_in'] : [];
-        $googleClientSecretSet = isset($gsi['client_secret']) && is_string($gsi['client_secret']) && trim($gsi['client_secret']) !== '';
         $logoPath = isset($site['logo_path']) && is_string($site['logo_path']) ? trim($site['logo_path']) : '';
         $faviconPath = isset($site['favicon_path']) && is_string($site['favicon_path']) ? trim($site['favicon_path']) : '';
         $ogPath = isset($seo['default_og_image_path']) && is_string($seo['default_og_image_path']) ? trim($seo['default_og_image_path']) : '';
@@ -74,12 +72,6 @@ class SettingsController extends Controller
                 'seo_default_description' => (string) ($seo['default_description'] ?? ''),
                 'seo_keywords' => (string) ($seo['keywords'] ?? ''),
                 'seo_twitter_handle' => (string) ($seo['twitter_handle'] ?? ''),
-                'seo_google_site_verification' => (string) ($seo['google_site_verification'] ?? ''),
-                'seo_yandex_verification' => (string) ($seo['yandex_verification'] ?? ''),
-                'seo_bing_verification' => (string) ($seo['bing_verification'] ?? ''),
-                'google_sign_in_enabled' => (bool) ($gsi['enabled'] ?? false),
-                'google_sign_in_client_id' => (string) ($gsi['client_id'] ?? ''),
-                'google_sign_in_client_secret_set' => $googleClientSecretSet,
                 'logo_url' => $logoPath !== '' ? $this->appSettings->publicStorageUrl($logoPath) : null,
                 'favicon_url' => $faviconPath !== '' ? $this->appSettings->publicStorageUrl($faviconPath) : null,
                 'seo_og_image_url' => $ogPath !== '' ? $this->appSettings->publicStorageUrl($ogPath) : null,
@@ -143,13 +135,6 @@ class SettingsController extends Controller
             'seo_default_description' => 'nullable|string|max:5000',
             'seo_keywords' => 'nullable|string|max:500',
             'seo_twitter_handle' => 'nullable|string|max:64',
-            'seo_google_site_verification' => 'nullable|string|max:128',
-            'seo_yandex_verification' => 'nullable|string|max:128',
-            'seo_bing_verification' => 'nullable|string|max:128',
-            'google_sign_in_enabled' => 'sometimes|boolean',
-            'google_sign_in_client_id' => 'nullable|string|max:512',
-            'google_sign_in_client_secret' => 'nullable|string|max:500',
-            'remove_google_sign_in_client_secret' => 'sometimes|boolean',
             'remove_logo' => 'sometimes|boolean',
             'remove_favicon' => 'sometimes|boolean',
             'remove_seo_og_image' => 'sometimes|boolean',
@@ -169,10 +154,15 @@ class SettingsController extends Controller
         $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
 
         $current = $this->appSettings->getSitePublicSettings();
-        $currentGsi = is_array($current['google_sign_in'] ?? null) ? $current['google_sign_in'] : [];
-        $clientSecretStored = isset($currentGsi['client_secret']) && is_string($currentGsi['client_secret'])
-            ? trim($currentGsi['client_secret'])
-            : '';
+        $rawSite = $this->appSettings->getJsonCached('site') ?: [];
+        $preservedGoogleSignIn = is_array($rawSite['google_sign_in'] ?? null) ? $rawSite['google_sign_in'] : [
+            'enabled' => false,
+            'client_id' => null,
+            'client_secret' => null,
+        ];
+        $rawSeo = is_array($rawSite['seo'] ?? null) ? $rawSite['seo'] : [];
+        $preservedSeoKeys = ['google_site_verification', 'yandex_verification', 'bing_verification', 'custom_head_html', 'custom_body_html'];
+        $preservedSeoFragment = array_intersect_key($rawSeo, array_flip($preservedSeoKeys));
         $currentSeo = is_array($current['seo'] ?? null) ? $current['seo'] : [];
 
         $logoPath = isset($current['logo_path']) && is_string($current['logo_path']) ? trim($current['logo_path']) : '';
@@ -226,20 +216,16 @@ class SettingsController extends Controller
                 'linkedin' => $this->nullableTrim($validated['social_linkedin'] ?? null),
                 'tiktok' => $this->nullableTrim($validated['social_tiktok'] ?? null),
             ],
-            'seo' => [
-                'default_description' => $this->nullableTrim($validated['seo_default_description'] ?? null),
-                'default_og_image_path' => $ogPath !== '' ? $ogPath : null,
-                'keywords' => $this->nullableTrim($validated['seo_keywords'] ?? null),
-                'twitter_handle' => $this->nullableTrim($validated['seo_twitter_handle'] ?? null),
-                'google_site_verification' => $this->nullableTrim($validated['seo_google_site_verification'] ?? null),
-                'yandex_verification' => $this->nullableTrim($validated['seo_yandex_verification'] ?? null),
-                'bing_verification' => $this->nullableTrim($validated['seo_bing_verification'] ?? null),
-            ],
-            'google_sign_in' => self::buildGoogleSignInForStorage(
-                $request,
-                $validated,
-                $clientSecretStored,
+            'seo' => array_merge(
+                $preservedSeoFragment,
+                [
+                    'default_description' => $this->nullableTrim($validated['seo_default_description'] ?? null),
+                    'default_og_image_path' => $ogPath !== '' ? $ogPath : null,
+                    'keywords' => $this->nullableTrim($validated['seo_keywords'] ?? null),
+                    'twitter_handle' => $this->nullableTrim($validated['seo_twitter_handle'] ?? null),
+                ],
             ),
+            'google_sign_in' => $preservedGoogleSignIn,
         ];
 
         AppSetting::updateOrCreate(
@@ -268,7 +254,7 @@ class SettingsController extends Controller
      * @param  array<string, mixed>  $validated
      * @return array{enabled: bool, client_id: string|null, client_secret: string|null}
      */
-    private static function buildGoogleSignInForStorage(Request $request, array $validated, string $clientSecretStored): array
+    public static function buildGoogleSignInForStorage(Request $request, array $validated, string $clientSecretStored): array
     {
         $rawId = $validated['google_sign_in_client_id'] ?? null;
         $clientId = is_string($rawId) && trim($rawId) !== '' ? trim($rawId) : null;

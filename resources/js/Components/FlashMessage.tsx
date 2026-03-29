@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /** tailwind `toast-progress` animasyon süresi ile aynı olmalı */
-const DISMISS_MS = 5500;
+const DISMISS_MS_DEFAULT = 5500;
+const DISMISS_MS_LONG = 14000;
 
 /** İlk cümle başlık, ". " sonrası açıklama */
 function splitFlashText(text: string): { headline: string; supporting?: string } {
@@ -67,6 +68,17 @@ export default function FlashMessage() {
         setLegacySuccess(null);
     }, []);
 
+    const dismissMs = useMemo(() => {
+        if (!payload) {
+            return DISMISS_MS_DEFAULT;
+        }
+        if (payload.raw.toLowerCase().includes('crawl')) {
+            return DISMISS_MS_LONG;
+        }
+
+        return DISMISS_MS_DEFAULT;
+    }, [payload]);
+
     useEffect(() => {
         if (!payload) {
             setRendered(false);
@@ -78,9 +90,9 @@ export default function FlashMessage() {
         const t = setTimeout(() => {
             setVisible(false);
             setLegacySuccess(null);
-        }, DISMISS_MS);
+        }, dismissMs);
         return () => clearTimeout(t);
-    }, [payload]);
+    }, [payload, dismissMs]);
 
     useEffect(() => {
         if (!visible && rendered && payload) {

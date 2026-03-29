@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\ImportExternalMarketplaceEventsJob;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\ExternalEvent;
@@ -277,6 +276,8 @@ class ExternalEventController extends Controller
             return back()->with('error', 'external_events tablosu bulunamadı. Önce migration çalıştırın.');
         }
 
+        $this->relaxCrawlerExecutionTimeLimit();
+
         $validated = $this->validateCrawlRequest($request);
         [$cityNames, $categoryNames] = $this->resolveCityAndCategoryNames($validated);
 
@@ -285,18 +286,75 @@ class ExternalEventController extends Controller
             return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
         }
 
-        ImportExternalMarketplaceEventsJob::dispatch(
-            $validated['source'],
-            $validated['limit'],
-            $validated['date_from'],
-            $validated['date_to'],
-            $cityNames,
-            $categoryNames,
-        );
+        try {
+            $results = $this->marketplaceImport->import(
+                $validated['source'],
+                $validated['limit'],
+                false,
+                $validated['date_from'],
+                $validated['date_to'],
+                $cityNames,
+                $categoryNames,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with(
+                'error',
+                'Veri çekilirken hata oluştu: '.$e->getMessage(),
+            );
+        }
+
+        if ($results === []) {
+            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
+        }
 
         return back()->with(
             'success',
-            'Veri çekme arka planda kuyruğa alındı. Bir süre sonra sayfayı yenileyin.',
+            $this->formatCrawlResultFlashMessage($results),
         );
+    }
+
+    /**
+     * @param  list<array{source: string, processed: int, synced: int, error?: string}>  $results
+     */
+    private function formatCrawlResultFlashMessage(array $results): string
+    {
+        $totalProcessed = 0;
+        $perSourceOk = [];
+        $errorParts = [];
+
+        foreach ($results as $row) {
+            $source = (string) ($row['source'] ?? '?');
+            if (! empty($row['error'])) {
+                $errorParts[] = $source.': '.$row['error'];
+
+                continue;
+            }
+            $n = (int) ($row['processed'] ?? 0);
+            $totalProcessed += $n;
+            if ($n > 0) {
+                $perSourceOk[] = $source.' → '.$n;
+            }
+        }
+
+        if ($errorParts !== [] && $totalProcessed === 0) {
+            return 'Crawl tamamlandı ancak kayıt işlenemedi. '.implode(' | ', $errorParts);
+        }
+
+        if ($totalProcessed === 0 && $errorParts === []) {
+            return 'Crawl tamamlandı. Filtreye veya limite uyan yeni kayıt yok (0 işlendi). Tarih, şehir veya önizlemeyi kontrol edin.';
+        }
+
+        $headline = 'Crawl tamamlandı. Toplam '.$totalProcessed.' aday kayıt yazıldı veya güncellendi.';
+        $rest = [];
+        if ($perSourceOk !== []) {
+            $rest[] = 'Kaynaklar: '.implode(' · ', $perSourceOk).'.';
+        }
+        if ($errorParts !== []) {
+            $rest[] = 'Uyarı: '.implode(' | ', $errorParts);
+        }
+
+        return $rest === [] ? $headline : $headline.' '.implode(' ', $rest);
     }
 }

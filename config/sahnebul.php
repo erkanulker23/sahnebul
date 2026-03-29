@@ -66,6 +66,10 @@ return [
             'google_site_verification' => null,
             'yandex_verification' => null,
             'bing_verification' => null,
+            /** Ham HTML — app.blade.php head sonunda (GA/gtag, GTM head parçası vb.). */
+            'custom_head_html' => null,
+            /** Ham HTML — body kapanışından önce (GTM noscript, chat widget vb.). */
+            'custom_body_html' => null,
         ],
         /** Google Identity Services — yalnızca müşteri girişi / kayıt (OAuth istemci kimliği). */
         'google_sign_in' => [

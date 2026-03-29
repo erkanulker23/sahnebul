@@ -2,7 +2,7 @@ import { AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { safeRoute } from '@/lib/safeRoute';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
@@ -78,6 +78,26 @@ function itemStatus(item: ExternalEventItem): { label: string; className: string
 }
 
 export default function AdminExternalEventsIndex({ items, filters, sources, crawlLookups }: Readonly<Props>) {
+    const page = usePage();
+    const pageErrors = (page.props as { errors?: Record<string, string | string[]> }).errors ?? {};
+    const crawlValidationMessages = useMemo(() => {
+        const crawlKeys = new Set(['source', 'limit', 'date_from', 'date_to', 'city_ids', 'category_ids']);
+        const out: string[] = [];
+        for (const [key, val] of Object.entries(pageErrors)) {
+            const crawlField =
+                crawlKeys.has(key) || key.startsWith('city_ids.') || key.startsWith('category_ids.');
+            if (!crawlField) {
+                continue;
+            }
+            if (Array.isArray(val)) {
+                out.push(...val.filter((m): m is string => typeof m === 'string'));
+            } else if (typeof val === 'string' && val.trim() !== '') {
+                out.push(val);
+            }
+        }
+        return out;
+    }, [pageErrors]);
+
     const cities = crawlLookups?.cities ?? [];
     const categories = crawlLookups?.categories ?? [];
 
@@ -268,13 +288,26 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                 <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; adayları
-                        veritabanına yazar. İşlem uzun sürebilir.{' '}
+                        Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; işlemi sunucuda tamamlanır,
+                        bittiğinde üstte bildirimde kaç kayıt işlendiği veya hata metni gösterilir; tablo da güncellenir. İşlem uzun sürebilir.{' '}
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
                             çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve çekimde atlanır.
                         </span>
                     </p>
+                    {crawlValidationMessages.length > 0 && (
+                        <div
+                            className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"
+                            role="alert"
+                        >
+                            <p className="font-semibold">Form doğrulama</p>
+                            <ul className="mt-1 list-inside list-disc space-y-0.5">
+                                {crawlValidationMessages.map((m) => (
+                                    <li key={m}>{m}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                             Kaynak

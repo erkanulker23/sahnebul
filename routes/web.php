@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventArtistReportController as AdminEventArtistReportController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
+use App\Http\Controllers\Admin\GoogleSignInSettingsController as AdminGoogleSignInSettingsController;
 use App\Http\Controllers\Admin\ManagedSubscriptionController as AdminManagedSubscriptionController;
 use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
 use App\Http\Controllers\Admin\PageSeoController as AdminPageSeoController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Admin\ReservationController as AdminReservationControll
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\SeoToolsController as AdminSeoToolsController;
 use App\Http\Controllers\Admin\SettingsController as AdminSettingsController;
+use App\Http\Controllers\Admin\SiteVerificationAndScriptsController as AdminSiteVerificationAndScriptsController;
 use App\Http\Controllers\Admin\SmtpSettingsController as AdminSmtpSettingsController;
 use App\Http\Controllers\Admin\SubscriptionPlanController as AdminSubscriptionPlanController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -459,6 +461,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/smtp/test-mail', [AdminSmtpSettingsController::class, 'sendTestMail'])->name('smtp.test-mail');
 
         Route::post('/ayarlar/site', [AdminSettingsController::class, 'updateSite'])->name('settings.site');
+
+        Route::get('/google-ile-kullanici-girisi', [AdminGoogleSignInSettingsController::class, 'index'])->name('google-sign-in.index');
+        Route::post('/google-ile-kullanici-girisi', [AdminGoogleSignInSettingsController::class, 'update'])->name('google-sign-in.update');
+        Route::post('/google-ile-kullanici-girisi/test', [AdminGoogleSignInSettingsController::class, 'test'])
+            ->middleware('throttle:20,1')
+            ->name('google-sign-in.test');
+
+        Route::get('/dogrulama-ve-ozel-kodlar', [AdminSiteVerificationAndScriptsController::class, 'index'])->name('verification-scripts.index');
+        Route::post('/dogrulama-ve-ozel-kodlar', [AdminSiteVerificationAndScriptsController::class, 'update'])->name('verification-scripts.update');
 
         Route::get('/seo-sayfalar', [AdminPageSeoController::class, 'index'])->name('page-seo.index');
         Route::post('/seo-sayfalar', [AdminPageSeoController::class, 'update'])->name('page-seo.update');

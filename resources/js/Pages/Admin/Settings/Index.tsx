@@ -1,4 +1,3 @@
-import InputError from '@/Components/InputError';
 import PhoneInput from '@/Components/PhoneInput';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
@@ -48,13 +47,6 @@ interface SitePublicProps {
     seo_default_description: string;
     seo_keywords: string;
     seo_twitter_handle: string;
-    seo_google_site_verification: string;
-    seo_yandex_verification: string;
-    seo_bing_verification: string;
-    google_sign_in_enabled: boolean;
-    google_sign_in_client_id: string;
-    /** Sunucuda şifreli saklanır; istemciye sırrın kendisi gönderilmez */
-    google_sign_in_client_secret_set?: boolean;
     logo_url: string | null;
     favicon_url: string | null;
     seo_og_image_url: string | null;
@@ -95,7 +87,7 @@ const TABS: { id: SettingsTabId; label: string; description: string; icon: Lucid
     { id: 'overview', label: 'Özet', description: 'Sayılar ve kısayollar', icon: BarChart3 },
     { id: 'brand', label: 'Marka & görseller', description: 'Logo, favicon, site adı', icon: ImageIcon },
     { id: 'venues_hero', label: 'Mekân listesi hero', description: '/mekanlar üst metinleri (görseller Slider’da)', icon: Images },
-    { id: 'seo', label: 'SEO', description: 'Meta, OG, doğrulama', icon: Search },
+    { id: 'seo', label: 'SEO', description: 'Meta ve OG görseli', icon: Search },
     { id: 'contact', label: 'İletişim & sosyal', description: 'E-posta, telefon, sosyal bağlantılar', icon: Share2 },
     { id: 'maps', label: 'Harita API', description: 'Google Maps anahtarı', icon: MapPin },
     { id: 'content', label: 'İçerik', description: 'Statik sayfalar ve footer', icon: FileText },
@@ -172,13 +164,6 @@ export default function AdminSettingsIndex({
     const [seoDesc, setSeoDesc] = useState(sp?.seo_default_description ?? '');
     const [seoKeywords, setSeoKeywords] = useState(sp?.seo_keywords ?? '');
     const [seoTwitter, setSeoTwitter] = useState(sp?.seo_twitter_handle ?? '');
-    const [seoGoogle, setSeoGoogle] = useState(sp?.seo_google_site_verification ?? '');
-    const [seoYandex, setSeoYandex] = useState(sp?.seo_yandex_verification ?? '');
-    const [seoBing, setSeoBing] = useState(sp?.seo_bing_verification ?? '');
-    const [googleSignInEnabled, setGoogleSignInEnabled] = useState(sp?.google_sign_in_enabled ?? false);
-    const [googleSignInClientId, setGoogleSignInClientId] = useState(sp?.google_sign_in_client_id ?? '');
-    const [googleSignInClientSecret, setGoogleSignInClientSecret] = useState('');
-    const [removeGoogleSignInClientSecret, setRemoveGoogleSignInClientSecret] = useState(false);
     const [removeLogo, setRemoveLogo] = useState(false);
     const [removeFavicon, setRemoveFavicon] = useState(false);
     const [removeOg, setRemoveOg] = useState(false);
@@ -221,13 +206,6 @@ export default function AdminSettingsIndex({
         setSeoDesc(sp.seo_default_description ?? '');
         setSeoKeywords(sp.seo_keywords ?? '');
         setSeoTwitter(sp.seo_twitter_handle ?? '');
-        setSeoGoogle(sp.seo_google_site_verification ?? '');
-        setSeoYandex(sp.seo_yandex_verification ?? '');
-        setSeoBing(sp.seo_bing_verification ?? '');
-        setGoogleSignInEnabled(sp.google_sign_in_enabled ?? false);
-        setGoogleSignInClientId(sp.google_sign_in_client_id ?? '');
-        setGoogleSignInClientSecret('');
-        setRemoveGoogleSignInClientSecret(false);
         setRemoveLogo(false);
         setRemoveFavicon(false);
         setRemoveOg(false);
@@ -258,12 +236,6 @@ export default function AdminSettingsIndex({
         sp?.seo_default_description,
         sp?.seo_keywords,
         sp?.seo_twitter_handle,
-        sp?.seo_google_site_verification,
-        sp?.seo_yandex_verification,
-        sp?.seo_bing_verification,
-        sp?.google_sign_in_enabled,
-        sp?.google_sign_in_client_id,
-        sp?.google_sign_in_client_secret_set,
         sp?.logo_url,
         sp?.favicon_url,
         sp?.seo_og_image_url,
@@ -312,17 +284,6 @@ export default function AdminSettingsIndex({
         fd.append('seo_default_description', seoDesc);
         fd.append('seo_keywords', seoKeywords);
         fd.append('seo_twitter_handle', seoTwitter);
-        fd.append('seo_google_site_verification', seoGoogle);
-        fd.append('seo_yandex_verification', seoYandex);
-        fd.append('seo_bing_verification', seoBing);
-        fd.append('google_sign_in_enabled', googleSignInEnabled ? '1' : '0');
-        fd.append('google_sign_in_client_id', googleSignInClientId);
-        if (googleSignInClientSecret.trim() !== '') {
-            fd.append('google_sign_in_client_secret', googleSignInClientSecret);
-        }
-        if (removeGoogleSignInClientSecret) {
-            fd.append('remove_google_sign_in_client_secret', '1');
-        }
         if (removeLogo) fd.append('remove_logo', '1');
         if (removeFavicon) fd.append('remove_favicon', '1');
         if (removeOg) fd.append('remove_seo_og_image', '1');
@@ -360,12 +321,6 @@ export default function AdminSettingsIndex({
             'seo_default_description',
             'seo_keywords',
             'seo_twitter_handle',
-            'seo_google_site_verification',
-            'seo_yandex_verification',
-            'seo_bing_verification',
-            'google_sign_in_client_id',
-            'google_sign_in_client_secret',
-            'remove_google_sign_in_client_secret',
             'logo',
             'favicon',
             'seo_og_image',
@@ -750,7 +705,7 @@ export default function AdminSettingsIndex({
                         >
                             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Arama ve paylaşım (SEO)</h3>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Varsayılan meta açıklama, anahtar kelimeler, sosyal önizleme görseli ve arama konsolu doğrulaması.
+                                Varsayılan meta açıklama, anahtar kelimeler ve sosyal önizleme görseli.
                             </p>
 
                             <div>
@@ -820,119 +775,26 @@ export default function AdminSettingsIndex({
                                     placeholder="@hesap veya hesap"
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="seo-g" className={labelClass}>
-                                    Google Search Console doğrulama
-                                </label>
-                                <input
-                                    id="seo-g"
-                                    value={seoGoogle}
-                                    onChange={(e) => setSeoGoogle(e.target.value)}
-                                    className={inputClass}
-                                    placeholder="Meta içerik değeri"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="seo-ya" className={labelClass}>
-                                    Yandex Webmaster doğrulama
-                                </label>
-                                <input
-                                    id="seo-ya"
-                                    value={seoYandex}
-                                    onChange={(e) => setSeoYandex(e.target.value)}
-                                    className={inputClass}
-                                    placeholder="yandex-verification meta içeriği"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="seo-bi" className={labelClass}>
-                                    Bing Webmaster doğrulama
-                                </label>
-                                <input
-                                    id="seo-bi"
-                                    value={seoBing}
-                                    onChange={(e) => setSeoBing(e.target.value)}
-                                    className={inputClass}
-                                    placeholder="msvalidate.01 meta içeriği"
-                                />
-                            </div>
-                            <div className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Google ile oturum (kullanıcılar)</h4>
-                                <p className="mt-1 text-xs text-zinc-500">
-                                    Google Cloud Console’da <strong className="font-medium text-zinc-700 dark:text-zinc-300">Web uygulaması</strong> OAuth
-                                    istemcisi oluşturun; yetkili JavaScript kaynaklarına site kökeninizi (ve geliştirme için{' '}
-                                    <code className="rounded bg-zinc-200 px-0.5 dark:bg-zinc-800">localhost</code>) ekleyin. Kurulum:{' '}
-                                    <a
-                                        href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid?hl=tr"
-                                        className="text-amber-600 hover:underline dark:text-amber-400"
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        İstemci kimliği alma (Google)
-                                    </a>
-                                    . Kimlik Hizmetleri (GIS) düğmesi için öncelikle Client ID kullanılır; Client Secret sunucuda şifreli saklanır (OAuth
-                                    sunucu akışları veya ileri senaryolar için).
+                            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-300">
+                                <p className="font-medium text-zinc-900 dark:text-white">Doğrulama ve Analytics / özel kodlar</p>
+                                <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                    Google / Yandex / Bing site sahipliği ile head veya gövde sonuna eklenecek script’ler sol menüdeki{' '}
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-200">«Doğrulama ve özel kodlar»</span> sayfasında
+                                    (süper yönetici).
                                 </p>
-                                <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                                    <input
-                                        type="checkbox"
-                                        checked={googleSignInEnabled}
-                                        onChange={(e) => setGoogleSignInEnabled(e.target.checked)}
-                                    />
-                                    Aktif (giriş ve kayıt sayfalarında Google düğmesi)
-                                </label>
-                                <div className="mt-3">
-                                    <label htmlFor="gsi-client" className={labelClass}>
-                                        Client ID
-                                    </label>
-                                    <input
-                                        id="gsi-client"
-                                        value={googleSignInClientId}
-                                        onChange={(e) => setGoogleSignInClientId(e.target.value)}
-                                        className={inputClass}
-                                        placeholder="xxxx.apps.googleusercontent.com"
-                                        autoComplete="off"
-                                    />
-                                </div>
-                                <div className="mt-3">
-                                    <label htmlFor="gsi-secret" className={labelClass}>
-                                        Client Secret
-                                    </label>
-                                    <input
-                                        id="gsi-secret"
-                                        type="password"
-                                        value={googleSignInClientSecret}
-                                        onChange={(e) => setGoogleSignInClientSecret(e.target.value)}
-                                        className={inputClass}
-                                        placeholder={
-                                            sp?.google_sign_in_client_secret_set
-                                                ? '•••• kayıtlı — değiştirmek için yeni değer girin'
-                                                : 'Cloud Console → istemci → İstemci sırrı'
-                                        }
-                                        autoComplete="new-password"
-                                    />
-                                    {sp?.google_sign_in_client_secret_set ? (
-                                        <label className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
-                                            <input
-                                                type="checkbox"
-                                                checked={removeGoogleSignInClientSecret}
-                                                onChange={(e) => {
-                                                    const on = e.target.checked;
-                                                    setRemoveGoogleSignInClientSecret(on);
-                                                    if (on) {
-                                                        setGoogleSignInClientSecret('');
-                                                    }
-                                                }}
-                                            />
-                                            İstemci sırrını kaldır
-                                        </label>
-                                    ) : null}
-                                    <p className="mt-1 text-xs text-zinc-500">
-                                        Veritabanında Laravel Crypt ile şifrelenir; tarayıcıya geri gönderilmez.
-                                    </p>
-                                    <InputError message={errors.google_sign_in_client_secret} className="mt-1" />
-                                </div>
+                                {superAdmin ? (
+                                    <Link
+                                        href={safeRoute('admin.verification-scripts.index')}
+                                        className="mt-3 inline-flex rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+                                    >
+                                        Doğrulama ve özel kodlara git
+                                    </Link>
+                                ) : null}
                             </div>
+                            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-zinc-700 dark:border-amber-500/20 dark:text-zinc-300">
+                                <strong className="text-amber-800 dark:text-amber-300">Google ile kullanıcı girişi</strong> sol menüde{' '}
+                                <span className="font-medium">«Google ile giriş (kullanıcı)»</span> (yalnızca süper yönetici).
+                            </p>
                         </div>
 
                         {/* İletişim + sosyal */}

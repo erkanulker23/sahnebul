@@ -9,6 +9,7 @@ import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEv
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { AdSlot } from '@/Components/AdSlot';
 import EventHeroFallbackBackdrop from '@/Components/EventHeroFallbackBackdrop';
+import { EditorialShareStrip } from '@/Components/EditorialShareStrip';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { RichOrPlainContent, isLikelyRichHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -25,7 +26,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, ExternalLink, MessageCircle, Navigation, Sparkles, Ticket } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -353,7 +354,6 @@ export default function EventShow({
     ];
     const displayRules = rules.length > 0 ? rules : defaultRules;
     const ogImage = heroBackdrop;
-    const [shareCopied, setShareCopied] = useState(false);
     const [eventReviewOpen, setEventReviewOpen] = useState(false);
     const eventReviewForm = useForm({ rating: 5, comment: '' });
     const hasEventReviewed = Boolean(authUser && eventReviews.some((r) => r.user.id === authUser.id));
@@ -384,20 +384,6 @@ export default function EventShow({
     );
 
     const shareUrlForSocial = canonicalUrl ?? '';
-    const copyShareLink = useCallback(async () => {
-        const u = shareUrlForSocial || (typeof window !== 'undefined' ? window.location.href : '');
-        if (!u || !navigator.clipboard?.writeText) return;
-        try {
-            await navigator.clipboard.writeText(u);
-            setShareCopied(true);
-            window.setTimeout(() => setShareCopied(false), 2000);
-        } catch {
-            /* ignore */
-        }
-    }, [shareUrlForSocial]);
-
-    const shareBtnClass =
-        'rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/20';
 
     return (
         <AppLayout>
@@ -533,44 +519,11 @@ export default function EventShow({
                         </div>
                         {shareUrlForSocial ? (
                             <div className="mt-6 border-t border-white/10 pt-5">
-                                <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Sosyal medyada paylaş</p>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    <a
-                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(shareUrlForSocial)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={shareBtnClass}
-                                    >
-                                        X (Twitter)
-                                    </a>
-                                    <a
-                                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrlForSocial)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={shareBtnClass}
-                                    >
-                                        Facebook
-                                    </a>
-                                    <a
-                                        href={`https://wa.me/?text=${encodeURIComponent(`${event.title} — ${shareUrlForSocial}`)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={shareBtnClass}
-                                    >
-                                        WhatsApp
-                                    </a>
-                                    <a
-                                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrlForSocial)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={shareBtnClass}
-                                    >
-                                        LinkedIn
-                                    </a>
-                                    <button type="button" onClick={() => void copyShareLink()} className={shareBtnClass}>
-                                        {shareCopied ? 'Bağlantı kopyalandı' : 'Bağlantıyı kopyala'}
-                                    </button>
-                                </div>
+                                <EditorialShareStrip
+                                    shareUrl={shareUrlForSocial}
+                                    shareTitle={event.title}
+                                    variant="heroDark"
+                                />
                             </div>
                         ) : null}
                     </div>

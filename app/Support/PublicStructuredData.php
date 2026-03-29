@@ -192,6 +192,22 @@ final class PublicStructuredData
     }
 
     /**
+     * Google Search Console: Offer / AggregateOffer için önerilen validFrom (satışın geçerlilik başlangıcı).
+     * Ayrı bir “bilet satış başlangıç” alanı yok; kayıt oluşturulma zamanı makul bir alt sınır.
+     *
+     * @param  array<string, mixed>  $offer
+     * @return array<string, mixed>
+     */
+    private static function withOfferValidFrom(Event $event, array $offer): array
+    {
+        if ($event->created_at !== null) {
+            $offer['validFrom'] = $event->created_at->format('c');
+        }
+
+        return $offer;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private static function buildOffersForEvent(Event $event, string $canonical): ?array
@@ -211,13 +227,13 @@ final class PublicStructuredData
             : 'https://schema.org/InStock';
 
         if (! ($event->entry_is_paid ?? true)) {
-            return [
+            return self::withOfferValidFrom($event, [
                 '@type' => 'Offer',
                 'url' => $ticketUrl,
                 'price' => 0,
                 'priceCurrency' => 'TRY',
                 'availability' => $availability,
-            ];
+            ]);
         }
 
         $prices = [];
@@ -231,7 +247,7 @@ final class PublicStructuredData
         }
 
         if (count($prices) >= 2) {
-            return [
+            return self::withOfferValidFrom($event, [
                 '@type' => 'AggregateOffer',
                 'url' => $ticketUrl,
                 'lowPrice' => min($prices),
@@ -239,24 +255,24 @@ final class PublicStructuredData
                 'priceCurrency' => 'TRY',
                 'availability' => $availability,
                 'offerCount' => count($prices),
-            ];
+            ]);
         }
 
         if (count($prices) === 1) {
-            return [
+            return self::withOfferValidFrom($event, [
                 '@type' => 'Offer',
                 'url' => $ticketUrl,
                 'price' => round($prices[0], 2),
                 'priceCurrency' => 'TRY',
                 'availability' => $availability,
-            ];
+            ]);
         }
 
-        return [
+        return self::withOfferValidFrom($event, [
             '@type' => 'Offer',
             'url' => $ticketUrl,
             'availability' => $availability,
-        ];
+        ]);
     }
 
     /**

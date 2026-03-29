@@ -3,8 +3,9 @@ import { isLikelyRichHtml, RichOrPlainContent } from '@/Components/SafeRichConte
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Calendar, ChevronRight, Link2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { EditorialShareStrip } from '@/Components/EditorialShareStrip';
+import { ArrowLeft, ArrowRight, Calendar, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 interface Post {
     id: number;
@@ -89,38 +90,12 @@ export default function BlogShow({ post, related }: Readonly<Props>) {
     const byline = post.author?.name?.trim() ? post.author.name : siteName;
     const metaLine = `${byline} · ${formatTurkishDateTime(post.published_at)}`;
 
-    const [copied, setCopied] = useState(false);
     const sharePageUrl = useMemo(() => {
         if (typeof window === 'undefined') {
             return '';
         }
         return window.location.href.split('#')[0];
     }, []);
-
-    const copyLink = useCallback(async () => {
-        const url = typeof window !== 'undefined' ? window.location.href.split('#')[0] : '';
-        if (!url || !navigator.clipboard?.writeText) {
-            return;
-        }
-        try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-        } catch {
-            /* ignore */
-        }
-    }, []);
-
-    const shareTwitter = useCallback(() => {
-        const url = encodeURIComponent(sharePageUrl);
-        const t = encodeURIComponent(post.title);
-        window.open(`https://twitter.com/intent/tweet?url=${url}&text=${t}`, '_blank', 'noopener,noreferrer');
-    }, [post.title, sharePageUrl]);
-
-    const shareFacebook = useCallback(() => {
-        const url = encodeURIComponent(sharePageUrl);
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'noopener,noreferrer');
-    }, [sharePageUrl]);
 
     const featuredRelated = related[0];
     const moreRelated = related.slice(1);
@@ -180,50 +155,7 @@ export default function BlogShow({ post, related }: Readonly<Props>) {
                             ) : null}
 
                             <div className="mt-8 flex flex-col gap-8 lg:mt-10 lg:flex-row lg:gap-10">
-                                {/* Paylaş — masaüstünde dikey */}
-                                <aside
-                                    className="relative flex shrink-0 flex-row items-center justify-center gap-3 border-y border-zinc-200 py-4 dark:border-zinc-800 lg:w-14 lg:flex-col lg:justify-start lg:border-y-0 lg:border-r lg:py-0 lg:pr-6"
-                                    aria-label="Paylaş"
-                                >
-                                    <span className="hidden text-[10px] font-bold uppercase tracking-widest text-zinc-400 lg:block">
-                                        Paylaş
-                                    </span>
-                                    <div className="flex flex-row gap-2 lg:flex-col lg:gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={shareTwitter}
-                                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition hover:border-amber-300 hover:text-amber-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-600/50 dark:hover:text-amber-400"
-                                            aria-label="X (Twitter) ile paylaş"
-                                        >
-                                            <span className="text-xs font-bold" aria-hidden>
-                                                𝕏
-                                            </span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={shareFacebook}
-                                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition hover:border-amber-300 hover:text-amber-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-600/50 dark:hover:text-amber-400"
-                                            aria-label="Facebook ile paylaş"
-                                        >
-                                            <span className="text-[11px] font-bold text-[#1877F2]" aria-hidden>
-                                                f
-                                            </span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={copyLink}
-                                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 transition hover:border-amber-300 hover:text-amber-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-600/50 dark:hover:text-amber-400"
-                                            aria-label="Bağlantıyı kopyala"
-                                        >
-                                            <Link2 className="h-4 w-4" strokeWidth={2} />
-                                        </button>
-                                    </div>
-                                    {copied ? (
-                                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 lg:bottom-auto lg:left-auto lg:right-0 lg:top-full lg:mt-1 lg:translate-x-0 lg:text-center">
-                                            Kopyalandı
-                                        </span>
-                                    ) : null}
-                                </aside>
+                                <EditorialShareStrip shareUrl={sharePageUrl} shareTitle={post.title} variant="article" />
 
                                 <div className="min-w-0 flex-1">
                                     {tocItems.length > 0 ? (

@@ -2,6 +2,7 @@ import SeoHead from '@/Components/SeoHead';
 import { inputBaseClass } from '@/Components/ui/Input';
 import { cn } from '@/lib/cn';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link } from '@inertiajs/react';
 import { ExternalLink, FileCode2, Map, Search } from 'lucide-react';
 
@@ -131,9 +132,13 @@ export default function AdminSeoTools({ sitemapUrl, robotsUrl, searchConsoleUrl,
                             <span className="text-zinc-500"> — Etkinlik ve sanatçı sayfalarında JSON-LD doğrulaması için bir detay URL’si yapıştırın.</span>
                         </li>
                         <li className="text-zinc-500">
-                            Ayarlar bölümünde site adı, varsayılan açıklama, OG görseli ve{' '}
-                            <span className="text-zinc-400">google-site-verification</span> meta değeri tanımlanabilir (paylaşılan SEO
-                            props).
+                            <Link
+                                href={safeRoute('admin.verification-scripts.index')}
+                                className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                            >
+                                Doğrulama ve özel kodlar
+                            </Link>
+                            <span> — Search Console / Yandex / Bing meta içerikleri ve Analytics (head veya gövde sonu snippet).</span>
                         </li>
                     </ul>
                 </section>

@@ -64,6 +64,10 @@ class HandleInertiaRequests extends Middleware
         $googleSiteVerification = isset($seoBlock['google_site_verification']) ? trim((string) $seoBlock['google_site_verification']) : '';
         $yandexVerification = isset($seoBlock['yandex_verification']) ? trim((string) $seoBlock['yandex_verification']) : '';
         $bingVerification = isset($seoBlock['bing_verification']) ? trim((string) $seoBlock['bing_verification']) : '';
+        $customHeadHtml = isset($seoBlock['custom_head_html']) && is_string($seoBlock['custom_head_html']) ? $seoBlock['custom_head_html'] : '';
+        $customHeadHtml = trim($customHeadHtml);
+        $customBodyHtml = isset($seoBlock['custom_body_html']) && is_string($seoBlock['custom_body_html']) ? $seoBlock['custom_body_html'] : '';
+        $customBodyHtml = trim($customBodyHtml);
         $gsi = is_array($sitePublic['google_sign_in'] ?? null) ? $sitePublic['google_sign_in'] : [];
         $googleClientId = isset($gsi['client_id']) ? trim((string) $gsi['client_id']) : '';
         $googleSignInEnabled = (bool) ($gsi['enabled'] ?? false) && $googleClientId !== '';
@@ -111,6 +115,8 @@ class HandleInertiaRequests extends Middleware
                 'googleSiteVerification' => $googleSiteVerification !== '' ? $googleSiteVerification : null,
                 'yandexSiteVerification' => $yandexVerification !== '' ? $yandexVerification : null,
                 'bingSiteVerification' => $bingVerification !== '' ? $bingVerification : null,
+                'customHeadHtml' => $customHeadHtml !== '' ? $customHeadHtml : null,
+                'customBodyHtml' => $customBodyHtml !== '' ? $customBodyHtml : null,
             ],
             'googleAuth' => [
                 'enabled' => $googleSignInEnabled,

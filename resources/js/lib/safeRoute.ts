@@ -212,6 +212,15 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/admin/dis-kaynak-etkinlikler';
         }
+        case 'admin.google-sign-in.index':
+            return '/admin/google-ile-kullanici-girisi';
+        case 'admin.google-sign-in.update':
+            return '/admin/google-ile-kullanici-girisi';
+        case 'admin.google-sign-in.test':
+            return '/admin/google-ile-kullanici-girisi/test';
+        case 'admin.verification-scripts.index':
+        case 'admin.verification-scripts.update':
+            return '/admin/dogrulama-ve-ozel-kodlar';
         default:
             return '/';
     }
