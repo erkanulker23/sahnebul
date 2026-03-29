@@ -355,6 +355,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('events.approve-promo-venue-profile');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');
+    Route::post('/dis-kaynak-etkinlikler/son-cekme-temizle', [AdminExternalEventController::class, 'dismissLastCrawlReport'])
+        ->name('external-events.dismiss-last-crawl');
     Route::post('/dis-kaynak-etkinlikler/veri-cek', [AdminExternalEventController::class, 'crawl'])
         ->middleware('throttle:6,1')
         ->name('external-events.crawl');

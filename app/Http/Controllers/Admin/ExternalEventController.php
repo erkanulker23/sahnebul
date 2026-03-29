@@ -47,7 +47,24 @@ class ExternalEventController extends Controller
             'artist' => ['nullable', 'string', 'max:120'],
         ]);
 
-        $query = ExternalEvent::query()->latest();
+        $query = ExternalEvent::query()
+            ->select([
+                'id',
+                'source',
+                'title',
+                'external_url',
+                'image_url',
+                'venue_name',
+                'city_name',
+                'category_name',
+                'start_date',
+                'meta',
+                'synced_event_id',
+                'created_at',
+                'updated_at',
+            ])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
 
         if (! empty($filters['source'])) {
             $query->where('source', $filters['source']);
@@ -84,8 +101,28 @@ class ExternalEventController extends Controller
             });
         }
 
+        $paginator = $query->paginate(25)->withQueryString();
+        $paginator->setCollection(
+            $paginator->getCollection()->map(function (ExternalEvent $e): array {
+                return [
+                    'id' => $e->id,
+                    'source' => $e->source,
+                    'title' => $e->title,
+                    'external_url' => $e->external_url,
+                    'image_url' => $e->image_url,
+                    'venue_name' => $e->venue_name,
+                    'city_name' => $e->city_name,
+                    'category_name' => $e->category_name,
+                    'start_date' => $e->start_date?->format('Y-m-d H:i:s'),
+                    'synced_event_id' => $e->synced_event_id,
+                    'meta' => ['rejected' => data_get($e->meta, 'rejected') === true],
+                    'description' => null,
+                ];
+            })
+        );
+
         return Inertia::render('Admin/ExternalEvents/Index', [
-            'items' => $query->paginate(25)->withQueryString(),
+            'items' => $paginator,
             'filters' => [
                 'source' => $filters['source'] ?? '',
                 'status' => $status,
@@ -96,6 +133,13 @@ class ExternalEventController extends Controller
             'crawlLookups' => $crawlLookups,
             'lastCrawlReport' => Session::get('external_events_last_crawl'),
         ]);
+    }
+
+    public function dismissLastCrawlReport(): RedirectResponse
+    {
+        Session::forget('external_events_last_crawl');
+
+        return back()->with('success', 'Son veri çekme özeti kaldırıldı.');
     }
 
     /**

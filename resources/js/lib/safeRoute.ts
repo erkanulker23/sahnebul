@@ -194,6 +194,8 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/admin/dis-kaynak-etkinlikler/veri-cek';
         case 'admin.external-events.crawl-preview':
             return '/admin/dis-kaynak-etkinlikler/onizle';
+        case 'admin.external-events.dismiss-last-crawl':
+            return '/admin/dis-kaynak-etkinlikler/son-cekme-temizle';
         case 'admin.external-events.bulk':
             return '/admin/dis-kaynak-etkinlikler/toplu-islem';
         case 'admin.external-events.sync': {

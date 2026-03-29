@@ -339,14 +339,28 @@ export default function AdminExternalEventsIndex({
                                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden />
                             )}
                             <div className="min-w-0 flex-1 space-y-2">
-                                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-800 dark:text-zinc-200">
-                                        Son veri çekme — {lastCrawlReport.finished_at}
-                                    </h2>
-                                    <span className="tabular-nums text-sm font-semibold">
-                                        İşlenen toplam:{' '}
-                                        <strong>{lastCrawlReport.total_processed.toLocaleString('tr-TR')}</strong>
-                                    </span>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                                        <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-800 dark:text-zinc-200">
+                                            Son veri çekme — {lastCrawlReport.finished_at}
+                                        </h2>
+                                        <span className="tabular-nums text-sm font-semibold">
+                                            İşlenen toplam:{' '}
+                                            <strong>{lastCrawlReport.total_processed.toLocaleString('tr-TR')}</strong>
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.post(safeRoute('admin.external-events.dismiss-last-crawl'), {}, {
+                                                preserveScroll: true,
+                                            })
+                                        }
+                                        className="shrink-0 rounded-lg border border-black/15 bg-white/80 px-3 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-white dark:border-white/20 dark:bg-zinc-800/80 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                                        title="Özet oturumdan silinir; yeni bir veri çekince yeniden görünür."
+                                    >
+                                        Özeti kaldır
+                                    </button>
                                 </div>
                                 <p className="text-sm leading-relaxed">{lastCrawlReport.summary}</p>
                                 {lastCrawlReport.rows.length > 0 ? (
@@ -716,7 +730,11 @@ export default function AdminExternalEventsIndex({
                                 </dl>
                                 {detailItem.description ? (
                                     <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">{detailItem.description}</p>
-                                ) : null}
+                                ) : (
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        Açıklama metni liste yükünü azaltmak için burada gösterilmez; tam metin için kaynak bağlantısını açın.
+                                    </p>
+                                )}
                                 {detailItem.external_url ? (
                                     <a
                                         href={detailItem.external_url}
