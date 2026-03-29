@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\NotifyAdminsOfNewStageUserRegistration;
 use App\Listeners\SendEmailVerificationNotificationSafely;
 use App\Services\AppSettingsService;
 use Illuminate\Auth\Events\Registered;
@@ -32,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(Registered::class, SendEmailVerificationNotificationSafely::class);
+        Event::listen(Registered::class, NotifyAdminsOfNewStageUserRegistration::class);
 
         App::setLocale(config('app.locale'));
 

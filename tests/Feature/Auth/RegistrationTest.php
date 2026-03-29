@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\SahnebulTemplateMail;
+use App\Models\User;
+use App\Support\RegistrationWelcomeMessages;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -34,6 +38,7 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertSessionHas('success', RegistrationWelcomeMessages::CUSTOMER);
         $this->assertDatabaseHas('users', [
             'email' => 'customer@example.com',
             'role' => 'customer',
@@ -43,6 +48,14 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register_as_artist(): void
     {
+        Mail::fake();
+
+        User::factory()->create([
+            'role' => 'super_admin',
+            'email' => 'admin-stage-notify@example.com',
+            'is_active' => true,
+        ]);
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'artist@example.com',
@@ -53,10 +66,16 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertSessionHas('success', RegistrationWelcomeMessages::STAGE_ARTIST);
         $this->assertDatabaseHas('users', [
             'email' => 'artist@example.com',
             'role' => 'artist',
         ]);
+
+        Mail::assertSent(SahnebulTemplateMail::class, function (SahnebulTemplateMail $mail): bool {
+            return str_contains($mail->emailSubject, 'Yeni sahne üyeliği')
+                && str_contains($mail->emailSubject, 'Sanatçı');
+        });
     }
 
     public function test_new_users_can_register_as_venue(): void
@@ -72,6 +91,7 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('artist.venues.create', absolute: false));
+        $response->assertSessionHas('success', RegistrationWelcomeMessages::STAGE_VENUE);
         $this->assertDatabaseHas('users', [
             'email' => 'venue@example.com',
             'role' => 'venue_owner',

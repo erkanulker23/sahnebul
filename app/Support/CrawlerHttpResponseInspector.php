@@ -30,7 +30,10 @@ final class CrawlerHttpResponseInspector
         $base = 'Bubilet isteği güvenlik duvarı (Cloudflare) tarafından engellendi. Sunucudan yapılan düz HTTP istekleri '
             .'«Just a moment…» doğrulamasını (JavaScript) tamamlayamaz. Geçici çözüm: .env içinde BUBILET_COOKIES (ör. name=value; …) '
             .'veya BUBILET_COOKIES_FILE ile Netscape cookies.txt yolu; Cloudflare için özellikle cf_clearance (çoğu durumda __cf_bm) gerekir — '
-            .'yalnızca _ga, _fbp veya cityId gibi çerezler yetmez. Kalıcı çözüm: resmi veri ortaklığı veya kuyrukta headless tarayıcı.';
+            .'yalnızca _ga, _fbp veya cityId gibi çerezler yetmez. '
+            .'.env değişince sunucuda `php artisan config:clear` veya deploy sonrası yapılandırma önbelleğini yenileyin. '
+            .'Önemli: cf_clearance çoğu zaman isteği atan IP ile bağlantılıdır; çerezi yalnızca kendi bilgisayarınızdan kopyaladıysanız Forge/sunucu IP’sinde geçersiz olabilir — mümkünse aynı sunucudan (SSH üzerinden tarayıcısız araç veya headless) alın veya BUBILET_USER_AGENT’ı çerezi export ettiğiniz tarayıcıyla aynı yapın. '
+            .'Kalıcı çözüm: resmi veri ortaklığı veya kuyrukta headless tarayıcı.';
 
         $c = $sentCookieHeader ?? '';
         if ($c !== '' && stripos($c, 'cf_clearance') === false) {

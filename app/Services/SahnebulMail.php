@@ -64,6 +64,75 @@ final class SahnebulMail
             ->all();
     }
 
+    /**
+     * Aktif admin kullanıcıları; yoksa site iletişim e-postaları ve config süper admin yedeği.
+     *
+     * @return list<string>
+     */
+    public static function adminNotificationRecipientEmails(): array
+    {
+        $admins = self::adminNotificationEmails();
+        if ($admins !== []) {
+            return $admins;
+        }
+
+        $site = app(AppSettingsService::class)->getSitePublicSettings();
+        foreach (['contact_email', 'support_email'] as $key) {
+            $e = isset($site[$key]) ? trim((string) $site[$key]) : '';
+            if ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                $admins[] = $e;
+            }
+        }
+
+        $fallback = config('sahnebul.super_admin.email');
+        if (is_string($fallback) && filter_var($fallback, FILTER_VALIDATE_EMAIL)) {
+            $admins[] = $fallback;
+        }
+
+        return array_values(array_unique(array_filter($admins)));
+    }
+
+    /**
+     * Yeni sahne paneli üyeliği (kayıt formu) — admin bilgilendirmesi.
+     */
+    public static function newStageUserRegistered(User $user): void
+    {
+        $admins = self::adminNotificationRecipientEmails();
+        if ($admins === []) {
+            return;
+        }
+
+        $roleTr = match ($user->role) {
+            'artist' => 'Sanatçı',
+            'venue_owner' => 'Mekân sahibi',
+            'manager_organization' => 'Organizasyon',
+            default => $user->role,
+        };
+
+        $detail = [
+            'Rol: <strong>'.e($roleTr).'</strong>',
+            'Ad: '.e($user->name),
+            'E-posta: '.e((string) $user->email),
+        ];
+        if ($user->role === 'venue_owner' && is_string($user->pending_venue_name) && trim($user->pending_venue_name) !== '') {
+            $detail[] = 'Bekleyen mekân adı: '.e(trim($user->pending_venue_name));
+        }
+        if ($user->role === 'manager_organization' && is_string($user->organization_display_name) && trim($user->organization_display_name) !== '') {
+            $detail[] = 'Firma / görünen ad: '.e(trim($user->organization_display_name));
+        }
+
+        self::safeSend(new SahnebulTemplateMail(
+            emailSubject: 'Yeni sahne üyeliği kaydı — '.e($roleTr).' — '.config('app.name'),
+            title: 'Yeni kullanıcı kaydı (sahne)',
+            introLines: [
+                'Siteden yeni bir <strong>'.e($roleTr).'</strong> hesabı oluşturuldu. Profil ve onay süreçlerini yönetim panelinden takip edebilirsiniz.',
+            ],
+            detailLines: $detail,
+            actionUrl: route('admin.users.index', absolute: true),
+            actionLabel: 'Kullanıcıları yönet',
+        ), $admins);
+    }
+
     public static function reservationSubmitted(Reservation $reservation): void
     {
         $reservation->loadMissing(['user', 'venue', 'event']);
@@ -142,21 +211,7 @@ final class SahnebulMail
 
     public static function contactFormSubmittedNotifyAdmins(ContactMessage $message): void
     {
-        $admins = self::adminNotificationEmails();
-        if ($admins === []) {
-            $site = app(AppSettingsService::class)->getSitePublicSettings();
-            foreach (['contact_email', 'support_email'] as $key) {
-                $e = isset($site[$key]) ? trim((string) $site[$key]) : '';
-                if ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) {
-                    $admins[] = $e;
-                }
-            }
-            $fallback = config('sahnebul.super_admin.email');
-            if (is_string($fallback) && filter_var($fallback, FILTER_VALIDATE_EMAIL)) {
-                $admins[] = $fallback;
-            }
-            $admins = array_values(array_unique(array_filter($admins)));
-        }
+        $admins = self::adminNotificationRecipientEmails();
         if ($admins === []) {
             return;
         }

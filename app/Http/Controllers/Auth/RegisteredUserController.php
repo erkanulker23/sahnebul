@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\RegistrationWelcomeMessages;
 use App\Support\SafeRedirect;
 use App\Support\UserContactValidation;
 use Illuminate\Auth\Events\Registered;
@@ -91,7 +92,8 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route('dashboard', absolute: false))
+            ->with('success', RegistrationWelcomeMessages::CUSTOMER);
     }
 
     /**
@@ -133,15 +135,22 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        $welcome = match ($request->input('membership_type')) {
+            'artist' => RegistrationWelcomeMessages::STAGE_ARTIST,
+            'venue' => RegistrationWelcomeMessages::STAGE_VENUE,
+            'organization' => RegistrationWelcomeMessages::STAGE_ORGANIZATION,
+            default => RegistrationWelcomeMessages::STAGE_ARTIST,
+        };
+
         $returnTo = SafeRedirect::relativePath($request->input('return_to'));
         if ($returnTo !== null) {
-            return redirect($returnTo);
+            return redirect($returnTo)->with('success', $welcome);
         }
 
         if ($user->isArtist()) {
-            return redirect(route('dashboard', absolute: false));
+            return redirect(route('dashboard', absolute: false))->with('success', $welcome);
         }
 
-        return redirect(route('artist.venues.create', absolute: false));
+        return redirect(route('artist.venues.create', absolute: false))->with('success', $welcome);
     }
 }

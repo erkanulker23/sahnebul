@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AppSettingsService;
+use App\Support\RegistrationWelcomeMessages;
 use App\Support\SafeRedirect;
 use Google\Client as GoogleClient;
 use Illuminate\Auth\Events\Registered;
@@ -117,6 +118,8 @@ class GoogleCredentialAuthController extends Controller
 
         $intended = SafeRedirect::relativePath($request->input('redirect'));
 
-        return redirect()->to($intended ?? route('dashboard', absolute: false));
+        return redirect()
+            ->to($intended ?? route('dashboard', absolute: false))
+            ->with('success', RegistrationWelcomeMessages::GOOGLE_NEW_USER);
     }
 }
