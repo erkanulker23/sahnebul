@@ -256,7 +256,9 @@ class MarketplaceCrawlerService
         $body = $response->body();
 
         if (CrawlerHttpResponseInspector::looksLikeCloudflareChallenge($body)) {
-            throw new RuntimeException(CrawlerHttpResponseInspector::cloudflareBlockedMessage());
+            throw new RuntimeException(
+                CrawlerHttpResponseInspector::cloudflareBlockedMessage($this->bubiletCookieHeaderString())
+            );
         }
 
         if (! $response->successful()) {
