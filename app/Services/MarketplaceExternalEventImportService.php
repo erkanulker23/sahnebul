@@ -48,7 +48,10 @@ class MarketplaceExternalEventImportService
             try {
                 $rows = $this->crawler->crawl($source);
             } catch (\Throwable $e) {
-                $bySource[$source] = ['error' => $e->getMessage(), 'rows' => []];
+                $bySource[$source] = [
+                    'error' => CrawlerHttpResponseInspector::compactCrawlerErrorForAdmin($e->getMessage()),
+                    'rows' => [],
+                ];
 
                 continue;
             }
@@ -207,7 +210,7 @@ class MarketplaceExternalEventImportService
             try {
                 $rows = $this->crawler->crawl($source);
             } catch (\Throwable $e) {
-                $errors[] = "{$source}: ".CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage());
+                $errors[] = "{$source}: ".CrawlerHttpResponseInspector::compactCrawlerErrorForAdmin($e->getMessage());
 
                 continue;
             }

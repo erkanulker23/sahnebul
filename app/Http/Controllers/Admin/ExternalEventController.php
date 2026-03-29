@@ -360,7 +360,8 @@ class ExternalEventController extends Controller
     {
         $totalProcessed = 0;
         $perSourceOk = [];
-        $errorParts = [];
+        /** @var array<string, list<string>> $errorGroups compact message => source keys */
+        $errorGroups = [];
         $rows = [];
 
         foreach ($results as $row) {
@@ -373,7 +374,7 @@ class ExternalEventController extends Controller
                 'error' => $err,
             ];
             if ($err !== null) {
-                $errorParts[] = $source.': '.$err;
+                $errorGroups[$err][] = $source;
 
                 continue;
             }
@@ -381,6 +382,13 @@ class ExternalEventController extends Controller
             if ($n > 0) {
                 $perSourceOk[] = $source.' → '.$n;
             }
+        }
+
+        $errorParts = [];
+        foreach ($errorGroups as $errMsg => $sources) {
+            $sources = array_values(array_unique($sources));
+            sort($sources, SORT_STRING);
+            $errorParts[] = implode(', ', $sources).': '.$errMsg;
         }
 
         if ($errorParts !== [] && $totalProcessed === 0) {

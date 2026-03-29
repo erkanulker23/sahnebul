@@ -70,4 +70,19 @@ final class CrawlerHttpResponseInspector
 
         return Str::limit($trimmed, 600, '…');
     }
+
+    /**
+     * Admin «Son veri çekme» tablosu ve özet satırları için kısa metin (tekrarlayan Cloudflare paragraflarını keser).
+     */
+    public static function compactCrawlerErrorForAdmin(string $message): string
+    {
+        $human = self::humanizeCrawlerErrorMessage($message);
+        $lower = mb_strtolower($human, 'UTF-8');
+        if (str_contains($lower, 'güvenlik duvarı (cloudflare)')
+            && str_contains($lower, 'bubilet')) {
+            return 'Cloudflare «Just a moment» engeli. .env: BUBILET_COOKIES / BUBILET_COOKIES_FILE (cf_clearance; tercihen sunucu IP’si). Tam metin: sayfa altı Bubilet notu.';
+        }
+
+        return Str::limit($human, 180, '…');
+    }
 }

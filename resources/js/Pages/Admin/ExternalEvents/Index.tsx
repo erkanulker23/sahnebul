@@ -364,7 +364,7 @@ export default function AdminExternalEventsIndex({
                                                     <tr key={`${r.source}-${idx}`}>
                                                         <td className="px-3 py-2 font-mono uppercase">{r.source}</td>
                                                         <td className="px-3 py-2 tabular-nums">{r.processed.toLocaleString('tr-TR')}</td>
-                                                        <td className="max-w-md px-3 py-2 text-rose-800 dark:text-rose-200">
+                                                        <td className="max-w-xl px-3 py-2 text-rose-800 dark:text-rose-200">
                                                             {r.error ?? '—'}
                                                         </td>
                                                     </tr>
