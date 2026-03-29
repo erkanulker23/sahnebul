@@ -248,11 +248,14 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             </div>
             {visibleNavItems.map((item) => {
                 const Icon = item.icon;
+                /** Ziggy listesi deploy/önbellek uyumsuzluğunda route() patlamasın — yedek path kullan */
                 const href =
                     item.href === 'admin.event-artist-reports.index' ||
                     item.href === 'admin.seo-tools.index' ||
                     item.href === 'admin.content-sliders.index' ||
-                    item.href === 'admin.external-events.index'
+                    item.href === 'admin.external-events.index' ||
+                    item.href === 'admin.google-sign-in.index' ||
+                    item.href === 'admin.verification-scripts.index'
                         ? safeRoute(item.href, item.query ?? {})
                         : route(item.href, item.query ?? {});
 

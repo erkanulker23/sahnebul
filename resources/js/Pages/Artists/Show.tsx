@@ -516,10 +516,7 @@ export default function ArtistShow({
                             </div>
                         </div>
                         <div className="mt-auto w-full border-t border-white/10 bg-zinc-950 px-3 py-4 sm:px-5 sm:py-5 lg:px-8">
-                            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-                                <h1 className="min-w-0 flex-1 truncate font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
-                                    {artist.name}
-                                </h1>
+                            <div className="mx-auto flex max-w-7xl items-center justify-end gap-4">
                                 <div className="shrink-0">
                                     {artistFavorite.canToggle ? (
                                         <button
@@ -774,12 +771,9 @@ export default function ArtistShow({
 
                         {/* Sağ: Bio + Etkinlikler */}
                         <div className="min-w-0 flex-1">
-                            <p
-                                className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl"
-                                aria-hidden="true"
-                            >
+                            <h1 className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
                                 {artist.name}
-                            </p>
+                            </h1>
                             <div
                                 className={`mt-6 border-t border-zinc-200 pt-6 dark:border-white/10 ${shareUrlForSocial ? 'flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10' : ''}`}
                             >
