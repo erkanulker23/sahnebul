@@ -6,7 +6,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { safeRoute } from '@/lib/safeRoute';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
-import { Eye, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, Loader2, X } from 'lucide-react';
 
 interface ExternalEventItem {
     id: number;
@@ -48,6 +48,14 @@ interface PreviewPayload {
 
 type PaginationLink = { url: string | null; label: string; active: boolean };
 
+export interface LastCrawlReport {
+    finished_at: string;
+    status: 'success' | 'warning' | 'error' | 'info';
+    total_processed: number;
+    rows: { source: string; processed: number; error: string | null }[];
+    summary: string;
+}
+
 interface Props {
     items: {
         data: ExternalEventItem[];
@@ -61,6 +69,7 @@ interface Props {
     filters: { source: string; status: 'all' | 'pending' | 'synced' | 'rejected'; search: string; artist: string };
     sources: string[];
     crawlLookups?: { cities: CrawlLookupItem[]; categories: CrawlLookupItem[] };
+    lastCrawlReport?: LastCrawlReport | null;
 }
 
 const selectClass =
@@ -77,7 +86,26 @@ function itemStatus(item: ExternalEventItem): { label: string; className: string
     return { label: 'Bekliyor', className: 'bg-amber-500/15 text-amber-800 dark:text-amber-400' };
 }
 
-export default function AdminExternalEventsIndex({ items, filters, sources, crawlLookups }: Readonly<Props>) {
+function lastCrawlPanelClass(status: LastCrawlReport['status']): string {
+    switch (status) {
+        case 'error':
+            return 'border-rose-300 bg-rose-50/90 text-rose-950 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100';
+        case 'warning':
+            return 'border-amber-400 bg-amber-50/90 text-amber-950 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100';
+        case 'success':
+            return 'border-emerald-300 bg-emerald-50/90 text-emerald-950 dark:border-emerald-800/50 dark:bg-emerald-950/35 dark:text-emerald-100';
+        default:
+            return 'border-zinc-300 bg-zinc-100/90 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900/60 dark:text-zinc-100';
+    }
+}
+
+export default function AdminExternalEventsIndex({
+    items,
+    filters,
+    sources,
+    crawlLookups,
+    lastCrawlReport,
+}: Readonly<Props>) {
     const page = usePage();
     const pageErrors = (page.props as { errors?: Record<string, string | string[]> }).errors ?? {};
     const crawlValidationMessages = useMemo(() => {
@@ -105,6 +133,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [crawlBusy, setCrawlBusy] = useState(false);
+    const [crawlTransportError, setCrawlTransportError] = useState<string | null>(null);
     const [previewData, setPreviewData] = useState<PreviewPayload | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [detailItem, setDetailItem] = useState<ExternalEventItem | null>(null);
@@ -166,10 +195,21 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
     }, [crawlForm.data]);
 
     const runCrawl = () => {
+        setCrawlTransportError(null);
         setCrawlBusy(true);
         router.post(safeRoute('admin.external-events.crawl'), crawlPayload(), {
             preserveScroll: true,
             onFinish: () => setCrawlBusy(false),
+            onError: (errs) => {
+                const bag = errs as Record<string, string | string[]>;
+                const flat = Object.values(bag)
+                    .flatMap((v) => (Array.isArray(v) ? v : [v]))
+                    .filter((x): x is string => typeof x === 'string' && x.trim() !== '');
+                setCrawlTransportError(
+                    flat[0] ??
+                        'İstek tamamlanamadı (oturum süresi, güvenlik veya çok sık deneme). Sayfayı yenileyip tekrar deneyin.',
+                );
+            },
         });
     };
 
@@ -285,16 +325,89 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                     }
                 />
 
+                {lastCrawlReport ? (
+                    <section
+                        className={`rounded-xl border-2 p-4 shadow-sm ${lastCrawlPanelClass(lastCrawlReport.status)}`}
+                        aria-label="Son veri çekme işlemi"
+                    >
+                        <div className="flex flex-wrap items-start gap-3">
+                            {lastCrawlReport.status === 'error' ? (
+                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
+                            ) : lastCrawlReport.status === 'warning' ? (
+                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
+                            ) : (
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden />
+                            )}
+                            <div className="min-w-0 flex-1 space-y-2">
+                                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-800 dark:text-zinc-200">
+                                        Son veri çekme — {lastCrawlReport.finished_at}
+                                    </h2>
+                                    <span className="tabular-nums text-sm font-semibold">
+                                        İşlenen toplam:{' '}
+                                        <strong>{lastCrawlReport.total_processed.toLocaleString('tr-TR')}</strong>
+                                    </span>
+                                </div>
+                                <p className="text-sm leading-relaxed">{lastCrawlReport.summary}</p>
+                                {lastCrawlReport.rows.length > 0 ? (
+                                    <div className="overflow-x-auto rounded-lg border border-black/10 bg-white/60 dark:border-white/10 dark:bg-black/20">
+                                        <table className="min-w-full text-left text-xs sm:text-sm">
+                                            <thead>
+                                                <tr className="border-b border-black/10 text-zinc-600 dark:border-white/10 dark:text-zinc-400">
+                                                    <th className="px-3 py-2 font-semibold">Kaynak</th>
+                                                    <th className="px-3 py-2 font-semibold">İşlenen</th>
+                                                    <th className="px-3 py-2 font-semibold">Hata</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-black/5 dark:divide-white/10">
+                                                {lastCrawlReport.rows.map((r, idx) => (
+                                                    <tr key={`${r.source}-${idx}`}>
+                                                        <td className="px-3 py-2 font-mono uppercase">{r.source}</td>
+                                                        <td className="px-3 py-2 tabular-nums">{r.processed.toLocaleString('tr-TR')}</td>
+                                                        <td className="max-w-md px-3 py-2 text-rose-800 dark:text-rose-200">
+                                                            {r.error ?? '—'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
+
                 <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; işlemi sunucuda tamamlanır,
-                        bittiğinde üstte bildirimde kaç kayıt işlendiği veya hata metni gösterilir; tablo da güncellenir. İşlem uzun sürebilir.{' '}
+                        Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; sunucuda biter;{' '}
+                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">sonuç üstteki «Son veri çekme» kutusunda</strong> kalır (sayfayı yenileseniz de görünür). Üst köşede kısa bildirim de çıkabilir.
+                        İşlem uzun sürebilir; proxy zaman aşımı varsa tarayıcı hata verebilir — o durumda sunucu loglarına bakın.{' '}
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
                             çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve çekimde atlanır.
                         </span>
                     </p>
+                    {crawlBusy ? (
+                        <div
+                            className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-100/80 px-3 py-2.5 text-sm font-medium text-amber-950 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-100"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                            Veri çekimi sunucuda çalışıyor… Lütfen bekleyin; bitince bu sayfada özet güncellenir.
+                        </div>
+                    ) : null}
+                    {crawlTransportError ? (
+                        <div
+                            className="mt-3 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-100"
+                            role="alert"
+                        >
+                            <p className="font-semibold">İstek hatası</p>
+                            <p className="mt-1">{crawlTransportError}</p>
+                        </div>
+                    ) : null}
                     {crawlValidationMessages.length > 0 && (
                         <div
                             className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200"

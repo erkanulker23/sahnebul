@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -34,6 +35,7 @@ class ExternalEventController extends Controller
                 'filters' => ['source' => '', 'status' => 'pending', 'search' => '', 'artist' => ''],
                 'sources' => array_keys(config('crawler.sources', [])),
                 'crawlLookups' => $crawlLookups,
+                'lastCrawlReport' => Session::get('external_events_last_crawl'),
             ]);
         }
 
@@ -91,6 +93,7 @@ class ExternalEventController extends Controller
             ],
             'sources' => array_keys(config('crawler.sources', [])),
             'crawlLookups' => $crawlLookups,
+            'lastCrawlReport' => Session::get('external_events_last_crawl'),
         ]);
     }
 
@@ -273,7 +276,10 @@ class ExternalEventController extends Controller
     public function crawl(Request $request): RedirectResponse
     {
         if (! Schema::hasTable('external_events')) {
-            return back()->with('error', 'external_events tablosu bulunamadı. Önce migration çalıştırın.');
+            $msg = 'external_events tablosu bulunamadı. Önce migration çalıştırın.';
+            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+
+            return back()->with('error', $msg);
         }
 
         $this->relaxCrawlerExecutionTimeLimit();
@@ -283,7 +289,10 @@ class ExternalEventController extends Controller
 
         $configured = array_keys(config('crawler.sources', []));
         if ($configured === []) {
-            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
+            $msg = 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).';
+            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+
+            return back()->with('error', $msg);
         }
 
         try {
@@ -298,40 +307,75 @@ class ExternalEventController extends Controller
             );
         } catch (\Throwable $e) {
             report($e);
+            $msg = 'Veri çekilirken hata oluştu: '.$e->getMessage();
+            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
 
-            return back()->with(
-                'error',
-                'Veri çekilirken hata oluştu: '.$e->getMessage(),
-            );
+            return back()->with('error', $msg);
         }
 
         if ($results === []) {
-            return back()->with('error', 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).');
+            $msg = 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).';
+            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+
+            return back()->with('error', $msg);
         }
 
-        return back()->with(
-            'success',
-            $this->formatCrawlResultFlashMessage($results),
-        );
+        $outcome = $this->crawlOutcomeFromResults($results);
+        $this->persistLastCrawlReport($outcome['report']);
+
+        $flashKey = $outcome['report']['status'] === 'error' ? 'error' : 'success';
+
+        return back()->with($flashKey, $outcome['message']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $report
+     */
+    private function persistLastCrawlReport(array $report): void
+    {
+        Session::put('external_events_last_crawl', $report);
+    }
+
+    /**
+     * @param  list<array{source: string, processed: int, error: string|null}>  $rows
+     * @return array{finished_at: string, status: string, total_processed: int, rows: list<array{source: string, processed: int, error: string|null}>, summary: string}
+     */
+    private function minimalCrawlReport(string $status, string $summary, int $totalProcessed, array $rows): array
+    {
+        return [
+            'finished_at' => now()->timezone(config('app.timezone'))->format('d.m.Y H:i:s'),
+            'status' => $status,
+            'total_processed' => $totalProcessed,
+            'rows' => $rows,
+            'summary' => $summary,
+        ];
     }
 
     /**
      * @param  list<array{source: string, processed: int, synced: int, error?: string}>  $results
+     * @return array{message: string, report: array{finished_at: string, status: string, total_processed: int, rows: list<array{source: string, processed: int, error: string|null}>, summary: string}}
      */
-    private function formatCrawlResultFlashMessage(array $results): string
+    private function crawlOutcomeFromResults(array $results): array
     {
         $totalProcessed = 0;
         $perSourceOk = [];
         $errorParts = [];
+        $rows = [];
 
         foreach ($results as $row) {
             $source = (string) ($row['source'] ?? '?');
-            if (! empty($row['error'])) {
-                $errorParts[] = $source.': '.$row['error'];
+            $err = ! empty($row['error']) ? (string) $row['error'] : null;
+            $n = (int) ($row['processed'] ?? 0);
+            $rows[] = [
+                'source' => $source,
+                'processed' => $n,
+                'error' => $err,
+            ];
+            if ($err !== null) {
+                $errorParts[] = $source.': '.$err;
 
                 continue;
             }
-            $n = (int) ($row['processed'] ?? 0);
             $totalProcessed += $n;
             if ($n > 0) {
                 $perSourceOk[] = $source.' → '.$n;
@@ -339,11 +383,17 @@ class ExternalEventController extends Controller
         }
 
         if ($errorParts !== [] && $totalProcessed === 0) {
-            return 'Crawl tamamlandı ancak kayıt işlenemedi. '.implode(' | ', $errorParts);
+            $message = 'Crawl tamamlandı ancak kayıt işlenemedi. '.implode(' | ', $errorParts);
+            $report = $this->minimalCrawlReport('error', $message, 0, $rows);
+
+            return ['message' => $message, 'report' => $report];
         }
 
         if ($totalProcessed === 0 && $errorParts === []) {
-            return 'Crawl tamamlandı. Filtreye veya limite uyan yeni kayıt yok (0 işlendi). Tarih, şehir veya önizlemeyi kontrol edin.';
+            $message = 'Crawl tamamlandı. Filtreye veya limite uyan yeni kayıt yok (0 işlendi). Tarih, şehir veya önizlemeyi kontrol edin.';
+            $report = $this->minimalCrawlReport('info', $message, 0, $rows);
+
+            return ['message' => $message, 'report' => $report];
         }
 
         $headline = 'Crawl tamamlandı. Toplam '.$totalProcessed.' aday kayıt yazıldı veya güncellendi.';
@@ -354,7 +404,11 @@ class ExternalEventController extends Controller
         if ($errorParts !== []) {
             $rest[] = 'Uyarı: '.implode(' | ', $errorParts);
         }
+        $message = $rest === [] ? $headline : $headline.' '.implode(' ', $rest);
 
-        return $rest === [] ? $headline : $headline.' '.implode(' ', $rest);
+        $status = $errorParts !== [] ? 'warning' : 'success';
+        $report = $this->minimalCrawlReport($status, $message, $totalProcessed, $rows);
+
+        return ['message' => $message, 'report' => $report];
     }
 }

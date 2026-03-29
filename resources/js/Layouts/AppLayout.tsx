@@ -2,6 +2,7 @@ import { AdSlot } from '@/Components/AdSlot';
 import BrowserNotificationsBar from '@/Components/BrowserNotificationsBar';
 import EmailVerificationBanner from '@/Components/EmailVerificationBanner';
 import FlashMessage from '@/Components/FlashMessage';
+import GoogleOneTapPrompt from '@/Components/GoogleOneTapPrompt';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
 import { Link, usePage } from '@inertiajs/react';
@@ -80,6 +81,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
             <EmailVerificationBanner />
             <BrowserNotificationsBar />
             <FlashMessage />
+            <GoogleOneTapPrompt />
 
             <AdSlot
                 slotKey="header_below_nav"
