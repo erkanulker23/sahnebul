@@ -15,6 +15,9 @@ if command -v composer >/dev/null 2>&1; then
   composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 fi
 
+# Yerel geliştirme "hot" dosyası üretimde kalırsa Vite yanlışlıkla kapalı dev sunucusuna yönlendirir.
+rm -f public/hot
+
 # Bozuk/yarım node_modules (ENOTEMPTY: rmdir) — özellikle ardışık deploy'larda npm ci bazen patlar.
 rm -rf node_modules
 
@@ -30,6 +33,12 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 
 # Sunucuda tsc atlanır (bellek + süre); tipler push öncesi yerelde `npm run build` ile doğrulanmalı
 npm run build:deploy
+
+if [[ ! -f public/build/manifest.json ]]; then
+  echo "HATA: public/build/manifest.json yok — Vite derlemesi başarısız veya yanlış dizin."
+  echo "Çözüm: NODE_OPTIONS / RAM kontrol edin; yerelde 'npm run build:deploy' deneyin."
+  exit 1
+fi
 
 php artisan migrate --force
 

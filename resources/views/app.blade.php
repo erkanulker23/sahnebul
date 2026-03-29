@@ -1,3 +1,7 @@
+@php
+    /** Yerelde `npm run dev` → public/hot; üretimde `npm run build` → public/build/manifest.json */
+    $viteReady = file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json'));
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -28,10 +32,12 @@
         <meta name="apple-mobile-web-app-title" content="Sahnebul">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <link rel="apple-touch-icon" href="{{ url('/icons/apple-touch-icon.png') }}">
-        @if ($inertiaDocumentMeta !== null)
+        @if ($viteReady && $inertiaDocumentMeta !== null)
             @include('partials.inertia-document-meta', ['doc' => $inertiaDocumentMeta])
-        @else
+        @elseif ($viteReady)
             <title inertia>{{ config('app.name', 'Sahnebul') }}</title>
+        @else
+            <title>Ön yüz derlemesi eksik — {{ config('app.name', 'Sahnebul') }}</title>
         @endif
 
         {{-- Plus Jakarta Sans: Vite / @fontsource (app.css) — Google Fonts kritik zinciri kaldırıldı --}}
@@ -53,13 +59,37 @@
             })();
         </script>
 
-        <!-- Scripts -->
-        @routes
-        @viteReactRefresh
-        @vite(['resources/js/app.tsx'])
-        @inertiaHead
+        @if ($viteReady)
+            <!-- Scripts -->
+            @routes
+            @viteReactRefresh
+            @vite(['resources/js/app.tsx'])
+            @inertiaHead
+        @endif
     </head>
     <body class="font-sans antialiased bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-        @inertia
+        @if ($viteReady)
+            @inertia
+        @else
+            <div class="mx-auto max-w-lg px-6 py-16 text-center">
+                <p class="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">Dağıtım</p>
+                <h1 class="mt-3 text-2xl font-bold text-zinc-900 dark:text-white">Ön yüz paketleri bulunamadı</h1>
+                <p class="mt-4 text-left text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    Sunucuda <code class="rounded bg-zinc-200 px-1 py-0.5 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">public/build/manifest.json</code>
+                    yok (ve geliştirme modu <code class="rounded bg-zinc-200 px-1 py-0.5 dark:bg-zinc-800">public/hot</code> de yok).
+                    Laravel Vite bu yüzden sayfayı oluşturamıyor.
+                </p>
+                <p class="mt-4 text-left text-sm text-zinc-600 dark:text-zinc-400">
+                    <strong class="text-zinc-800 dark:text-zinc-200">Forge:</strong> Deploy betiğinde proje kökünde
+                    <code class="rounded bg-zinc-200 px-1 py-0.5 dark:bg-zinc-800">npm ci</code> ve
+                    <code class="rounded bg-zinc-200 px-1 py-0.5 dark:bg-zinc-800">npm run build:deploy</code>
+                    çalıştığından emin olun. Repodaki <code class="rounded bg-zinc-200 px-1 py-0.5 dark:bg-zinc-800">scripts/forge-deploy.sh</code>
+                    örneğini kullanabilirsiniz; betik derleme sonrası manifest dosyasını doğrular.
+                </p>
+                <p class="mt-4 text-left text-xs text-zinc-500">
+                    SSH: <code class="break-all rounded bg-zinc-100 px-1 py-0.5 dark:bg-zinc-900">cd {{ base_path() }} &amp;&amp; npm ci &amp;&amp; npm run build:deploy</code>
+                </p>
+            </div>
+        @endif
     </body>
 </html>
