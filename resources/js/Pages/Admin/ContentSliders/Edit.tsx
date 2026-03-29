@@ -6,6 +6,7 @@ import { inputBaseClass } from '@/Components/ui/Input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { cn } from '@/lib/cn';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 
@@ -60,9 +61,9 @@ export default function AdminContentSliderEdit({ slider }: Readonly<Props>) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         if (isEdit && slider) {
-            post(route('admin.content-sliders.update', slider.id), { forceFormData: true });
+            post(safeRoute('admin.content-sliders.update', { content_slider: slider.id }), { forceFormData: true });
         } else {
-            post(route('admin.content-sliders.store'), { forceFormData: true });
+            post(safeRoute('admin.content-sliders.store'), { forceFormData: true });
         }
     };
 
@@ -74,7 +75,7 @@ export default function AdminContentSliderEdit({ slider }: Readonly<Props>) {
             <SeoHead title={isEdit ? 'Slider düzenle | Admin' : 'Yeni slider | Admin'} description="" noindex />
             <div className="space-y-6">
                 <Link
-                    href={route('admin.content-sliders.index')}
+                    href={safeRoute('admin.content-sliders.index')}
                     className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
                 >
                     ← Slider listesi

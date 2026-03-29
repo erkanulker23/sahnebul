@@ -64,6 +64,36 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         }
         case 'admin.seo-tools.index':
             return '/admin/seo-site-haritasi';
+        case 'admin.content-sliders.index':
+            return '/admin/slider';
+        case 'admin.content-sliders.create':
+            return '/admin/slider/ekle';
+        case 'admin.content-sliders.store':
+            return '/admin/slider';
+        case 'admin.content-sliders.edit': {
+            const id = params?.content_slider ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/slider/${id}/duzenle`;
+            }
+
+            return '/admin/slider';
+        }
+        case 'admin.content-sliders.update': {
+            const id = params?.content_slider ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/slider/${id}/guncelle`;
+            }
+
+            return '/admin/slider';
+        }
+        case 'admin.content-sliders.destroy': {
+            const id = params?.content_slider ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/slider/${id}`;
+            }
+
+            return '/admin/slider';
+        }
         case 'artist.organization.artists.index':
             return `/sahne/organizasyon/sanatcilar${queryString(params ?? {})}`;
         case 'artist.organization.artists.store':

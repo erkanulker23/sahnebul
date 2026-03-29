@@ -164,6 +164,9 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
         );
 
     const navItemIsActive = (item: AdminNavItem) => {
+        if (item.href === 'admin.content-sliders.index' && currentUrl.startsWith('/admin/slider')) {
+            return true;
+        }
         try {
             if (item.query && Object.keys(item.query).length > 0) {
                 if (! route().current(item.href)) {
@@ -194,12 +197,6 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             if (item.href === 'admin.blog.index' && route().current('admin.blog.create')) {
                 return true;
             }
-            if (
-                item.href === 'admin.content-sliders.index' &&
-                (route().current('admin.content-sliders.create') || route().current('admin.content-sliders.edit'))
-            ) {
-                return true;
-            }
             if (item.href === 'admin.subscriptions.index' && route().current('admin.subscriptions.create')) {
                 return true;
             }
@@ -227,8 +224,10 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const href =
-                    item.href === 'admin.event-artist-reports.index' || item.href === 'admin.seo-tools.index'
-                        ? safeRoute(item.href)
+                    item.href === 'admin.event-artist-reports.index' ||
+                    item.href === 'admin.seo-tools.index' ||
+                    item.href === 'admin.content-sliders.index'
+                        ? safeRoute(item.href, item.query ?? {})
                         : route(item.href, item.query ?? {});
 
                 return (

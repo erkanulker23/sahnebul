@@ -502,7 +502,7 @@ export default function AdminSettingsIndex({
                             <span className="mt-1 block text-xs text-zinc-500">Search Console ve sitemap.xml</span>
                         </Link>
                         <Link
-                            href={route('admin.content-sliders.index')}
+                            href={safeRoute('admin.content-sliders.index')}
                             className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 transition hover:border-amber-500/40 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-white"
                         >
                             <span className="font-medium text-amber-800 dark:text-amber-400">Slider</span>
@@ -562,7 +562,7 @@ export default function AdminSettingsIndex({
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 Logo, favicon ve sitede görünen marka adı. Ana sayfa (/) üst hero görselleri ve metinleri için{' '}
                                 <Link
-                                    href={route('admin.content-sliders.index')}
+                                    href={safeRoute('admin.content-sliders.index')}
                                     className="font-medium text-amber-700 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-600 dark:text-amber-400"
                                 >
                                     Yönetim → Slider
@@ -646,7 +646,7 @@ export default function AdminSettingsIndex({
                                 <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/mekanlar</code> sayfasının üst
                                 hero’su, ana sayfa ile aynı görselleri kullanır; burada yalnızca o sayfada görünen üç slayt için metinleri düzenlersiniz.
                                 Görselleri ve ana sayfa (/) üstündeki metinleri{' '}
-                                <Link href={route('admin.content-sliders.index')} className="font-medium text-amber-700 hover:underline dark:text-amber-400">
+                                <Link href={safeRoute('admin.content-sliders.index')} className="font-medium text-amber-700 hover:underline dark:text-amber-400">
                                     Yönetim → Slider
                                 </Link>{' '}
                                 üzerinden «Ana sayfa hero» slaytlarıyla yönetin.

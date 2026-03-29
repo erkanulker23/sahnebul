@@ -488,7 +488,7 @@ export default function ArtistShow({
 
             <div className="min-h-screen">
                 <section
-                    className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${
+                    className={`hero-full-bleed relative flex min-h-[min(52vh,28rem)] flex-col overflow-hidden ${
                         bannerPhoto ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'
                     }`}
                 >
@@ -505,40 +505,17 @@ export default function ArtistShow({
                         }
                         aria-hidden
                     />
-                    <div className="relative mx-auto w-full max-w-7xl px-3 py-10 sm:px-5 sm:py-12 lg:px-8 lg:py-16">
-                        <Link href={route('artists.index')} className="text-sm text-amber-300 transition hover:text-amber-200">
-                            ← Tüm Sanatçılar
-                        </Link>
-                        <div className="mt-6 max-w-4xl">
-                            <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">{artist.name}</h1>
-                            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                    <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 pt-8 sm:px-5 sm:pt-10 lg:px-8 lg:pt-12">
+                            <Link href={route('artists.index')} className="text-sm text-amber-300 transition hover:text-amber-200">
+                                ← Tüm Sanatçılar
+                            </Link>
+                            <div className="mt-6 flex max-w-4xl flex-wrap items-center gap-3 text-sm">
                                 <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">
                                     {artist.genre ?? 'Sanatçı'}
                                 </span>
                                 {artist.is_verified_profile ? (
                                     <VerifiedArtistProfileBadge size="md" className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100" />
-                                ) : null}
-                                {artistFavorite.canToggle ? (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
-                                        }
-                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                                            artistFavorite.isFavorited
-                                                ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400'
-                                                : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
-                                        }`}
-                                    >
-                                        {artistFavorite.isFavorited ? '♥ Favorilerde' : 'Favorilere ekle'}
-                                    </button>
-                                ) : !user ? (
-                                    <Link
-                                        href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
-                                        className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                                    >
-                                        Favoriler için giriş
-                                    </Link>
                                 ) : null}
                                 <button
                                     type="button"
@@ -548,6 +525,37 @@ export default function ArtistShow({
                                     <PenLine className="h-4 w-4" aria-hidden strokeWidth={2} />
                                     Düzenleme öner
                                 </button>
+                            </div>
+                        </div>
+                        <div className="mt-auto w-full border-t border-white/10 bg-zinc-950 px-3 py-4 sm:px-5 sm:py-5 lg:px-8">
+                            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+                                <h1 className="min-w-0 flex-1 truncate font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
+                                    {artist.name}
+                                </h1>
+                                <div className="shrink-0">
+                                    {artistFavorite.canToggle ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                            }
+                                            className={`rounded-full border px-5 py-2 text-sm font-bold transition ${
+                                                artistFavorite.isFavorited
+                                                    ? 'border-white/50 bg-white/10 text-white hover:bg-white/15'
+                                                    : 'border-white text-white hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {artistFavorite.isFavorited ? 'Takiptesin' : 'Takip Et'}
+                                        </button>
+                                    ) : !user ? (
+                                        <Link
+                                            href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                            className="inline-flex rounded-full border border-white px-5 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+                                        >
+                                            Takip Et
+                                        </Link>
+                                    ) : null}
+                                </div>
                             </div>
                         </div>
                     </div>
