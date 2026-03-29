@@ -46,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureUserIsActive::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'odeme/paytr/bildirim',
+        ]);
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'super_admin' => EnsureUserIsSuperAdmin::class,

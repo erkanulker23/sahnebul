@@ -10,12 +10,15 @@ use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelContro
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
 use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageController;
+use App\Http\Controllers\Admin\ContentSliderController as AdminContentSliderController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventArtistReportController as AdminEventArtistReportController;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
 use App\Http\Controllers\Admin\ManagedSubscriptionController as AdminManagedSubscriptionController;
 use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
+use App\Http\Controllers\Admin\PageSeoController as AdminPageSeoController;
+use App\Http\Controllers\Admin\PaytrSettingsController as AdminPaytrSettingsController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\PublicEditSuggestionController as AdminPublicEditSuggestionController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
@@ -47,6 +50,7 @@ use App\Http\Controllers\EventPublicController;
 use App\Http\Controllers\EventReviewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PaytrCallbackController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoGalleryUrlImportStatusController;
 use App\Http\Controllers\PublicEditSuggestionController;
@@ -118,6 +122,8 @@ Route::get('/iletisim', [ContactController::class, 'create'])->name('contact');
 Route::post('/iletisim', [ContactController::class, 'store'])
     ->middleware('throttle:8,1')
     ->name('contact.store');
+
+Route::post('/odeme/paytr/bildirim', PaytrCallbackController::class)->name('paytr.callback');
 
 require __DIR__.'/auth.php';
 
@@ -393,6 +399,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/rezervasyonlar/{reservation}', [AdminReservationController::class, 'show'])->name('reservations.show');
     Route::patch('/rezervasyonlar/{reservation}/durum', [AdminReservationController::class, 'updateStatus'])->name('reservations.updateStatus');
 
+    Route::get('/slider', [AdminContentSliderController::class, 'index'])->name('content-sliders.index');
+    Route::get('/slider/ekle', [AdminContentSliderController::class, 'create'])->name('content-sliders.create');
+    Route::post('/slider', [AdminContentSliderController::class, 'store'])->name('content-sliders.store');
+    Route::get('/slider/{content_slider}/duzenle', [AdminContentSliderController::class, 'edit'])->name('content-sliders.edit');
+    Route::post('/slider/{content_slider}/guncelle', [AdminContentSliderController::class, 'update'])->name('content-sliders.update');
+    Route::delete('/slider/{content_slider}', [AdminContentSliderController::class, 'destroy'])->name('content-sliders.destroy');
+
     Route::get('/iletisim-mesajlari', [AdminContactMessageController::class, 'index'])->name('contact-messages.index');
     Route::get('/iletisim-mesajlari/{contactMessage}', [AdminContactMessageController::class, 'show'])->name('contact-messages.show');
     Route::get('/iletisim-mesajlari/{contactMessage}/duzenle', [AdminContactMessageController::class, 'edit'])->name('contact-messages.edit');
@@ -446,6 +459,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/smtp/test-mail', [AdminSmtpSettingsController::class, 'sendTestMail'])->name('smtp.test-mail');
 
         Route::post('/ayarlar/site', [AdminSettingsController::class, 'updateSite'])->name('settings.site');
+
+        Route::get('/seo-sayfalar', [AdminPageSeoController::class, 'index'])->name('page-seo.index');
+        Route::post('/seo-sayfalar', [AdminPageSeoController::class, 'update'])->name('page-seo.update');
+
+        Route::get('/paytr', [AdminPaytrSettingsController::class, 'index'])->name('paytr.index');
+        Route::post('/paytr', [AdminPaytrSettingsController::class, 'update'])->name('paytr.update');
+        Route::post('/paytr/dogrula', [AdminPaytrSettingsController::class, 'validateLocal'])->name('paytr.validate-local');
     });
 
     Route::get('/ayarlar', [AdminSettingsController::class, 'index'])->name('settings.index');

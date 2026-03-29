@@ -1,3 +1,4 @@
+import GoogleSignInButton from '@/Components/GoogleSignInButton';
 import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
@@ -7,7 +8,7 @@ import SeoHead from '@/Components/SeoHead';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { safeRoute } from '@/lib/safeRoute';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 
 const portalMeta: Record<
@@ -59,6 +60,16 @@ export default function LoginPortal({
     claimVenueSlug?: string | null;
     claimArtistSlug?: string | null;
 }>) {
+    const page = usePage();
+    const redirectFromQuery = useMemo(() => {
+        const u = page.url;
+        const i = u.indexOf('?');
+        if (i < 0) {
+            return null;
+        }
+        return new URLSearchParams(u.slice(i + 1)).get('redirect');
+    }, [page.url]);
+
     const meta = portalMeta[portal] ?? portalMeta.kullanici;
 
     const registerHref = useMemo(() => {
@@ -138,7 +149,12 @@ export default function LoginPortal({
                 </p>
             )}
 
-            <form onSubmit={submit} className="mt-8 space-y-6">
+            {portal === 'kullanici' ? <GoogleSignInButton redirect={redirectFromQuery} /> : null}
+            {portal === 'kullanici' && (errors as { credential?: string }).credential ? (
+                <p className="mt-3 text-sm text-red-600 dark:text-red-400">{(errors as { credential?: string }).credential}</p>
+            ) : null}
+
+            <form onSubmit={submit} className={portal === 'kullanici' ? 'mt-6 space-y-6' : 'mt-8 space-y-6'}>
                 <div>
                     <InputLabel htmlFor="email" value="E-posta" />
                     <TextInput
@@ -192,35 +208,37 @@ export default function LoginPortal({
                 </PrimaryButton>
             </form>
 
-            <div className="mt-6 space-y-3 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-500">
-                <p>Diğer girişler:</p>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                    <Link
-                        href={safeRoute('login')}
-                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                    >
-                        Kullanıcı
-                    </Link>
-                    <Link
-                        href={safeRoute('login.sanatci')}
-                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                    >
-                        Sanatçı
-                    </Link>
-                    <Link
-                        href={safeRoute('login.mekan')}
-                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                    >
-                        Mekan
-                    </Link>
-                    <Link
-                        href={safeRoute('login.organizasyon')}
-                        className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                    >
-                        Organizasyon
-                    </Link>
+            {portal !== 'yonetim' && (
+                <div className="mt-6 space-y-3 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-500">
+                    <p>Diğer girişler:</p>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+                        <Link
+                            href={safeRoute('login')}
+                            className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Kullanıcı
+                        </Link>
+                        <Link
+                            href={safeRoute('login.sanatci')}
+                            className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Sanatçı
+                        </Link>
+                        <Link
+                            href={safeRoute('login.mekan')}
+                            className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Mekan
+                        </Link>
+                        <Link
+                            href={safeRoute('login.organizasyon')}
+                            className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Organizasyon
+                        </Link>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {portal === 'kullanici' && (
                 <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">

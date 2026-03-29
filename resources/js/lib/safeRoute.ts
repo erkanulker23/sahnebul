@@ -40,6 +40,8 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/yonetim/giris';
         case 'contact':
             return '/iletisim';
+        case 'auth.google.credential':
+            return '/auth/google/kimlik';
         case 'login.store': {
             const portal = params?.portal;
             if (typeof portal === 'string' && portal !== '') {

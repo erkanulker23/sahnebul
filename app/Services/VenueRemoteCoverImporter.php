@@ -52,7 +52,7 @@ class VenueRemoteCoverImporter
     /**
      * İndirme başarısızsa null döner.
      *
-     * @param  string  $directory  Yalnızca venue-covers veya venue-media
+     * @param  string  $directory  venue-covers, venue-media, artist-avatars veya artist-banners
      */
     public function importToPublicDisk(string $url, string $directory = 'venue-covers'): ?string
     {
@@ -61,7 +61,8 @@ class VenueRemoteCoverImporter
             return null;
         }
 
-        $directory = in_array($directory, ['venue-covers', 'venue-media'], true) ? $directory : 'venue-covers';
+        $allowed = ['venue-covers', 'venue-media', 'artist-avatars', 'artist-banners'];
+        $directory = in_array($directory, $allowed, true) ? $directory : 'venue-covers';
 
         try {
             $response = Http::timeout(45)

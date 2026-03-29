@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\Category;
 use App\Models\City;
+use App\Models\ContentSlider;
 use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenueClaimRequest;
@@ -124,22 +125,76 @@ class VenueController extends Controller
         );
 
         $site = $this->appSettings->getSitePublicSettings();
+
+        $homeHeroSliders = ContentSlider::query()
+            ->where('placement', ContentSlider::PLACEMENT_HOME_HERO)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->limit(HomeHeroSlides::MAX_SLIDES)
+            ->get();
+
         $heroImageUrls = [];
-        foreach (HomeHeroSlides::pathsFromSite($site) as $path) {
-            $u = $this->appSettings->publicStorageUrl($path);
-            if (is_string($u) && $u !== '') {
+        $rawHomeCopy = null;
+        if ($homeHeroSliders->isNotEmpty()) {
+            $copyRows = [];
+            foreach ($homeHeroSliders as $hs) {
+                $path = trim((string) $hs->image_path);
+                if ($path === '') {
+                    continue;
+                }
+                $u = $this->appSettings->publicStorageUrl($path);
+                if (! is_string($u) || $u === '') {
+                    continue;
+                }
                 $heroImageUrls[] = $u;
+                $copyRows[] = [
+                    'eyebrow' => (string) ($hs->hero_eyebrow ?? ''),
+                    'headline' => (string) ($hs->hero_headline ?? ''),
+                    'headline_accent' => (string) ($hs->hero_headline_accent ?? ''),
+                    'body' => (string) ($hs->hero_body ?? ''),
+                ];
+            }
+            if ($copyRows !== []) {
+                $rawHomeCopy = $copyRows;
             }
         }
+        if ($heroImageUrls === []) {
+            foreach (HomeHeroSlides::pathsFromSite($site) as $path) {
+                $u = $this->appSettings->publicStorageUrl($path);
+                if (is_string($u) && $u !== '') {
+                    $heroImageUrls[] = $u;
+                }
+            }
+            $rawHomeCopy = is_array($site['home_hero_slide_copy'] ?? null) ? $site['home_hero_slide_copy'] : null;
+        }
 
-        $rawHomeCopy = is_array($site['home_hero_slide_copy'] ?? null) ? $site['home_hero_slide_copy'] : null;
         $rawVenuesCopy = is_array($site['venues_hero_slide_copy'] ?? null) ? $site['venues_hero_slide_copy'] : null;
 
         $defaultHeroLcp = 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=85&w=2400&auto=format&fit=crop';
         $lcpHeroUrl = $heroImageUrls[0] ?? $defaultHeroLcp;
 
+        $contentSliders = [];
+        if (! $request->is('mekanlar')) {
+            $contentSliders = ContentSlider::query()
+                ->where('placement', ContentSlider::PLACEMENT_FEATURED)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (ContentSlider $s) => [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'subtitle' => $s->subtitle,
+                    'link_url' => $s->link_url,
+                    'image_url' => $this->appSettings->publicStorageUrl($s->image_path),
+                ])
+                ->all();
+        }
+
         $inertia = Inertia::render('Venues/Index', [
             'isVenuesPage' => $request->is('mekanlar'),
+            'contentSliders' => $contentSliders,
             'heroImageUrls' => $heroImageUrls,
             'homeHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawHomeCopy, HomeHeroSlideDefaults::homeDefaults()),
             'venuesHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawVenuesCopy, HomeHeroSlideDefaults::venuesDefaults()),

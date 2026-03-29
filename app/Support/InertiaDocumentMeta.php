@@ -53,7 +53,7 @@ final class InertiaDocumentMeta
             ? SeoFormatting::toAbsoluteUrl($defaultOg, $appUrl)
             : null;
 
-        return match ($component) {
+        $resolved = match ($component) {
             'Artists/Show' => self::artistShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Artists/Index' => self::artistsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Venues/Show' => self::venueShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
@@ -69,6 +69,52 @@ final class InertiaDocumentMeta
             'SehirSec/ExternalEventShow' => self::externalEventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             default => null,
         };
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        return self::appendVerificationMetaTags($resolved, $seo);
+    }
+
+    /**
+     * @param  array<string, mixed>  $seo
+     * @param  array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>|list<array<string, mixed>>}  $doc
+     * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>|list<array<string, mixed>>}
+     */
+    private static function appendVerificationMetaTags(array $doc, array $seo): array
+    {
+        $prepend = [];
+        $g = isset($seo['googleSiteVerification']) ? trim((string) $seo['googleSiteVerification']) : '';
+        if ($g !== '') {
+            $prepend[] = ['t' => 'meta', 'attrs' => ['name' => 'google-site-verification', 'content' => $g]];
+        }
+        $y = isset($seo['yandexSiteVerification']) ? trim((string) $seo['yandexSiteVerification']) : '';
+        if ($y !== '') {
+            $prepend[] = ['t' => 'meta', 'attrs' => ['name' => 'yandex-verification', 'content' => $y]];
+        }
+        $b = isset($seo['bingSiteVerification']) ? trim((string) $seo['bingSiteVerification']) : '';
+        if ($b !== '') {
+            $prepend[] = ['t' => 'meta', 'attrs' => ['name' => 'msvalidate.01', 'content' => $b]];
+        }
+        if ($prepend === []) {
+            return $doc;
+        }
+        $doc['tags'] = array_merge($prepend, $doc['tags']);
+
+        return $doc;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function pageSeoBaseVars(string $siteName, string $defaultDesc): array
+    {
+        return [
+            'site_name' => $siteName,
+            'year' => (string) date('Y'),
+            'default_description' => $defaultDesc,
+        ];
     }
 
     /**
@@ -137,14 +183,22 @@ final class InertiaDocumentMeta
         $avatar = isset($artist['avatar']) ? (string) $artist['avatar'] : '';
 
         $pageTitle = $name.' Konserleri, Performansları ve Etkinlikleri';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $keywordLead = $name.' konserleri, performansları ve etkinlikleri';
         $bioPlain = SeoFormatting::stripHtmlToText($bio);
         $genreSuffix = $genre !== '' ? ' Tür: '.$genre.'.' : '';
         $fallback = $keywordLead.'. Yaklaşan ve geçmiş konserler, canlı performanslar ve etkinlik takvimi Sahnebul’da.'.$genreSuffix;
-        $desc = SeoFormatting::truncateMetaDescription(
-            $bioPlain !== '' ? $keywordLead.'. '.$bioPlain : $fallback,
+        $descDefault = $bioPlain !== '' ? $keywordLead.'. '.$bioPlain : $fallback;
+        [$pageTitle, $descRaw] = PageSeoResolver::apply(
+            'artist_show',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'artist_name' => $name,
+                'genre' => $genre,
+            ]),
+            $pageTitle,
+            $descDefault,
         );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $desc = SeoFormatting::truncateMetaDescription($descRaw);
 
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
         $ogImage = SeoFormatting::absoluteMediaUrl($avatar, $appUrl) ?? $defaultOgAbs;
@@ -204,8 +258,14 @@ final class InertiaDocumentMeta
         ?string $defaultOgAbs,
     ): array {
         $pageTitle = 'Sanatçılar - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = 'Türkiye’deki konser ve etkinlik sanatçılarını keşfedin; konser takvimleri ve mekan bilgileri Sahnebul’da.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'artists_index',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         $out = [
@@ -387,11 +447,19 @@ final class InertiaDocumentMeta
         }
 
         $pageTitle = $name.' - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $plainDesc = SeoFormatting::stripHtmlToText($description);
-        $desc = SeoFormatting::truncateMetaDescription(
-            $plainDesc !== '' ? $plainDesc : $name.' — '.$city.'. '.($category !== '' ? $category.'. ' : '').'Yorumlar, takvim ve rezervasyon Sahnebul’da.',
+        $descDefault = $plainDesc !== '' ? $plainDesc : $name.' — '.$city.'. '.($category !== '' ? $category.'. ' : '').'Yorumlar, takvim ve rezervasyon Sahnebul’da.';
+        [$pageTitle, $descRaw] = PageSeoResolver::apply(
+            'venue_show',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'venue_name' => $name,
+                'city_name' => $city,
+            ]),
+            $pageTitle,
+            $descDefault,
         );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $desc = SeoFormatting::truncateMetaDescription($descRaw);
 
         $jsonLd = [
             '@context' => 'https://schema.org',
@@ -444,9 +512,21 @@ final class InertiaDocumentMeta
         if ($isVenuesPage) {
             $pageTitle = 'Mekanlar - Sahnebul';
             $desc = 'Konser salonları, kulüpler ve etkinlik mekanlarını keşfedin; yorumlar, etkinlik takvimi ve rezervasyon Sahnebul’da.';
+            [$pageTitle, $desc] = PageSeoResolver::apply(
+                'venues_index',
+                self::pageSeoBaseVars($siteName, $defaultDesc),
+                $pageTitle,
+                $desc,
+            );
         } else {
             $pageTitle = 'Sahnebul — Konser, etkinlik ve mekan keşfi';
             $desc = $defaultDesc;
+            [$pageTitle, $desc] = PageSeoResolver::apply(
+                'home',
+                self::pageSeoBaseVars($siteName, $defaultDesc),
+                $pageTitle,
+                $desc,
+            );
         }
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
@@ -499,7 +579,6 @@ final class InertiaDocumentMeta
         $artists = is_array($event['artists'] ?? null) ? $event['artists'] : [];
 
         $pageTitle = $title.' - Etkinlik';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $plainDesc = SeoFormatting::stripHtmlToText($description);
         $localDate = '';
         if (is_string($start) && $start !== '') {
@@ -525,9 +604,19 @@ final class InertiaDocumentMeta
         if ($dateLine === '') {
             $dateLine = $localDate !== '' ? 'Tarih: '.$localDate.'.' : 'Tarih yakında açıklanacak.';
         }
-        $desc = SeoFormatting::truncateMetaDescription(
-            $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. '.$dateLine.' Bilet ve detaylar Sahnebul’da.',
+        $descLong = $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. '.$dateLine.' Bilet ve detaylar Sahnebul’da.';
+        [$pageTitle, $descLong] = PageSeoResolver::apply(
+            'event_show',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'event_title' => $title,
+                'venue_name' => $venueName,
+                'city_name' => $cityName,
+            ]),
+            $pageTitle,
+            $descLong,
         );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $desc = SeoFormatting::truncateMetaDescription($descLong);
 
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
         $ogImage = SeoFormatting::absoluteMediaUrl($cover, $appUrl);
@@ -674,8 +763,14 @@ final class InertiaDocumentMeta
         ?string $defaultOgAbs,
     ): array {
         $pageTitle = 'Etkinlikler & Konserler & Performanslar - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = 'Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'events_index',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         $out = [
@@ -711,11 +806,18 @@ final class InertiaDocumentMeta
         $publishedAt = isset($post['published_at']) ? (string) $post['published_at'] : '';
         $author = is_array($post['author'] ?? null) ? (string) ($post['author']['name'] ?? '') : '';
 
-        $fullTitle = SeoFormatting::buildDocumentTitle($title, $siteName);
         $plain = SeoFormatting::stripHtmlToText($content);
-        $desc = SeoFormatting::truncateMetaDescription(
-            $plain !== '' ? $plain : $title.' — Sahnebul blog.',
+        $descDefault = $plain !== '' ? $plain : $title.' — Sahnebul blog.';
+        [$pageTitle, $descRaw] = PageSeoResolver::apply(
+            'blog_show',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'blog_title' => $title,
+            ]),
+            $title,
+            $descDefault,
         );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $desc = SeoFormatting::truncateMetaDescription($descRaw);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
         $ogImage = SeoFormatting::absoluteMediaUrl($cover, $appUrl) ?? $defaultOgAbs;
 
@@ -772,8 +874,14 @@ final class InertiaDocumentMeta
         ?string $defaultOgAbs,
     ): array {
         $pageTitle = 'Blog - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = 'Konser kültürü, mekan ipuçları ve Sahnebul haberleri; blog yazılarımızı keşfedin.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'blog_index',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         return [
@@ -794,8 +902,14 @@ final class InertiaDocumentMeta
         ?string $defaultOgAbs,
     ): array {
         $pageTitle = 'İletişim - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = 'Sahnebul ile iletişime geçin; öneri, iş birliği ve destek talepleriniz için formu kullanabilirsiniz.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'contact',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         return [
@@ -820,11 +934,18 @@ final class InertiaDocumentMeta
         $title = (string) ($props['title'] ?? 'Sayfa');
         $content = isset($props['content']) ? (string) $props['content'] : '';
         $pageTitle = $title.' - Sahnebul';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $plain = SeoFormatting::stripHtmlToText($content);
-        $desc = SeoFormatting::truncateMetaDescription(
-            $plain !== '' ? $plain : $title.' — Sahnebul.',
+        $descDefault = $plain !== '' ? $plain : $title.' — Sahnebul.';
+        [$pageTitle, $descRaw] = PageSeoResolver::apply(
+            'legal_page',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'page_title' => $title,
+            ]),
+            $pageTitle,
+            $descDefault,
         );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $desc = SeoFormatting::truncateMetaDescription($descRaw);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         return [
@@ -845,8 +966,14 @@ final class InertiaDocumentMeta
         ?string $defaultOgAbs,
     ): array {
         $pageTitle = 'Şehrini seç';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = 'Şehrine göre Sahnebul etkinlikleri — /etkinlikler ile aynı yayınlanmış program.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'sehir_sec',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         return [
@@ -870,8 +997,16 @@ final class InertiaDocumentMeta
     ): array {
         $cityName = (string) ($props['cityName'] ?? 'Şehir');
         $pageTitle = $cityName.' — Popüler etkinlikler';
-        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = $cityName.' etkinlikleri — /etkinlikler ile aynı platform kaydı. İlçe, tür ve kategoriye göre süzebilirsiniz.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'sehir_sec_city',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'city_name' => $cityName,
+            ]),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
         return [
@@ -901,9 +1036,19 @@ final class InertiaDocumentMeta
         $imageUrl = isset($event['image_url']) ? (string) $event['image_url'] : '';
 
         $pageTitle = $title.' - Etkinlik özeti';
+        $descLong = trim($description) !== '' ? $description : $title.($venueName !== '' ? ' — '.$venueName : '').($cityName !== '' ? ', '.$cityName : '').'. Tarih ve fiyat bilgisi bilgilendirme amaçlıdır.';
+        [$pageTitle, $descLong] = PageSeoResolver::apply(
+            'external_event_show',
+            array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
+                'event_title' => $title,
+                'venue_name' => $venueName,
+                'city_name' => $cityName,
+            ]),
+            $pageTitle,
+            $descLong,
+        );
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
-        $descRaw = trim($description) !== '' ? $description : $title.($venueName !== '' ? ' — '.$venueName : '').($cityName !== '' ? ', '.$cityName : '').'. Tarih ve fiyat bilgisi bilgilendirme amaçlıdır.';
-        $desc = SeoFormatting::truncateMetaDescription($descRaw);
+        $desc = SeoFormatting::truncateMetaDescription($descLong);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
         $ogImage = preg_match('#^https?://#i', $imageUrl) === 1 ? $imageUrl : null;
         if ($ogImage === null) {
@@ -982,9 +1127,6 @@ final class InertiaDocumentMeta
         return sprintf('Tarih: %s – %s.', $s->format('d.m.Y H:i'), $e->format('d.m.Y H:i'));
     }
 
-    /**
-     * @param  mixed  $value
-     */
     private static function isoFromEventProp(mixed $value): string
     {
         if ($value === null || $value === '') {

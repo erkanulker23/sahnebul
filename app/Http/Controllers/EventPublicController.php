@@ -148,6 +148,7 @@ class EventPublicController extends Controller
             && $u->canSubmitEventReviewForEvent((int) $event->id);
 
         $futureStart = $event->start_date !== null && $event->start_date->isFuture();
+        $hasFinished = $event->hasFinishedAt();
 
         if ($event->promo_gallery !== null && ! is_array($event->promo_gallery)) {
             $decoded = json_decode(json_encode($event->promo_gallery), true);
@@ -155,6 +156,7 @@ class EventPublicController extends Controller
         }
 
         $event->setAttribute('is_ongoing', $event->isOngoingNow());
+        $event->setAttribute('has_finished', $hasFinished);
 
         return Inertia::render('Events/Show', [
             'event' => $event,

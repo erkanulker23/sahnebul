@@ -27,7 +27,7 @@ class AppSettingsService
     private const ADMIN_COUNTS_KEY = 'admin.notification_counts';
 
     /** @var list<string> */
-    private const SETTING_KEYS = ['footer', 'ads', 'legal_pages', 'smtp', 'site', 'google_maps_browser_key'];
+    private const SETTING_KEYS = ['footer', 'ads', 'legal_pages', 'smtp', 'site', 'google_maps_browser_key', 'page_seo', 'paytr'];
 
     public function getRaw(string $key): ?string
     {

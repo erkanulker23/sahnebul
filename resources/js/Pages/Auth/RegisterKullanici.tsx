@@ -1,3 +1,4 @@
+import GoogleSignInButton from '@/Components/GoogleSignInButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -83,7 +84,12 @@ export default function RegisterKullanici() {
             <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Kullanıcı kaydı</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">Favoriler ve hatırlatmalar için ücretsiz hesap oluşturun.</p>
 
-            <form onSubmit={submit} className="mt-8 space-y-6">
+            <GoogleSignInButton />
+            {(errors as { credential?: string }).credential ? (
+                <p className="mt-3 text-sm text-red-600 dark:text-red-400">{(errors as { credential?: string }).credential}</p>
+            ) : null}
+
+            <form onSubmit={submit} className="mt-6 space-y-6">
                 <div>
                     <InputLabel htmlFor="name" value="Ad Soyad" />
                     <TextInput

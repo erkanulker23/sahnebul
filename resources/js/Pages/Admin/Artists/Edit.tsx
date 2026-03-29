@@ -452,6 +452,9 @@ export default function AdminArtistEdit({
                             placeholder="https://... veya boş bırakıp dosya yükleyin"
                             className={field}
                         />
+                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            https ile başlayan adres kaydederken sunucuya indirilir; veritabanında yerel depolama yolu tutulur.
+                        </p>
                         <div className="mt-2 flex flex-wrap items-center gap-3">
                             {storageUrl(data.avatar) && (
                                 <img src={storageUrl(data.avatar) ?? ''} alt="" className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700" />
@@ -494,6 +497,9 @@ export default function AdminArtistEdit({
                             placeholder="https://... veya boş"
                             className={field}
                         />
+                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            Banner URL&apos;si de aynı şekilde kayıtta indirilip yerel dosyaya çevrilir.
+                        </p>
                         {storageUrl(data.banner_image) && (
                             <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
                                 <img

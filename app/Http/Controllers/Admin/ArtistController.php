@@ -10,6 +10,7 @@ use App\Models\MusicGenre;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\EventMediaImportFromUrlService;
+use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use App\Support\ArtistPublicUsername;
 use App\Support\TurkishPhone;
@@ -26,6 +27,10 @@ use Inertia\Inertia;
 class ArtistController extends Controller
 {
     use PromoGalleryImportActions;
+
+    public function __construct(
+        private readonly VenueRemoteCoverImporter $remoteImageImporter,
+    ) {}
 
     public function checkUsernameAvailability(Request $request): JsonResponse
     {
@@ -174,9 +179,19 @@ class ArtistController extends Controller
         unset($validated['avatar_upload'], $validated['banner_upload']);
         if ($request->hasFile('avatar_upload')) {
             $validated['avatar'] = $request->file('avatar_upload')->store('artist-avatars', 'public');
+        } elseif (! empty($validated['avatar']) && is_string($validated['avatar'])) {
+            $avatarUrl = trim($validated['avatar']);
+            if ($avatarUrl !== '' && Str::startsWith($avatarUrl, ['http://', 'https://'])) {
+                $validated['avatar'] = $this->importArtistImageFromUrl($avatarUrl, 'artist-avatars', 'avatar');
+            }
         }
         if ($request->hasFile('banner_upload')) {
             $validated['banner_image'] = $request->file('banner_upload')->store('artist-banners', 'public');
+        } elseif (! empty($validated['banner_image']) && is_string($validated['banner_image'])) {
+            $bannerUrl = trim($validated['banner_image']);
+            if ($bannerUrl !== '' && Str::startsWith($bannerUrl, ['http://', 'https://'])) {
+                $validated['banner_image'] = $this->importArtistImageFromUrl($bannerUrl, 'artist-banners', 'banner_image');
+            }
         }
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, [
@@ -280,10 +295,19 @@ class ArtistController extends Controller
                 Storage::disk('public')->delete($artist->avatar);
             }
             $validated['avatar'] = $request->file('avatar_upload')->store('artist-avatars', 'public');
-        } elseif ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
-            $newAvatar = $validated['avatar'] ?? null;
-            if ($newAvatar === null || $newAvatar === '' || $newAvatar !== $artist->avatar) {
-                Storage::disk('public')->delete($artist->avatar);
+        } else {
+            $newAvatar = isset($validated['avatar']) ? trim((string) $validated['avatar']) : '';
+            if ($newAvatar !== '' && Str::startsWith($newAvatar, ['http://', 'https://'])) {
+                $path = $this->importArtistImageFromUrl($newAvatar, 'artist-avatars', 'avatar');
+                if ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
+                    Storage::disk('public')->delete($artist->avatar);
+                }
+                $validated['avatar'] = $path;
+            } elseif ($artist->avatar && ! Str::startsWith($artist->avatar, ['http://', 'https://'])) {
+                $newAvatarForCompare = $validated['avatar'] ?? null;
+                if ($newAvatarForCompare === null || $newAvatarForCompare === '' || $newAvatarForCompare !== $artist->avatar) {
+                    Storage::disk('public')->delete($artist->avatar);
+                }
             }
         }
 
@@ -292,10 +316,19 @@ class ArtistController extends Controller
                 Storage::disk('public')->delete($artist->banner_image);
             }
             $validated['banner_image'] = $request->file('banner_upload')->store('artist-banners', 'public');
-        } elseif ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
-            $newBanner = $validated['banner_image'] ?? null;
-            if ($newBanner === null || $newBanner === '' || $newBanner !== $artist->banner_image) {
-                Storage::disk('public')->delete($artist->banner_image);
+        } else {
+            $newBanner = isset($validated['banner_image']) ? trim((string) $validated['banner_image']) : '';
+            if ($newBanner !== '' && Str::startsWith($newBanner, ['http://', 'https://'])) {
+                $path = $this->importArtistImageFromUrl($newBanner, 'artist-banners', 'banner_image');
+                if ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
+                    Storage::disk('public')->delete($artist->banner_image);
+                }
+                $validated['banner_image'] = $path;
+            } elseif ($artist->banner_image && ! Str::startsWith($artist->banner_image, ['http://', 'https://'])) {
+                $newBannerForCompare = $validated['banner_image'] ?? null;
+                if ($newBannerForCompare === null || $newBannerForCompare === '' || $newBannerForCompare !== $artist->banner_image) {
+                    Storage::disk('public')->delete($artist->banner_image);
+                }
             }
         }
 
@@ -443,6 +476,23 @@ class ArtistController extends Controller
      *
      * @param  array<string, mixed>  $validated
      */
+    private function importArtistImageFromUrl(string $url, string $directory, string $errorKey): string
+    {
+        if (! $this->remoteImageImporter->isMirrorableUrl($url)) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Bu görsel adresi güvenlik veya biçim nedeniyle kullanılamıyor.',
+            ]);
+        }
+        $path = $this->remoteImageImporter->importToPublicDisk($url, $directory);
+        if ($path === null) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Görsel indirilemedi. Bağlantıyı kontrol edin veya dosya yükleyin.',
+            ]);
+        }
+
+        return $path;
+    }
+
     private static function applySpotifyFromAdminSocialLinks(array &$validated): void
     {
         $social = $validated['social_links'] ?? null;

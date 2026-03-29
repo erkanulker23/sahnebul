@@ -62,6 +62,11 @@ class HandleInertiaRequests extends Middleware
         $keywords = isset($seoBlock['keywords']) ? trim((string) $seoBlock['keywords']) : '';
         $twitterHandle = isset($seoBlock['twitter_handle']) ? trim((string) $seoBlock['twitter_handle']) : '';
         $googleSiteVerification = isset($seoBlock['google_site_verification']) ? trim((string) $seoBlock['google_site_verification']) : '';
+        $yandexVerification = isset($seoBlock['yandex_verification']) ? trim((string) $seoBlock['yandex_verification']) : '';
+        $bingVerification = isset($seoBlock['bing_verification']) ? trim((string) $seoBlock['bing_verification']) : '';
+        $gsi = is_array($sitePublic['google_sign_in'] ?? null) ? $sitePublic['google_sign_in'] : [];
+        $googleClientId = isset($gsi['client_id']) ? trim((string) $gsi['client_id']) : '';
+        $googleSignInEnabled = (bool) ($gsi['enabled'] ?? false) && $googleClientId !== '';
 
         $linkedArtist = null;
         if ($user !== null) {
@@ -104,6 +109,12 @@ class HandleInertiaRequests extends Middleware
                 'keywords' => $keywords !== '' ? $keywords : null,
                 'twitterHandle' => $twitterHandle !== '' ? $twitterHandle : null,
                 'googleSiteVerification' => $googleSiteVerification !== '' ? $googleSiteVerification : null,
+                'yandexSiteVerification' => $yandexVerification !== '' ? $yandexVerification : null,
+                'bingSiteVerification' => $bingVerification !== '' ? $bingVerification : null,
+            ],
+            'googleAuth' => [
+                'enabled' => $googleSignInEnabled,
+                'clientId' => $googleSignInEnabled ? $googleClientId : null,
             ],
             'authPortalLogins' => AuthPortalUrls::forInertiaShare(),
             'auth' => [

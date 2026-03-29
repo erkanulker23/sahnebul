@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\GoogleCredentialAuthController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -63,6 +64,10 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->middleware('throttle:password-reset')
         ->name('password.store');
+
+    Route::post('/auth/google/kimlik', [GoogleCredentialAuthController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('auth.google.credential');
 });
 
 Route::middleware('auth')->group(function () {

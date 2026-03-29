@@ -16,6 +16,7 @@ import {
     CreditCard,
     FileText,
     Folder,
+    GalleryHorizontal,
     Globe,
     Image,
     Inbox,
@@ -29,6 +30,7 @@ import {
     PenLine,
     Mic2,
     Search,
+    NotebookText,
     Settings,
     Tags,
     User,
@@ -78,6 +80,9 @@ const navItems: AdminNavItem[] = [
     { navKey: 'admin.ad-slots.index', href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
     { navKey: 'admin.smtp.index', href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
     { navKey: 'admin.settings.index', href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
+    { navKey: 'admin.content-sliders.index', href: 'admin.content-sliders.index', label: 'Slider ekle', icon: GalleryHorizontal },
+    { navKey: 'admin.page-seo.index', href: 'admin.page-seo.index', label: 'SEO sayfaları', icon: NotebookText },
+    { navKey: 'admin.paytr.index', href: 'admin.paytr.index', label: 'PayTR ödeme', icon: CreditCard },
     { navKey: 'admin.seo-tools.index', href: 'admin.seo-tools.index', label: 'SEO / Site haritası', icon: Search },
 ];
 
@@ -97,7 +102,15 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
     const isSuperAdmin = pageProps.auth?.is_super_admin === true;
 
     const visibleNavItems = useMemo(
-        () => (isSuperAdmin ? navItems : navItems.filter((i) => i.navKey !== 'admin.smtp.index')),
+        () =>
+            isSuperAdmin
+                ? navItems
+                : navItems.filter(
+                      (i) =>
+                          i.navKey !== 'admin.smtp.index' &&
+                          i.navKey !== 'admin.page-seo.index' &&
+                          i.navKey !== 'admin.paytr.index',
+                  ),
         [isSuperAdmin],
     );
     const currentUrl = usePage().url;
@@ -179,6 +192,12 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                 return true;
             }
             if (item.href === 'admin.blog.index' && route().current('admin.blog.create')) {
+                return true;
+            }
+            if (
+                item.href === 'admin.content-sliders.index' &&
+                (route().current('admin.content-sliders.create') || route().current('admin.content-sliders.edit'))
+            ) {
                 return true;
             }
             if (item.href === 'admin.subscriptions.index' && route().current('admin.subscriptions.create')) {

@@ -85,6 +85,8 @@ interface Event {
     promo_gallery?: PromoGalleryItem[] | null;
     /** Sunucu: başlangıç–bitiş aralığında (PHP ile aynı mantık) */
     is_ongoing?: boolean;
+    /** Sunucu: bitiş zamanı geçtiyse bilet / rezervasyon / harici linkler kapalı */
+    has_finished?: boolean;
 }
 
 interface EventReviewRow {
@@ -304,6 +306,8 @@ export default function EventShow({
         acquisitionMode === 'sahnebul' ||
         ticketOutlets.length > 0 ||
         purchaseNote.length > 0;
+    const eventHasFinished = event.has_finished === true;
+    const ticketUiActive = hasTicketChannels && !eventHasFinished;
     const ticketSectionIntro =
         acquisitionMode === 'external_platforms'
             ? 'Bilet veya rezervasyon aşağıdaki platform bağlantıları üzerinden yapılır; Sahnebul rezervasyon formu bu etkinlik için kullanılmaz.'
@@ -435,6 +439,11 @@ export default function EventShow({
                             </Link>
                         </p>
                         <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl">{event.title}</h1>
+                        {eventHasFinished ? (
+                            <p className="mt-3 max-w-2xl rounded-lg border border-zinc-400/40 bg-zinc-900/50 px-3 py-2 text-sm font-semibold text-zinc-100">
+                                Bu etkinlik tamamlandı. Bilet satışı, harici bağlantılar ve Sahnebul rezervasyonu bu sayfa için kapatılmıştır.
+                            </p>
+                        ) : null}
                         {eventOngoing ? (
                             <p className="mt-3 max-w-2xl rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-2 text-sm font-semibold text-amber-100">
                                 Bu etkinlik şu anda devam ediyor
@@ -585,7 +594,7 @@ export default function EventShow({
                             )}
                         </div>
 
-                        {hasTiers && !entryFree && (
+                        {hasTiers && !entryFree && !eventHasFinished && (
                             <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                                 <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Bilet fiyatları</h2>
                                 <p className="mt-1 text-sm text-zinc-500">Kategoriye göre farklı fiyatlar geçerlidir.</p>
@@ -625,6 +634,13 @@ export default function EventShow({
                             className="scroll-mt-24 rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6"
                         >
                             <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Biletleri nereden alabilirsiniz?</h2>
+                            {eventHasFinished ? (
+                                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                                    Etkinlik süresi sona erdiği için satın alma ve rezervasyon yönlendirmeleri gösterilmez. Geçmiş etkinlik bilgisi olarak açıklama ve mekân
+                                    iletişimini inceleyebilirsiniz.
+                                </p>
+                            ) : (
+                                <>
                             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{ticketSectionIntro}</p>
                             {hasTicketChannels ? (
                                 <div className="mt-5 space-y-4">
@@ -691,6 +707,8 @@ export default function EventShow({
                                 <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
                                     Bu etkinlik için henüz bilet veya rezervasyon kanalı tanımlanmamış. Bilgi için yan sütundaki mekân kutusunu kullanabilirsiniz.
                                 </p>
+                            )}
+                                </>
                             )}
                         </div>
 
@@ -1075,7 +1093,7 @@ export default function EventShow({
                                 </div>
                             )}
                         </div>
-                        {hasTicketChannels && (
+                        {ticketUiActive && (
                             <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/80">
                                 <h3 className="font-display text-sm font-bold uppercase tracking-wide text-zinc-500">Hızlı erişim</h3>
                                 <div className="mt-3 space-y-2">
@@ -1124,7 +1142,7 @@ export default function EventShow({
                             <div className="sticky top-24 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/80 sm:p-6">
                                 <h3 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Giriş</h3>
                                 <p className="mt-2 text-xl font-bold text-emerald-600 dark:text-emerald-400">Ücretsiz giriş</p>
-                                {hasTicketChannels ? (
+                                {ticketUiActive ? (
                                     <a
                                         href="#bilet-kanallari"
                                         className="mt-4 inline-block text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"
@@ -1133,7 +1151,7 @@ export default function EventShow({
                                     </a>
                                 ) : null}
                             </div>
-                        ) : hasTiers ? (
+                        ) : hasTiers && !eventHasFinished ? (
                             <div className="sticky top-24 rounded-2xl border-2 border-zinc-200 bg-white p-4 shadow-lg dark:border-white/10 dark:bg-zinc-900/80 sm:p-6">
                                 <h3 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Bilet kategorileri</h3>
                                 <p className="mt-1 text-xs text-zinc-500">Salon bölümüne göre fiyatlar</p>
@@ -1164,17 +1182,17 @@ export default function EventShow({
                                     ))}
                                 </ul>
                                 <p className="mt-4 text-xs text-zinc-500">
-                                    {hasTicketChannels
+                                    {ticketUiActive
                                         ? 'Satın alma seçenekleri yukarıda ve “Biletleri nereden alabilirsiniz?” bölümünde.'
                                         : 'Bilet bilgisi için yan sütundaki mekân kutusunu kullanın.'}
                                 </p>
                             </div>
                         ) : (
-                            event.ticket_price != null && (
+                            event.ticket_price != null && !eventHasFinished && (
                                 <div className="sticky top-24 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-zinc-900/80 sm:p-6">
                                     <h3 className="font-display text-lg font-bold">Bilet fiyatı</h3>
                                     <p className="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400">{formatTry(Number(event.ticket_price))}</p>
-                                    {hasTicketChannels && (
+                                    {ticketUiActive && (
                                         <a
                                             href="#bilet-kanallari"
                                             className="mt-4 inline-block text-sm font-medium text-amber-600 hover:text-amber-500 dark:text-amber-400"

@@ -212,6 +212,8 @@ interface Props {
     popularArtists?: Artist[];
     todayEvents?: HomeEvent[];
     upcomingWeekEvents?: HomeEvent[];
+    /** Yönetim paneli — Slider ekle (yalnızca ana sayfa) */
+    contentSliders?: { id: number; title: string; subtitle: string | null; link_url: string | null; image_url: string | null }[];
 }
 
 export default function VenuesIndex({
@@ -227,6 +229,7 @@ export default function VenuesIndex({
     popularArtists = [],
     todayEvents = [],
     upcomingWeekEvents = [],
+    contentSliders = [],
 }: Readonly<Props>) {
     const page = usePage();
     const { auth, seo } = page.props as {
@@ -397,7 +400,7 @@ export default function VenuesIndex({
                 jsonLd={isVenuesPage ? null : homeJsonLd}
             />
 
-            {/* Hero — Admin → Ayarlar → Ana sayfa slider */}
+            {/* Hero — Admin → Slider (Ana sayfa hero); /mekanlar metinleri → Ayarlar → Mekân listesi hero */}
             <section
                 className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden"
                 aria-label={isVenuesPage ? 'Mekân listesi hero' : 'Sahnebul ana sayfa hero'}
@@ -406,6 +409,47 @@ export default function VenuesIndex({
             </section>
 
             <AdSlot slotKey="home_below_hero" />
+            {!isVenuesPage && contentSliders.length > 0 ? (
+                <section className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5 lg:px-8" aria-label="Öne çıkan içerikler">
+                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Öne çıkanlar</h2>
+                    <ul className="mt-4 flex list-none gap-4 overflow-x-auto pb-2 [scrollbar-gutter:stable]">
+                        {contentSliders.map((s) => {
+                            const card = (
+                                <>
+                                    {s.image_url ? (
+                                        <img
+                                            src={s.image_url}
+                                            alt=""
+                                            className="aspect-[16/10] w-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    ) : null}
+                                    <div className="p-4">
+                                        <p className="font-semibold text-zinc-900 dark:text-white">{s.title}</p>
+                                        {s.subtitle ? (
+                                            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{s.subtitle}</p>
+                                        ) : null}
+                                    </div>
+                                </>
+                            );
+                            return (
+                                <li
+                                    key={s.id}
+                                    className="min-w-[min(88vw,17.5rem)] max-w-xs shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-900/60"
+                                >
+                                    {s.link_url ? (
+                                        <a href={s.link_url} className="block transition hover:opacity-95">
+                                            {card}
+                                        </a>
+                                    ) : (
+                                        card
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            ) : null}
 
             {/* Popular Artists */}
             {!isVenuesPage && popularArtists.length > 0 && (

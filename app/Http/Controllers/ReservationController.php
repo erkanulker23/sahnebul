@@ -118,6 +118,9 @@ class ReservationController extends Controller
             if (! $event) {
                 return back()->with('error', 'Seçilen etkinlik bulunamadı.');
             }
+            if ($event->hasFinishedAt()) {
+                return back()->with('error', 'Bu etkinlik tamamlandı; yeni rezervasyon veya bilet talebi alınamaz.');
+            }
             if ($event->is_full) {
                 return back()->with('error', 'Bu etkinlik için yer kalmadı.');
             }

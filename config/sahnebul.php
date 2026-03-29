@@ -64,6 +64,15 @@ return [
             'keywords' => null,
             'twitter_handle' => null,
             'google_site_verification' => null,
+            'yandex_verification' => null,
+            'bing_verification' => null,
+        ],
+        /** Google Identity Services — yalnızca müşteri girişi / kayıt (OAuth istemci kimliği). */
+        'google_sign_in' => [
+            'enabled' => false,
+            'client_id' => null,
+            /** Laravel Crypt ile şifrelenmiş istemci sırrı (yalnızca sunucuda). */
+            'client_secret' => null,
         ],
         'contact_email' => null,
         'support_email' => null,
@@ -93,4 +102,70 @@ return [
      * Nginx/Forge: site → Nginx şablonunda fastcgi_read_timeout aynı mertebede olmalı (ör. 900s).
      */
     'promo_url_import_time_limit' => (int) env('PROMO_URL_IMPORT_TIME_LIMIT', 900),
+
+    /**
+     * Admin SEO sayfaları — boş bırakılırsa kod içi varsayılan başlık/açıklama kullanılır.
+     * Admin → SEO sayfalarında «SEO uyumlu doldur» bu metinleri forma yazar; kayıtlı DB şablonu yoksa ön yüz de bunları kullanır.
+     * Anahtarlar PageSeoController ile aynı olmalıdır. Değişkenler: {site_name}, {year}, {default_description}, sayfaya özel etiketler.
+     *
+     * @var array<string, array{title?: string, description?: string}>
+     */
+    'default_page_seo' => [
+        'home' => [
+            'title' => '{site_name} — Konser, etkinlik ve mekân keşfi',
+            'description' => 'Konser ve etkinlik takvimi, mekân ve sanatçı keşfi. {site_name}, {year}.',
+        ],
+        'venues_index' => [
+            'title' => 'Konser ve etkinlik mekânları | {site_name}',
+            'description' => 'Salon, kulüp ve canlı müzik mekânları; yorumlar ve program {site_name} üzerinden.',
+        ],
+        'venue_show' => [
+            'title' => '{venue_name} — Mekân ve etkinlik programı',
+            'description' => '{venue_name}: yorumlar, adres ve yaklaşan etkinlikler. Rezervasyon {site_name}’da.',
+        ],
+        'events_index' => [
+            'title' => 'Yaklaşan konserler ve etkinlikler | {site_name}',
+            'description' => 'Tarih, şehir ve türe göre filtreleyin. Bilet ve mekân bilgisi {site_name}’da, {year}.',
+        ],
+        'event_show' => [
+            'title' => '{event_title} — Etkinlik',
+            'description' => '{event_title}: etkinlik detayı, tarih ve bilet bilgisi {site_name}’da.',
+        ],
+        'artists_index' => [
+            'title' => 'Sanatçılar ve gruplar | {site_name}',
+            'description' => 'Konser sanatçıları ve gruplar; takvim ve mekân bağlantıları {site_name} üzerinden.',
+        ],
+        'artist_show' => [
+            'title' => '{artist_name} — Konserleri ve etkinlikleri',
+            'description' => '{artist_name} konser ve performans programı; yaklaşan tarihler ve mekân bilgisi {site_name}’da.',
+        ],
+        'contact' => [
+            'title' => 'İletişim ve destek | {site_name}',
+            'description' => 'Öneri ve destek için {site_name} ile iletişime geçin; form bu sayfada.',
+        ],
+        'blog_index' => [
+            'title' => 'Blog — haberler ve rehberler | {site_name}',
+            'description' => 'Konser kültürü ve platform haberleri. {site_name} blog, {year}.',
+        ],
+        'blog_show' => [
+            'title' => '{blog_title} | {site_name}',
+            'description' => '{blog_title} — konser ve etkinlik içeriği, {site_name} blog.',
+        ],
+        'legal_page' => [
+            'title' => '{page_title} | {site_name}',
+            'description' => '{page_title}: yasal metin ve bilgilendirme — {site_name}.',
+        ],
+        'sehir_sec' => [
+            'title' => 'Şehrinizi seçin | {site_name}',
+            'description' => 'Şehir bazlı etkinlik listesi; yayınlanmış program {site_name} ile uyumlu.',
+        ],
+        'sehir_sec_city' => [
+            'title' => '{city_name} etkinlikleri ve konserleri | {site_name}',
+            'description' => '{city_name}’de konser ve canlı etkinlikler. Keşfetmek için {site_name}.',
+        ],
+        'external_event_show' => [
+            'title' => '{event_title} — Etkinlik özeti',
+            'description' => '{event_title}: harici kaynak özeti; kesin bilgi organizatörden. {site_name}.',
+        ],
+    ],
 ];

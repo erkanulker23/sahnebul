@@ -10,10 +10,10 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Support\HomeHeroSlideDefaults;
-use App\Support\HomeHeroSlides;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -37,18 +37,11 @@ class SettingsController extends Controller
 
         $site = $this->appSettings->getSitePublicSettings();
         $seo = is_array($site['seo'] ?? null) ? $site['seo'] : [];
+        $gsi = is_array($site['google_sign_in'] ?? null) ? $site['google_sign_in'] : [];
+        $googleClientSecretSet = isset($gsi['client_secret']) && is_string($gsi['client_secret']) && trim($gsi['client_secret']) !== '';
         $logoPath = isset($site['logo_path']) && is_string($site['logo_path']) ? trim($site['logo_path']) : '';
         $faviconPath = isset($site['favicon_path']) && is_string($site['favicon_path']) ? trim($site['favicon_path']) : '';
         $ogPath = isset($seo['default_og_image_path']) && is_string($seo['default_og_image_path']) ? trim($seo['default_og_image_path']) : '';
-        $heroSlidePaths = HomeHeroSlides::pathsFromSite($site);
-        $homeHeroSlideUrls = [null, null, null];
-        foreach ($heroSlidePaths as $i => $path) {
-            if ($i < HomeHeroSlides::MAX_SLIDES) {
-                $homeHeroSlideUrls[$i] = $this->appSettings->publicStorageUrl($path);
-            }
-        }
-
-        $homeCopyForm = self::heroSlideCopyFormRows($site['home_hero_slide_copy'] ?? null);
         $venuesCopyForm = self::heroSlideCopyFormRows($site['venues_hero_slide_copy'] ?? null);
 
         $socialRaw = is_array($site['social_links'] ?? null) ? $site['social_links'] : [];
@@ -82,11 +75,14 @@ class SettingsController extends Controller
                 'seo_keywords' => (string) ($seo['keywords'] ?? ''),
                 'seo_twitter_handle' => (string) ($seo['twitter_handle'] ?? ''),
                 'seo_google_site_verification' => (string) ($seo['google_site_verification'] ?? ''),
+                'seo_yandex_verification' => (string) ($seo['yandex_verification'] ?? ''),
+                'seo_bing_verification' => (string) ($seo['bing_verification'] ?? ''),
+                'google_sign_in_enabled' => (bool) ($gsi['enabled'] ?? false),
+                'google_sign_in_client_id' => (string) ($gsi['client_id'] ?? ''),
+                'google_sign_in_client_secret_set' => $googleClientSecretSet,
                 'logo_url' => $logoPath !== '' ? $this->appSettings->publicStorageUrl($logoPath) : null,
                 'favicon_url' => $faviconPath !== '' ? $this->appSettings->publicStorageUrl($faviconPath) : null,
                 'seo_og_image_url' => $ogPath !== '' ? $this->appSettings->publicStorageUrl($ogPath) : null,
-                'home_hero_slide_urls' => $homeHeroSlideUrls,
-                'home_hero_slide_copy_form' => $homeCopyForm,
                 'venues_hero_slide_copy_form' => $venuesCopyForm,
                 'social_links' => $socialLinks,
             ],
@@ -134,7 +130,6 @@ class SettingsController extends Controller
         $heroFieldMax = ['eyebrow' => 200, 'headline' => 320, 'headline_accent' => 320, 'body' => 4000];
         for ($i = 0; $i < HomeHeroSlideDefaults::MAX_SLIDES; $i++) {
             foreach ($heroFieldMax as $field => $len) {
-                $heroTextRules['hero_home_'.$i.'_'.$field] = 'nullable|string|max:'.$len;
                 $heroTextRules['hero_venues_'.$i.'_'.$field] = 'nullable|string|max:'.$len;
             }
         }
@@ -149,18 +144,18 @@ class SettingsController extends Controller
             'seo_keywords' => 'nullable|string|max:500',
             'seo_twitter_handle' => 'nullable|string|max:64',
             'seo_google_site_verification' => 'nullable|string|max:128',
+            'seo_yandex_verification' => 'nullable|string|max:128',
+            'seo_bing_verification' => 'nullable|string|max:128',
+            'google_sign_in_enabled' => 'sometimes|boolean',
+            'google_sign_in_client_id' => 'nullable|string|max:512',
+            'google_sign_in_client_secret' => 'nullable|string|max:500',
+            'remove_google_sign_in_client_secret' => 'sometimes|boolean',
             'remove_logo' => 'sometimes|boolean',
             'remove_favicon' => 'sometimes|boolean',
             'remove_seo_og_image' => 'sometimes|boolean',
             'logo' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp,svg',
             'favicon' => 'nullable|file|max:1024|mimes:ico,png,jpg,jpeg,svg,webp',
             'seo_og_image' => 'nullable|file|max:4096|mimes:jpeg,jpg,png,webp',
-            'home_hero_slide_0' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
-            'home_hero_slide_1' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
-            'home_hero_slide_2' => 'nullable|file|max:6144|mimes:jpeg,jpg,png,webp',
-            'remove_home_hero_slide_0' => 'sometimes|boolean',
-            'remove_home_hero_slide_1' => 'sometimes|boolean',
-            'remove_home_hero_slide_2' => 'sometimes|boolean',
             'google_maps_api_key' => 'nullable|string|max:512',
             'remove_google_maps_api_key' => 'sometimes|boolean',
             'social_instagram' => 'nullable|url|max:500',
@@ -174,6 +169,10 @@ class SettingsController extends Controller
         $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);
 
         $current = $this->appSettings->getSitePublicSettings();
+        $currentGsi = is_array($current['google_sign_in'] ?? null) ? $current['google_sign_in'] : [];
+        $clientSecretStored = isset($currentGsi['client_secret']) && is_string($currentGsi['client_secret'])
+            ? trim($currentGsi['client_secret'])
+            : '';
         $currentSeo = is_array($current['seo'] ?? null) ? $current['seo'] : [];
 
         $logoPath = isset($current['logo_path']) && is_string($current['logo_path']) ? trim($current['logo_path']) : '';
@@ -181,14 +180,6 @@ class SettingsController extends Controller
         $ogPath = isset($currentSeo['default_og_image_path']) && is_string($currentSeo['default_og_image_path'])
             ? trim($currentSeo['default_og_image_path'])
             : '';
-        $currentHeroPaths = HomeHeroSlides::pathsFromSite($current);
-        $heroSlots = ['', '', ''];
-        foreach (array_values($currentHeroPaths) as $i => $p) {
-            if ($i < HomeHeroSlides::MAX_SLIDES) {
-                $heroSlots[$i] = $p;
-            }
-        }
-
         if ($request->boolean('remove_logo')) {
             $this->deletePublicSiteAsset($logoPath);
             $logoPath = '';
@@ -213,36 +204,16 @@ class SettingsController extends Controller
             $ogPath = $request->file('seo_og_image')->store('site', 'public');
         }
 
-        for ($i = 0; $i < HomeHeroSlides::MAX_SLIDES; $i++) {
-            if ($request->boolean('remove_home_hero_slide_'.$i)) {
-                if ($heroSlots[$i] !== '') {
-                    $this->deletePublicSiteAsset($heroSlots[$i]);
-                }
-                $heroSlots[$i] = '';
-            } elseif ($request->hasFile('home_hero_slide_'.$i)) {
-                if ($heroSlots[$i] !== '') {
-                    $this->deletePublicSiteAsset($heroSlots[$i]);
-                }
-                $heroSlots[$i] = $request->file('home_hero_slide_'.$i)->store('site', 'public');
-            }
-        }
-
-        $newHeroPaths = array_values(array_filter($heroSlots, fn (string $p) => $p !== ''));
-        if (count($newHeroPaths) > HomeHeroSlides::MAX_SLIDES) {
-            $newHeroPaths = array_slice($newHeroPaths, 0, HomeHeroSlides::MAX_SLIDES);
-        }
-
-        $homeHeroSlideCopy = self::heroSlideCopyFromRequest($request, 'hero_home_');
         $venuesHeroSlideCopy = self::heroSlideCopyFromRequest($request, 'hero_venues_');
 
         $payload = [
             'site_name' => $this->nullableTrim($validated['site_name'] ?? null),
             'logo_path' => $logoPath !== '' ? $logoPath : null,
             'favicon_path' => $faviconPath !== '' ? $faviconPath : null,
-            'home_hero_slide_paths' => $newHeroPaths !== [] ? $newHeroPaths : null,
-            'home_hero_slide_copy' => $homeHeroSlideCopy,
-            'venues_hero_slide_copy' => $venuesHeroSlideCopy,
+            'home_hero_slide_paths' => null,
+            'home_hero_slide_copy' => null,
             'home_hero_image_path' => null,
+            'venues_hero_slide_copy' => $venuesHeroSlideCopy,
             'contact_email' => $this->nullableTrim($validated['contact_email'] ?? null),
             'support_email' => $this->nullableTrim($validated['support_email'] ?? null),
             'phone' => $this->nullableTrim($validated['phone'] ?? null),
@@ -261,7 +232,14 @@ class SettingsController extends Controller
                 'keywords' => $this->nullableTrim($validated['seo_keywords'] ?? null),
                 'twitter_handle' => $this->nullableTrim($validated['seo_twitter_handle'] ?? null),
                 'google_site_verification' => $this->nullableTrim($validated['seo_google_site_verification'] ?? null),
+                'yandex_verification' => $this->nullableTrim($validated['seo_yandex_verification'] ?? null),
+                'bing_verification' => $this->nullableTrim($validated['seo_bing_verification'] ?? null),
             ],
+            'google_sign_in' => self::buildGoogleSignInForStorage(
+                $request,
+                $validated,
+                $clientSecretStored,
+            ),
         ];
 
         AppSetting::updateOrCreate(
@@ -284,6 +262,34 @@ class SettingsController extends Controller
         $this->appSettings->forgetCaches();
 
         return back()->with('success', 'Site, SEO ve iletişim ayarları güncellendi.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{enabled: bool, client_id: string|null, client_secret: string|null}
+     */
+    private static function buildGoogleSignInForStorage(Request $request, array $validated, string $clientSecretStored): array
+    {
+        $rawId = $validated['google_sign_in_client_id'] ?? null;
+        $clientId = is_string($rawId) && trim($rawId) !== '' ? trim($rawId) : null;
+
+        $out = [
+            'enabled' => $request->boolean('google_sign_in_enabled'),
+            'client_id' => $clientId,
+        ];
+
+        if ($request->boolean('remove_google_sign_in_client_secret')) {
+            $out['client_secret'] = null;
+        } else {
+            $newSecret = $validated['google_sign_in_client_secret'] ?? null;
+            if (is_string($newSecret) && trim($newSecret) !== '') {
+                $out['client_secret'] = Crypt::encryptString(trim($newSecret));
+            } else {
+                $out['client_secret'] = $clientSecretStored !== '' ? $clientSecretStored : null;
+            }
+        }
+
+        return $out;
     }
 
     private function nullableTrim(?string $value): ?string

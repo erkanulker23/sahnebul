@@ -1,3 +1,4 @@
+import InputError from '@/Components/InputError';
 import PhoneInput from '@/Components/PhoneInput';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
@@ -48,12 +49,16 @@ interface SitePublicProps {
     seo_keywords: string;
     seo_twitter_handle: string;
     seo_google_site_verification: string;
+    seo_yandex_verification: string;
+    seo_bing_verification: string;
+    google_sign_in_enabled: boolean;
+    google_sign_in_client_id: string;
+    /** Sunucuda şifreli saklanır; istemciye sırrın kendisi gönderilmez */
+    google_sign_in_client_secret_set?: boolean;
     logo_url: string | null;
     favicon_url: string | null;
     seo_og_image_url: string | null;
-    /** Ana sayfa (/) hero slider — 3 yuva (boş = null) */
-    home_hero_slide_urls?: (string | null)[];
-    home_hero_slide_copy_form?: HeroSlideCopyFormRow[];
+    /** /mekanlar üst hero — üç slayt metni (görseller Yönetim → Slider) */
     venues_hero_slide_copy_form?: HeroSlideCopyFormRow[];
 }
 
@@ -84,19 +89,19 @@ const LEGAL_SLUGS: { slug: string; label: string; defaultTitle: string }[] = [
 
 type LegalEntry = { title: string; content: string };
 
-type SettingsTabId = 'overview' | 'brand' | 'home_slider' | 'seo' | 'contact' | 'maps' | 'content';
+type SettingsTabId = 'overview' | 'brand' | 'venues_hero' | 'seo' | 'contact' | 'maps' | 'content';
 
 const TABS: { id: SettingsTabId; label: string; description: string; icon: LucideIcon }[] = [
     { id: 'overview', label: 'Özet', description: 'Sayılar ve kısayollar', icon: BarChart3 },
     { id: 'brand', label: 'Marka & görseller', description: 'Logo, favicon, site adı', icon: ImageIcon },
-    { id: 'home_slider', label: 'Ana sayfa slider', description: 'Hero — en fazla 3 görsel', icon: Images },
+    { id: 'venues_hero', label: 'Mekân listesi hero', description: '/mekanlar üst metinleri (görseller Slider’da)', icon: Images },
     { id: 'seo', label: 'SEO', description: 'Meta, OG, doğrulama', icon: Search },
     { id: 'contact', label: 'İletişim & sosyal', description: 'E-posta, telefon, sosyal bağlantılar', icon: Share2 },
     { id: 'maps', label: 'Harita API', description: 'Google Maps anahtarı', icon: MapPin },
     { id: 'content', label: 'İçerik', description: 'Statik sayfalar ve footer', icon: FileText },
 ];
 
-const SITE_FORM_TABS: SettingsTabId[] = ['brand', 'home_slider', 'seo', 'contact', 'maps'];
+const SITE_FORM_TABS: SettingsTabId[] = ['brand', 'venues_hero', 'seo', 'contact', 'maps'];
 
 function buildLegalState(raw: string | undefined | null): Record<string, LegalEntry> {
     let parsed: Record<string, unknown> = {};
@@ -168,25 +173,24 @@ export default function AdminSettingsIndex({
     const [seoKeywords, setSeoKeywords] = useState(sp?.seo_keywords ?? '');
     const [seoTwitter, setSeoTwitter] = useState(sp?.seo_twitter_handle ?? '');
     const [seoGoogle, setSeoGoogle] = useState(sp?.seo_google_site_verification ?? '');
+    const [seoYandex, setSeoYandex] = useState(sp?.seo_yandex_verification ?? '');
+    const [seoBing, setSeoBing] = useState(sp?.seo_bing_verification ?? '');
+    const [googleSignInEnabled, setGoogleSignInEnabled] = useState(sp?.google_sign_in_enabled ?? false);
+    const [googleSignInClientId, setGoogleSignInClientId] = useState(sp?.google_sign_in_client_id ?? '');
+    const [googleSignInClientSecret, setGoogleSignInClientSecret] = useState('');
+    const [removeGoogleSignInClientSecret, setRemoveGoogleSignInClientSecret] = useState(false);
     const [removeLogo, setRemoveLogo] = useState(false);
     const [removeFavicon, setRemoveFavicon] = useState(false);
     const [removeOg, setRemoveOg] = useState(false);
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [faviconFile, setFaviconFile] = useState<File | null>(null);
     const [ogFile, setOgFile] = useState<File | null>(null);
-    const [removeHomeHeroSlide, setRemoveHomeHeroSlide] = useState(() => [false, false, false]);
-    const [homeHeroSlideFiles, setHomeHeroSlideFiles] = useState<(File | null)[]>(() => [null, null, null]);
     const emptyHeroCopy = (): HeroSlideCopyFormRow => ({
         eyebrow: '',
         headline: '',
         headline_accent: '',
         body: '',
     });
-    const [homeHeroCopy, setHomeHeroCopy] = useState<HeroSlideCopyFormRow[]>(() => [
-        emptyHeroCopy(),
-        emptyHeroCopy(),
-        emptyHeroCopy(),
-    ]);
     const [venuesHeroCopy, setVenuesHeroCopy] = useState<HeroSlideCopyFormRow[]>(() => [
         emptyHeroCopy(),
         emptyHeroCopy(),
@@ -218,24 +222,19 @@ export default function AdminSettingsIndex({
         setSeoKeywords(sp.seo_keywords ?? '');
         setSeoTwitter(sp.seo_twitter_handle ?? '');
         setSeoGoogle(sp.seo_google_site_verification ?? '');
+        setSeoYandex(sp.seo_yandex_verification ?? '');
+        setSeoBing(sp.seo_bing_verification ?? '');
+        setGoogleSignInEnabled(sp.google_sign_in_enabled ?? false);
+        setGoogleSignInClientId(sp.google_sign_in_client_id ?? '');
+        setGoogleSignInClientSecret('');
+        setRemoveGoogleSignInClientSecret(false);
         setRemoveLogo(false);
         setRemoveFavicon(false);
         setRemoveOg(false);
-        setRemoveHomeHeroSlide([false, false, false]);
         setLogoFile(null);
         setFaviconFile(null);
         setOgFile(null);
-        setHomeHeroSlideFiles([null, null, null]);
-        const hc = sp?.home_hero_slide_copy_form;
         const vc = sp?.venues_hero_slide_copy_form;
-        setHomeHeroCopy(
-            [0, 1, 2].map((i) => ({
-                eyebrow: hc?.[i]?.eyebrow ?? '',
-                headline: hc?.[i]?.headline ?? '',
-                headline_accent: hc?.[i]?.headline_accent ?? '',
-                body: hc?.[i]?.body ?? '',
-            })),
-        );
         setVenuesHeroCopy(
             [0, 1, 2].map((i) => ({
                 eyebrow: vc?.[i]?.eyebrow ?? '',
@@ -260,11 +259,14 @@ export default function AdminSettingsIndex({
         sp?.seo_keywords,
         sp?.seo_twitter_handle,
         sp?.seo_google_site_verification,
+        sp?.seo_yandex_verification,
+        sp?.seo_bing_verification,
+        sp?.google_sign_in_enabled,
+        sp?.google_sign_in_client_id,
+        sp?.google_sign_in_client_secret_set,
         sp?.logo_url,
         sp?.favicon_url,
         sp?.seo_og_image_url,
-        sp?.home_hero_slide_urls,
-        sp?.home_hero_slide_copy_form,
         sp?.venues_hero_slide_copy_form,
     ]);
 
@@ -311,6 +313,16 @@ export default function AdminSettingsIndex({
         fd.append('seo_keywords', seoKeywords);
         fd.append('seo_twitter_handle', seoTwitter);
         fd.append('seo_google_site_verification', seoGoogle);
+        fd.append('seo_yandex_verification', seoYandex);
+        fd.append('seo_bing_verification', seoBing);
+        fd.append('google_sign_in_enabled', googleSignInEnabled ? '1' : '0');
+        fd.append('google_sign_in_client_id', googleSignInClientId);
+        if (googleSignInClientSecret.trim() !== '') {
+            fd.append('google_sign_in_client_secret', googleSignInClientSecret);
+        }
+        if (removeGoogleSignInClientSecret) {
+            fd.append('remove_google_sign_in_client_secret', '1');
+        }
         if (removeLogo) fd.append('remove_logo', '1');
         if (removeFavicon) fd.append('remove_favicon', '1');
         if (removeOg) fd.append('remove_seo_og_image', '1');
@@ -318,21 +330,7 @@ export default function AdminSettingsIndex({
         if (faviconFile) fd.append('favicon', faviconFile);
         if (ogFile) fd.append('seo_og_image', ogFile);
         for (let i = 0; i < 3; i++) {
-            if (removeHomeHeroSlide[i]) {
-                fd.append(`remove_home_hero_slide_${i}`, '1');
-            }
-            const f = homeHeroSlideFiles[i];
-            if (f) {
-                fd.append(`home_hero_slide_${i}`, f);
-            }
-        }
-        for (let i = 0; i < 3; i++) {
-            const h = homeHeroCopy[i] ?? emptyHeroCopy();
             const v = venuesHeroCopy[i] ?? emptyHeroCopy();
-            fd.append(`hero_home_${i}_eyebrow`, h.eyebrow);
-            fd.append(`hero_home_${i}_headline`, h.headline);
-            fd.append(`hero_home_${i}_headline_accent`, h.headline_accent);
-            fd.append(`hero_home_${i}_body`, h.body);
             fd.append(`hero_venues_${i}_eyebrow`, v.eyebrow);
             fd.append(`hero_venues_${i}_headline`, v.headline);
             fd.append(`hero_venues_${i}_headline_accent`, v.headline_accent);
@@ -363,12 +361,14 @@ export default function AdminSettingsIndex({
             'seo_keywords',
             'seo_twitter_handle',
             'seo_google_site_verification',
+            'seo_yandex_verification',
+            'seo_bing_verification',
+            'google_sign_in_client_id',
+            'google_sign_in_client_secret',
+            'remove_google_sign_in_client_secret',
             'logo',
             'favicon',
             'seo_og_image',
-            'home_hero_slide_0',
-            'home_hero_slide_1',
-            'home_hero_slide_2',
             'google_maps_api_key',
             'remove_google_maps_api_key',
             'social_instagram',
@@ -379,9 +379,7 @@ export default function AdminSettingsIndex({
             'social_tiktok',
         ];
         const fromKeys = keys.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
-        const heroExtra = Object.keys(errors).filter(
-            (k) => k.startsWith('hero_home_') || k.startsWith('hero_venues_'),
-        );
+        const heroExtra = Object.keys(errors).filter((k) => k.startsWith('hero_venues_'));
         const heroMsgs = heroExtra.map((k) => errors[k]).filter((m): m is string => typeof m === 'string' && m.trim() !== '');
         return [...fromKeys, ...heroMsgs];
     }, [errors]);
@@ -503,6 +501,13 @@ export default function AdminSettingsIndex({
                             <span className="font-medium text-amber-800 dark:text-amber-400">SEO / site haritası</span>
                             <span className="mt-1 block text-xs text-zinc-500">Search Console ve sitemap.xml</span>
                         </Link>
+                        <Link
+                            href={route('admin.content-sliders.index')}
+                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 transition hover:border-amber-500/40 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:border-amber-500/30 dark:hover:text-white"
+                        >
+                            <span className="font-medium text-amber-800 dark:text-amber-400">Slider</span>
+                            <span className="mt-1 block text-xs text-zinc-500">Ana sayfa hero ve öne çıkan şerit</span>
+                        </Link>
                     </div>
                 </section>
 
@@ -555,15 +560,14 @@ export default function AdminSettingsIndex({
                         >
                             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Marka ve görseller</h3>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Logo, favicon ve sitede görünen marka adı. Ana sayfa üst görselleri için{' '}
-                                <button
-                                    type="button"
+                                Logo, favicon ve sitede görünen marka adı. Ana sayfa (/) üst hero görselleri ve metinleri için{' '}
+                                <Link
+                                    href={route('admin.content-sliders.index')}
                                     className="font-medium text-amber-700 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-600 dark:text-amber-400"
-                                    onClick={() => setActiveTab('home_slider')}
                                 >
-                                    Ana sayfa slider
-                                </button>{' '}
-                                sekmesini kullanın.
+                                    Yönetim → Slider
+                                </Link>{' '}
+                                sayfasında «Ana sayfa hero» türünde slayt ekleyin.
                             </p>
 
                             <div>
@@ -629,172 +633,34 @@ export default function AdminSettingsIndex({
                             </div>
                         </div>
 
-                        {/* Ana sayfa hero slider */}
+                        {/* Mekân listesi hero metinleri — görseller Slider’da */}
                         <div
-                            id="settings-panel-home_slider"
+                            id="settings-panel-venues_hero"
                             role="tabpanel"
-                            aria-labelledby="settings-tab-home_slider"
-                            hidden={activeTab !== 'home_slider'}
+                            aria-labelledby="settings-tab-venues_hero"
+                            hidden={activeTab !== 'venues_hero'}
                             className="space-y-6"
                         >
-                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Ana sayfa slider (hero)</h3>
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Mekân listesi hero metinleri</h3>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Yalnızca ana sayfa (
-                                <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/</code>
-                                ) üst bölümü. En fazla <strong className="font-medium text-zinc-800 dark:text-zinc-200">3</strong> görsel yükleyin; dosyalar{' '}
-                                <code className="rounded bg-zinc-800/80 px-1 text-zinc-200">storage/app/public/site/</code> altında saklanır (projede). Öneri: geniş
-                                yatay (ör. 21:9 veya 16:9), JPEG/PNG/WebP, dosya başına en fazla 6 MB.
+                                <code className="rounded bg-zinc-200 px-1 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">/mekanlar</code> sayfasının üst
+                                hero’su, ana sayfa ile aynı görselleri kullanır; burada yalnızca o sayfada görünen üç slayt için metinleri düzenlersiniz.
+                                Görselleri ve ana sayfa (/) üstündeki metinleri{' '}
+                                <Link href={route('admin.content-sliders.index')} className="font-medium text-amber-700 hover:underline dark:text-amber-400">
+                                    Yönetim → Slider
+                                </Link>{' '}
+                                üzerinden «Ana sayfa hero» slaytlarıyla yönetin.
                             </p>
-                            <p className="text-xs text-zinc-500">
-                                Slayt yoksa sitede üç varsayılan stok görsel döner. Her slayt için ayrı metin girebilirsiniz; alan boş bırakılırsa site
-                                varsayılan metni kullanır. Tek görsel yüklerseniz otomatik geçiş olmaz.
-                            </p>
+                            <p className="text-xs text-zinc-500">Alan boş bırakılırsa bu slayt için site varsayılan metni kullanılır.</p>
                             {[0, 1, 2].map((slot) => {
-                                const url = sp?.home_hero_slide_urls?.[slot] ?? null;
-                                const showPreview = Boolean(url && !removeHomeHeroSlide[slot]);
-                                const hRow = homeHeroCopy[slot] ?? emptyHeroCopy();
                                 const vRow = venuesHeroCopy[slot] ?? emptyHeroCopy();
                                 return (
                                     <div
                                         key={slot}
                                         className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-950/40"
                                     >
-                                        <span className={labelClass}>
-                                            Slayt {slot + 1}
-                                            {slot === 0 ? ' (ilk görsel — öncelikli yüklenir)' : ''}
-                                        </span>
-                                        {showPreview ? (
-                                            <div className="mt-3 max-w-2xl overflow-hidden rounded-lg border border-zinc-700">
-                                                <img
-                                                    src={url ?? ''}
-                                                    alt=""
-                                                    className="max-h-44 w-full object-cover object-center"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <p className="mt-2 text-xs text-zinc-500">Henüz görsel yok.</p>
-                                        )}
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            className="mt-3 block w-full max-w-xl text-sm text-zinc-700 file:mr-3 file:rounded file:border-0 file:bg-amber-500 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-zinc-950 dark:text-zinc-300"
-                                            onChange={(ev) => {
-                                                const f = ev.target.files?.[0] ?? null;
-                                                setHomeHeroSlideFiles((prev) => {
-                                                    const next = [...prev];
-                                                    next[slot] = f;
-                                                    return next;
-                                                });
-                                            }}
-                                        />
-                                        {url ? (
-                                            <label className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={removeHomeHeroSlide[slot]}
-                                                    onChange={(e) => {
-                                                        const on = e.target.checked;
-                                                        setRemoveHomeHeroSlide((prev) => {
-                                                            const next = [...prev];
-                                                            next[slot] = on;
-                                                            return next;
-                                                        });
-                                                        if (on) {
-                                                            setHomeHeroSlideFiles((prev) => {
-                                                                const next = [...prev];
-                                                                next[slot] = null;
-                                                                return next;
-                                                            });
-                                                        }
-                                                    }}
-                                                />
-                                                Bu slaytı kaldır
-                                            </label>
-                                        ) : null}
-
-                                        <div className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-400/90">
-                                                Ana sayfa (/) — bu slayt metni
-                                            </p>
-                                            <div>
-                                                <label className={labelClass} htmlFor={`hero-home-${slot}-eyebrow`}>
-                                                    Üst etiket (küçük, altın)
-                                                </label>
-                                                <input
-                                                    id={`hero-home-${slot}-eyebrow`}
-                                                    value={hRow.eyebrow}
-                                                    onChange={(e) =>
-                                                        setHomeHeroCopy((prev) =>
-                                                            prev.map((row, i) =>
-                                                                i === slot ? { ...row, eyebrow: e.target.value } : row,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className={inputClass}
-                                                    placeholder="Boş = varsayılan"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass} htmlFor={`hero-home-${slot}-headline`}>
-                                                    Ana başlık (beyaz satır)
-                                                </label>
-                                                <input
-                                                    id={`hero-home-${slot}-headline`}
-                                                    value={hRow.headline}
-                                                    onChange={(e) =>
-                                                        setHomeHeroCopy((prev) =>
-                                                            prev.map((row, i) =>
-                                                                i === slot ? { ...row, headline: e.target.value } : row,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className={inputClass}
-                                                    placeholder="Boş = varsayılan"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass} htmlFor={`hero-home-${slot}-accent`}>
-                                                    Vurgu satırı (gradient)
-                                                </label>
-                                                <input
-                                                    id={`hero-home-${slot}-accent`}
-                                                    value={hRow.headline_accent}
-                                                    onChange={(e) =>
-                                                        setHomeHeroCopy((prev) =>
-                                                            prev.map((row, i) =>
-                                                                i === slot ? { ...row, headline_accent: e.target.value } : row,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className={inputClass}
-                                                    placeholder="Boş = varsayılan"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass} htmlFor={`hero-home-${slot}-body`}>
-                                                    Açıklama paragrafı
-                                                </label>
-                                                <textarea
-                                                    id={`hero-home-${slot}-body`}
-                                                    value={hRow.body}
-                                                    onChange={(e) =>
-                                                        setHomeHeroCopy((prev) =>
-                                                            prev.map((row, i) =>
-                                                                i === slot ? { ...row, body: e.target.value } : row,
-                                                            ),
-                                                        )
-                                                    }
-                                                    rows={3}
-                                                    className={inputClass}
-                                                    placeholder="Boş = varsayılan"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
-                                                Mekân listesi (/mekanlar) — bu slayt metni
-                                            </p>
+                                        <span className={labelClass}>Slayt {slot + 1} — /mekanlar metni</span>
+                                        <div className="mt-4 space-y-3">
                                             <div>
                                                 <label className={labelClass} htmlFor={`hero-venues-${slot}-eyebrow`}>
                                                     Üst etiket
@@ -965,6 +831,107 @@ export default function AdminSettingsIndex({
                                     className={inputClass}
                                     placeholder="Meta içerik değeri"
                                 />
+                            </div>
+                            <div>
+                                <label htmlFor="seo-ya" className={labelClass}>
+                                    Yandex Webmaster doğrulama
+                                </label>
+                                <input
+                                    id="seo-ya"
+                                    value={seoYandex}
+                                    onChange={(e) => setSeoYandex(e.target.value)}
+                                    className={inputClass}
+                                    placeholder="yandex-verification meta içeriği"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="seo-bi" className={labelClass}>
+                                    Bing Webmaster doğrulama
+                                </label>
+                                <input
+                                    id="seo-bi"
+                                    value={seoBing}
+                                    onChange={(e) => setSeoBing(e.target.value)}
+                                    className={inputClass}
+                                    placeholder="msvalidate.01 meta içeriği"
+                                />
+                            </div>
+                            <div className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                                <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Google ile oturum (kullanıcılar)</h4>
+                                <p className="mt-1 text-xs text-zinc-500">
+                                    Google Cloud Console’da <strong className="font-medium text-zinc-700 dark:text-zinc-300">Web uygulaması</strong> OAuth
+                                    istemcisi oluşturun; yetkili JavaScript kaynaklarına site kökeninizi (ve geliştirme için{' '}
+                                    <code className="rounded bg-zinc-200 px-0.5 dark:bg-zinc-800">localhost</code>) ekleyin. Kurulum:{' '}
+                                    <a
+                                        href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid?hl=tr"
+                                        className="text-amber-600 hover:underline dark:text-amber-400"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        İstemci kimliği alma (Google)
+                                    </a>
+                                    . Kimlik Hizmetleri (GIS) düğmesi için öncelikle Client ID kullanılır; Client Secret sunucuda şifreli saklanır (OAuth
+                                    sunucu akışları veya ileri senaryolar için).
+                                </p>
+                                <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={googleSignInEnabled}
+                                        onChange={(e) => setGoogleSignInEnabled(e.target.checked)}
+                                    />
+                                    Aktif (giriş ve kayıt sayfalarında Google düğmesi)
+                                </label>
+                                <div className="mt-3">
+                                    <label htmlFor="gsi-client" className={labelClass}>
+                                        Client ID
+                                    </label>
+                                    <input
+                                        id="gsi-client"
+                                        value={googleSignInClientId}
+                                        onChange={(e) => setGoogleSignInClientId(e.target.value)}
+                                        className={inputClass}
+                                        placeholder="xxxx.apps.googleusercontent.com"
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                <div className="mt-3">
+                                    <label htmlFor="gsi-secret" className={labelClass}>
+                                        Client Secret
+                                    </label>
+                                    <input
+                                        id="gsi-secret"
+                                        type="password"
+                                        value={googleSignInClientSecret}
+                                        onChange={(e) => setGoogleSignInClientSecret(e.target.value)}
+                                        className={inputClass}
+                                        placeholder={
+                                            sp?.google_sign_in_client_secret_set
+                                                ? '•••• kayıtlı — değiştirmek için yeni değer girin'
+                                                : 'Cloud Console → istemci → İstemci sırrı'
+                                        }
+                                        autoComplete="new-password"
+                                    />
+                                    {sp?.google_sign_in_client_secret_set ? (
+                                        <label className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
+                                            <input
+                                                type="checkbox"
+                                                checked={removeGoogleSignInClientSecret}
+                                                onChange={(e) => {
+                                                    const on = e.target.checked;
+                                                    setRemoveGoogleSignInClientSecret(on);
+                                                    if (on) {
+                                                        setGoogleSignInClientSecret('');
+                                                    }
+                                                }}
+                                            />
+                                            İstemci sırrını kaldır
+                                        </label>
+                                    ) : null}
+                                    <p className="mt-1 text-xs text-zinc-500">
+                                        Veritabanında Laravel Crypt ile şifrelenir; tarayıcıya geri gönderilmez.
+                                    </p>
+                                    <InputError message={errors.google_sign_in_client_secret} className="mt-1" />
+                                </div>
                             </div>
                         </div>
 

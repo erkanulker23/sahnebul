@@ -13,6 +13,8 @@ export type SharedSeo = {
     keywords?: string | null;
     twitterHandle?: string | null;
     googleSiteVerification?: string | null;
+    yandexSiteVerification?: string | null;
+    bingSiteVerification?: string | null;
 };
 
 type Props = {
@@ -68,6 +70,8 @@ export default function SeoHead({
     const keywords = seo.keywords?.trim() || null;
     const twSite = seo.twitterHandle?.trim() || null;
     const gVerify = seo.googleSiteVerification?.trim() || null;
+    const yVerify = seo.yandexSiteVerification?.trim() || null;
+    const bVerify = seo.bingSiteVerification?.trim() || null;
     const robots = noindex
         ? 'noindex, nofollow'
         : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
@@ -87,6 +91,8 @@ export default function SeoHead({
             <meta head-key="description" name="description" content={desc} />
             {keywords ? <meta head-key="keywords" name="keywords" content={keywords} /> : null}
             {gVerify ? <meta head-key="google-verify" name="google-site-verification" content={gVerify} /> : null}
+            {yVerify ? <meta head-key="yandex-verify" name="yandex-verification" content={yVerify} /> : null}
+            {bVerify ? <meta head-key="bing-verify" name="msvalidate.01" content={bVerify} /> : null}
             <meta head-key="robots" name="robots" content={robots} />
             <link head-key="canonical" rel="canonical" href={canonical} />
             <link head-key="hreflang-tr" rel="alternate" hrefLang="tr" href={canonical} />
