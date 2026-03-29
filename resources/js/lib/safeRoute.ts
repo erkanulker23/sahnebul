@@ -188,6 +188,30 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/admin/mekanlar';
         }
+        case 'admin.external-events.index':
+            return `/admin/dis-kaynak-etkinlikler${queryString(params ?? {})}`;
+        case 'admin.external-events.crawl':
+            return '/admin/dis-kaynak-etkinlikler/veri-cek';
+        case 'admin.external-events.crawl-preview':
+            return '/admin/dis-kaynak-etkinlikler/onizle';
+        case 'admin.external-events.bulk':
+            return '/admin/dis-kaynak-etkinlikler/toplu-islem';
+        case 'admin.external-events.sync': {
+            const id = params?.externalEvent ?? params?.external_event ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/dis-kaynak-etkinlikler/${id}/aktar`;
+            }
+
+            return '/admin/dis-kaynak-etkinlikler';
+        }
+        case 'admin.external-events.reject': {
+            const id = params?.externalEvent ?? params?.external_event ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/dis-kaynak-etkinlikler/${id}/reddet`;
+            }
+
+            return '/admin/dis-kaynak-etkinlikler';
+        }
         default:
             return '/';
     }

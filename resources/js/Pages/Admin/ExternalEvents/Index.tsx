@@ -4,6 +4,7 @@ import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { safeRoute } from '@/lib/safeRoute';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
 import { Eye, X } from 'lucide-react';
 
@@ -108,7 +109,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
 
     const submitFilters = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        router.get(route('admin.external-events.index'), queryForm.data, { preserveState: true });
+        router.get(safeRoute('admin.external-events.index'), queryForm.data, { preserveState: true });
     };
 
     const toggleSelectAll = () => {
@@ -127,7 +128,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
             );
             if (!ok) return;
         }
-        router.post(route('admin.external-events.bulk'), { action, ids: selectedIds }, {
+        router.post(safeRoute('admin.external-events.bulk'), { action, ids: selectedIds }, {
             preserveScroll: true,
             onSuccess: () => setSelectedIds([]),
         });
@@ -146,7 +147,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
 
     const runCrawl = () => {
         setCrawlBusy(true);
-        router.post(route('admin.external-events.crawl'), crawlPayload(), {
+        router.post(safeRoute('admin.external-events.crawl'), crawlPayload(), {
             preserveScroll: true,
             onFinish: () => setCrawlBusy(false),
         });
@@ -158,7 +159,7 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
         setPreviewData(null);
         try {
             const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
-            const res = await fetch(route('admin.external-events.crawl-preview'), {
+            const res = await fetch(safeRoute('admin.external-events.crawl-preview'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,7 +206,9 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                 </button>
                 <button
                     type="button"
-                    onClick={() => router.post(route('admin.external-events.sync', item.id))}
+                    onClick={() =>
+                        router.post(safeRoute('admin.external-events.sync', { externalEvent: item.id }))
+                    }
                     className={rowActionClass.sync}
                     disabled={!!item.synced_event_id}
                 >
@@ -213,7 +216,9 @@ export default function AdminExternalEventsIndex({ items, filters, sources, craw
                 </button>
                 <button
                     type="button"
-                    onClick={() => router.post(route('admin.external-events.reject', item.id))}
+                    onClick={() =>
+                        router.post(safeRoute('admin.external-events.reject', { externalEvent: item.id }))
+                    }
                     className={rowActionClass.reject}
                     disabled={isRejected}
                 >

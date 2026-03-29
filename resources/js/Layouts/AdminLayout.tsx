@@ -167,6 +167,9 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
         if (item.href === 'admin.content-sliders.index' && currentUrl.startsWith('/admin/slider')) {
             return true;
         }
+        if (item.href === 'admin.external-events.index' && currentUrl.startsWith('/admin/dis-kaynak-etkinlikler')) {
+            return true;
+        }
         try {
             if (item.query && Object.keys(item.query).length > 0) {
                 if (! route().current(item.href)) {
@@ -226,7 +229,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                 const href =
                     item.href === 'admin.event-artist-reports.index' ||
                     item.href === 'admin.seo-tools.index' ||
-                    item.href === 'admin.content-sliders.index'
+                    item.href === 'admin.content-sliders.index' ||
+                    item.href === 'admin.external-events.index'
                         ? safeRoute(item.href, item.query ?? {})
                         : route(item.href, item.query ?? {});
 
