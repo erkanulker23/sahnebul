@@ -12,22 +12,29 @@ return [
             'city' => 'İstanbul',
         ],
         'bubilet' => [
-            /** @deprecated Tek URL; `listing_urls` kullanın */
+            /** Tek kaynak kontrolü için (crawler::crawl) — gerçek liste `listing_tags` + şehir segmenti ile üretilir */
             'url' => 'https://www.bubilet.com.tr/istanbul/etiket/konser',
+            /** JSON-LD’de şehir yoksa yedek (liste URL’sinden de türetilir) */
             'city' => 'İstanbul',
             /**
-             * Bubilet etiket sayfaları SSR’da her biri ~20–24 kart veriyor; sayfa parametresi ek veri döndürmüyor.
-             * Farklı etiketler birleştirilerek kapsam artırılır (ör. konser + tiyatro + festival…).
+             * Bubilet şehir sayfası: https://www.bubilet.com.tr/{şehir-slug}/etiket/{etiket}
+             * Admin’de şehir seçilmezse bu slug kullanılır (.env: BUBILET_DEFAULT_CITY_SLUG).
              */
-            'listing_urls' => [
-                'https://www.bubilet.com.tr/istanbul/etiket/konser',
-                'https://www.bubilet.com.tr/istanbul/etiket/tiyatro',
-                'https://www.bubilet.com.tr/istanbul/etiket/festival',
-                'https://www.bubilet.com.tr/istanbul/etiket/elektronik-muzik',
-                'https://www.bubilet.com.tr/istanbul/etiket/stand-up',
-                'https://www.bubilet.com.tr/istanbul/etiket/cocuk-aktiviteleri',
-                'https://www.bubilet.com.tr/istanbul/etiket/workshop',
+            'default_city_slug' => strtolower((string) (env('BUBILET_DEFAULT_CITY_SLUG') ?: 'istanbul')),
+            /**
+             * Etiket path parçaları (sırayla tüm şehir × tüm etiket taranır).
+             * Özel kurulum için `listing_urls` doluysa o dizin (şehir seçimine göre yeniden yazılır) kullanılabilir.
+             */
+            'listing_tags' => [
+                'konser',
+                'tiyatro',
+                'festival',
+                'elektronik-muzik',
+                'stand-up',
+                'cocuk-aktiviteleri',
+                'workshop',
             ],
+            'listing_urls' => null,
         ],
         /** https://www.bubilet.com.tr/sehir-sec — şehir bazlı popüler etkinlik kartları (HTML) */
         'bubilet_sehir_sec' => [

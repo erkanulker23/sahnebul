@@ -84,7 +84,11 @@ export default function AdminBubiletCrawlCookiesIndex({
 
     return (
         <AdminLayout>
-            <SeoHead title="Bubilet crawl çerez — Admin | Sahnebul" description="Cloudflare / dış kaynak crawl." noindex />
+            <SeoHead
+                title="Bubilet çerezi — Yönetim | Sahnebul"
+                description="Cloudflare ve dış kaynak veri çekimi için Bubilet tarayıcı çerezleri."
+                noindex
+            />
             <FlashMessage />
 
             <div className="space-y-6">
@@ -94,10 +98,10 @@ export default function AdminBubiletCrawlCookiesIndex({
                             href={safeRoute('admin.external-events.index')}
                             className="font-medium text-sky-700 underline underline-offset-2 hover:text-sky-600 dark:text-sky-400"
                         >
-                            ← Crawl adayları (dış kaynak etkinlikler)
+                            ← Dış kaynak aday etkinlikler
                         </Link>
                     </p>
-                    <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Bubilet çerez (Cloudflare / crawl)</h1>
+                    <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Bubilet çerezi (Cloudflare / veri çekimi)</h1>
                     <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
                         Yalnızca <strong className="text-zinc-800 dark:text-zinc-200">Bubilet</strong> kaynaklı HTTP taraması
                         (<code className="rounded bg-zinc-200 px-1 text-xs dark:bg-zinc-800">MarketplaceCrawlerService</code>) için kullanılır.

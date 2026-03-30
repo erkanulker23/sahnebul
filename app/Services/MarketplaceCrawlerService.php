@@ -18,7 +18,11 @@ use RuntimeException;
 
 class MarketplaceCrawlerService
 {
-    public function crawl(string $source): array
+    /**
+     * @param  array{bubilet_city_slugs?: list<string>}  $options
+     * @return list<array<string, mixed>>
+     */
+    public function crawl(string $source, array $options = []): array
     {
         $sourceConfig = config("crawler.sources.{$source}");
         if (! is_array($sourceConfig) || empty($sourceConfig['url'])) {
@@ -26,7 +30,11 @@ class MarketplaceCrawlerService
         }
 
         if ($source === 'bubilet') {
-            return $this->crawlBubiletTagListing($sourceConfig);
+            $slugs = isset($options['bubilet_city_slugs']) && is_array($options['bubilet_city_slugs'])
+                ? array_values(array_filter(array_map('strval', $options['bubilet_city_slugs'])))
+                : [];
+
+            return $this->crawlBubiletTagListing($sourceConfig, $slugs);
         }
 
         if ($source === 'bubilet_sehir_sec') {
@@ -65,15 +73,12 @@ class MarketplaceCrawlerService
      * Bubilet etiket sayfasındaki etkinlik kartlarından link toplanır; her detay sayfasındaki JSON-LD Event okunur.
      *
      * @param  array<string, mixed>  $sourceConfig
+     * @param  list<string>  $citySlugs  URL ilk segmenti (örn. istanbul, ankara); boşsa config default_city_slug
      * @return list<array<string, mixed>>
      */
-    private function crawlBubiletTagListing(array $sourceConfig): array
+    private function crawlBubiletTagListing(array $sourceConfig, array $citySlugs = []): array
     {
-        $listingUrls = $sourceConfig['listing_urls'] ?? null;
-        if (! is_array($listingUrls) || $listingUrls === []) {
-            $listingUrls = [(string) $sourceConfig['url']];
-        }
-        $listingUrls = array_values(array_unique(array_filter(array_map('strval', $listingUrls))));
+        $listingUrls = $this->bubiletListingUrlsForCitySlugs($sourceConfig, $citySlugs);
 
         $pathToListing = [];
         $delayListingUs = max(0, (int) config('crawler.bubilet_listing_delay_us', 200_000));
@@ -113,7 +118,9 @@ class MarketplaceCrawlerService
                     continue;
                 }
                 $event['url'] = $url;
-                $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
+                $row = $this->normalizeSchemaOrgEventRow($event, array_merge($sourceConfig, [
+                    'city' => $this->bubiletFallbackCityNameFromListingUrl($listingUrl, $sourceConfig),
+                ]));
                 if ($row !== null) {
                     $meta = is_array($row['meta'] ?? null) ? $row['meta'] : [];
                     if ($listingUrl !== '') {
@@ -127,6 +134,84 @@ class MarketplaceCrawlerService
         }
 
         return $normalized;
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @param  list<string>  $citySlugs
+     * @return list<string>
+     */
+    private function bubiletListingUrlsForCitySlugs(array $sourceConfig, array $citySlugs): array
+    {
+        $slugs = [];
+        foreach ($citySlugs as $s) {
+            $t = strtolower(trim((string) $s));
+            if ($t !== '') {
+                $slugs[] = $t;
+            }
+        }
+        $slugs = array_values(array_unique($slugs));
+        if ($slugs === []) {
+            $def = (string) ($sourceConfig['default_city_slug'] ?? 'istanbul');
+            $def = strtolower(trim($def));
+            $slugs = [$def !== '' ? $def : 'istanbul'];
+        }
+
+        $tags = $sourceConfig['listing_tags'] ?? null;
+        if (is_array($tags) && $tags !== []) {
+            $base = 'https://www.bubilet.com.tr';
+            $out = [];
+            foreach ($slugs as $cs) {
+                foreach ($tags as $tag) {
+                    $tag = strtolower(trim((string) $tag));
+                    if ($tag === '') {
+                        continue;
+                    }
+                    $out[] = "{$base}/{$cs}/etiket/{$tag}";
+                }
+            }
+
+            return array_values(array_unique($out));
+        }
+
+        $listingUrls = $sourceConfig['listing_urls'] ?? null;
+        if (! is_array($listingUrls) || $listingUrls === []) {
+            $listingUrls = [(string) $sourceConfig['url']];
+        }
+        $listingUrls = array_values(array_unique(array_filter(array_map('strval', $listingUrls))));
+        $out = [];
+        foreach ($listingUrls as $u) {
+            if (preg_match('#^https://www\.bubilet\.com\.tr/([^/]+)/etiket/([^/?]+)#i', $u, $m)) {
+                $tag = strtolower($m[2]);
+                foreach ($slugs as $cs) {
+                    $out[] = "https://www.bubilet.com.tr/{$cs}/etiket/{$tag}";
+                }
+            } else {
+                $out[] = $u;
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     */
+    private function bubiletFallbackCityNameFromListingUrl(string $listingUrl, array $sourceConfig): string
+    {
+        if (preg_match('#https://www\.bubilet\.com\.tr/([^/]+)/etiket/#i', $listingUrl, $m)) {
+            $slug = strtolower($m[1]);
+            $name = City::query()->where('slug', $slug)->value('name');
+            if (is_string($name) && $name !== '') {
+                return $name;
+            }
+
+            return Str::title(str_replace('-', ' ', $slug));
+        }
+
+        $fallback = $sourceConfig['city'] ?? null;
+
+        return is_string($fallback) && $fallback !== '' ? $fallback : 'İstanbul';
     }
 
     /**

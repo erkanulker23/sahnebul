@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\City;
 use App\Models\ExternalEvent;
 use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Support\Arr;
@@ -47,7 +48,7 @@ class MarketplaceExternalEventImportService
             }
 
             try {
-                $rows = $this->crawler->crawl($source);
+                $rows = $this->crawler->crawl($source, $this->crawlOptionsForSource($source, $cityNames));
             } catch (\Throwable $e) {
                 $bySource[$source] = [
                     'error' => CrawlerHttpResponseInspector::compactCrawlerErrorForAdmin($e->getMessage()),
@@ -190,7 +191,7 @@ class MarketplaceExternalEventImportService
             }
 
             try {
-                $rows = $this->crawler->crawl($source);
+                $rows = $this->crawler->crawl($source, $this->crawlOptionsForSource($source, $cityNames));
             } catch (\Throwable $e) {
                 $errors[] = "{$source}: ".CrawlerHttpResponseInspector::compactCrawlerErrorForAdmin($e->getMessage());
 
@@ -361,6 +362,43 @@ class MarketplaceExternalEventImportService
         $path = $path === '' ? '/' : rtrim($path, '/');
 
         return 'https://'.$host.$path;
+    }
+
+    /**
+     * @param  list<string>  $cityNames
+     * @return array{bubilet_city_slugs?: list<string>}
+     */
+    private function crawlOptionsForSource(string $source, array $cityNames): array
+    {
+        if ($source !== 'bubilet') {
+            return [];
+        }
+
+        $slugs = $this->bubiletCitySlugsFromAdminSelection($cityNames);
+
+        return $slugs === [] ? [] : ['bubilet_city_slugs' => $slugs];
+    }
+
+    /**
+     * Boşsa crawler yalnızca config `default_city_slug` ile URL üretir (Bubilet şehir segmenti).
+     *
+     * @param  list<string>  $cityNames
+     * @return list<string>
+     */
+    private function bubiletCitySlugsFromAdminSelection(array $cityNames): array
+    {
+        if ($cityNames === []) {
+            return [];
+        }
+
+        return City::query()
+            ->whereIn('name', $cityNames)
+            ->pluck('slug')
+            ->map(fn (mixed $s): string => strtolower(trim((string) $s)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function formatPerformerLabel(array $raw): string

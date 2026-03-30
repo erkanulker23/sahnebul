@@ -310,10 +310,10 @@ export default function AdminExternalEventsIndex({
 
     return (
         <AdminLayout>
-            <SeoHead title="Crawl Adayları" description="Harici etkinlik adayları." noindex />
+            <SeoHead title="Dış kaynak aday etkinlikler" description="Harici kaynaklardan gelen etkinlik adayları." noindex />
             <div className="space-y-6">
                 <AdminPageHeader
-                    title="Crawl aday etkinlikler"
+                    title="Dış kaynak aday etkinlikler"
                     description="Biletinial müzik listesi ve diğer kaynaklardan gelen adayları inceleyin; aktarınca etkinlik taslak, mekan ve sanatçılar otomatik eşleştirilir veya oluşturulur."
                     actions={
                         <>
@@ -451,18 +451,23 @@ export default function AdminExternalEventsIndex({
                 <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Tarih aralığı, şehir ve kategori filtreleri isteğe bağlıdır (seçilmezse tümü). Önce önizleyip nasıl görüneceğini kontrol edin; &quot;Verileri çek&quot; sunucuda biter;{' '}
-                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">sonuç üstteki «Son veri çekme» kutusunda</strong> kalır (sayfayı yenileseniz de görünür). Üst köşede kısa bildirim de çıkabilir.
-                        İşlem uzun sürebilir; proxy zaman aşımı varsa tarayıcı hata verebilir — o durumda sunucu loglarına bakın.{' '}
+                        Tarih aralığı ve kategori; çekimden sonra sonuçları daraltır. <strong className="font-medium text-zinc-800 dark:text-zinc-200">Şehirler</strong> listesinde seçim
+                        yaptığınızda Bubilet için bu, doğrudan{' '}
+                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">bubilet.com.tr/{'{şehir}'}/etiket/…</code> adresindeki şehir segmentidir (ör. Ankara seçilirse{' '}
+                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">/ankara/etiket/</code>). Hiç şehir seçmezseniz{' '}
+                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">BUBILET_DEFAULT_CITY_SLUG</code> / yapılandırmadaki varsayılan şehir kullanılır. Diğer kaynaklar
+                        için şehir, çekilen satırların şehir alanına göre süzülür. Önce önizleyip kontrol edin; &quot;Verileri çek&quot; sunucuda biter;{' '}
+                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">sonuç üstteki «Son veri çekme» kutusunda</strong> kalır. İşlem uzun sürebilir; proxy zaman aşımı varsa
+                        tarayıcı hata verebilir.{' '}
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                            Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
-                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz.                             Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
+                            Bubilet: Konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri seçilen şehir(ler) için birlikte taranır; tarayıcıda gördüğünüzden fazlası
+                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
                             açıklanır. Cloudflare çerezi:{' '}
                             <Link
                                 href={safeRoute('admin.external-events.bubilet-cookies.index')}
                                 className="font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
                             >
-                                Bubilet çerez (crawl)
+                                Bubilet çerezi
                             </Link>{' '}
                             sayfasından Netscape dosyası yükleyebilir veya .env içinde BUBILET_COOKIES / BUBILET_COOKIES_FILE kullanın; cf_clearance olmalı (yalnızca analitik çerezler yetmez). Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
                             çekimde atlanır.

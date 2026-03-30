@@ -65,11 +65,11 @@ const navItems: AdminNavItem[] = [
     },
     { navKey: 'admin.venues.index', href: 'admin.venues.index', label: 'Mekanlar', icon: Building2 },
     { navKey: 'admin.events.index', href: 'admin.events.index', label: 'Etkinlikler', icon: Calendar },
-    { navKey: 'admin.external-events.index', href: 'admin.external-events.index', label: 'Crawl Adayları', icon: Globe },
+    { navKey: 'admin.external-events.index', href: 'admin.external-events.index', label: 'Dış kaynak adayları', icon: Globe },
     {
         navKey: 'admin.external-events.bubilet-cookies.index',
         href: 'admin.external-events.bubilet-cookies.index',
-        label: 'Bubilet çerez (crawl)',
+        label: 'Bubilet çerezi',
         icon: Cloud,
     },
     { navKey: 'admin.artists.index', href: 'admin.artists.index', label: 'Sanatçılar', icon: Mic },
@@ -281,6 +281,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                     item.href === 'admin.seo-tools.index' ||
                     item.href === 'admin.content-sliders.index' ||
                     item.href === 'admin.external-events.index' ||
+                    item.href === 'admin.external-events.bubilet-cookies.index' ||
                     item.href === 'admin.google-sign-in.index' ||
                     item.href === 'admin.verification-scripts.index' ||
                     item.href === 'admin.instagram-promo-cookies.index'

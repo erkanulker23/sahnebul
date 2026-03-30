@@ -62,7 +62,7 @@ class ExternalEventDuplicateMergeTest extends TestCase
 
         $this->mock(MarketplaceCrawlerService::class, function ($mock) use ($crawlRow): void {
             $mock->shouldReceive('crawl')
-                ->with('biletinial')
+                ->with('biletinial', [])
                 ->once()
                 ->andReturn([$crawlRow]);
         });

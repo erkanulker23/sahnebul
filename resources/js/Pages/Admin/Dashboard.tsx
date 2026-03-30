@@ -130,7 +130,7 @@ export default function AdminDashboard({
                                             <p className="text-sm text-zinc-500">{a.genre ?? 'Sanatçı'} • {formatTurkishDateTime(a.created_at)}</p>
                                         </div>
                                         <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-400">
-                                            pending
+                                            Onay bekliyor
                                         </span>
                                     </Link>
                                 ))}
@@ -319,6 +319,23 @@ function SectionCard({ title, children, link, linkLabel }: Readonly<{ title: str
     );
 }
 
+function adminStatusLabelTr(status: string): string {
+    const map: Record<string, string> = {
+        approved: 'Onaylı',
+        pending: 'Onay bekliyor',
+        rejected: 'Reddedildi',
+        draft: 'Taslak',
+        published: 'Yayında',
+        confirmed: 'Onaylandı',
+        completed: 'Tamamlandı',
+        cancelled: 'İptal',
+        paid: 'Ödendi',
+        refunded: 'İade',
+    };
+
+    return map[status] ?? status;
+}
+
 function StatusBadge({ status }: Readonly<{ status: string }>) {
     const colors: Record<string, string> = {
         approved: 'bg-green-500/20 text-green-800 dark:text-green-400',
@@ -332,7 +349,7 @@ function StatusBadge({ status }: Readonly<{ status: string }>) {
         <span
             className={`rounded-full px-2 py-0.5 text-xs ${colors[status] || 'bg-zinc-500/20 text-zinc-600 dark:text-zinc-400'}`}
         >
-            {status}
+            {adminStatusLabelTr(status)}
         </span>
     );
 }
