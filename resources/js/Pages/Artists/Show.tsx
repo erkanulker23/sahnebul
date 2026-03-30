@@ -912,7 +912,7 @@ export default function ArtistShow({
                                                 ? path
                                                 : `/storage/${path}`;
                                         }}
-                                        labels={venuePromoLabels}
+                                        labels={{ ...venuePromoLabels, postsDescription: '' }}
                                     />
                                 </section>
                             ) : null}

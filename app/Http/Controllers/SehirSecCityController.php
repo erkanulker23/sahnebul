@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Event;
 use App\Support\EventListingQuery;
 use App\Support\SehirSecCityDistricts;
+use App\Support\SehirSecCityPromoStories;
 use App\Support\SehirSecPlatformEvents;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -221,6 +222,7 @@ class SehirSecCityController extends Controller
             'nearLat' => $nearLatQueryOk ? $nearLat : null,
             'nearLng' => $nearLatQueryOk ? $nearLng : null,
             'events' => $paginator,
+            'promoStoryRings' => SehirSecCityPromoStories::ringsForCitySlug($city),
         ]);
     }
 
@@ -244,6 +246,7 @@ class SehirSecCityController extends Controller
             'nearLat' => null,
             'nearLng' => null,
             'events' => $emptyPaginator,
+            'promoStoryRings' => [],
         ]);
     }
 }

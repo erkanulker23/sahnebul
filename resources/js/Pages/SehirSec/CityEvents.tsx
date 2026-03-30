@@ -1,3 +1,4 @@
+import { CityPromoStories, type CityPromoStoryRing } from '@/Components/CityPromoStories';
 import SeoHead from '@/Components/SeoHead';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
@@ -45,6 +46,7 @@ interface Props {
     nearLat?: number | null;
     nearLng?: number | null;
     events: { data: CityEventsRow[]; links: PaginatorLink[] };
+    promoStoryRings?: CityPromoStoryRing[];
 }
 
 function cityListHref(
@@ -86,6 +88,7 @@ export default function SehirSecCityEvents({
     nearLat = null,
     nearLng = null,
     events,
+    promoStoryRings = [],
 }: Readonly<Props>) {
     const desc = `${cityName} etkinlikleri — /etkinlikler ile aynı platform kaydı. İlçe, tür ve kategoriye göre süzebilirsiniz.`;
     const [geoHint, setGeoHint] = useState<string | null>(null);
@@ -392,6 +395,7 @@ export default function SehirSecCityEvents({
                 </section>
 
                 <div className="mx-auto max-w-7xl px-4 py-8 sm:px-4 sm:py-10 lg:px-8">
+                    <CityPromoStories rings={promoStoryRings} />
                     {events.data.length === 0 && (
                         <p className="rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
                             Bu şehir ve seçili filtrelere uygun etkinlik yok. Tüm şehirler ve filtreler için{' '}

@@ -67,11 +67,9 @@ export const venuePromoLabels: PublicPromoGalleryLabels = {
 
 export const artistPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
-    storiesDescription:
-        'MP4/WebM veya gönderi/Reels için gömülü oynatıcı; hikâyelerde kapak veya Instagram’da aç.',
+    storiesDescription: '',
     postsTitle: 'Gönderi görselleri',
-    postsDescription:
-        'Duyuru ve paylaşımların kare önizlemesi; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
+    postsDescription: '',
     linksTitle: 'Diğer tanıtım bağlantıları',
 };
 
@@ -186,11 +184,11 @@ type PromoPostSlide =
     | { kind: 'image'; src: string; poster: string | null }
     | { kind: 'instagram'; permalink: string; poster: string | null };
 
-function promoVideoSrcLooksLikeWebm(src: string): boolean {
+export function promoVideoSrcLooksLikeWebm(src: string): boolean {
     return /\.webm(\?|#|$)/i.test(src);
 }
 
-function iosLikeUserAgent(): boolean {
+export function iosLikeUserAgent(): boolean {
     if (typeof navigator === 'undefined') {
         return false;
     }
@@ -457,9 +455,11 @@ export function PublicPromoGallerySection({
             {postItems.length > 0 ? (
                 <section className="w-full max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">{labels.postsTitle}</h2>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {labels.postsDescription} ({postItems.length}).
-                    </p>
+                    {(labels.postsDescription?.trim() ?? '') !== '' ? (
+                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            {labels.postsDescription} ({postItems.length}).
+                        </p>
+                    ) : null}
                     <ul className={promoPostGrid}>
                         {postItems.map((it, idx) => {
                             const slide = postSlides[idx];
