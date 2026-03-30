@@ -16,7 +16,7 @@ class ReviewController extends Controller
             ->when($request->approved === 'yes', fn ($q) => $q->where('is_approved', true))
             ->when($request->search, fn ($q) => $q->where('comment', 'like', "%{$request->search}%"))
             ->latest()
-            ->paginate(20)
+            ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('Admin/Reviews/Index', [

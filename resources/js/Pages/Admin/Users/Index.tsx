@@ -1,4 +1,11 @@
-import { AdminButton, AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import {
+    AdminButton,
+    AdminDataTable,
+    AdminPageHeader,
+    AdminPaginationBar,
+    type AdminColumn,
+    type AdminPaginatorPayload,
+} from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -18,7 +25,7 @@ interface User {
 }
 
 interface Props {
-    users: { data: User[]; links: unknown[] };
+    users: AdminPaginatorPayload & { data: User[] };
     filters: { search?: string; role?: string; status?: string };
     /** Süper yönetici: admin / süper admin rolü atama ve yönetici satırlarında işlemler */
     canAssignElevatedRoles?: boolean;
@@ -234,6 +241,8 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                     </AdminButton>
                 </form>
 
+                <AdminPaginationBar paginator={users} noun="kullanıcı" showLinks={false} />
+
                 <AdminDataTable
                     columns={columns}
                     rows={users.data}
@@ -292,6 +301,8 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                         );
                     }}
                 />
+
+                <AdminPaginationBar paginator={users} noun="kullanıcı" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

@@ -1,4 +1,10 @@
-import { AdminDataTable, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import {
+    AdminDataTable,
+    AdminPageHeader,
+    AdminPaginationBar,
+    type AdminColumn,
+    type AdminPaginatorPayload,
+} from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -14,7 +20,7 @@ interface BlogPost {
 }
 
 interface Props {
-    posts: { data: BlogPost[] };
+    posts: AdminPaginatorPayload & { data: BlogPost[] };
     filters?: { search?: string };
 }
 
@@ -88,6 +94,8 @@ export default function AdminBlogIndex({ posts, filters }: Readonly<Props>) {
                     />
                 </div>
 
+                <AdminPaginationBar paginator={posts} noun="yazı" showLinks={false} />
+
                 <AdminDataTable
                     columns={columns}
                     rows={posts.data}
@@ -111,6 +119,8 @@ export default function AdminBlogIndex({ posts, filters }: Readonly<Props>) {
                         </>
                     )}
                 />
+
+                <AdminPaginationBar paginator={posts} noun="yazı" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

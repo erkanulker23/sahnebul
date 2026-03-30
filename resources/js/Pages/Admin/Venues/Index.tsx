@@ -1,4 +1,11 @@
-import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import {
+    AdminDataTable,
+    AdminExcelActions,
+    AdminPageHeader,
+    AdminPaginationBar,
+    type AdminColumn,
+    type AdminPaginatorPayload,
+} from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { venueArtistStatusTr } from '@/lib/statusLabels';
@@ -19,7 +26,7 @@ interface Venue {
 }
 
 interface Props {
-    venues: { data: Venue[]; links: unknown[] };
+    venues: AdminPaginatorPayload & { data: Venue[] };
     filters?: { search?: string; status?: string };
 }
 
@@ -273,6 +280,8 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                     </button>
                 </div>
 
+                <AdminPaginationBar paginator={venues} noun="mekan" showLinks={false} />
+
                 {selectedCount > 0 && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
                         <p className="text-sm text-zinc-700 dark:text-zinc-300">
@@ -422,6 +431,8 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                         </>
                     )}
                 />
+
+                <AdminPaginationBar paginator={venues} noun="mekan" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

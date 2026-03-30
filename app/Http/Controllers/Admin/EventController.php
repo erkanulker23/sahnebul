@@ -57,7 +57,7 @@ class EventController extends Controller
             })
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(20)
+            ->paginate(50)
             ->withQueryString();
 
         $events->getCollection()->transform(function (Event $event) {

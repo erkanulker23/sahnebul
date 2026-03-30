@@ -21,7 +21,7 @@ class BlogPostController extends Controller
             ->with('author:id,name')
             ->when($request->search, fn ($q) => $q->where('title', 'like', '%'.$request->search.'%'))
             ->latest()
-            ->paginate(20)
+            ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('Admin/Blog/Index', [

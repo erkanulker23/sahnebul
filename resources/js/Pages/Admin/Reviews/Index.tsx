@@ -1,4 +1,4 @@
-import { AdminPageHeader } from '@/Components/Admin';
+import { AdminPageHeader, AdminPaginationBar, type AdminPaginatorPayload } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
@@ -16,7 +16,7 @@ interface Review {
 }
 
 interface Props {
-    reviews: { data: Review[]; links: unknown[] };
+    reviews: AdminPaginatorPayload & { data: Review[] };
     filters: { approved?: string; search?: string };
 }
 
@@ -81,6 +81,8 @@ export default function AdminReviewsIndex({ reviews, filters }: Readonly<Props>)
                     </button>
                 </form>
 
+                <AdminPaginationBar paginator={reviews} noun="yorum" showLinks={false} />
+
                 <div className="space-y-4">
                     {reviews.data.map((review) => (
                         <div
@@ -131,6 +133,8 @@ export default function AdminReviewsIndex({ reviews, filters }: Readonly<Props>)
                         </div>
                     ))}
                 </div>
+
+                <AdminPaginationBar paginator={reviews} noun="yorum" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

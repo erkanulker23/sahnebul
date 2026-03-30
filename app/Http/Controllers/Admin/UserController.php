@@ -24,7 +24,7 @@ class UserController extends Controller
             ->when($request->status === 'active', fn ($q) => $q->where('is_active', true))
             ->when($request->status === 'inactive', fn ($q) => $q->where('is_active', false))
             ->latest()
-            ->paginate(20)
+            ->paginate(50)
             ->withQueryString();
 
         $userIds = $users->getCollection()->pluck('id');

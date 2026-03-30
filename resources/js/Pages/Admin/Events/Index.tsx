@@ -1,4 +1,11 @@
-import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import {
+    AdminDataTable,
+    AdminExcelActions,
+    AdminPageHeader,
+    AdminPaginationBar,
+    type AdminColumn,
+    type AdminPaginatorPayload,
+} from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -21,7 +28,7 @@ interface Event {
 }
 
 interface Props {
-    events: { data: Event[]; links: unknown[] };
+    events: AdminPaginatorPayload & { data: Event[] };
     venues: { id: number; name: string }[];
     filters?: { status?: string; venue_id?: string; search?: string };
 }
@@ -288,6 +295,8 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                     </div>
                 </form>
 
+                <AdminPaginationBar paginator={events} noun="etkinlik" showLinks={false} />
+
                 <div className="flex flex-wrap items-center gap-2">
                     {selectedCount > 0 && (
                         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -347,6 +356,8 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                         </>
                     )}
                 />
+
+                <AdminPaginationBar paginator={events} noun="etkinlik" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

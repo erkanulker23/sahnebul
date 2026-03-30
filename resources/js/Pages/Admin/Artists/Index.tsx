@@ -1,6 +1,12 @@
-import { AdminDataTable, AdminExcelActions, AdminPageHeader, type AdminColumn } from '@/Components/Admin';
+import {
+    AdminDataTable,
+    AdminExcelActions,
+    AdminPageHeader,
+    AdminPaginationBar,
+    type AdminColumn,
+    type AdminPaginatorPayload,
+} from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { venueArtistStatusTr } from '@/lib/statusLabels';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
@@ -23,19 +29,8 @@ function artistListAvatarUrl(path: string | null | undefined): string | null {
     return `/storage/${path}`;
 }
 
-type PaginationLink = { url: string | null; label: string; active: boolean };
-
 interface Props {
-    artists: {
-        data: Artist[];
-        links: PaginationLink[];
-        current_page?: number;
-        last_page?: number;
-        from?: number | null;
-        to?: number | null;
-        total?: number;
-        per_page?: number;
-    };
+    artists: AdminPaginatorPayload & { data: Artist[] };
     filters?: { search?: string; status?: string };
 }
 
@@ -251,30 +246,7 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                     </button>
                 </div>
 
-                {typeof artists.total === 'number' && (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Toplam{' '}
-                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
-                            {artists.total.toLocaleString('tr-TR')}
-                        </span>{' '}
-                        sanatçı
-                        {artists.from != null && artists.to != null && artists.total > 0 && (
-                            <>
-                                {' '}
-                                · bu sayfada{' '}
-                                <span className="tabular-nums">
-                                    {artists.from.toLocaleString('tr-TR')}–{artists.to.toLocaleString('tr-TR')}
-                                </span>
-                            </>
-                        )}
-                        {typeof artists.last_page === 'number' && artists.last_page > 1 && (
-                            <>
-                                {' '}
-                                · sayfa {artists.current_page ?? '—'} / {artists.last_page}
-                            </>
-                        )}
-                    </p>
-                )}
+                <AdminPaginationBar paginator={artists} noun="sanatçı" showLinks={false} />
 
                 {selectedCount > 0 && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/50">
@@ -368,40 +340,7 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                     )}
                 />
 
-                {Array.isArray(artists.links) && artists.links.length > 0 && (artists.last_page ?? 0) > 1 && (
-                    <div className="flex flex-wrap gap-2">
-                        {artists.links.map((link, idx) => {
-                            const label = link.label
-                                .replace('&laquo; Previous', 'Önceki')
-                                .replace('Next &raquo;', 'Sonraki');
-                            if (!link.url) {
-                                return (
-                                    <span
-                                        key={`${label}-${idx}`}
-                                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-600"
-                                    >
-                                        <span dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(label) }} />
-                                    </span>
-                                );
-                            }
-
-                            return (
-                                <Link
-                                    key={`${label}-${idx}`}
-                                    href={link.url}
-                                    preserveState
-                                    preserveScroll
-                                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${
-                                        link.active
-                                            ? 'border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-300'
-                                            : 'border-zinc-300 bg-white text-zinc-800 hover:border-amber-400 dark:border-zinc-600 dark:bg-transparent dark:text-zinc-300 dark:hover:border-amber-500/30'
-                                    }`}
-                                    dangerouslySetInnerHTML={{ __html: sanitizeHtmlForInnerHtml(label) }}
-                                />
-                            );
-                        })}
-                    </div>
-                )}
+                <AdminPaginationBar paginator={artists} noun="sanatçı" showSummary={false} className="pt-2" />
             </div>
         </AdminLayout>
     );

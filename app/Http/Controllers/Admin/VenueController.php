@@ -65,7 +65,7 @@ class VenueController extends Controller
             })
             ->orderBy('name')
             ->orderBy('id')
-            ->paginate(15)
+            ->paginate(50)
             ->withQueryString();
 
         return Inertia::render('Admin/Venues/Index', [
