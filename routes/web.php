@@ -231,6 +231,12 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
         ->middleware('throttle:30,1')
         ->name('public-profile.promo.remove-item');
     Route::get('/mekanlarim', [ArtistVenueController::class, 'index'])->name('venues.index');
+    Route::get('/mekanlarim/profil-adresi-kontrol', [ArtistVenueController::class, 'checkPublicProfileSlug'])
+        ->middleware('throttle:60,1')
+        ->name('venues.public-slug-check');
+    Route::get('/mekanlarim/profil-adresi-oner', [ArtistVenueController::class, 'suggestPublicProfileSlug'])
+        ->middleware('throttle:30,1')
+        ->name('venues.public-slug-suggest');
     Route::get('/mekanlarim/ekle', [ArtistVenueController::class, 'create'])->name('venues.create');
     Route::post('/mekanlarim', [ArtistVenueController::class, 'store'])->name('venues.store');
     Route::get('/mekanlarim/{venue}/duzenle', [ArtistVenueController::class, 'edit'])->name('venues.edit');
@@ -320,6 +326,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/kullanicilar/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
     Route::get('/mekanlar', [AdminVenueController::class, 'index'])->name('venues.index');
+    Route::get('/mekanlar/profil-adresi-kontrol', [AdminVenueController::class, 'checkPublicProfileSlug'])
+        ->middleware('throttle:60,1')
+        ->name('venues.public-slug-check');
+    Route::get('/mekanlar/profil-adresi-oner', [AdminVenueController::class, 'suggestPublicProfileSlug'])
+        ->middleware('throttle:30,1')
+        ->name('venues.public-slug-suggest');
     Route::get('/mekanlar/excel', [AdminCatalogExcelController::class, 'exportVenues'])->name('venues.excel-export');
     Route::post('/mekanlar/excel-ice-aktar', [AdminCatalogExcelController::class, 'importVenues'])->name('venues.excel-import');
     Route::get('/mekanlar/ekle', [AdminVenueController::class, 'create'])->name('venues.create');

@@ -10,25 +10,33 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class Event extends Model
 {
+    /** Yayın geçişi bu istek içinde syncArtistsByIds sonrası tam bildirimle yapılacaksa kısmi (yeni sanatçı) bildirimini atlamak için. */
+    private static array $favoriteNotifyFullPendingForEventIds = [];
+
     protected static function booted(): void
     {
-        static::created(function (Event $event): void {
-            if ($event->status === 'published') {
-                SahnebulMail::eventPublishedForFavoriteArtists($event->load(['venue', 'artists']));
-            }
-        });
-
         static::updated(function (Event $event): void {
-            if ($event->wasChanged('status')
-                && $event->status === 'published'
-                && $event->getOriginal('status') !== 'published') {
-                SahnebulMail::eventPublishedForFavoriteArtists($event->load(['venue', 'artists']));
+            if (! $event->wasChanged('status')) {
+                return;
             }
+            if ($event->status !== 'published' || $event->getOriginal('status') === 'published') {
+                return;
+            }
+            self::$favoriteNotifyFullPendingForEventIds[$event->id] = true;
+            DB::afterCommit(function () use ($event): void {
+                unset(self::$favoriteNotifyFullPendingForEventIds[$event->id]);
+                $fresh = $event->fresh(['venue', 'artists']);
+                if ($fresh === null || $fresh->status !== 'published') {
+                    return;
+                }
+                SahnebulMail::eventPublishedForFavoriteArtists($fresh, null);
+            });
         });
     }
 
@@ -78,6 +86,10 @@ class Event extends Model
      */
     public function syncArtistsByIds(array $artistIds): void
     {
+        $previousIds = $this->exists
+            ? $this->artists()->pluck('artists.id')->map(fn ($id) => (int) $id)->sort()->values()->all()
+            : [];
+
         $ordered = array_values(array_unique(array_map('intval', $artistIds)));
         $ordered = array_values(array_filter($ordered, fn (int $id) => $id > 0));
         $sync = [];
@@ -85,6 +97,24 @@ class Event extends Model
             $sync[$id] = ['is_headliner' => $order === 0, 'order' => $order];
         }
         $this->artists()->sync($sync);
+
+        $this->loadMissing('venue');
+        if ($this->status !== 'published' || ! $this->venue || $this->venue->status !== 'approved') {
+            return;
+        }
+
+        $currentIds = $this->artists()->pluck('artists.id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $newIds = array_values(array_diff($currentIds, $previousIds));
+        if ($newIds === []) {
+            return;
+        }
+
+        if (isset(self::$favoriteNotifyFullPendingForEventIds[$this->id])) {
+            return;
+        }
+
+        $this->loadMissing('artists');
+        SahnebulMail::eventPublishedForFavoriteArtists($this, $newIds);
     }
 
     public function reservations(): HasMany

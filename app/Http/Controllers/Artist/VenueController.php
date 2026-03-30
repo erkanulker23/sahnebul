@@ -13,14 +13,44 @@ use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
+use App\Support\VenuePublicUsername;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class VenueController extends Controller
 {
     use PromoGalleryImportActions;
+
+    public function checkPublicProfileSlug(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'max:120'],
+            'ignore' => ['nullable', 'integer', 'exists:venues,id'],
+        ]);
+        $ignore = isset($validated['ignore']) ? (int) $validated['ignore'] : null;
+        $assess = VenuePublicUsername::assessAvailability($validated['q'], $ignore);
+
+        return response()->json($assess);
+    }
+
+    public function suggestPublicProfileSlug(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ignore' => ['nullable', 'integer', 'exists:venues,id'],
+        ]);
+        $ignore = isset($validated['ignore']) ? (int) $validated['ignore'] : null;
+        $base = VenuePublicUsername::fromDisplayName($validated['name']);
+        if ($base === '' || strlen($base) < VenuePublicUsername::MIN_LENGTH) {
+            $base = VenuePublicUsername::fallbackBase();
+        }
+        $suggested = VenuePublicUsername::makeUnique($base, $ignore);
+
+        return response()->json(['suggested' => $suggested]);
+    }
 
     public function index(Request $request)
     {
@@ -98,7 +128,8 @@ class VenueController extends Controller
         }
 
         $validated['user_id'] = $request->user()->id;
-        $validated['slug'] = Str::slug($validated['name']).'-'.Str::random(4);
+        $base = VenuePublicUsername::fromDisplayName($validated['name']);
+        $validated['slug'] = VenuePublicUsername::makeUnique($base, null);
         $validated['status'] = 'pending';
 
         $venue = Venue::create($validated);
@@ -130,13 +161,28 @@ class VenueController extends Controller
         if ($venue->user_id !== $request->user()->id) {
             abort(403);
         }
+        $slugNormalized = VenuePublicUsername::normalize(trim((string) $request->input('slug', '')));
         $request->merge([
             'district_id' => $request->input('district_id') ?: null,
             'neighborhood_id' => $request->input('neighborhood_id') ?: null,
             'social_links' => ArtistProfileInputs::normalizeSocialLinks($request->input('social_links')),
+            'slug' => $slugNormalized,
         ]);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'slug' => [
+                'required',
+                'string',
+                'min:'.VenuePublicUsername::MIN_LENGTH,
+                'max:'.VenuePublicUsername::MAX_LENGTH,
+                'regex:/^[a-z0-9]+$/',
+                Rule::unique('venues', 'slug')->ignore($venue->id),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && VenuePublicUsername::isReserved($value)) {
+                        $fail('Bu kullanıcı adı kullanılamaz.');
+                    }
+                },
+            ],
             'category_id' => 'required|exists:categories,id',
             'city_id' => 'required|exists:cities,id',
             'district_id' => 'nullable|exists:districts,id',
@@ -152,6 +198,8 @@ class VenueController extends Controller
             'social_links' => 'nullable|array',
             'social_links.*' => 'nullable|string|max:500',
             'google_maps_url' => 'nullable|string|max:2048',
+        ], [
+            'slug.unique' => 'Bu kullanıcı adı kullanılmaktadır.',
         ]);
 
         $validated = TurkishPhone::mergeNormalizedInto($validated, ['phone']);

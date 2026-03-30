@@ -16,7 +16,7 @@ import axios from 'axios';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { adminVenuePromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface MediaItem {
     id: number;
@@ -114,6 +114,7 @@ export default function AdminVenueEdit({
     const [googleGalleryImporting, setGoogleGalleryImporting] = useState(false);
     const [googleGalleryError, setGoogleGalleryError] = useState<string | null>(null);
     const [editTab, setEditTab] = useState<'genel' | 'icerik' | 'tanitim' | 'galeri'>('genel');
+    const [slugCheck, setSlugCheck] = useState<{ ok: boolean; message: string } | null>(null);
     const sl = venue.social_links ?? {};
     const { data, setData, put, processing, errors, progress, transform } = useForm({
         name: venue.name,
@@ -152,6 +153,41 @@ export default function AdminVenueEdit({
         is_featured: formData.is_featured ? 1 : 0,
         is_active: formData.is_active ? 1 : 0,
     }));
+
+    useEffect(() => {
+        const raw = data.slug.trim();
+        if (raw === '') {
+            setSlugCheck(null);
+            return;
+        }
+        const t = globalThis.setTimeout(() => {
+            axios
+                .get<{ ok: boolean; message?: string | null }>(route('admin.venues.public-slug-check'), {
+                    params: { q: raw, ignore: venue.id },
+                })
+                .then((res) => {
+                    setSlugCheck({
+                        ok: res.data.ok === true,
+                        message: (res.data.message ?? (res.data.ok ? 'Uygun.' : '')).trim(),
+                    });
+                })
+                .catch(() => setSlugCheck(null));
+        }, 400);
+        return () => globalThis.clearTimeout(t);
+    }, [data.slug, venue.id]);
+
+    const suggestSlugFromName = () => {
+        axios
+            .get<{ suggested: string }>(route('admin.venues.public-slug-suggest'), {
+                params: { name: data.name, ignore: venue.id },
+            })
+            .then((res) => {
+                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
+                    setData('slug', res.data.suggested);
+                }
+            })
+            .catch(() => {});
+    };
 
     const field = cn('mt-1', inputBaseClass);
     const fieldMono = cn('mt-1 font-mono text-sm', inputBaseClass);
@@ -270,14 +306,46 @@ export default function AdminVenueEdit({
                             {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">URL slug *</label>
-                            <p className="mt-0.5 text-xs text-zinc-500">Küçük harf, rakam ve tire. Örnek: harbiye-acikhava</p>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <label htmlFor="admin-venue-public-slug" className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">
+                                    Kullanıcı adı (profil adresi) *
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={suggestSlugFromName}
+                                    className="text-xs font-medium text-amber-700 underline-offset-2 hover:underline dark:text-amber-400"
+                                >
+                                    İsimden öner
+                                </button>
+                            </div>
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                                Sanatçı profili ile aynı kural: yalnız a-z ve 0-9; boşluk ve tire yok. Türkçe karakterler kaydederken dönüştürülür.
+                            </p>
                             <input
+                                id="admin-venue-public-slug"
                                 value={data.slug}
                                 onChange={(e) => setData('slug', e.target.value)}
+                                autoComplete="off"
                                 className={fieldMono}
+                                placeholder="ornekmekan"
                             />
                             {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
+                            {slugCheck ? (
+                                <p className={`mt-1 text-xs ${slugCheck.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                    {slugCheck.message}
+                                </p>
+                            ) : null}
+                            <p className="mt-2 break-all text-xs text-zinc-500">
+                                Önizleme:{' '}
+                                <Link
+                                    href={route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-amber-700 hover:underline dark:text-amber-400"
+                                >
+                                    {route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                                </Link>
+                            </p>
                         </div>
                         <div className="sm:col-span-2 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-50/80 p-5 shadow-sm ring-1 ring-amber-200/80 dark:border-amber-500/35 dark:from-amber-500/[0.12] dark:via-zinc-900/90 dark:to-zinc-950 dark:shadow-lg dark:shadow-amber-950/20 dark:ring-amber-500/20">
                             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">

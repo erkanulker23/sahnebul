@@ -15,6 +15,7 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueClaimRequest;
+use App\Notifications\FavoriteArtistNewPublishedEventNotification;
 use App\Support\ArtistEditSuggestionPayload;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -516,15 +517,28 @@ final class SahnebulMail
         ), [(string) $user->email]);
     }
 
-    public static function eventPublishedForFavoriteArtists(Event $event): void
+    /**
+     * Takip edilen sanatçı(lar) için etkinlik yayını — e-posta + uygulama bildirimi (tarayıcı özeti / bildirimler sayfası).
+     *
+     * @param  list<int>|null  $onlyArtistIds  null: kadrodaki tüm sanatçılar; dolu: yalnız bu kimlikler (ör. sonradan eklenenler).
+     */
+    public static function eventPublishedForFavoriteArtists(Event $event, ?array $onlyArtistIds = null): void
     {
         $event->loadMissing(['venue', 'artists']);
         if ($event->status !== 'published' || ! $event->venue || $event->venue->status !== 'approved') {
             return;
         }
 
-        $artistIds = $event->artists->pluck('id')->all();
+        $artistIds = $onlyArtistIds ?? $event->artists->pluck('id')->all();
+        $artistIds = array_values(array_unique(array_map(intval(...), $artistIds)));
+        $artistIds = array_values(array_filter($artistIds, fn (int $id) => $id > 0));
         if ($artistIds === []) {
+            return;
+        }
+
+        $artistsForMsg = $event->artists->whereIn('id', $artistIds);
+        $names = $artistsForMsg->pluck('name')->implode(', ');
+        if ($names === '') {
             return;
         }
 
@@ -533,28 +547,34 @@ final class SahnebulMail
             ->distinct()
             ->pluck('user_id');
 
-        $names = $event->artists->pluck('name')->implode(', ');
         $url = route('events.show', ['event' => $event->publicUrlSegment()], absolute: true);
+        $messageArtistIds = $onlyArtistIds === null ? null : $artistIds;
 
         User::query()
             ->whereIn('id', $userIds)
-            ->whereNotNull('email')
             ->where('is_active', true)
-            ->chunkById(80, function ($users) use ($event, $names, $url): void {
+            ->chunkById(80, function ($users) use ($event, $names, $url, $messageArtistIds): void {
                 foreach ($users as $user) {
-                    self::safeSend(new SahnebulTemplateMail(
-                        emailSubject: 'Favori sanatçınızın etkinliği — '.config('app.name'),
-                        title: 'Yeni / güncel etkinlik',
-                        introLines: [
-                            'Merhaba <strong>'.e($user->name).'</strong>,',
-                            'Takip ettiğiniz sanatçı(lar) (<strong>'.e($names).'</strong>) için <strong>'.e($event->title).'</strong> etkinliği yayına alındı.',
-                        ],
-                        detailLines: [
-                            'Mekân: '.e($event->venue->name),
-                        ],
-                        actionUrl: $url,
-                        actionLabel: 'Etkinlik detayı',
-                    ), [(string) $user->email]);
+                    $email = $user->email;
+                    if (is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        self::safeSend(new SahnebulTemplateMail(
+                            emailSubject: 'Favori sanatçınızın etkinliği — '.config('app.name'),
+                            title: 'Yeni / güncel etkinlik',
+                            introLines: [
+                                'Merhaba <strong>'.e($user->name).'</strong>,',
+                                'Takip ettiğiniz sanatçı(lar) (<strong>'.e($names).'</strong>) için <strong>'.e($event->title).'</strong> etkinliği yayına alındı.',
+                            ],
+                            detailLines: [
+                                'Mekân: '.e($event->venue->name),
+                            ],
+                            actionUrl: $url,
+                            actionLabel: 'Etkinlik detayı',
+                        ), [$email]);
+                    }
+
+                    if ($user->canUsePublicEngagementFeatures()) {
+                        $user->notify(new FavoriteArtistNewPublishedEventNotification($event, $messageArtistIds));
+                    }
                 }
             });
     }

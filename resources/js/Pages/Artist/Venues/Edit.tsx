@@ -6,8 +6,8 @@ import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import SeoHead from '@/Components/SeoHead';
 import { formatTrPhoneInput } from '@/lib/trPhoneInput';
 import axios from 'axios';
-import { router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { Link, router, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 
 interface VenueMedia {
     id: number;
@@ -19,6 +19,7 @@ interface VenueMedia {
 interface Venue {
     id: number;
     name: string;
+    slug: string;
     description: string | null;
     address: string;
     latitude?: number | string | null;
@@ -68,10 +69,12 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
     const gallery = venue.media ?? [];
     const [googleGalleryImporting, setGoogleGalleryImporting] = useState(false);
     const [googleGalleryError, setGoogleGalleryError] = useState<string | null>(null);
+    const [slugCheck, setSlugCheck] = useState<{ ok: boolean; message: string } | null>(null);
 
     const sl = venue.social_links ?? {};
     const { data, setData, put, processing, errors } = useForm({
         name: venue.name,
+        slug: venue.slug,
         category_id: venue.category_id,
         city_id: venue.city_id?.toString() ?? '',
         district_id: venue.district_id?.toString() ?? '',
@@ -94,6 +97,41 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
             facebook: sl.facebook ?? '',
         },
     });
+
+    useEffect(() => {
+        const raw = data.slug.trim();
+        if (raw === '') {
+            setSlugCheck(null);
+            return;
+        }
+        const t = globalThis.setTimeout(() => {
+            axios
+                .get<{ ok: boolean; message?: string | null }>(route('artist.venues.public-slug-check'), {
+                    params: { q: raw, ignore: venue.id },
+                })
+                .then((res) => {
+                    setSlugCheck({
+                        ok: res.data.ok === true,
+                        message: (res.data.message ?? (res.data.ok ? 'Uygun.' : '')).trim(),
+                    });
+                })
+                .catch(() => setSlugCheck(null));
+        }, 400);
+        return () => globalThis.clearTimeout(t);
+    }, [data.slug, venue.id]);
+
+    const suggestSlugFromName = () => {
+        axios
+            .get<{ suggested: string }>(route('artist.venues.public-slug-suggest'), {
+                params: { name: data.name, ignore: venue.id },
+            })
+            .then((res) => {
+                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
+                    setData('slug', res.data.suggested);
+                }
+            })
+            .catch(() => {});
+    };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,6 +168,46 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
                     <label className="block text-sm font-medium text-zinc-400">Mekan adı *</label>
                     <input value={data.name} onChange={(e) => setData('name', e.target.value)} required className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white" />
                     {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
+                </div>
+                <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label htmlFor="venue-public-slug" className="block text-sm font-medium text-zinc-400">
+                            Kullanıcı adı (profil adresi) *
+                        </label>
+                        <button
+                            type="button"
+                            onClick={suggestSlugFromName}
+                            className="text-xs font-medium text-amber-400 underline-offset-2 hover:underline"
+                        >
+                            İsimden öner
+                        </button>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500">
+                        Yalnız a-z ve 0-9; boşluk ve tire yok. Türkçe karakterler kaydederken dönüştürülür.
+                    </p>
+                    <input
+                        id="venue-public-slug"
+                        value={data.slug}
+                        onChange={(e) => setData('slug', e.target.value)}
+                        autoComplete="off"
+                        className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 font-mono text-sm text-white"
+                        placeholder="ornekmekan"
+                    />
+                    {errors.slug && <p className="mt-1 text-sm text-red-400">{errors.slug}</p>}
+                    {slugCheck ? (
+                        <p className={`mt-1 text-xs ${slugCheck.ok ? 'text-emerald-400' : 'text-amber-400'}`}>{slugCheck.message}</p>
+                    ) : null}
+                    <p className="mt-2 break-all text-xs text-zinc-500">
+                        Önizleme:{' '}
+                        <Link
+                            href={route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-amber-400 hover:underline"
+                        >
+                            {route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                        </Link>
+                    </p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>

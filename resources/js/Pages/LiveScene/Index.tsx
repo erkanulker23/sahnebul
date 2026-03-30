@@ -331,8 +331,8 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                             </p>
                         </div>
 
-                        <aside className="lg:col-span-2">
-                            <div className="mb-3 flex gap-2">
+                        <aside className="flex min-h-0 flex-col lg:col-span-2">
+                            <div className="mb-3 shrink-0 flex gap-2">
                                 <Navigation className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
                                 <div>
                                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Yoğun mekânlar</h2>
@@ -354,7 +354,12 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                     açın.
                                 </div>
                             ) : (
-                                <ul className="space-y-2">
+                                <div
+                                    className="max-h-[min(68vh,560px)] min-h-0 overflow-y-auto overscroll-y-contain pr-1 [-webkit-overflow-scrolling:touch]"
+                                    role="region"
+                                    aria-label="Yoğun mekânlar listesi"
+                                >
+                                <ul className="space-y-2 pb-1">
                                     {popular.map((p, idx) => {
                                         const prev = idx > 0 ? popular[idx - 1] : null;
                                         const todayN = p.today_event_count ?? 0;
@@ -409,6 +414,7 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                         );
                                     })}
                                 </ul>
+                                </div>
                             )}
                         </aside>
                     </div>
