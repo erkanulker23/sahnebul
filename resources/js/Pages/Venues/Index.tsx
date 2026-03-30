@@ -1,5 +1,6 @@
 import { AdSlot } from '@/Components/AdSlot';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
+import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import { cn } from '@/lib/cn';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
 import { safeRoute } from '@/lib/safeRoute';
@@ -55,6 +56,7 @@ interface NearbyVenue {
     distance_km?: number;
     is_featured?: boolean | number | null;
     is_new_on_platform?: boolean;
+    is_verified_profile?: boolean;
     city?: { name: string } | null;
     district?: { name: string } | null;
     category?: { name: string } | null;
@@ -68,6 +70,7 @@ interface VenueListItem {
     address: string;
     is_featured?: boolean;
     is_new_on_platform?: boolean;
+    is_verified_profile?: boolean;
     rating_avg?: number;
     review_count?: number;
     weekly_events_count?: number;
@@ -743,7 +746,12 @@ export default function VenuesIndex({
                                                             : ''
                                                     }`}
                                                 >
-                                                    <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                    <div className="flex items-start gap-2">
+                                                        <p className="min-w-0 flex-1 font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                        {venue.is_verified_profile ? (
+                                                            <VerifiedArtistProfileBadge variant="venue" className="shrink-0" />
+                                                        ) : null}
+                                                    </div>
                                                     {venue.category?.name ? (
                                                         <p className="mt-1 text-xs font-medium text-emerald-800 dark:text-emerald-400/90">
                                                             {venue.category.name}
@@ -880,7 +888,12 @@ export default function VenuesIndex({
                                                             : ''
                                                     }`}
                                                 >
-                                                    <p className="font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                    <div className="flex items-start gap-2">
+                                                        <p className="min-w-0 flex-1 font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                        {venue.is_verified_profile ? (
+                                                            <VerifiedArtistProfileBadge variant="venue" className="shrink-0" />
+                                                        ) : null}
+                                                    </div>
                                                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                                                         {venue.city?.name ?? '-'} • {venue.category?.name ?? '-'}
                                                     </p>

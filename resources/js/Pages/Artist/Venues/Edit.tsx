@@ -5,6 +5,10 @@ import LocationSelect from '@/Components/LocationSelect';
 import VenueGoogleLocationField from '@/Components/VenueGoogleLocationField';
 import SeoHead from '@/Components/SeoHead';
 import { formatTrPhoneInput } from '@/lib/trPhoneInput';
+import {
+    normalizePublicProfileCompactSlug,
+    PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH,
+} from '@/lib/publicProfileCompactSlug';
 import axios from 'axios';
 import { Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -121,16 +125,24 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
     }, [data.slug, venue.id]);
 
     const suggestSlugFromName = () => {
+        const fromName = normalizePublicProfileCompactSlug(data.name);
         axios
             .get<{ suggested: string }>(route('artist.venues.public-slug-suggest'), {
                 params: { name: data.name, ignore: venue.id },
             })
             .then((res) => {
-                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
-                    setData('slug', res.data.suggested);
+                const api = typeof res.data.suggested === 'string' ? res.data.suggested.trim() : '';
+                if (api !== '') {
+                    setData('slug', api);
+                } else if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
                 }
             })
-            .catch(() => {});
+            .catch(() => {
+                if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
+                }
+            });
     };
 
     const submit = (e: React.FormEvent) => {
@@ -189,6 +201,19 @@ export default function ArtistVenueEdit({ venue, categories, googleMapsBrowserKe
                         id="venue-public-slug"
                         value={data.slug}
                         onChange={(e) => setData('slug', e.target.value)}
+                        onBlur={() => {
+                            const raw = data.slug.trim();
+                            if (raw === '') {
+                                return;
+                            }
+                            const compact = normalizePublicProfileCompactSlug(raw);
+                            if (
+                                compact.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH &&
+                                compact !== raw
+                            ) {
+                                setData('slug', compact);
+                            }
+                        }}
                         autoComplete="off"
                         className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 font-mono text-sm text-white"
                         placeholder="ornekmekan"

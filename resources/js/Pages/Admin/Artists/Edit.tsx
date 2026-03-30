@@ -4,6 +4,10 @@ import { inputBaseClass } from '@/Components/ui/Input';
 import AdminLayout from '@/Layouts/AdminLayout';
 import RichTextEditor from '@/Components/RichTextEditor';
 import SeoHead from '@/Components/SeoHead';
+import {
+    normalizePublicProfileCompactSlug,
+    PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH,
+} from '@/lib/publicProfileCompactSlug';
 import { initialMusicGenres } from '@/lib/musicGenresForm';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { AdminFormTabList, AdminFormTabPanel } from '@/Components/Admin/AdminFormTabs';
@@ -33,6 +37,7 @@ interface Artist {
     banner_image?: string | null;
     website: string | null;
     status: string;
+    verified_at?: string | null;
     social_links?: Record<string, string> | null;
     manager_info?: { name?: string; company?: string; phone?: string; email?: string } | null;
     public_contact?: { email?: string; phone?: string; note?: string } | null;
@@ -126,6 +131,7 @@ export default function AdminArtistEdit({
         banner_image: artist.banner_image ?? '',
         website: artist.website ?? '',
         status: artist.status,
+        platform_verified: Boolean(artist.verified_at),
         managed_by_user_id: artist.managed_by_user_id != null ? String(artist.managed_by_user_id) : '',
         spotify_auto_link_disabled: artist.spotify_auto_link_disabled === true,
         social_links: {
@@ -176,16 +182,24 @@ export default function AdminArtistEdit({
     }, [data.slug, artist.id]);
 
     const suggestSlugFromName = () => {
+        const fromName = normalizePublicProfileCompactSlug(data.name);
         axios
             .get<{ suggested: string }>(route('admin.artists.username-suggest'), {
                 params: { name: data.name, ignore: artist.id },
             })
             .then((res) => {
-                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
-                    setData('slug', res.data.suggested);
+                const api = typeof res.data.suggested === 'string' ? res.data.suggested.trim() : '';
+                if (api !== '') {
+                    setData('slug', api);
+                } else if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
                 }
             })
-            .catch(() => {});
+            .catch(() => {
+                if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
+                }
+            });
     };
 
     const field = cn('mt-1', inputBaseClass);
@@ -366,6 +380,23 @@ export default function AdminArtistEdit({
                             </select>
                         </div>
                         <div className="sm:col-span-2">
+                            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-3 text-sm text-zinc-800 dark:border-emerald-500/30 dark:bg-emerald-950/25 dark:text-zinc-200">
+                                <input
+                                    type="checkbox"
+                                    checked={data.platform_verified}
+                                    onChange={(e) => setData('platform_verified', e.target.checked)}
+                                    className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 dark:border-emerald-700 dark:bg-zinc-900"
+                                />
+                                <span>
+                                    <span className="font-medium text-emerald-950 dark:text-emerald-100/95">Sahnebul doğrulaması</span>
+                                    <span className="mt-1 block text-xs font-normal text-zinc-600 dark:text-zinc-500">
+                                        Profilde «Doğrulanmış» rozeti gösterilir. Kaydın onaylı veya yayımda olmasıyla aynı şey değildir; kimlik / işletme
+                                        eşleşmesi yönetici tarafından teyit edildiğinde işaretleyin.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <div className="sm:col-span-2">
                             <div className="flex flex-wrap items-end justify-between gap-2">
                                 <label htmlFor="admin-artist-slug" className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">
                                     Kullanıcı adı (URL) *
@@ -385,6 +416,19 @@ export default function AdminArtistEdit({
                                 id="admin-artist-slug"
                                 value={data.slug}
                                 onChange={(e) => setData('slug', e.target.value)}
+                                onBlur={() => {
+                                    const raw = data.slug.trim();
+                                    if (raw === '') {
+                                        return;
+                                    }
+                                    const compact = normalizePublicProfileCompactSlug(raw);
+                                    if (
+                                        compact.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH &&
+                                        compact !== raw
+                                    ) {
+                                        setData('slug', compact);
+                                    }
+                                }}
                                 autoComplete="off"
                                 className={cn(fieldMax, 'font-mono')}
                             />

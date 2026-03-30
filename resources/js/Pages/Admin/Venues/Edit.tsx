@@ -16,6 +16,10 @@ import axios from 'axios';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { adminVenuePromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
+import {
+    normalizePublicProfileCompactSlug,
+    PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH,
+} from '@/lib/publicProfileCompactSlug';
 import { useEffect, useState } from 'react';
 
 interface MediaItem {
@@ -53,6 +57,7 @@ interface Venue {
         promo_kind?: 'story' | 'post' | null;
     }[] | null;
     status: string;
+    verified_at?: string | null;
     is_featured?: boolean;
     is_active?: boolean;
     view_count?: number;
@@ -142,6 +147,7 @@ export default function AdminVenueEdit({
         },
         cover_image: venue.cover_image ?? '',
         status: venue.status,
+        platform_verified: Boolean(venue.verified_at),
         is_featured: Boolean(venue.is_featured),
         is_active: venue.is_active !== false,
         user_id: venue.user_id != null ? String(venue.user_id) : '',
@@ -152,6 +158,7 @@ export default function AdminVenueEdit({
         ...formData,
         is_featured: formData.is_featured ? 1 : 0,
         is_active: formData.is_active ? 1 : 0,
+        platform_verified: formData.platform_verified ? 1 : 0,
     }));
 
     useEffect(() => {
@@ -177,21 +184,38 @@ export default function AdminVenueEdit({
     }, [data.slug, venue.id]);
 
     const suggestSlugFromName = () => {
+        const fromName = normalizePublicProfileCompactSlug(data.name);
         axios
             .get<{ suggested: string }>(route('admin.venues.public-slug-suggest'), {
                 params: { name: data.name, ignore: venue.id },
             })
             .then((res) => {
-                if (typeof res.data.suggested === 'string' && res.data.suggested !== '') {
-                    setData('slug', res.data.suggested);
+                const api = typeof res.data.suggested === 'string' ? res.data.suggested.trim() : '';
+                if (api !== '') {
+                    setData('slug', api);
+                } else if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
                 }
             })
-            .catch(() => {});
+            .catch(() => {
+                if (fromName.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH) {
+                    setData('slug', fromName);
+                }
+            });
     };
 
     const field = cn('mt-1', inputBaseClass);
     const fieldMono = cn('mt-1 font-mono text-sm', inputBaseClass);
     const fieldMd = cn('mt-1 max-w-md', inputBaseClass);
+
+    const rawSlugInput = data.slug.trim();
+    const normalizedSlugInput = normalizePublicProfileCompactSlug(rawSlugInput);
+    const venuePublicProfilePreviewSlug =
+        normalizedSlugInput.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH
+            ? normalizedSlugInput
+            : rawSlugInput !== ''
+              ? rawSlugInput
+              : venue.slug;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -325,6 +349,19 @@ export default function AdminVenueEdit({
                                 id="admin-venue-public-slug"
                                 value={data.slug}
                                 onChange={(e) => setData('slug', e.target.value)}
+                                onBlur={() => {
+                                    const raw = data.slug.trim();
+                                    if (raw === '') {
+                                        return;
+                                    }
+                                    const compact = normalizePublicProfileCompactSlug(raw);
+                                    if (
+                                        compact.length >= PUBLIC_PROFILE_COMPACT_SLUG_MIN_LENGTH &&
+                                        compact !== raw
+                                    ) {
+                                        setData('slug', compact);
+                                    }
+                                }}
                                 autoComplete="off"
                                 className={fieldMono}
                                 placeholder="ornekmekan"
@@ -338,12 +375,12 @@ export default function AdminVenueEdit({
                             <p className="mt-2 break-all text-xs text-zinc-500">
                                 Önizleme:{' '}
                                 <Link
-                                    href={route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                                    href={route('venues.show', venuePublicProfilePreviewSlug)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="font-medium text-amber-700 hover:underline dark:text-amber-400"
                                 >
-                                    {route('venues.show', data.slug.trim() !== '' ? data.slug.trim() : venue.slug)}
+                                    {route('venues.show', venuePublicProfilePreviewSlug)}
                                 </Link>
                             </p>
                         </div>
@@ -406,6 +443,23 @@ export default function AdminVenueEdit({
                                                 <span className="mt-1 block text-xs font-normal text-zinc-600 dark:text-zinc-500">
                                                     Listelerde üst sıralarda yer alır; kartlarda yıldız ve altın çerçeve ile vurgulanır.
                                                 </span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-emerald-200/90 bg-white px-3 py-3 text-sm text-zinc-800 dark:border-emerald-500/35 dark:bg-zinc-950/40 dark:text-zinc-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.platform_verified}
+                                            onChange={(e) => setData('platform_verified', e.target.checked)}
+                                            className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 dark:border-emerald-700 dark:bg-zinc-900"
+                                        />
+                                        <span>
+                                            <span className="font-medium text-emerald-900 dark:text-emerald-100/95">Sahnebul doğrulaması</span>
+                                            <span className="mt-1 block text-xs font-normal text-zinc-600 dark:text-zinc-500">
+                                                Mekân profilinde «Doğrulanmış» rozeti gösterilir. Yönetici onayı veya yalnızca yayında olmakla aynı şey
+                                                değildir; işletme eşleşmesi teyit edildiğinde işaretleyin.
                                             </span>
                                         </span>
                                     </label>

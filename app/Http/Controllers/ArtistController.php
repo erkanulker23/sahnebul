@@ -38,9 +38,6 @@ class ArtistController extends Controller
         $query = Artist::query()
             ->approved()
             ->notIntlImport()
-            ->withExists([
-                'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
-            ])
             ->withCount([
                 'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(
                     $q
@@ -66,7 +63,7 @@ class ArtistController extends Controller
         }
 
         $artists = $query->orderBy('name')
-            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'bio', 'created_at', 'status'])
+            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'bio', 'created_at', 'status', 'verified_at'])
             ->paginate(24)
             ->withQueryString();
 
@@ -211,10 +208,7 @@ class ArtistController extends Controller
 
         $loaded = Artist::query()
             ->whereIn('id', $idsOrdered)
-            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'created_at', 'status'])
-            ->withExists([
-                'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
-            ])
+            ->select(['id', 'name', 'slug', 'avatar', 'genre', 'created_at', 'status', 'verified_at'])
             ->get()
             ->keyBy('id');
 
@@ -234,7 +228,7 @@ class ArtistController extends Controller
                     'slug' => $artist->slug,
                     'avatar' => $artist->avatar,
                     'genre' => $artist->genre,
-                    'is_verified_profile' => (bool) $artist->is_verified_profile,
+                    'is_verified_profile' => $artist->is_verified_profile,
                     'is_new_on_platform' => CatalogEntityNew::isWithinBadgeWindow(
                         $artist->created_at,
                         CatalogEntityNew::artistEligible((string) $artist->status),
@@ -362,9 +356,6 @@ class ArtistController extends Controller
         app(TurkeyProvincesSync::class)->sync();
         $artist->setAttribute('spotify_artist_image_url', null);
 
-        $artist->loadExists([
-            'user as is_verified_profile' => fn ($q) => $q->whereNotNull('email_verified_at'),
-        ]);
         $artist->load(['managedBy:id,name,organization_display_name,email']);
 
         $u = $request->user();

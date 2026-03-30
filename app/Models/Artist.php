@@ -30,6 +30,7 @@ class Artist extends Model
         'manager_info',
         'public_contact',
         'status',
+        'verified_at',
         'country_code',
         'view_count',
         'spotify_id',
@@ -56,10 +57,12 @@ class Artist extends Model
         'spotify_followers' => 'integer',
         'music_genres' => 'array',
         'promo_gallery' => 'array',
+        'verified_at' => 'datetime',
     ];
 
     protected $appends = [
         'is_new_on_platform',
+        'is_verified_profile',
     ];
 
     public function getIsNewOnPlatformAttribute(): bool
@@ -68,6 +71,12 @@ class Artist extends Model
             $this->created_at,
             CatalogEntityNew::artistEligible((string) $this->status),
         );
+    }
+
+    /** Yönetici «Sahnebul doğrulaması» — e-posta veya yayında olma ile aynı değil. */
+    public function getIsVerifiedProfileAttribute(): bool
+    {
+        return $this->verified_at !== null;
     }
 
     public function getRouteKeyName(): string

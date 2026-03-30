@@ -11,6 +11,7 @@ import {
 import PhoneInput from '@/Components/PhoneInput';
 import { AdSlot } from '@/Components/AdSlot';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
+import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import DetailEventList from '@/Components/DetailEventList';
 import { RichOrPlainContent } from '@/Components/SafeRichContent';
 import SuggestEditModal from '@/Components/SuggestEditModal';
@@ -87,6 +88,8 @@ interface Venue {
     reviews?: Review[];
     /** Oluşturulma tarihinden itibaren 3 gün, yayındayken */
     is_new_on_platform?: boolean;
+    /** Yönetici Sahnebul doğrulaması (`verified_at` dolu) */
+    is_verified_profile?: boolean;
 }
 
 interface VenuePageSeo {
@@ -501,6 +504,9 @@ export default function VenueShow({
                                 <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
                                     <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
                                     {venue.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/30" /> : null}
+                                    {venue.is_verified_profile ? (
+                                        <VerifiedArtistProfileBadge variant="venue" size="md" className="shadow-lg ring-white/25" />
+                                    ) : null}
                                     {venue.capacity != null && venue.capacity > 0 && (
                                         <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
                                             <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

@@ -304,6 +304,7 @@ class VenueController extends Controller
                 ? null
                 : (int) $request->input('user_id'),
             'slug' => $slugNormalized,
+            'platform_verified' => $request->boolean('platform_verified'),
         ]);
 
         $validated = $request->validate([
@@ -341,6 +342,7 @@ class VenueController extends Controller
             'cover_upload' => 'nullable|image|max:10240',
             'is_featured' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
+            'platform_verified' => 'boolean',
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ], [
             'slug.unique' => 'Bu kullanıcı adı kullanılmaktadır.',
@@ -397,6 +399,12 @@ class VenueController extends Controller
                 ]);
             }
         }
+
+        $platformVerified = (bool) ($validated['platform_verified'] ?? false);
+        unset($validated['platform_verified']);
+        $validated['verified_at'] = $platformVerified
+            ? ($venue->verified_at ?? now())
+            : null;
 
         $venue->update($validated);
 

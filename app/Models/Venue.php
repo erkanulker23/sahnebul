@@ -16,7 +16,7 @@ class Venue extends Model
         'name', 'slug', 'description', 'address', 'latitude', 'longitude', 'google_maps_url',
         'capacity', 'phone', 'whatsapp', 'website', 'social_links', 'cover_image',
         'promo_video_path', 'promo_embed_url', 'promo_gallery',
-        'status', 'is_featured', 'is_active',
+        'status', 'verified_at', 'is_featured', 'is_active',
         'rating_avg', 'review_count', 'view_count',
     ];
 
@@ -28,10 +28,12 @@ class Venue extends Model
         'promo_gallery' => 'array',
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
+        'verified_at' => 'datetime',
     ];
 
     protected $appends = [
         'is_new_on_platform',
+        'is_verified_profile',
     ];
 
     public function getIsNewOnPlatformAttribute(): bool
@@ -40,6 +42,12 @@ class Venue extends Model
             $this->created_at,
             CatalogEntityNew::venueEligible((string) $this->status, (bool) $this->is_active),
         );
+    }
+
+    /** Yönetici «Sahnebul doğrulaması» — yalnızca yayında/aktif olmakla aynı değil. */
+    public function getIsVerifiedProfileAttribute(): bool
+    {
+        return $this->verified_at !== null;
     }
 
     public function user(): BelongsTo

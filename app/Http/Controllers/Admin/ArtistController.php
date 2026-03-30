@@ -250,6 +250,7 @@ class ArtistController extends Controller
             'public_contact' => ArtistProfileInputs::normalizeStringMap($request->input('public_contact'), ['email', 'phone', 'note']),
             'managed_by_user_id' => $request->filled('managed_by_user_id') ? (int) $request->input('managed_by_user_id') : null,
             'spotify_auto_link_disabled' => $request->boolean('spotify_auto_link_disabled'),
+            'platform_verified' => $request->boolean('platform_verified'),
         ]);
 
         $allowedTypes = MusicGenre::optionNamesOrdered();
@@ -281,6 +282,7 @@ class ArtistController extends Controller
                 Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'manager_organization')),
             ],
             'spotify_auto_link_disabled' => 'boolean',
+            'platform_verified' => 'boolean',
             'slug' => 'nullable|string|max:120',
         ]);
 
@@ -361,6 +363,12 @@ class ArtistController extends Controller
                 'name' => 'Bu isimde başka bir sanatçı zaten kayıtlı.',
             ]);
         }
+
+        $platformVerified = (bool) ($validated['platform_verified'] ?? false);
+        unset($validated['platform_verified']);
+        $validated['verified_at'] = $platformVerified
+            ? ($artist->verified_at ?? now())
+            : null;
 
         $artist->update($validated);
 
