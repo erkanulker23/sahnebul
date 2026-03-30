@@ -1,8 +1,42 @@
 import DOMPurify from 'dompurify';
+import { EXTERNAL_LINK_REL_RICH_TEXT } from '@/lib/externalLinkRel';
+
+let externalAnchorHookInstalled = false;
+
+function ensureRichTextExternalLinkHook(): void {
+    if (externalAnchorHookInstalled) {
+        return;
+    }
+    externalAnchorHookInstalled = true;
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+        if (!(node instanceof Element) || node.tagName !== 'A') {
+            return;
+        }
+        const href = node.getAttribute('href')?.trim() ?? '';
+        if (href === '' || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+            return;
+        }
+        if (href.startsWith('/') && !href.startsWith('//')) {
+            return;
+        }
+        if (!/^https?:\/\//i.test(href)) {
+            return;
+        }
+        const want = new Set(
+            EXTERNAL_LINK_REL_RICH_TEXT.split(/\s+/).filter(Boolean),
+        );
+        const existing = (node.getAttribute('rel') ?? '').split(/\s+/).filter(Boolean);
+        existing.forEach((t) => want.add(t));
+        node.setAttribute('rel', [...want].join(' '));
+    });
+}
+
+const sanitizeOpts = { USE_PROFILES: { html: true } as const };
 
 /** Sayfalama ve framework HTML çıktıları için — dangerouslySetInnerHTML öncesi. */
 export function sanitizeHtmlForInnerHtml(html: string): string {
-    return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+    ensureRichTextExternalLinkHook();
+    return DOMPurify.sanitize(html, sanitizeOpts);
 }
 
 /** İçerik HTML gibi görünüyorsa true (yasal/blog TipTap çıktısı). */
@@ -17,7 +51,8 @@ type SafeRichProps = {
 
 /** DOMPurify ile temizlenmiş HTML — dangerouslySetInnerHTML için. */
 export function SafeRichHtml({ html, className = '' }: Readonly<SafeRichProps>) {
-    const clean = DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+    ensureRichTextExternalLinkHook();
+    const clean = DOMPurify.sanitize(html, sanitizeOpts);
     return <div className={className} dangerouslySetInnerHTML={{ __html: clean }} />;
 }
 

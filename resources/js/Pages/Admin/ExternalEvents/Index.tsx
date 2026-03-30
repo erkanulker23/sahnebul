@@ -66,7 +66,14 @@ interface Props {
         to?: number | null;
         total?: number;
     };
-    filters: { source: string; status: 'all' | 'pending' | 'synced' | 'rejected'; search: string; artist: string };
+    filters: {
+        source: string;
+        status: 'all' | 'pending' | 'synced' | 'rejected';
+        search: string;
+        artist: string;
+        date_from?: string;
+        date_to?: string;
+    };
     sources: string[];
     crawlLookups?: { cities: CrawlLookupItem[]; categories: CrawlLookupItem[] };
     lastCrawlReport?: LastCrawlReport | null;
@@ -77,6 +84,20 @@ interface Props {
 
 const selectClass =
     'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white';
+
+/** Yerel takvim günü (YYYY-MM-DD); çekim formu için başlangıçta doldurulur. */
+function defaultCrawlDateRangeDays(spanDays: number): { date_from: string; date_to: string } {
+    const start = new Date();
+    const end = new Date(start);
+    end.setDate(end.getDate() + spanDays);
+    const ymd = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+    return { date_from: ymd(start), date_to: ymd(end) };
+}
 
 function itemStatus(item: ExternalEventItem): { label: string; className: string } {
     const isRejected = item.meta?.rejected === true;
@@ -163,12 +184,15 @@ export default function AdminExternalEventsIndex({
         status: filters.status ?? 'pending',
         artist: filters.artist ?? '',
         search: filters.search ?? '',
+        date_from: filters.date_from ?? '',
+        date_to: filters.date_to ?? '',
     });
+    const crawlDefaults = defaultCrawlDateRangeDays(90);
     const crawlForm = useForm({
         source: sources.includes('biletinial') ? 'biletinial' : sources.length > 0 ? sources[0]! : 'all',
         limit: 350,
-        date_from: '' as string,
-        date_to: '' as string,
+        date_from: crawlDefaults.date_from,
+        date_to: crawlDefaults.date_to,
         city_ids: [] as number[],
         category_ids: [] as number[],
     });
@@ -451,7 +475,8 @@ export default function AdminExternalEventsIndex({
                 <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Tarih aralığı ve kategori; çekimden sonra sonuçları daraltır. <strong className="font-medium text-zinc-800 dark:text-zinc-200">Şehirler</strong> listesinde seçim
+                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">Başlangıç ve bitiş tarihi zorunludur</strong> (en fazla 400 gün). Çekilen satırlar bu aralıktaki etkinlik
+                        tarihlerine göre süzülür. Kategori seçimi ek süzgeçtir. <strong className="font-medium text-zinc-800 dark:text-zinc-200">Şehirler</strong> listesinde seçim
                         yaptığınızda Bubilet için bu, doğrudan{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">bubilet.com.tr/{'{şehir}'}/etiket/…</code> adresindeki şehir segmentidir (ör. Ankara seçilirse{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">/ankara/etiket/</code>). Hiç şehir seçmezseniz{' '}
@@ -524,23 +549,25 @@ export default function AdminExternalEventsIndex({
                             </select>
                         </label>
                         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Başlangıç tarihi
+                            Başlangıç tarihi <span className="text-rose-600 dark:text-rose-400">*</span>
                             <input
                                 type="date"
                                 value={crawlForm.data.date_from}
                                 onChange={(e) => crawlForm.setData('date_from', e.target.value)}
                                 className={selectClass}
                                 disabled={previewLoading || crawlBusy}
+                                required
                             />
                         </label>
                         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                            Bitiş tarihi
+                            Bitiş tarihi <span className="text-rose-600 dark:text-rose-400">*</span>
                             <input
                                 type="date"
                                 value={crawlForm.data.date_to}
                                 onChange={(e) => crawlForm.setData('date_to', e.target.value)}
                                 className={selectClass}
                                 disabled={previewLoading || crawlBusy}
+                                required
                             />
                         </label>
                         <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
@@ -720,7 +747,7 @@ export default function AdminExternalEventsIndex({
                                                                         <a
                                                                             href={row.external_url}
                                                                             target="_blank"
-                                                                            rel="noreferrer"
+                                                                            rel="noopener noreferrer"
                                                                             className="text-amber-700 hover:underline dark:text-amber-400"
                                                                         >
                                                                             {row.title}
@@ -808,7 +835,7 @@ export default function AdminExternalEventsIndex({
                                     <a
                                         href={detailItem.external_url}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noopener noreferrer"
                                         className="inline-flex text-sm font-medium text-amber-600 hover:underline dark:text-amber-400"
                                     >
                                         Kaynak sayfasını aç
@@ -821,7 +848,7 @@ export default function AdminExternalEventsIndex({
 
                 <form
                     onSubmit={submitFilters}
-                    className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2 lg:grid-cols-6"
+                    className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8"
                 >
                     <select
                         value={queryForm.data.source}
@@ -857,11 +884,29 @@ export default function AdminExternalEventsIndex({
                         value={queryForm.data.search}
                         onChange={(e) => queryForm.setData('search', e.target.value)}
                         placeholder="Başlık, mekan veya şehir…"
-                        className={`${selectClass} sm:col-span-2 lg:col-span-2`}
+                        className={`${selectClass} sm:col-span-2 xl:col-span-2`}
                     />
+                    <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 xl:col-span-1">
+                        Etkinlik tarihi ≥
+                        <input
+                            type="date"
+                            value={queryForm.data.date_from}
+                            onChange={(e) => queryForm.setData('date_from', e.target.value)}
+                            className={selectClass}
+                        />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 xl:col-span-1">
+                        Etkinlik tarihi ≤
+                        <input
+                            type="date"
+                            value={queryForm.data.date_to}
+                            onChange={(e) => queryForm.setData('date_to', e.target.value)}
+                            className={selectClass}
+                        />
+                    </label>
                     <button
                         type="submit"
-                        className="rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400 sm:col-span-2 lg:col-span-1"
+                        className="rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400 sm:col-span-2 xl:col-span-1"
                     >
                         Filtrele
                     </button>
@@ -927,7 +972,7 @@ export default function AdminExternalEventsIndex({
                                                     <a
                                                         href={item.external_url}
                                                         target="_blank"
-                                                        rel="noreferrer"
+                                                        rel="noopener noreferrer"
                                                         className="text-xs text-amber-600 hover:underline dark:text-amber-400"
                                                     >
                                                         Kaynağı aç
@@ -982,7 +1027,7 @@ export default function AdminExternalEventsIndex({
                                             <a
                                                 href={item.external_url}
                                                 target="_blank"
-                                                rel="noreferrer"
+                                                rel="noopener noreferrer"
                                                 className="mt-2 inline-block text-xs font-medium text-amber-600 dark:text-amber-400"
                                             >
                                                 Kaynağı aç

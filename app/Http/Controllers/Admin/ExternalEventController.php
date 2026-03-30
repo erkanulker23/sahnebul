@@ -10,6 +10,7 @@ use App\Models\ExternalEvent;
 use App\Services\ExternalEventDomainSyncService;
 use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class ExternalEventController extends Controller
         if (! Schema::hasTable('external_events')) {
             return Inertia::render('Admin/ExternalEvents/Index', [
                 'items' => ['data' => []],
-                'filters' => ['source' => '', 'status' => 'pending', 'search' => '', 'artist' => ''],
+                'filters' => ['source' => '', 'status' => 'pending', 'search' => '', 'artist' => '', 'date_from' => '', 'date_to' => ''],
                 'sources' => array_keys(config('crawler.sources', [])),
                 'crawlLookups' => $crawlLookups,
                 'lastCrawlReport' => Session::get('external_events_last_crawl'),
@@ -49,7 +50,15 @@ class ExternalEventController extends Controller
             'status' => ['nullable', 'in:all,pending,synced,rejected'],
             'search' => ['nullable', 'string', 'max:120'],
             'artist' => ['nullable', 'string', 'max:120'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
         ]);
+
+        if (! empty($filters['date_from']) && ! empty($filters['date_to']) && $filters['date_to'] < $filters['date_from']) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Bitiş tarihi başlangıçtan önce olamaz.',
+            ]);
+        }
 
         $query = ExternalEvent::query()
             ->select([
@@ -105,6 +114,13 @@ class ExternalEventController extends Controller
             });
         }
 
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('start_date', '>=', $filters['date_from']);
+        }
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('start_date', '<=', $filters['date_to']);
+        }
+
         $paginator = $query->paginate(25)->withQueryString();
         $paginator->setCollection(
             $paginator->getCollection()->map(function (ExternalEvent $e): array {
@@ -132,6 +148,8 @@ class ExternalEventController extends Controller
                 'status' => $status,
                 'search' => $filters['search'] ?? '',
                 'artist' => $filters['artist'] ?? '',
+                'date_from' => $filters['date_from'] ?? '',
+                'date_to' => $filters['date_to'] ?? '',
             ],
             'sources' => array_keys(config('crawler.sources', [])),
             'crawlLookups' => $crawlLookups,
@@ -204,30 +222,27 @@ class ExternalEventController extends Controller
     }
 
     /**
-     * @return array{source: string, limit: int, date_from: ?string, date_to: ?string, city_ids: list<int>, category_ids: list<int>}
+     * @return array{source: string, limit: int, date_from: string, date_to: string, city_ids: list<int>, category_ids: list<int>}
      */
     private function validateCrawlRequest(Request $request): array
     {
-        $request->merge([
-            'date_from' => $request->input('date_from') ?: null,
-            'date_to' => $request->input('date_to') ?: null,
-        ]);
-
         $sourceKeys = array_keys(config('crawler.sources', []));
         $data = $request->validate([
             'source' => ['nullable', 'string', Rule::in(array_merge(['', 'all'], $sourceKeys))],
             'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date'],
+            'date_from' => ['required', 'date'],
+            'date_to' => ['required', 'date', 'after_or_equal:date_from'],
             'city_ids' => ['nullable', 'array'],
             'city_ids.*' => ['integer', 'exists:cities,id'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
         ]);
 
-        if (! empty($data['date_from']) && ! empty($data['date_to']) && $data['date_to'] < $data['date_from']) {
+        $from = Carbon::parse($data['date_from'])->startOfDay();
+        $to = Carbon::parse($data['date_to'])->startOfDay();
+        if ($from->diffInDays($to) > 400) {
             throw ValidationException::withMessages([
-                'date_to' => 'Bitiş tarihi başlangıçtan önce olamaz.',
+                'date_to' => 'Tarih aralığı en fazla 400 gün olabilir.',
             ]);
         }
 
@@ -239,8 +254,8 @@ class ExternalEventController extends Controller
         return [
             'source' => $sourceOption,
             'limit' => (int) ($data['limit'] ?? 250),
-            'date_from' => $data['date_from'] ?? null,
-            'date_to' => $data['date_to'] ?? null,
+            'date_from' => (string) $data['date_from'],
+            'date_to' => (string) $data['date_to'],
             'city_ids' => array_values(array_map('intval', $data['city_ids'] ?? [])),
             'category_ids' => array_values(array_map('intval', $data['category_ids'] ?? [])),
         ];
