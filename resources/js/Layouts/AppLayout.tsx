@@ -5,6 +5,7 @@ import FlashMessage from '@/Components/FlashMessage';
 import GoogleOneTapPrompt from '@/Components/GoogleOneTapPrompt';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 
@@ -70,9 +71,13 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
 
     const footerLinkHref = (link: { label: string; route: string; slug?: string }) => {
         if (link.route === 'pages.show' && link.slug) {
-            return route('pages.show', link.slug);
+            try {
+                return route('pages.show', link.slug);
+            } catch {
+                return `/sayfalar/${encodeURIComponent(link.slug)}`;
+            }
         }
-        return route(link.route as 'venues.index');
+        return safeRoute(link.route);
     };
 
     return (

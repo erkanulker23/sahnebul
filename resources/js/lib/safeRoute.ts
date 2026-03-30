@@ -223,6 +223,14 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         case 'admin.verification-scripts.index':
         case 'admin.verification-scripts.update':
             return '/admin/dogrulama-ve-ozel-kodlar';
+        case 'admin.instagram-promo-cookies.index':
+            return '/admin/tanitim-video-instagram-cerezleri';
+        case 'admin.instagram-promo-cookies.store':
+            return '/admin/tanitim-video-instagram-cerezleri';
+        case 'admin.instagram-promo-cookies.destroy':
+            return '/admin/tanitim-video-instagram-cerezleri/kaldir';
+        case 'discover.tonight':
+            return '/kesfet/bu-aksam';
         default:
             return '/';
     }

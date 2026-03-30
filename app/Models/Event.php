@@ -256,17 +256,18 @@ class Event extends Model
 
     /**
      * Mekân profilinde tanıtımın gösterileceği son an (bitiş günü sonu; bitiş yoksa başlangıç günü sonu).
+     * Başlangıç boş ama bitiş dolu olabilir — önceki sürümde start_date şartı yüzünden hiç gösterilmiyordu.
      */
     public function promoVenueDisplayUntil(): ?Carbon
     {
-        if ($this->start_date === null) {
-            return null;
-        }
         if ($this->end_date !== null) {
             return $this->end_date->copy()->endOfDay();
         }
+        if ($this->start_date !== null) {
+            return $this->start_date->copy()->endOfDay();
+        }
 
-        return $this->start_date->copy()->endOfDay();
+        return null;
     }
 
     /**

@@ -1,6 +1,7 @@
 import FlashMessage from '@/Components/FlashMessage';
 import SeoHead from '@/Components/SeoHead';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { safeRoute } from '@/lib/safeRoute';
 import { router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
@@ -40,7 +41,7 @@ export default function AdminInstagramPromoCookiesIndex({
         if (!file) return;
         const fd = new FormData();
         fd.append('cookies_file', file);
-        router.post(route('admin.instagram-promo-cookies.store'), fd, {
+        router.post(safeRoute('admin.instagram-promo-cookies.store'), fd, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -54,7 +55,7 @@ export default function AdminInstagramPromoCookiesIndex({
         const t = pastedText.trim();
         if (!t) return;
         router.post(
-            route('admin.instagram-promo-cookies.store'),
+            safeRoute('admin.instagram-promo-cookies.store'),
             { cookies_text: pastedText },
             {
                 preserveScroll: true,
@@ -65,7 +66,7 @@ export default function AdminInstagramPromoCookiesIndex({
 
     const removeUploaded = () => {
         if (!confirm('Panelden yüklenen çerez dosyasını kaldırmak istiyor musunuz?')) return;
-        router.post(route('admin.instagram-promo-cookies.destroy'), {}, { preserveScroll: true });
+        router.post(safeRoute('admin.instagram-promo-cookies.destroy'), {}, { preserveScroll: true });
     };
 
     const sourceLabel =

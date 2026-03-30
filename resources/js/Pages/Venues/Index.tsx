@@ -2,6 +2,7 @@ import { AdSlot } from '@/Components/AdSlot';
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import { cn } from '@/lib/cn';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
+import { safeRoute } from '@/lib/safeRoute';
 import EventCarousel from '@/Components/EventCarousel';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import SeoHead from '@/Components/SeoHead';
@@ -412,7 +413,7 @@ export default function VenuesIndex({
             {!isVenuesPage ? (
                 <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-8" aria-label="Bu akşam keşfi">
                     <Link
-                        href={route('discover.tonight')}
+                        href={safeRoute('discover.tonight')}
                         className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 p-5 text-white shadow-lg transition hover:border-amber-500/40 hover:shadow-xl dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                     >
                         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/25 blur-2xl transition group-hover:bg-amber-400/30" />
@@ -1010,7 +1011,7 @@ export default function VenuesIndex({
                     />
                     <div className="mx-auto max-w-7xl px-3 py-2 sm:px-4 lg:px-8">
                         <Link
-                            href={route('discover.tonight')}
+                            href={safeRoute('discover.tonight')}
                             className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.14] via-amber-400/[0.06] to-transparent px-4 py-3.5 shadow-sm transition hover:border-amber-500/50 hover:shadow-md dark:from-amber-500/15 dark:via-amber-600/8 dark:to-transparent"
                         >
                             <div className="flex min-w-0 items-start gap-3">

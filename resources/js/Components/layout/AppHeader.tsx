@@ -89,7 +89,8 @@ function NavFlyout({
 }
 
 export function AppHeader() {
-    const pageProps = usePage().props as {
+    const page = usePage();
+    const pageProps = page.props as {
         auth: {
             user: { name: string; email: string; role?: string } | null;
             sahne_compact_nav?: boolean;
@@ -123,9 +124,12 @@ export function AppHeader() {
         };
     }, [drawerOpen, closeDrawer]);
 
+    const inertiaUrl = page.url;
     const navActiveState = {
         venues: navActive(['venues.index']),
-        events: navActive(['events.index', 'events.show', 'events.nearby', 'discover.tonight']),
+        events:
+            navActive(['events.index', 'events.show', 'events.nearby', 'discover.tonight']) ||
+            inertiaUrl.startsWith('/kesfet/bu-aksam'),
         artists: navActive(['artists.index', 'artists.show']),
     };
 
@@ -184,7 +188,7 @@ export function AppHeader() {
                                         <Calendar className="h-4 w-4 opacity-70" aria-hidden />
                                         Tüm etkinlikler
                                     </Link>
-                                    <Link href={route('discover.tonight')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                    <Link href={safeRoute('discover.tonight')} className={flyoutItemClass} onClick={close} role="menuitem">
                                         <MapPin className="h-4 w-4 opacity-70" aria-hidden />
                                         Bu akşam ne yapsam? · Canlı harita
                                     </Link>
@@ -397,7 +401,7 @@ export function AppHeader() {
                                     Tüm etkinlikler
                                 </Link>
                                 <Link
-                                    href={route('discover.tonight')}
+                                    href={safeRoute('discover.tonight')}
                                     className="flex items-center gap-3 border-t border-zinc-200 px-3 py-3 text-base font-medium text-zinc-900 dark:border-zinc-700 dark:text-white"
                                     onClick={closeDrawer}
                                 >
