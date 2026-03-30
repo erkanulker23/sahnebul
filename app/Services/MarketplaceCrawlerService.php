@@ -10,6 +10,7 @@ use App\Support\SehirSecCityDistricts;
 use App\Support\SehirSecMetaInference;
 use DOMElement;
 use DOMXPath;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -335,9 +336,7 @@ class MarketplaceCrawlerService
     private function bubiletGet(string $url, ?string $referer = null, ?int $timeoutOverride = null): string
     {
         $timeout = $timeoutOverride ?? (int) config('crawler.timeout', 20);
-        $response = Http::timeout($timeout)
-            ->withHeaders($this->bubiletRequestHeaders($referer))
-            ->get($url);
+        $response = $this->bubiletHttpClient($timeout, $referer)->get($url);
 
         $body = $response->body();
 
@@ -357,6 +356,19 @@ class MarketplaceCrawlerService
         }
 
         return $body;
+    }
+
+    private function bubiletHttpClient(int $timeout, ?string $referer): PendingRequest
+    {
+        $request = Http::timeout($timeout)
+            ->withHeaders($this->bubiletRequestHeaders($referer));
+
+        $proxy = trim((string) config('crawler.bubilet_http_proxy', ''));
+        if ($proxy !== '') {
+            $request = $request->withOptions(['proxy' => $proxy]);
+        }
+
+        return $request;
     }
 
     /**

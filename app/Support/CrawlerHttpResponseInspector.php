@@ -33,6 +33,7 @@ final class CrawlerHttpResponseInspector
             .'yalnızca _ga, _fbp veya cityId gibi çerezler yetmez. '
             .'.env değişince sunucuda `php artisan config:clear` veya deploy sonrası yapılandırma önbelleğini yenileyin. '
             .'Önemli: cf_clearance çoğu zaman isteği atan IP ile bağlantılıdır; çerezi yalnızca kendi bilgisayarınızdan kopyaladıysanız Forge/sunucu IP’sinde geçersiz olabilir — mümkünse aynı sunucudan (SSH üzerinden tarayıcısız araç veya headless) alın veya BUBILET_USER_AGENT’ı çerezi export ettiğiniz tarayıcıyla aynı yapın. '
+            .'Sunucu IP’si engelleniyorsa .env içinde BUBILET_HTTP_PROXY ile residential/çıkış vekili kullanın (çoğu veri merkezi IP’sinde gerekir). '
             .'Kalıcı çözüm: resmi veri ortaklığı veya kuyrukta headless tarayıcı.';
 
         $c = $sentCookieHeader ?? '';
@@ -80,7 +81,7 @@ final class CrawlerHttpResponseInspector
         $lower = mb_strtolower($human, 'UTF-8');
         if (str_contains($lower, 'güvenlik duvarı (cloudflare)')
             && str_contains($lower, 'bubilet')) {
-            return 'Cloudflare «Just a moment» engeli. .env: BUBILET_COOKIES / BUBILET_COOKIES_FILE (cf_clearance; tercihen sunucu IP’si). Tam metin: sayfa altı Bubilet notu.';
+            return 'Cloudflare «Just a moment» engeli. .env: BUBILET_HTTP_PROXY (residential önerilir) veya BUBILET_COOKIES (sunucu IP ile uyumlu cf_clearance). Tam metin: sayfa altı Bubilet notu.';
         }
 
         return Str::limit($human, 180, '…');

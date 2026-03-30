@@ -61,6 +61,13 @@ return [
     /** İlk istek için Referer (boş string ise header gönderilmez) */
     'bubilet_referer' => env('BUBILET_REFERER', 'https://www.bubilet.com.tr/'),
 
+    /**
+     * Bubilet HTTP istekleri için vekil (Cloudflare sunucu IP’sini engelliyorsa).
+     * Örnek: http://kullanici:sifre@proxy.saglayici.com:12345
+     * SOCKS için genelde PHP tarafında ek eklenti gerekir; tercihen HTTP CONNECT destekleyen residential proxy kullanın.
+     */
+    'bubilet_http_proxy' => env('BUBILET_HTTP_PROXY', ''),
+
     'timeout' => 20,
 
     /** Bubilet etiket sayfaları arasında istekler arası bekleme (mikrosaniye) */

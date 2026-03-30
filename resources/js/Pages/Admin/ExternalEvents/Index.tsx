@@ -469,7 +469,8 @@ export default function AdminExternalEventsIndex({
                             >
                                 Bubilet çerezi
                             </Link>{' '}
-                            sayfasından Netscape dosyası yükleyebilir veya .env içinde BUBILET_COOKIES / BUBILET_COOKIES_FILE kullanın; cf_clearance olmalı (yalnızca analitik çerezler yetmez). Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
+                            sayfasından Netscape dosyası yükleyebilir veya .env içinde BUBILET_COOKIES / BUBILET_COOKIES_FILE kullanın; cf_clearance mümkünse isteği atanın (sunucu veya vekil) IP’siyle uyumlu olmalı. Sunucu IP’si engelleniyorsa{' '}
+                            <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">BUBILET_HTTP_PROXY</code> ile residential çıkış deneyin. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
                             çekimde atlanır.
                         </span>
                     </p>
