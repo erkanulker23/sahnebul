@@ -1,6 +1,8 @@
 import {
     PublicPromoGallerySection,
+    filterPublicPromoItems,
     promoGalleryItemsFromEntity,
+    promoKindOf,
     venuePromoLabels,
     type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
@@ -27,7 +29,7 @@ import {
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 interface Review {
     id: number;
@@ -308,6 +310,34 @@ export default function VenueShow({
         return () => window.clearTimeout(t);
     }, [venue.slug]);
 
+    const mergedVenueEventPromoItems = useMemo(
+        () => venueEventPromoSections.flatMap((s) => s.items),
+        [venueEventPromoSections],
+    );
+
+    const venueEventPromoStoryTiles = useMemo(() => {
+        const tiles: { item: PromoGalleryItem; footer?: React.ReactNode }[] = [];
+        for (const sec of venueEventPromoSections) {
+            for (const it of filterPublicPromoItems(sec.items)) {
+                if (promoKindOf(it) !== 'story') {
+                    continue;
+                }
+                tiles.push({
+                    item: it,
+                    footer: (
+                        <Link
+                            href={route('events.show', sec.slug_segment)}
+                            className="text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Mekanda etkinliği aç
+                        </Link>
+                    ),
+                });
+            }
+        }
+        return tiles;
+    }, [venueEventPromoSections]);
+
     const cover = imageSrc(venue.cover_image);
     const galleryPhotos = (venue.media ?? [])
         .filter((m) => m.type === 'photo')
@@ -500,39 +530,23 @@ export default function VenueShow({
                             )}
 
                             {venueEventPromoSections.length > 0 ? (
-                                <div className="mt-8 space-y-10">
-                                    {venueEventPromoSections.map((section) => (
-                                        <section
-                                            key={section.event_id}
-                                            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-8"
-                                        >
-                                            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-                                                <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">
-                                                    {section.title}
-                                                </h2>
-                                                <Link
-                                                    href={route('events.show', section.slug_segment)}
-                                                    className="text-sm font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
-                                                >
-                                                    Etkinlik sayfası
-                                                </Link>
-                                            </div>
-                                            <p className="mb-4 text-xs text-zinc-600 dark:text-zinc-500">
-                                                Bu etkinliğin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
-                                            </p>
-                                            <PublicPromoGallerySection
-                                                items={section.items}
-                                                resolveStorageSrc={(path) => {
-                                                    if (!path) return null;
-                                                    return path.startsWith('http://') || path.startsWith('https://')
-                                                        ? path
-                                                        : `/storage/${path}`;
-                                                }}
-                                                labels={venuePromoLabels}
-                                            />
-                                        </section>
-                                    ))}
-                                </div>
+                                <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-8">
+                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Mekân tanıtımları</h2>
+                                    <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
+                                        Bu etkinliklerin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
+                                    </p>
+                                    <PublicPromoGallerySection
+                                        items={mergedVenueEventPromoItems}
+                                        storyTiles={venueEventPromoStoryTiles}
+                                        resolveStorageSrc={(path) => {
+                                            if (!path) return null;
+                                            return path.startsWith('http://') || path.startsWith('https://')
+                                                ? path
+                                                : `/storage/${path}`;
+                                        }}
+                                        labels={venuePromoLabels}
+                                    />
+                                </section>
                             ) : null}
 
                             <div className="mt-8">

@@ -1,6 +1,6 @@
 import { InstagramPromoPreviewOnly } from '@/Components/InstagramPostEmbed';
 import { router } from '@inertiajs/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type PromoGalleryItem = {
@@ -58,8 +58,7 @@ export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
 
 export const venuePromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
-    storiesDescription:
-        'MP4/WebM veya (indirilmediyse) gönderi/Reels için gömülü Instagram oynatıcısı; hikâyelerde kapak veya Instagram’da aç.',
+    storiesDescription: '',
     postsTitle: 'Gönderi görselleri',
     postsDescription:
         'Etkinlik ve mekân duyuruları için kare önizleme; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
@@ -164,7 +163,7 @@ export function promoGalleryItemsFromEntity(fields: {
     return [];
 }
 
-function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
+export function filterPublicPromoItems(items: PromoGalleryItem[]): PromoGalleryItem[] {
     return items.filter((it) => {
         const hasVideo = Boolean(it.video_path?.trim());
         if (hasVideo) {
@@ -215,18 +214,33 @@ function resolvePromoPostSlide(it: PromoGalleryItem, resolveStorageSrc: (path: s
     return null;
 }
 
+export type PublicPromoStoryTile = {
+    item: PromoGalleryItem;
+    footer?: ReactNode;
+};
+
 export function PublicPromoGallerySection({
     items,
     resolveStorageSrc,
     labels = defaultEventPromoLabels,
+    storyTiles,
 }: Readonly<{
     items: PromoGalleryItem[];
     resolveStorageSrc: (path: string | null) => string | null;
     labels?: PublicPromoGalleryLabels;
+    /** Mekân gibi sayfalarda: tek ızgarada birleştirilmiş video hücreleri ve isteğe bağlı alt bağlantı. */
+    storyTiles?: PublicPromoStoryTile[];
 }>) {
     const visible = useMemo(() => filterPublicPromoItems(items), [items]);
 
     const storyItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'story'), [visible]);
+
+    const storyEntries = useMemo((): PublicPromoStoryTile[] => {
+        if (storyTiles !== undefined) {
+            return storyTiles.length > 0 ? storyTiles : storyItems.map((item) => ({ item }));
+        }
+        return storyItems.map((item) => ({ item }));
+    }, [storyTiles, storyItems]);
 
     const postItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'post'), [visible]);
 
@@ -301,8 +315,8 @@ export function PublicPromoGallerySection({
         return null;
     }
 
-    const promoThreeColGrid =
-        'mt-4 grid w-full max-w-full list-none grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 sm:gap-1';
+    const promoStoryGrid =
+        'mt-4 grid w-full max-w-full list-none grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5';
 
     /** Gönderi kapakları: sanatçı «Galeri» ile aynı — kare önizleme, görsel oranı bozulmaz (object-cover). Mobilde 4 sütun. */
     const promoPostGrid =
@@ -314,7 +328,7 @@ export function PublicPromoGallerySection({
     const postCell =
         'relative aspect-square min-h-0 min-w-0 w-full max-w-full overflow-hidden rounded-sm border border-zinc-200 bg-zinc-950 shadow-sm dark:border-white/10';
 
-    function renderStoryCell(it: PromoGalleryItem, idx: number) {
+    function renderStoryCellInner(it: PromoGalleryItem, idx: number) {
         const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
         const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
         const embed = it.embed_url?.trim() ?? '';
@@ -323,10 +337,7 @@ export function PublicPromoGallerySection({
         const isStoryPermalink = igEmbed && embed.includes('/stories/');
         const igIframeSrc = !videoSrc && igEmbed && !isStoryPermalink ? instagramPostOrReelEmbedIframeSrc(embed) : null;
         return (
-            <li
-                key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
-                className={storyCell}
-            >
+            <div className={storyCell}>
                 {videoSrc ? (
                     <>
                         <video
@@ -401,7 +412,7 @@ export function PublicPromoGallerySection({
                         </span>
                     </a>
                 ) : null}
-            </li>
+            </div>
         );
     }
 
@@ -411,14 +422,31 @@ export function PublicPromoGallerySection({
 
     return (
         <div className="scroll-mt-24 space-y-10">
-            {storyItems.length > 0 ? (
+            {storyEntries.length > 0 ? (
                 <section className="w-full max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">{labels.storiesTitle}</h2>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {labels.storiesDescription} ({storyItems.length}).
-                    </p>
-                    <ul className={promoThreeColGrid}>
-                        {storyItems.map((it, idx) => renderStoryCell(it, idx))}
+                    {(labels.storiesDescription?.trim() ?? '') !== '' ? (
+                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            {labels.storiesDescription} ({storyEntries.length}).
+                        </p>
+                    ) : null}
+                    <ul className={promoStoryGrid}>
+                        {storyEntries.map(({ item: it, footer }, idx) => {
+                            const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
+                            const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
+                            const embed = it.embed_url?.trim() ?? '';
+                            return (
+                                <li
+                                    key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
+                                    className="flex min-w-0 flex-col gap-2"
+                                >
+                                    {renderStoryCellInner(it, idx)}
+                                    {footer ? (
+                                        <div className="px-0.5 text-center">{footer}</div>
+                                    ) : null}
+                                </li>
+                            );
+                        })}
                     </ul>
                 </section>
             ) : null}
