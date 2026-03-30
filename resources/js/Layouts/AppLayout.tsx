@@ -5,6 +5,7 @@ import FlashMessage from '@/Components/FlashMessage';
 import GoogleOneTapPrompt from '@/Components/GoogleOneTapPrompt';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
+import { MobileQuickNav } from '@/Components/layout/MobileQuickNav';
 import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
@@ -94,9 +95,11 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
-            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-5 pt-0 sm:px-4 sm:pb-6 lg:px-8">{children}</main>
+            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 lg:px-8 lg:pb-6">
+                {children}
+            </main>
 
-            <div className="mt-auto flex w-full flex-col">
+            <div className="mt-auto flex w-full flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0">
                 <AdSlot
                     slotKey="footer_above"
                     variant="full"
@@ -183,6 +186,8 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                     </div>
                 </footer>
             </div>
+
+            <MobileQuickNav />
         </div>
     );
 }
