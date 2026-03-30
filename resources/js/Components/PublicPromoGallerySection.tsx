@@ -48,8 +48,7 @@ export function instagramPostOrReelEmbedIframeSrc(embedUrl: string): string | nu
 
 export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
-    storiesDescription:
-        'Öncelik sunucudaki MP4/WebM. Instagram gönderi veya Reels bağlantısında video diske inmediyse gömülü Instagram oynatıcısı gösterilir; hikâyelerde yalnızca kapak veya Instagram’da aç.',
+    storiesDescription: '',
     postsTitle: 'Gönderi görselleri',
     postsDescription:
         'Kare önizleme: sosyal gönderi bağlantısından veya yüklenen görselden oluşan kapaklar. Karta dokunarak büyütün.',

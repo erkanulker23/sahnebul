@@ -58,7 +58,7 @@ class VenueController extends Controller
         $venues = $query
             ->orderByDesc('is_featured')
             ->latest()
-            ->paginate(12)
+            ->paginate(24)
             ->withQueryString();
         $popularArtistsQuery = Artist::query()
             ->approved()

@@ -1,4 +1,4 @@
-const VENUE_SOCIAL_ORDER = ['instagram', 'twitter', 'x', 'youtube', 'spotify', 'tiktok', 'facebook'] as const;
+const VENUE_SOCIAL_ORDER = ['instagram', 'twitter', 'x', 'youtube', 'spotify', 'tiktok', 'facebook', 'whatsapp'] as const;
 
 export function sortVenueSocialEntries(links: Record<string, string>): [string, string][] {
     const entries = Object.entries(links);
@@ -23,6 +23,7 @@ export function venueSocialLinkTitle(key: string): string {
         spotify: 'Spotify',
         tiktok: 'TikTok',
         facebook: 'Facebook',
+        whatsapp: 'WhatsApp',
     };
     return map[k] ?? key;
 }

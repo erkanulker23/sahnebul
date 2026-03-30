@@ -21,10 +21,11 @@ import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { safeRoute } from '@/lib/safeRoute';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import AppLayout from '@/Layouts/AppLayout';
+import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Building2, Eye, Navigation, PenLine } from 'lucide-react';
+import { Building2, Eye, Globe, Navigation, PenLine, Phone } from 'lucide-react';
 import {
     googleMapsDirectionsUrl,
     googleMapsOpenUrl,
@@ -528,52 +529,63 @@ export default function VenueShow({
                                     </button>
                                 </div>
                                 {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
-                                    <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">
+                                    <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-6">
                                         <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">İletişim</span>
-                                        <div className="flex flex-wrap gap-2">
-                                            {venue.phone && (
-                                                <a
-                                                    href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
-                                                    className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
-                                                >
-                                                    {venue.phone}
-                                                </a>
-                                            )}
-                                            {venue.whatsapp && (
-                                                <a
-                                                    href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-500/30"
-                                                >
-                                                    WhatsApp
-                                                </a>
-                                            )}
-                                            {venue.website && (
-                                                <a
-                                                    href={venue.website}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
-                                                >
-                                                    Web
-                                                </a>
-                                            )}
-                                            {venue.social_links &&
-                                                sortVenueSocialEntries(venue.social_links)
-                                                    .slice(0, 3)
-                                                    .map(([key, url]) => (
+                                        {(venue.phone || venue.whatsapp) && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {venue.phone && (
+                                                    <a
+                                                        href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
+                                                        className="inline-flex items-center gap-2 rounded-full border border-amber-400/35 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-100 shadow-sm transition hover:border-amber-400/55 hover:bg-amber-500/25"
+                                                    >
+                                                        <Phone className="h-4 w-4 shrink-0 opacity-90" aria-hidden strokeWidth={2} />
+                                                        {venue.phone}
+                                                    </a>
+                                                )}
+                                                {venue.whatsapp && (
+                                                    <a
+                                                        href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-emerald-400/60 hover:bg-emerald-500/30"
+                                                    >
+                                                        <SocialPlatformIcon platform="whatsapp" className="h-4 w-4 shrink-0" />
+                                                        WhatsApp
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
+                                        {(venue.website || (venue.social_links && sortVenueSocialEntries(venue.social_links).length > 0)) && (
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="sr-only">Web ve sosyal bağlantılar</span>
+                                                {venue.website && (
+                                                    <a
+                                                        href={venue.website}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="Web sitesi"
+                                                        aria-label="Web sitesi — yeni sekmede aç"
+                                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition hover:border-amber-400/50 hover:bg-white/15 hover:text-amber-200"
+                                                    >
+                                                        <Globe className="h-[1.15rem] w-[1.15rem] shrink-0" strokeWidth={2} aria-hidden />
+                                                    </a>
+                                                )}
+                                                {venue.social_links &&
+                                                    sortVenueSocialEntries(venue.social_links).map(([key, url]) => (
                                                         <a
                                                             key={key}
                                                             href={url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15"
+                                                            title={venueSocialLinkTitle(key)}
+                                                            aria-label={`${venueSocialLinkTitle(key)} — yeni sekmede aç`}
+                                                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition hover:border-amber-400/50 hover:bg-white/15 hover:text-amber-200"
                                                         >
-                                                            {venueSocialLinkTitle(key)}
+                                                            <SocialPlatformIcon platform={key} className="h-5 w-5" />
                                                         </a>
                                                     ))}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -741,8 +753,9 @@ export default function VenueShow({
                                             <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Telefon</p>
                                             <a
                                                 href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
-                                                className="mt-1 block text-amber-400 hover:text-amber-300"
+                                                className="mt-1 inline-flex items-center gap-2 text-amber-700 transition hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                                             >
+                                                <Phone className="h-4 w-4 shrink-0 opacity-80" aria-hidden strokeWidth={2} />
                                                 {venue.phone}
                                             </a>
                                         </div>
@@ -754,8 +767,9 @@ export default function VenueShow({
                                                 href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="mt-1 block text-emerald-700 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                                className="mt-1 inline-flex items-center gap-2 text-emerald-700 transition hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
                                             >
+                                                <SocialPlatformIcon platform="whatsapp" className="h-4 w-4 shrink-0" />
                                                 {venue.whatsapp}
                                             </a>
                                         </div>
@@ -767,8 +781,9 @@ export default function VenueShow({
                                                 href={venue.website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="mt-1 block text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                                                className="mt-1 inline-flex items-center gap-2 break-all text-amber-700 transition hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                                             >
+                                                <Globe className="h-4 w-4 shrink-0 opacity-80" aria-hidden strokeWidth={2} />
                                                 {venue.website.replace(/^https?:\/\//, '')}
                                             </a>
                                         </div>
@@ -785,9 +800,11 @@ export default function VenueShow({
                                                         href={url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-800 transition hover:border-amber-400 hover:text-amber-800 dark:border-white/10 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:border-amber-500/30 dark:hover:text-amber-400"
+                                                        title={venueSocialLinkTitle(key)}
+                                                        aria-label={`${venueSocialLinkTitle(key)} — yeni sekmede aç`}
+                                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-800 shadow-sm transition hover:border-amber-400/60 hover:bg-amber-50 hover:text-amber-900 dark:border-white/10 dark:bg-zinc-800/90 dark:text-zinc-200 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
                                                     >
-                                                        {venueSocialLinkTitle(key)}
+                                                        <SocialPlatformIcon platform={key} className="h-[1.05rem] w-[1.05rem]" />
                                                     </a>
                                                 ))}
                                             </div>

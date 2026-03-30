@@ -66,7 +66,7 @@ class ArtistController extends Controller
 
         $artists = $query->orderBy('name')
             ->select(['id', 'name', 'slug', 'avatar', 'genre', 'bio', 'created_at', 'status'])
-            ->paginate(12)
+            ->paginate(24)
             ->withQueryString();
 
         $artistsThisWeek = $this->artistsWithShowsInUpcomingWindow();
