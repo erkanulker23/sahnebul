@@ -12,6 +12,7 @@ import {
     Building2,
     Calendar,
     ChevronDown,
+    Cloud,
     ClipboardList,
     Cookie,
     CreditCard,
@@ -65,6 +66,12 @@ const navItems: AdminNavItem[] = [
     { navKey: 'admin.venues.index', href: 'admin.venues.index', label: 'Mekanlar', icon: Building2 },
     { navKey: 'admin.events.index', href: 'admin.events.index', label: 'Etkinlikler', icon: Calendar },
     { navKey: 'admin.external-events.index', href: 'admin.external-events.index', label: 'Crawl Adayları', icon: Globe },
+    {
+        navKey: 'admin.external-events.bubilet-cookies.index',
+        href: 'admin.external-events.bubilet-cookies.index',
+        label: 'Bubilet çerez (crawl)',
+        icon: Cloud,
+    },
     { navKey: 'admin.artists.index', href: 'admin.artists.index', label: 'Sanatçılar', icon: Mic },
     { navKey: 'admin.music-genres.index', href: 'admin.music-genres.index', label: 'Müzik türleri', icon: Tags },
     { navKey: 'admin.blog.index', href: 'admin.blog.index', label: 'Blog', icon: FileText },
@@ -191,6 +198,16 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             return true;
         }
         if (item.href === 'admin.external-events.index' && currentUrl.startsWith('/admin/dis-kaynak-etkinlikler')) {
+            if (currentUrl.startsWith('/admin/dis-kaynak-etkinlikler-bubilet-cerezleri')) {
+                return false;
+            }
+
+            return true;
+        }
+        if (
+            item.href === 'admin.external-events.bubilet-cookies.index' &&
+            currentUrl.startsWith('/admin/dis-kaynak-etkinlikler-bubilet-cerezleri')
+        ) {
             return true;
         }
         if (item.href === 'admin.instagram-promo-cookies.index' && currentUrl.startsWith('/admin/tanitim-video-instagram-cerezleri')) {

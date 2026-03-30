@@ -12,6 +12,7 @@ use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -37,6 +38,8 @@ class ExternalEventController extends Controller
                 'sources' => array_keys(config('crawler.sources', [])),
                 'crawlLookups' => $crawlLookups,
                 'lastCrawlReport' => Session::get('external_events_last_crawl'),
+                'persistedLastCrawl' => $this->persistedLastCrawlSnapshotForInertia(),
+                'appTimezone' => (string) config('app.timezone'),
             ]);
         }
 
@@ -132,7 +135,36 @@ class ExternalEventController extends Controller
             'sources' => array_keys(config('crawler.sources', [])),
             'crawlLookups' => $crawlLookups,
             'lastCrawlReport' => Session::get('external_events_last_crawl'),
+            'persistedLastCrawl' => $this->persistedLastCrawlSnapshotForInertia(),
+            'appTimezone' => (string) config('app.timezone'),
         ]);
+    }
+
+    /**
+     * Oturumdaki özet silinse bile son «Verileri çek» zamanı görünsün diye kalıcı önbellek.
+     *
+     * @return array{finished_at: string, status: string, total_processed: int, summary: string}|null
+     */
+    private function persistedLastCrawlSnapshotForInertia(): ?array
+    {
+        $raw = Cache::get('external_events_last_crawl_snapshot');
+        if (! is_array($raw)) {
+            return null;
+        }
+        $finished = $raw['finished_at'] ?? null;
+        $status = $raw['status'] ?? null;
+        $summary = $raw['summary'] ?? null;
+        if (! is_string($finished) || ! is_string($status) || ! is_string($summary)) {
+            return null;
+        }
+        $total = isset($raw['total_processed']) ? (int) $raw['total_processed'] : 0;
+
+        return [
+            'finished_at' => $finished,
+            'status' => $status,
+            'total_processed' => $total,
+            'summary' => $summary,
+        ];
     }
 
     public function dismissLastCrawlReport(): RedirectResponse
@@ -379,6 +411,7 @@ class ExternalEventController extends Controller
     private function persistLastCrawlReport(array $report): void
     {
         Session::put('external_events_last_crawl', $report);
+        Cache::forever('external_events_last_crawl_snapshot', $report);
     }
 
     /**

@@ -70,6 +70,9 @@ interface Props {
     sources: string[];
     crawlLookups?: { cities: CrawlLookupItem[]; categories: CrawlLookupItem[] };
     lastCrawlReport?: LastCrawlReport | null;
+    /** Oturum özeti silinse bile sunucuda saklanan son «Verileri çek» özeti */
+    persistedLastCrawl?: Pick<LastCrawlReport, 'finished_at' | 'status' | 'total_processed' | 'summary'> | null;
+    appTimezone?: string;
 }
 
 const selectClass =
@@ -84,6 +87,21 @@ function itemStatus(item: ExternalEventItem): { label: string; className: string
         return { label: 'Reddedildi', className: 'bg-red-500/15 text-red-800 dark:text-red-400' };
     }
     return { label: 'Bekliyor', className: 'bg-amber-500/15 text-amber-800 dark:text-amber-400' };
+}
+
+function persistedCrawlStatusLabel(status: string): string {
+    switch (status) {
+        case 'success':
+            return 'Başarılı';
+        case 'warning':
+            return 'Kısmen (uyarı)';
+        case 'error':
+            return 'Hata';
+        case 'info':
+            return 'Bilgi';
+        default:
+            return status;
+    }
 }
 
 function lastCrawlPanelClass(status: LastCrawlReport['status']): string {
@@ -105,6 +123,8 @@ export default function AdminExternalEventsIndex({
     sources,
     crawlLookups,
     lastCrawlReport,
+    persistedLastCrawl = null,
+    appTimezone = 'UTC',
 }: Readonly<Props>) {
     const page = usePage();
     const pageErrors = (page.props as { errors?: Record<string, string | string[]> }).errors ?? {};
@@ -325,6 +345,42 @@ export default function AdminExternalEventsIndex({
                     }
                 />
 
+                {persistedLastCrawl ? (
+                    <div
+                        className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-200"
+                        role="status"
+                    >
+                        <span className="font-semibold text-zinc-900 dark:text-white">Son veri çekme:</span>
+                        <span className="tabular-nums font-medium">{persistedLastCrawl.finished_at}</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">({appTimezone})</span>
+                        <span className="text-zinc-600 dark:text-zinc-400">·</span>
+                        <span>
+                            İşlenen:{' '}
+                            <strong className="tabular-nums text-zinc-900 dark:text-white">
+                                {persistedLastCrawl.total_processed.toLocaleString('tr-TR')}
+                            </strong>
+                        </span>
+                        <span className="text-zinc-600 dark:text-zinc-400">·</span>
+                        <span className="rounded-md bg-white/80 px-2 py-0.5 text-xs font-semibold dark:bg-zinc-800">
+                            {persistedCrawlStatusLabel(persistedLastCrawl.status)}
+                        </span>
+                        {lastCrawlReport ? (
+                            <span className="w-full text-xs text-zinc-500 dark:text-zinc-400">
+                                Bu oturumda ayrıntılı özet aşağıda da listeleniyor.
+                            </span>
+                        ) : (
+                            <span className="w-full text-xs text-zinc-500 dark:text-zinc-400">
+                                Özet kutusunu kaldırdıysanız tarih burada kalır; yeni çekimde güncellenir.
+                            </span>
+                        )}
+                    </div>
+                ) : (
+                    <p className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-600 dark:bg-zinc-900/30 dark:text-zinc-400">
+                        Henüz kayıtlı bir veri çekme zamanı yok. «Verileri çek» tamamlandıktan sonra son çekim tarihi ve işlenen
+                        adet burada görünür; özet kutusunu kapatsanız veya oturumu kapatıp yeniden girseniz de kalır.
+                    </p>
+                )}
+
                 {lastCrawlReport ? (
                     <section
                         className={`rounded-xl border-2 p-4 shadow-sm ${lastCrawlPanelClass(lastCrawlReport.status)}`}
@@ -401,7 +457,14 @@ export default function AdminExternalEventsIndex({
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             Bubilet: İstanbul için konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri birlikte taranır; tarayıcıda gördüğünüzden fazlası
                             çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz.                             Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
-                            açıklanır. Gelişmiş kullanım: .env içinde BUBILET_COOKIES veya Netscape dosyası için BUBILET_COOKIES_FILE; çerezlerde cf_clearance olmalı (yalnızca analitik çerezler yetmez). Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
+                            açıklanır. Cloudflare çerezi:{' '}
+                            <Link
+                                href={safeRoute('admin.external-events.bubilet-cookies.index')}
+                                className="font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
+                            >
+                                Bubilet çerez (crawl)
+                            </Link>{' '}
+                            sayfasından Netscape dosyası yükleyebilir veya .env içinde BUBILET_COOKIES / BUBILET_COOKIES_FILE kullanın; cf_clearance olmalı (yalnızca analitik çerezler yetmez). Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
                             çekimde atlanır.
                         </span>
                     </p>

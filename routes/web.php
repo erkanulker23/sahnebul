@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ArtistController as AdminArtistController;
 use App\Http\Controllers\Admin\ArtistEventProposalController as AdminArtistEventProposalController;
 use App\Http\Controllers\Admin\ArtistGalleryModerationController as AdminArtistGalleryModerationController;
 use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
+use App\Http\Controllers\Admin\BubiletCrawlCookiesController as AdminBubiletCrawlCookiesController;
 use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\CityController as AdminCityController;
@@ -387,6 +388,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/dis-kaynak-etkinlikler/toplu-islem', [AdminExternalEventController::class, 'bulk'])->name('external-events.bulk');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/aktar', [AdminExternalEventController::class, 'sync'])->name('external-events.sync');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');
+    Route::get('/dis-kaynak-etkinlikler-bubilet-cerezleri', [AdminBubiletCrawlCookiesController::class, 'index'])
+        ->name('external-events.bubilet-cookies.index');
+    Route::post('/dis-kaynak-etkinlikler-bubilet-cerezleri', [AdminBubiletCrawlCookiesController::class, 'store'])
+        ->name('external-events.bubilet-cookies.store');
+    Route::post('/dis-kaynak-etkinlikler-bubilet-cerezleri/kaldir', [AdminBubiletCrawlCookiesController::class, 'destroy'])
+        ->name('external-events.bubilet-cookies.destroy');
 
     Route::get('/sanatcilar', [AdminArtistController::class, 'index'])->name('artists.index');
     Route::get('/sanatcilar/kullanici-adi-kontrol', [AdminArtistController::class, 'checkUsernameAvailability'])

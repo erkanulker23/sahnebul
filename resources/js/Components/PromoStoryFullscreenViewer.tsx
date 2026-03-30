@@ -33,6 +33,7 @@ export function PromoStoryFullscreenViewer({
     const n = items.length;
     const touchStartX = useRef<number | null>(null);
     const sessionOpenRef = useRef(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
         if (!open) {
@@ -92,13 +93,42 @@ export function PromoStoryFullscreenViewer({
         };
     }, [open]);
 
-    if (!open || n === 0 || typeof document === 'undefined') {
+    const safeIdx = n > 0 ? Math.min(Math.max(0, idx), n - 1) : 0;
+    const it = n > 0 ? items[safeIdx] : null;
+    const videoSrc = it?.video_path ? resolveStorageSrc(it.video_path) : null;
+
+    useEffect(() => {
+        if (!open || n === 0 || !videoSrc) {
+            return;
+        }
+        const el = videoRef.current;
+        if (!el) {
+            return;
+        }
+
+        const tryPlay = () => {
+            void el.play().catch(() => {
+                /* iOS / autoplay policy — kullanıcı kontrollerinden oynatır */
+            });
+        };
+
+        el.load();
+
+        if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            requestAnimationFrame(tryPlay);
+        } else {
+            el.addEventListener('loadeddata', tryPlay, { once: true });
+        }
+
+        return () => {
+            el.removeEventListener('loadeddata', tryPlay);
+        };
+    }, [open, n, safeIdx, videoSrc]);
+
+    if (!open || n === 0 || typeof document === 'undefined' || !it) {
         return null;
     }
 
-    const safeIdx = Math.min(Math.max(0, idx), n - 1);
-    const it = items[safeIdx];
-    const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
     const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
     const embed = it.embed_url?.trim() ?? '';
     const igEmbed = embed.includes('instagram.com');
@@ -192,17 +222,18 @@ export function PromoStoryFullscreenViewer({
                 >
                     <div
                         key={slideDomKey(it, safeIdx)}
-                        className="relative aspect-[9/16] h-full max-h-full w-auto overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10"
+                        className="relative mx-auto aspect-[9/16] w-full min-h-[12rem] max-h-[min(calc(100dvh-9rem),calc(100vh-9rem))] max-w-lg overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10 sm:max-w-xl"
                     >
                         {videoSrc ? (
                             <>
                                 <video
-                                    key={videoSrc}
+                                    ref={videoRef}
+                                    key={`${safeIdx}-${videoSrc}`}
                                     controls
                                     playsInline
                                     autoPlay
-                                    preload="metadata"
-                                    className="h-full w-full object-contain"
+                                    preload="auto"
+                                    className="absolute inset-0 h-full w-full object-contain"
                                     poster={posterSrc ?? undefined}
                                 >
                                     <source src={videoSrc} type={promoVideoSrcLooksLikeWebm(videoSrc) ? 'video/webm' : 'video/mp4'} />

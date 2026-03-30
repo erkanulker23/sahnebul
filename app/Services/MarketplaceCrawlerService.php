@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\City;
+use App\Support\BubiletCrawlerCookiesPath;
 use App\Support\CrawlerHttpResponseInspector;
 use App\Support\NetscapeCookieFileReader;
 use App\Support\SehirSecCityDistricts;
@@ -321,10 +322,10 @@ class MarketplaceCrawlerService
 
     private function bubiletCookieHeaderString(): string
     {
-        $file = trim((string) config('crawler.bubilet_cookies_file', ''));
         $pairs = [];
-        if ($file !== '' && is_file($file) && is_readable($file)) {
-            $pairs = NetscapeCookieFileReader::bubiletPairsFromNetscapeFile($file);
+        $resolved = BubiletCrawlerCookiesPath::resolve();
+        if ($resolved !== null) {
+            $pairs = NetscapeCookieFileReader::bubiletPairsFromNetscapeFile($resolved);
         }
 
         $envRaw = trim((string) config('crawler.bubilet_cookies', ''));

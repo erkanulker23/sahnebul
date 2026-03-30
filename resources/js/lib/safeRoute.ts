@@ -214,6 +214,11 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/admin/dis-kaynak-etkinlikler';
         }
+        case 'admin.external-events.bubilet-cookies.index':
+        case 'admin.external-events.bubilet-cookies.store':
+            return '/admin/dis-kaynak-etkinlikler-bubilet-cerezleri';
+        case 'admin.external-events.bubilet-cookies.destroy':
+            return '/admin/dis-kaynak-etkinlikler-bubilet-cerezleri/kaldir';
         case 'admin.google-sign-in.index':
             return '/admin/google-ile-kullanici-girisi';
         case 'admin.google-sign-in.update':

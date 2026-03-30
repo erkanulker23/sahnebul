@@ -20,6 +20,7 @@
 /storage/*.key
 /storage/pail
 /storage/app/private/instagram_ytdlp_cookies.txt
+/storage/app/private/bubilet_crawler_cookies.txt
 /vendor
 Homestead.json
 Homestead.yaml

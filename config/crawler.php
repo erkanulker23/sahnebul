@@ -45,7 +45,10 @@ return [
     /** Tarayıcıdan kopyalanan çerezler (cf_clearance vb.); Cloudflare engelini aşmak için deneysel */
     'bubilet_cookies' => env('BUBILET_COOKIES', ''),
 
-    /** Netscape/curl cookies.txt dosya yolu (BUBILET_COOKIES ile birleştirilir; env çiftleri dosyayı ezer) */
+    /**
+     * Netscape/curl cookies.txt mutlak yolu. Okunabilirse panel yüklemesinden önce gelir.
+     * BUBILET_COOKIES (satır) ile birleştirilir; aynı çerez adında env değeri dosyayı ezer.
+     */
     'bubilet_cookies_file' => env('BUBILET_COOKIES_FILE', ''),
 
     /** İlk istek için Referer (boş string ise header gönderilmez) */
