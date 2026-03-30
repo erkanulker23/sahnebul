@@ -130,6 +130,10 @@ class MarketplaceCrawlerService
                         $meta['bubilet_listing_url'] = $listingUrl;
                     }
                     $row['meta'] = $meta;
+                    $fromListing = $this->categoryNameFromBubiletListingUrl($listingUrl);
+                    if ($fromListing !== null) {
+                        $row['category_name'] = $fromListing;
+                    }
                     $normalized[] = $row;
                 }
                 break;
@@ -215,6 +219,42 @@ class MarketplaceCrawlerService
         $fallback = $sourceConfig['city'] ?? null;
 
         return is_string($fallback) && $fallback !== '' ? $fallback : 'İstanbul';
+    }
+
+    /**
+     * Liste URL'sindeki /etiket/{slug} parçasından kategori — JSON-LD çoğu zaman `eventAttendanceMode`
+     * ile hep «Müzik»e düşüyordu; gerçek tür (tiyatro, stand-up vb.) etiketten gelir.
+     */
+    private function categoryNameFromBubiletListingUrl(string $listingUrl): ?string
+    {
+        if ($listingUrl === '') {
+            return null;
+        }
+        if (preg_match('#/etiket/([^/?#]+)#iu', $listingUrl, $m)) {
+            return $this->categoryNameFromBubiletListingTag(rawurldecode($m[1]));
+        }
+
+        return null;
+    }
+
+    private function categoryNameFromBubiletListingTag(string $tagSlug): string
+    {
+        $t = mb_strtolower(str_replace(['-', '_', ' '], '', $tagSlug), 'UTF-8');
+
+        return match (true) {
+            str_contains($t, 'konser') => 'Müzik',
+            str_contains($t, 'tiyatro') => 'Tiyatro',
+            str_contains($t, 'muzikal') => 'Müzikal',
+            str_contains($t, 'festival') => 'Festival',
+            str_contains($t, 'elektronik') => 'Elektronik müzik',
+            str_contains($t, 'standup') => 'Stand-up',
+            str_contains($t, 'stand') && str_contains($t, 'up') => 'Stand-up',
+            str_contains($t, 'cocuk') => 'Çocuk',
+            str_contains($t, 'workshop') => 'Workshop',
+            str_contains($t, 'spor') => 'Spor',
+            str_contains($t, 'sergi') => 'Sergi',
+            default => $this->normalizeCategoryName($tagSlug),
+        };
     }
 
     /**
@@ -529,6 +569,39 @@ class MarketplaceCrawlerService
     }
 
     /**
+     * @param  array<string, mixed>  $event
+     */
+    private function schemaOrgCategoryRaw(array $event): string
+    {
+        $keywords = Arr::get($event, 'keywords');
+        if (is_string($keywords) && trim($keywords) !== '') {
+            return trim($keywords);
+        }
+        if (is_array($keywords) && $keywords !== []) {
+            $first = $keywords[0] ?? null;
+            if (is_string($first) && trim($first) !== '') {
+                return trim($first);
+            }
+            if (is_array($first)) {
+                $n = $first['name'] ?? $first['@value'] ?? null;
+                if (is_string($n) && trim($n) !== '') {
+                    return trim($n);
+                }
+            }
+        }
+
+        $mode = Arr::get($event, 'eventAttendanceMode');
+        if (is_string($mode) && trim($mode) !== '') {
+            $lower = strtolower($mode);
+            if (! str_contains($lower, 'schema.org')) {
+                return trim($mode);
+            }
+        }
+
+        return 'Müzik';
+    }
+
+    /**
      * @param  array<string, mixed>  $sourceConfig
      * @return array<string, mixed>|null
      */
@@ -542,7 +615,7 @@ class MarketplaceCrawlerService
         $startDate = $this->parseDate(Arr::get($event, 'startDate'));
         $venueName = (string) (Arr::get($event, 'location.name') ?? '');
         $cityName = (string) (Arr::get($event, 'location.address.addressLocality') ?? $sourceConfig['city'] ?? 'İstanbul');
-        $category = (string) (Arr::get($event, 'eventAttendanceMode') ?? Arr::get($event, 'keywords') ?? 'Müzik');
+        $categoryRaw = $this->schemaOrgCategoryRaw($event);
 
         return [
             'title' => $name,
@@ -550,7 +623,7 @@ class MarketplaceCrawlerService
             'image_url' => is_array($event['image'] ?? null) ? (string) ($event['image'][0] ?? '') : (string) ($event['image'] ?? ''),
             'venue_name' => $venueName,
             'city_name' => $cityName,
-            'category_name' => $this->normalizeCategoryName($category),
+            'category_name' => $this->normalizeCategoryName($categoryRaw),
             'start_date' => $startDate?->toDateTimeString(),
             'description' => (string) ($event['description'] ?? ''),
             'meta' => ['raw' => $event],

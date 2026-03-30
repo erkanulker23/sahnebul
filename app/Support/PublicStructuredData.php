@@ -55,6 +55,40 @@ final class PublicStructuredData
     }
 
     /**
+     * Ana sayfa: Organization + WebSite (publisher, dil, Sitelinks arama kutusu).
+     *
+     * @return array<string, mixed>
+     */
+    public static function homePageGraph(): array
+    {
+        $ctx = self::siteContextForStructuredData();
+        $siteName = $ctx['siteName'];
+        $appUrl = rtrim($ctx['appUrl'], '/');
+        $logoAbsolute = $ctx['logoAbsolute'];
+
+        $org = self::organizationNode($siteName, $appUrl, $logoAbsolute);
+
+        $website = [
+            '@type' => 'WebSite',
+            '@id' => $appUrl.'/#website',
+            'url' => $appUrl.'/',
+            'name' => $siteName,
+            'inLanguage' => 'tr-TR',
+            'publisher' => ['@id' => $appUrl.'/#organization'],
+            'potentialAction' => [
+                '@type' => 'SearchAction',
+                'target' => $appUrl.'/etkinlikler?search={search_term_string}',
+                'query-input' => 'required name=search_term_string',
+            ],
+        ];
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [$org, $website],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function eventShowGraph(Event $event): array
@@ -101,12 +135,16 @@ final class PublicStructuredData
             ? 'https://schema.org/EventCancelled'
             : 'https://schema.org/EventScheduled';
 
+        $slug = isset($event->event_type) && is_string($event->event_type) ? $event->event_type : null;
+        $schemaType = EventListingTypes::schemaOrgEventType($slug);
+        $performerThing = EventListingTypes::schemaOrgPerformerType($slug);
+
         $performer = [];
         if ($event->relationLoaded('artists')) {
             foreach ($event->artists as $a) {
                 $n = trim((string) ($a->name ?? ''));
                 if ($n !== '') {
-                    $performer[] = ['@type' => 'MusicGroup', 'name' => $n];
+                    $performer[] = ['@type' => $performerThing, 'name' => $n];
                 }
             }
         }
@@ -129,35 +167,43 @@ final class PublicStructuredData
             ];
         }
 
-        $musicEvent = [
-            '@type' => 'MusicEvent',
+        $typeLabel = EventListingTypes::labelFor($slug);
+        $eventNode = [
+            '@type' => $schemaType,
             '@id' => $canonical.'#event',
             'name' => $event->title,
             'url' => $canonical,
             'description' => $description,
+            'inLanguage' => 'tr-TR',
             'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
             'eventStatus' => $eventStatusUri,
             'location' => $location,
             'organizer' => ['@id' => rtrim($appUrl, '/').'/#organization'],
         ];
+        if ($typeLabel !== null) {
+            $eventNode['category'] = $typeLabel;
+        }
+        if (! ($event->entry_is_paid ?? true)) {
+            $eventNode['isAccessibleForFree'] = true;
+        }
         if ($startIso !== null) {
-            $musicEvent['startDate'] = $startIso;
+            $eventNode['startDate'] = $startIso;
         }
         if ($endIso !== null) {
-            $musicEvent['endDate'] = $endIso;
+            $eventNode['endDate'] = $endIso;
         }
         if ($ogImage !== null) {
-            $musicEvent['image'] = [$ogImage];
+            $eventNode['image'] = [$ogImage];
         }
         if (count($performer) === 1) {
-            $musicEvent['performer'] = $performer[0];
+            $eventNode['performer'] = $performer[0];
         } elseif (count($performer) > 1) {
-            $musicEvent['performer'] = $performer;
+            $eventNode['performer'] = $performer;
         }
 
         $offers = self::buildOffersForEvent($event, $canonical);
         if ($offers !== null) {
-            $musicEvent['offers'] = $offers;
+            $eventNode['offers'] = $offers;
         }
 
         $breadcrumbs = [
@@ -187,7 +233,7 @@ final class PublicStructuredData
 
         return [
             '@context' => 'https://schema.org',
-            '@graph' => [$org, $musicEvent, $breadcrumbs],
+            '@graph' => [$org, $eventNode, $breadcrumbs],
         ];
     }
 
@@ -316,6 +362,7 @@ final class PublicStructuredData
             'name' => $name,
             'url' => $canonical,
             'description' => $description,
+            'inLanguage' => 'tr-TR',
         ];
         if ($genre !== '') {
             $musicGroup['genre'] = $genre;

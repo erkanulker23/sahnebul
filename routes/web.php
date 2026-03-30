@@ -402,6 +402,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('throttle:10,1')
         ->name('external-events.crawl-preview');
     Route::post('/dis-kaynak-etkinlikler/toplu-islem', [AdminExternalEventController::class, 'bulk'])->name('external-events.bulk');
+    Route::get('/dis-kaynak-etkinlikler/{externalEvent}/duzenle', [AdminExternalEventController::class, 'edit'])->name('external-events.edit');
+    Route::put('/dis-kaynak-etkinlikler/{externalEvent}', [AdminExternalEventController::class, 'update'])->name('external-events.update');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/aktar', [AdminExternalEventController::class, 'sync'])->name('external-events.sync');
     Route::post('/dis-kaynak-etkinlikler/{externalEvent}/reddet', [AdminExternalEventController::class, 'reject'])->name('external-events.reject');
     Route::get('/dis-kaynak-etkinlikler-bubilet-cerezleri', [AdminBubiletCrawlCookiesController::class, 'index'])

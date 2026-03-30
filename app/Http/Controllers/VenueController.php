@@ -15,6 +15,7 @@ use App\Support\DailyUniqueEntityView;
 use App\Support\EventPromoVenueProfileModeration;
 use App\Support\HomeHeroSlideDefaults;
 use App\Support\HomeHeroSlides;
+use App\Support\PublicStructuredData;
 use App\Support\UpcomingSevenDayEventWindow;
 use App\Support\VenuePageSeo;
 use Illuminate\Http\JsonResponse;
@@ -207,6 +208,7 @@ class VenueController extends Controller
             'cities' => $cities,
             'categories' => $categories,
             'filters' => $request->only(['city', 'category', 'search']),
+            'homeStructuredData' => $request->is('mekanlar') ? null : PublicStructuredData::homePageGraph(),
         ]);
 
         $response = $inertia->toResponse($request);

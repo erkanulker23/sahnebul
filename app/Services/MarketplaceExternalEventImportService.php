@@ -265,6 +265,8 @@ class MarketplaceExternalEventImportService
      */
     private function upsertExternalEventFromCrawlRow(string $sourceKey, string $normUrl, string $fingerprint, array $payload): ExternalEvent
     {
+        $payload['last_crawled_at'] = now();
+
         return DB::transaction(function () use ($sourceKey, $normUrl, $fingerprint, $payload): ExternalEvent {
             if ($normUrl !== '') {
                 $ids = ExternalEvent::query()

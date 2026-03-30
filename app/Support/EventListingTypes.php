@@ -61,4 +61,37 @@ final class EventListingTypes
     {
         return ['nullable', 'string', Rule::in(self::slugs())];
     }
+
+    /**
+     * schema.org Event alt türü — Google Etkinlik zengin sonuçları için doğru @type.
+     */
+    public static function schemaOrgEventType(?string $slug): string
+    {
+        $s = $slug !== null && $slug !== '' ? $slug : null;
+
+        return match ($s) {
+            'konser' => 'MusicEvent',
+            'festival' => 'MusicEvent',
+            'tiyatro' => 'TheaterEvent',
+            'stand-up' => 'ComedyEvent',
+            'workshop' => 'EducationEvent',
+            'cocuk-aktiviteleri' => 'ChildrensEvent',
+            default => 'Event',
+        };
+    }
+
+    /**
+     * Sanatçı / topluluk düğümü — MusicEvent dışında Person daha doğru.
+     *
+     * @return 'MusicGroup'|'Person'
+     */
+    public static function schemaOrgPerformerType(?string $slug): string
+    {
+        $s = $slug !== null && $slug !== '' ? $slug : null;
+
+        return match ($s) {
+            'konser', 'festival' => 'MusicGroup',
+            default => 'Person',
+        };
+    }
 }

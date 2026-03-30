@@ -6,7 +6,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { safeRoute } from '@/lib/safeRoute';
 import { FormEvent, useCallback, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Eye, Loader2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, Loader2, Pencil, X } from 'lucide-react';
 
 interface ExternalEventItem {
     id: number;
@@ -21,6 +21,10 @@ interface ExternalEventItem {
     image_url?: string | null;
     description?: string | null;
     meta?: { rejected?: boolean } | null;
+    /** İlk kez veri tabanına yazıldığı an */
+    created_at?: string | null;
+    /** Son başarılı çekimde güncellendiği an (veya eski kayıtlarda yedek olarak `updated_at`) */
+    last_crawled_at?: string | null;
 }
 
 interface CrawlLookupItem {
@@ -99,6 +103,10 @@ function defaultCrawlDateRangeDays(spanDays: number): { date_from: string; date_
     return { date_from: ymd(start), date_to: ymd(end) };
 }
 
+function formatAdminInstant(iso: string | null | undefined, tz: string): string {
+    return formatTurkishDateTime(iso, { timeZone: tz, empty: '—' });
+}
+
 function itemStatus(item: ExternalEventItem): { label: string; className: string } {
     const isRejected = item.meta?.rejected === true;
     if (item.synced_event_id) {
@@ -145,7 +153,7 @@ export default function AdminExternalEventsIndex({
     crawlLookups,
     lastCrawlReport,
     persistedLastCrawl = null,
-    appTimezone = 'UTC',
+    appTimezone = 'Europe/Istanbul',
 }: Readonly<Props>) {
     const page = usePage();
     const pageErrors = (page.props as { errors?: Record<string, string | string[]> }).errors ?? {};
@@ -296,6 +304,7 @@ export default function AdminExternalEventsIndex({
     const rowActionClass = {
         preview:
             'inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-800 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700',
+        edit: 'inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-400/80 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100 dark:border-amber-500/50 dark:bg-amber-500/15 dark:text-amber-100 dark:hover:bg-amber-500/25',
         sync: 'inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40',
         reject: 'inline-flex shrink-0 items-center justify-center rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-40',
     };
@@ -308,6 +317,14 @@ export default function AdminExternalEventsIndex({
                     <Eye className="h-3.5 w-3.5" aria-hidden />
                     Önizle
                 </button>
+                <Link
+                    href={safeRoute('admin.external-events.edit', { externalEvent: item.id })}
+                    className={rowActionClass.edit}
+                    preserveScroll
+                >
+                    <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    Düzenle
+                </Link>
                 <button
                     type="button"
                     onClick={() =>
@@ -823,6 +840,14 @@ export default function AdminExternalEventsIndex({
                                             <dd>{detailItem.category_name}</dd>
                                         </div>
                                     ) : null}
+                                    <div>
+                                        <dt className="font-medium text-zinc-500 dark:text-zinc-400">İlk indirme</dt>
+                                        <dd>{formatAdminInstant(detailItem.created_at, appTimezone)}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="font-medium text-zinc-500 dark:text-zinc-400">Son çekimde güncellendi</dt>
+                                        <dd>{formatAdminInstant(detailItem.last_crawled_at, appTimezone)}</dd>
+                                    </div>
                                 </dl>
                                 {detailItem.description ? (
                                     <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">{detailItem.description}</p>
@@ -949,6 +974,7 @@ export default function AdminExternalEventsIndex({
                                     <th className="px-4 py-3">Kaynak</th>
                                     <th className="px-4 py-3">Mekan / şehir</th>
                                     <th className="px-4 py-3">Tarih</th>
+                                    <th className="px-4 py-3">Çekilme</th>
                                     <th className="px-4 py-3">Durum</th>
                                     <th className="whitespace-nowrap px-4 py-3 text-right">İşlemler</th>
                                 </tr>
@@ -985,6 +1011,14 @@ export default function AdminExternalEventsIndex({
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
                                                 {formatTurkishDateTime(item.start_date)}
+                                            </td>
+                                            <td className="min-w-[10rem] px-4 py-3 text-xs leading-snug text-zinc-600 dark:text-zinc-400">
+                                                <span className="block opacity-90">
+                                                    Son: {formatAdminInstant(item.last_crawled_at, appTimezone)}
+                                                </span>
+                                                <span className="mt-0.5 block text-[11px] text-zinc-500 dark:text-zinc-500">
+                                                    İlk: {formatAdminInstant(item.created_at, appTimezone)}
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${st.className}`}>{st.label}</span>
@@ -1023,6 +1057,11 @@ export default function AdminExternalEventsIndex({
                                             {item.venue_name ?? 'Çeşitli mekanlar'} · {item.city_name ?? '—'}
                                         </p>
                                         <p className="mt-1 text-xs text-zinc-500">{formatTurkishDateTime(item.start_date)}</p>
+                                        <p className="mt-1 text-[11px] text-zinc-500">
+                                            Son çekim: {formatAdminInstant(item.last_crawled_at, appTimezone)}
+                                            <span className="mx-1 opacity-40">·</span>
+                                            İlk: {formatAdminInstant(item.created_at, appTimezone)}
+                                        </p>
                                         {item.external_url && (
                                             <a
                                                 href={item.external_url}

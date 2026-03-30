@@ -20,11 +20,13 @@ class ExternalEvent extends Model
         'description',
         'meta',
         'synced_event_id',
+        'last_crawled_at',
     ];
 
     protected $casts = [
         'start_date' => 'datetime',
         'meta' => 'array',
+        'last_crawled_at' => 'datetime',
     ];
 
     public function syncedEvent(): BelongsTo

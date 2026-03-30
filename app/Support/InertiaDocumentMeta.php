@@ -309,22 +309,30 @@ final class InertiaDocumentMeta
             $venueName = trim((string) ($venue['name'] ?? ''));
             $venueAddress = trim((string) ($venue['address'] ?? ''));
             $cityName = is_array($venue['city'] ?? null) ? trim((string) ($venue['city']['name'] ?? '')) : '';
+            $typeSlug = isset($row['event_type']) && is_string($row['event_type']) ? trim($row['event_type']) : '';
+            $typeSlug = $typeSlug !== '' ? $typeSlug : null;
+            $schemaEvType = EventListingTypes::schemaOrgEventType($typeSlug);
 
-            $musicEvent = [
-                '@type' => 'MusicEvent',
+            $eventItem = [
+                '@type' => $schemaEvType,
                 'name' => $displayName,
                 'url' => $url,
+                'inLanguage' => 'tr-TR',
                 'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
                 'eventStatus' => 'https://schema.org/EventScheduled',
             ];
+            $label = EventListingTypes::labelFor($typeSlug);
+            if ($label !== null) {
+                $eventItem['category'] = $label;
+            }
             if ($startIso !== '') {
-                $musicEvent['startDate'] = $startIso;
+                $eventItem['startDate'] = $startIso;
             }
             if ($endIso !== '') {
-                $musicEvent['endDate'] = $endIso;
+                $eventItem['endDate'] = $endIso;
             }
             if ($venueName !== '' || $venueAddress !== '' || $cityName !== '') {
-                $musicEvent['location'] = [
+                $eventItem['location'] = [
                     '@type' => 'Place',
                     'name' => $venueName !== '' ? $venueName : $displayName,
                     'address' => [
@@ -339,7 +347,7 @@ final class InertiaDocumentMeta
             $elements[] = [
                 '@type' => 'ListItem',
                 'position' => $pos,
-                'item' => $musicEvent,
+                'item' => $eventItem,
             ];
             $pos++;
             if ($pos > 24) {
@@ -537,17 +545,7 @@ final class InertiaDocumentMeta
         ];
 
         if (! $isVenuesPage) {
-            $out['jsonLd'] = [
-                '@context' => 'https://schema.org',
-                '@type' => 'WebSite',
-                'name' => $siteName,
-                'url' => $appUrl.'/',
-                'potentialAction' => [
-                    '@type' => 'SearchAction',
-                    'target' => $appUrl.'/mekanlar?search={search_term_string}',
-                    'query-input' => 'required name=search_term_string',
-                ],
-            ];
+            $out['jsonLd'] = PublicStructuredData::homePageGraph();
         }
 
         return $out;
@@ -577,6 +575,9 @@ final class InertiaDocumentMeta
         $venueAddress = (string) ($venue['address'] ?? '');
         $cityName = is_array($venue['city'] ?? null) ? (string) ($venue['city']['name'] ?? '') : '';
         $artists = is_array($event['artists'] ?? null) ? $event['artists'] : [];
+        $eventTypeSlug = isset($event['event_type']) ? trim((string) $event['event_type']) : '';
+        $eventTypeSlug = $eventTypeSlug !== '' ? $eventTypeSlug : null;
+        $eventTypeLabel = EventListingTypes::labelFor($eventTypeSlug);
 
         $pageTitle = $title.' - Etkinlik';
         $plainDesc = SeoFormatting::stripHtmlToText($description);
@@ -605,6 +606,9 @@ final class InertiaDocumentMeta
             $dateLine = $localDate !== '' ? 'Tarih: '.$localDate.'.' : 'Tarih yakında açıklanacak.';
         }
         $descLong = $plainDesc !== '' ? $plainDesc : $title.' — '.$venueName.($cityName !== '' ? ', '.$cityName : '').'. '.$dateLine.' Bilet ve detaylar Sahnebul’da.';
+        if ($eventTypeLabel !== null && $eventTypeLabel !== '') {
+            $descLong = $eventTypeLabel.' — '.$descLong;
+        }
         [$pageTitle, $descLong] = PageSeoResolver::apply(
             'event_show',
             array_merge(self::pageSeoBaseVars($siteName, $defaultDesc), [
@@ -657,6 +661,7 @@ final class InertiaDocumentMeta
             }
         }
 
+        $performerThing = EventListingTypes::schemaOrgPerformerType($eventTypeSlug);
         $performer = [];
         foreach ($artists as $a) {
             if (! is_array($a)) {
@@ -666,7 +671,7 @@ final class InertiaDocumentMeta
             if ($n === '') {
                 continue;
             }
-            $performer[] = ['@type' => 'MusicGroup', 'name' => $n];
+            $performer[] = ['@type' => $performerThing, 'name' => $n];
         }
 
         $docGraph = $props['documentStructuredData'] ?? null;
@@ -684,6 +689,7 @@ final class InertiaDocumentMeta
                 $endIso,
                 $performer,
                 (string) ($event['status'] ?? 'published'),
+                $eventTypeSlug,
             );
 
         return [
@@ -709,17 +715,20 @@ final class InertiaDocumentMeta
         string $endIso,
         array $performer,
         string $status,
+        ?string $eventTypeSlug = null,
     ): array {
         $eventStatusUri = $status === 'cancelled'
             ? 'https://schema.org/EventCancelled'
             : 'https://schema.org/EventScheduled';
 
+        $schemaType = EventListingTypes::schemaOrgEventType($eventTypeSlug);
         $jsonLd = [
             '@context' => 'https://schema.org',
-            '@type' => 'MusicEvent',
+            '@type' => $schemaType,
             'name' => $title,
             'url' => $canonical,
             'description' => $desc,
+            'inLanguage' => 'tr-TR',
             'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
             'eventStatus' => $eventStatusUri,
             'location' => [
@@ -733,6 +742,10 @@ final class InertiaDocumentMeta
                 ],
             ],
         ];
+        $typeLabel = EventListingTypes::labelFor($eventTypeSlug);
+        if ($typeLabel !== null) {
+            $jsonLd['category'] = $typeLabel;
+        }
         if ($startIso !== '') {
             $jsonLd['startDate'] = $startIso;
         }

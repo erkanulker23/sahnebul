@@ -10,6 +10,8 @@ use App\Models\ExternalEvent;
 use App\Services\ExternalEventDomainSyncService;
 use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
+use App\Support\AdminDatetimeLocal;
+use App\Support\ExternalEventFingerprint;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -75,6 +77,7 @@ class ExternalEventController extends Controller
                 'synced_event_id',
                 'created_at',
                 'updated_at',
+                'last_crawled_at',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('id');
@@ -137,6 +140,9 @@ class ExternalEventController extends Controller
                     'synced_event_id' => $e->synced_event_id,
                     'meta' => ['rejected' => data_get($e->meta, 'rejected') === true],
                     'description' => null,
+                    'created_at' => $e->created_at?->toIso8601String(),
+                    'last_crawled_at' => $e->last_crawled_at?->toIso8601String()
+                        ?? $e->updated_at?->toIso8601String(),
                 ];
             })
         );
@@ -191,6 +197,97 @@ class ExternalEventController extends Controller
         Session::forget('external_events_last_crawl');
 
         return back()->with('success', 'Son veri çekme özeti kaldırıldı.');
+    }
+
+    public function edit(ExternalEvent $externalEvent): Response
+    {
+        if (! Schema::hasTable('external_events')) {
+            abort(404);
+        }
+
+        return Inertia::render('Admin/ExternalEvents/Edit', [
+            'externalEvent' => [
+                'id' => $externalEvent->id,
+                'source' => $externalEvent->source,
+                'title' => $externalEvent->title,
+                'external_url' => $externalEvent->external_url,
+                'image_url' => $externalEvent->image_url,
+                'venue_name' => $externalEvent->venue_name,
+                'city_name' => $externalEvent->city_name,
+                'category_name' => $externalEvent->category_name,
+                'start_date' => AdminDatetimeLocal::format($externalEvent->start_date),
+                'description' => $externalEvent->description,
+                'synced_event_id' => $externalEvent->synced_event_id,
+            ],
+        ]);
+    }
+
+    public function update(Request $request, ExternalEvent $externalEvent): RedirectResponse
+    {
+        if (! Schema::hasTable('external_events')) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'venue_name' => ['nullable', 'string', 'max:255'],
+            'city_name' => ['nullable', 'string', 'max:120'],
+            'category_name' => ['nullable', 'string', 'max:120'],
+            'start_date' => ['nullable', 'string', 'max:32'],
+            'description' => ['nullable', 'string'],
+            'external_url' => ['nullable', 'string', 'max:2048'],
+            'image_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $start = null;
+        $startRaw = trim((string) ($validated['start_date'] ?? ''));
+        if ($startRaw !== '') {
+            try {
+                $start = Carbon::parse($startRaw, (string) config('app.timezone'));
+            } catch (\Throwable) {
+                throw ValidationException::withMessages([
+                    'start_date' => 'Geçerli bir tarih ve saat girin.',
+                ]);
+            }
+        }
+
+        $rawUrl = trim((string) ($validated['external_url'] ?? ''));
+        $normUrl = ExternalEventFingerprint::normalizedExternalUrl($rawUrl);
+        $externalUrlStored = $normUrl !== '' ? $normUrl : ($rawUrl !== '' ? $rawUrl : null);
+
+        $newFp = ExternalEventFingerprint::compute(
+            (string) $externalEvent->source,
+            $validated['title'],
+            $externalUrlStored,
+            $validated['venue_name'] !== '' && $validated['venue_name'] !== null ? $validated['venue_name'] : null,
+            $start,
+        );
+
+        $collision = ExternalEvent::query()
+            ->where('source', $externalEvent->source)
+            ->where('fingerprint', $newFp)
+            ->where('id', '!=', $externalEvent->id)
+            ->exists();
+
+        if ($collision) {
+            throw ValidationException::withMessages([
+                'title' => 'Bu kaynakta aynı parmak izine sahip başka bir aday var. Başlık, mekân, tarih veya kaynak URL’sini farklılaştırın.',
+            ]);
+        }
+
+        $externalEvent->update([
+            'fingerprint' => $newFp,
+            'title' => $validated['title'],
+            'venue_name' => ($validated['venue_name'] ?? '') !== '' ? $validated['venue_name'] : null,
+            'city_name' => ($validated['city_name'] ?? '') !== '' ? $validated['city_name'] : null,
+            'category_name' => ($validated['category_name'] ?? '') !== '' ? $validated['category_name'] : null,
+            'start_date' => $start,
+            'description' => ($validated['description'] ?? '') !== '' ? $validated['description'] : null,
+            'external_url' => $externalUrlStored,
+            'image_url' => ($validated['image_url'] ?? '') !== '' ? $validated['image_url'] : null,
+        ]);
+
+        return redirect()->route('admin.external-events.index')->with('success', 'Dış kaynak adayı güncellendi.');
     }
 
     /**

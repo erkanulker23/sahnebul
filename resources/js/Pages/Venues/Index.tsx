@@ -218,6 +218,8 @@ interface Props {
     upcomingWeekEvents?: HomeEvent[];
     /** Yönetim paneli — Slider ekle (yalnızca ana sayfa) */
     contentSliders?: { id: number; title: string; subtitle: string | null; link_url: string | null; image_url: string | null }[];
+    /** Organization + WebSite (@graph) — SEO, sunucuda üretilir */
+    homeStructuredData?: Record<string, unknown> | null;
 }
 
 export default function VenuesIndex({
@@ -234,6 +236,7 @@ export default function VenuesIndex({
     todayEvents = [],
     upcomingWeekEvents = [],
     contentSliders = [],
+    homeStructuredData = null,
 }: Readonly<Props>) {
     const page = usePage();
     const { auth, seo } = page.props as {
@@ -381,7 +384,7 @@ export default function VenuesIndex({
         'Türkiye’nin konser ve etkinlik mekanlarını keşfedin; şehir, kategori ve yaklaşan etkinliklere göz atın. Mekan detayları, yorumlar ve rezervasyon Sahnebul’da.';
     const heroContents = isVenuesPage ? venuesHeroSlideContents : homeHeroSlideContents;
 
-    const homeJsonLd =
+    const homeJsonLdFallback =
         appUrl !== ''
             ? {
                   '@context': 'https://schema.org',
@@ -390,18 +393,19 @@ export default function VenuesIndex({
                   url: `${appUrl.replace(/\/$/, '')}/`,
                   potentialAction: {
                       '@type': 'SearchAction',
-                      target: `${appUrl.replace(/\/$/, '')}/mekanlar?search={search_term_string}`,
+                      target: `${appUrl.replace(/\/$/, '')}/etkinlikler?search={search_term_string}`,
                       'query-input': 'required name=search_term_string',
                   },
               }
             : null;
+    const homePageJsonLd = homeStructuredData ?? homeJsonLdFallback;
 
     return (
         <AppLayout>
             <SeoHead
                 title={isVenuesPage ? 'Mekanlar - Sahnebul' : 'Sahnebul — Konser, etkinlik ve mekan keşfi'}
                 description={isVenuesPage ? venuesListDesc : defaultDesc}
-                jsonLd={isVenuesPage ? null : homeJsonLd}
+                jsonLd={isVenuesPage ? null : homePageJsonLd}
             />
 
             {/* Hero — Admin → Slider (Ana sayfa hero); /mekanlar metinleri → Ayarlar → Mekân listesi hero */}

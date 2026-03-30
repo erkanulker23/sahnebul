@@ -51,6 +51,8 @@ interface Event {
     id: number;
     slug: string;
     title: string;
+    /** Konser, tiyatro, stand-up vb. — admin/sahne panelinde isteğe bağlı */
+    event_type?: string | null;
     description: string | null;
     event_rules: string | null;
     start_date: string | null;
@@ -279,6 +281,12 @@ export default function EventShow({
     eventReviewEligibility = { canSubmit: false },
 }: Readonly<Props>) {
     const page = usePage();
+    const eventTypeSlug = event.event_type?.trim() ?? '';
+    const eventTypeTags =
+        (page.props as { globalSearch?: { event_type_tags?: { slug: string; label: string }[] } }).globalSearch?.event_type_tags ??
+        [];
+    const eventTypeLabel =
+        eventTypeSlug !== '' ? eventTypeTags.find((t) => t.slug === eventTypeSlug)?.label ?? null : null;
     const authPayload = (page.props as { auth?: { user?: { id: number } | null } }).auth;
     const authUser = authPayload?.user ?? null;
     const authed = Boolean(authUser);
@@ -380,7 +388,9 @@ export default function EventShow({
     const followUiVisible = eventCustomerActions.followUiVisible === true;
     const eventDesc = metaDescriptionFromContent(
         event.description,
-        `${event.title} — ${event.venue.name}${event.venue.city?.name ? `, ${event.venue.city.name}` : ''}. ${dateSummary} Bilet ve detaylar Sahnebul’da.`,
+        `${eventTypeLabel ? `${eventTypeLabel} — ` : ''}${event.title} — ${event.venue.name}${
+            event.venue.city?.name ? `, ${event.venue.city.name}` : ''
+        }. ${dateSummary} Bilet ve detaylar Sahnebul’da.`,
     );
 
     const shareUrlForSocial = canonicalUrl ?? '';
@@ -441,6 +451,11 @@ export default function EventShow({
                             </p>
                         ) : null}
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                            {eventTypeLabel ? (
+                                <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1 font-semibold text-white">
+                                    {eventTypeLabel}
+                                </span>
+                            ) : null}
                             <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{event.venue.category?.name ?? 'Etkinlik'}</span>
                             {event.start_date && eventRelativeDayKind(event.start_date, event.end_date) ? (
                                 <EventRelativeDayPill startDate={event.start_date} endDate={event.end_date} placement="overlay" />
