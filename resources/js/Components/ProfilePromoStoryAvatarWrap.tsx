@@ -27,6 +27,8 @@ export type ProfilePromoStoryAvatarWrapProps = {
     storyPromoItems: PromoGalleryItem[];
     /** Tıklanınca kaydırılacak bölüm (örn. `sayfa-tanitim-videolari`). */
     scrollTargetId: string;
+    /** Verilirse tıklanınca önce bu çağrılır (tam ekran story); kaydırma yapılmaz. */
+    onActivate?: () => void;
     className?: string;
     children: ReactNode;
 };
@@ -39,6 +41,7 @@ export function ProfilePromoStoryAvatarWrap({
     entityId,
     storyPromoItems,
     scrollTargetId,
+    onActivate,
     className,
     children,
 }: Readonly<ProfilePromoStoryAvatarWrapProps>) {
@@ -71,10 +74,14 @@ export function ProfilePromoStoryAvatarWrap({
         } catch {
             /* private mode */
         }
+        if (onActivate) {
+            onActivate();
+            return;
+        }
         globalThis.requestAnimationFrame(() => {
             document.getElementById(scrollTargetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
-    }, [contentSig, entityId, entityKind, hasStories, scrollTargetId]);
+    }, [contentSig, entityId, entityKind, hasStories, onActivate, scrollTargetId]);
 
     const ringClass = !hasStories
         ? 'rounded-full bg-zinc-200 p-[3px] shadow-sm dark:bg-zinc-700'

@@ -1,4 +1,5 @@
 import { ProfilePromoStoryAvatarWrap } from '@/Components/ProfilePromoStoryAvatarWrap';
+import { PromoStoryFullscreenViewer } from '@/Components/PromoStoryFullscreenViewer';
 import {
     PublicPromoGallerySection,
     artistPromoLabels,
@@ -356,6 +357,7 @@ export default function ArtistShow({
     /** Paylaşım linkleri mutlak https URL ister; canonical yoksa istemcide tam adres kullanılır */
     const [resolvedShareUrl, setResolvedShareUrl] = useState(() => canonicalUrl ?? '');
     const [suggestEditOpen, setSuggestEditOpen] = useState(false);
+    const [promoStoryViewerOpen, setPromoStoryViewerOpen] = useState(false);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -417,7 +419,8 @@ export default function ArtistShow({
         const fromEvents = filterPublicPromoItems(mergedArtistEventPromoItems).filter((it) => promoKindOf(it) === 'story');
         const seen = new Set<string>();
         const out: PromoGalleryItem[] = [];
-        for (const it of [...own, ...fromEvents]) {
+        /** Sayfadaki sıra ile uyumlu: önce etkinlik tanıtımları, sonra sanatçı galerisi. */
+        for (const it of [...fromEvents, ...own]) {
             const k = `${it.video_path ?? ''}\x1e${it.embed_url ?? ''}\x1e${it.poster_path ?? ''}`;
             if (seen.has(k)) {
                 continue;
@@ -640,6 +643,7 @@ export default function ArtistShow({
                                         entityId={artist.id}
                                         storyPromoItems={artistPageStoryPromoItems}
                                         scrollTargetId="sayfa-tanitim-videolari"
+                                        onActivate={() => setPromoStoryViewerOpen(true)}
                                     >
                                         <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
                                             <div className="relative h-40 w-40 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-900 sm:h-44 sm:w-44 md:h-48 md:w-48">
@@ -1298,6 +1302,16 @@ export default function ArtistShow({
                 entityName={artist.name}
                 isAuthenticated={Boolean(user)}
                 artistProfileSnapshot={artistProfileSnapshot}
+            />
+
+            <PromoStoryFullscreenViewer
+                open={promoStoryViewerOpen}
+                onClose={() => setPromoStoryViewerOpen(false)}
+                items={artistPageStoryPromoItems}
+                resolveStorageSrc={(path) => {
+                    if (!path) return null;
+                    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+                }}
             />
         </AppLayout>
     );

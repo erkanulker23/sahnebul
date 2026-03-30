@@ -1,4 +1,5 @@
 import { ProfilePromoStoryAvatarWrap } from '@/Components/ProfilePromoStoryAvatarWrap';
+import { PromoStoryFullscreenViewer } from '@/Components/PromoStoryFullscreenViewer';
 import {
     PublicPromoGallerySection,
     filterPublicPromoItems,
@@ -249,6 +250,7 @@ export default function VenueShow({
     const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [suggestEditOpen, setSuggestEditOpen] = useState(false);
+    const [promoStoryViewerOpen, setPromoStoryViewerOpen] = useState(false);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -347,7 +349,7 @@ export default function VenueShow({
         const fromEvents = filterPublicPromoItems(mergedVenueEventPromoItems).filter((it) => promoKindOf(it) === 'story');
         const seen = new Set<string>();
         const out: PromoGalleryItem[] = [];
-        for (const it of [...own, ...fromEvents]) {
+        for (const it of [...fromEvents, ...own]) {
             const k = `${it.video_path ?? ''}\x1e${it.embed_url ?? ''}\x1e${it.poster_path ?? ''}`;
             if (seen.has(k)) {
                 continue;
@@ -469,6 +471,7 @@ export default function VenueShow({
                                     entityId={venue.id}
                                     storyPromoItems={venuePageStoryPromoItems}
                                     scrollTargetId="sayfa-tanitim-videolari"
+                                    onActivate={() => setPromoStoryViewerOpen(true)}
                                 >
                                     <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
                                         <div className="relative h-28 w-28 overflow-hidden rounded-full bg-zinc-200 ring-2 ring-white/25 dark:bg-zinc-900 dark:ring-white/20 sm:h-32 sm:w-32">
@@ -907,6 +910,16 @@ export default function VenueShow({
                 entitySlug={venue.slug}
                 entityName={venue.name}
                 isAuthenticated={Boolean(user)}
+            />
+
+            <PromoStoryFullscreenViewer
+                open={promoStoryViewerOpen}
+                onClose={() => setPromoStoryViewerOpen(false)}
+                items={venuePageStoryPromoItems}
+                resolveStorageSrc={(path) => {
+                    if (!path) return null;
+                    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+                }}
             />
         </AppLayout>
     );

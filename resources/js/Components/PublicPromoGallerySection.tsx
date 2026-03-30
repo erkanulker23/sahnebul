@@ -89,6 +89,10 @@ function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
     };
 }
 
+/**
+ * Story = tanıtım videosu / Reels / dikey içerik; post = yalnız kapak görseli (Instagram dışı veya gönderi).
+ * Instagram bağlantıları (Reels/gönderi) açıkça `promo_kind: post` değilse story’de üst ızgarada gösterilir.
+ */
 export function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
     if (it.video_path?.trim()) {
         return 'story';
@@ -99,7 +103,11 @@ export function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
     if (it.promo_kind === 'post') {
         return 'post';
     }
-    if (it.poster_path?.trim() || it.embed_url?.includes('instagram.com')) {
+    const embed = it.embed_url?.trim() ?? '';
+    if (embed.includes('instagram.com')) {
+        return 'story';
+    }
+    if (it.poster_path?.trim()) {
         return 'post';
     }
     return 'story';

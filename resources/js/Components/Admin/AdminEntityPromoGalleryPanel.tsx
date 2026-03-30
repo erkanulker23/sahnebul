@@ -58,7 +58,11 @@ function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video
     if (row.promo_kind === 'post') {
         return 'post';
     }
-    if (row.poster_path || row.embed_url?.includes('instagram.com')) {
+    const embed = row.embed_url?.trim() ?? '';
+    if (embed.includes('instagram.com')) {
+        return 'story';
+    }
+    if (row.poster_path) {
         return 'post';
     }
     return 'story';
