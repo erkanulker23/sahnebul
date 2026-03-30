@@ -190,7 +190,7 @@ export function AppHeader() {
                                     </Link>
                                     <Link href={safeRoute('discover.tonight')} className={flyoutItemClass} onClick={close} role="menuitem">
                                         <MapPin className="h-4 w-4 opacity-70" aria-hidden />
-                                        Bu akşam ne yapsam? · Canlı harita
+                                        Nereye mi gidelim? · Canlı harita
                                     </Link>
                                 </>
                             )}
@@ -406,7 +406,7 @@ export function AppHeader() {
                                     onClick={closeDrawer}
                                 >
                                     <MapPin className={iconClass.md} />
-                                    Bu akşam · Canlı harita
+                                    Canlı harita — yakın etkinlikler
                                 </Link>
                             </div>
                             <Link

@@ -16,22 +16,22 @@ final class HomeHeroSlideDefaults
     {
         return [
             [
-                'eyebrow' => 'Konser · etkinlik · mekân',
-                'headline' => 'Konser, mekân ve sanatçı',
-                'headline_accent' => 'tek platformda',
-                'body' => 'Türkiye genelinde konser salonlarından kulüplere, açık hava alanlarına kadar mekân profillerini keşfedin; etkinlik takvimlerine ve sanatçı sayfalarına bağlanın. Şehir seçin, arama yapın, çıkmadan önce mekânı tanıyın.',
+                'eyebrow' => 'Konumuna göre keşif',
+                'headline' => 'Nereye mi',
+                'headline_accent' => 'gidelim?',
+                'body' => 'Yakınınızdaki konser ve etkinlikleri keşfedin. Şehrinizi seçin veya canlı haritada bu akşam nerede hareket olduğuna bakın; mekânlara, programa ve yol tarifine tek dokunuşla geçin.',
             ],
             [
-                'eyebrow' => 'Yaklaşan gösteriler',
-                'headline' => 'Etkinlik takvimine',
-                'headline_accent' => 'tek bakışta',
-                'body' => 'Önümüzdeki günlerdeki konserleri tarih ve şehre göre tarayın; mekân detaylarından bilet ve iletişim bilgisine geçin.',
+                'eyebrow' => 'Etkinlik takvimi',
+                'headline' => 'Bugün ve önümüzdeki günler',
+                'headline_accent' => 'tek listede',
+                'body' => 'Tarih ve şehre göre tarayın; yaklaşan gösterileri görün, mekân sayfalarından detay ve iletişime ulaşın.',
             ],
             [
-                'eyebrow' => 'Sanatçı dünyası',
-                'headline' => 'Profiller, türler',
-                'headline_accent' => 've sahneler',
-                'body' => 'Sevdiğiniz sanatçıların sayfalarını açın; yaklaşan performansları görün, mekân geçmişine göz atın ve yeni isimler keşfedin.',
+                'eyebrow' => 'Mekân ve sanatçı',
+                'headline' => 'Sahne öncesi hazırlık',
+                'headline_accent' => 'kolayca',
+                'body' => 'Mekân profilleri, kapasite ve tarz; sanatçı sayfalarında yaklaşan tarihler. Çıkmadan önce programı ve mekânı tanıyın.',
             ],
         ];
     }
@@ -43,16 +43,16 @@ final class HomeHeroSlideDefaults
     {
         return [
             [
-                'eyebrow' => 'Mekân rehberi',
-                'headline' => 'Size uygun',
-                'headline_accent' => 'mekânı bulun',
-                'body' => 'Şehir, kategori veya anahtar kelimeyle arayın; kapasite, konum ve yaklaşan etkinliklere göz atın. Yorumlar ve iletişim bilgileri tek sayfada.',
+                'eyebrow' => 'Yakındaki etkinlikler',
+                'headline' => 'Nereye mi',
+                'headline_accent' => 'gidelim?',
+                'body' => 'Yakınınızdaki konser ve etkinliklere göre mekân keşfedin. Şehir, kategori veya anahtar kelimeyle arayın; yaklaşan programa bakın, yorum ve iletişim bilgisine tek sayfadan ulaşın.',
             ],
             [
-                'eyebrow' => 'Filtrele ve karşılaştır',
+                'eyebrow' => 'Mekân rehberi',
                 'headline' => 'Kulüpten konser salonuna',
                 'headline_accent' => 'geniş seçenek',
-                'body' => 'Mekân türüne göre listeleyin; harita ve adres bilgileriyle ulaşımı planlayın, yoğun etkinlik dönemlerini önceden görün.',
+                'body' => 'Mekân türüne göre listeleyin; harita ve adres ile ulaşımı planlayın, yoğun etkinlik dönemlerini önceden görün.',
             ],
             [
                 'eyebrow' => 'Güvenle keşfet',

@@ -151,7 +151,7 @@ function HomeHeroCarousel({
             ))}
             <div className="absolute inset-0 bg-zinc-900/55" />
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-900/40 to-zinc-950/20" />
-            <div className="relative z-[2] mx-auto max-w-7xl px-3 py-16 sm:px-5 sm:py-20 lg:px-8 lg:py-28">
+            <div className="relative z-[2] mx-auto max-w-7xl px-3 py-20 sm:px-5 sm:py-24 lg:px-8 lg:py-32">
                 <div key={safeIdx} className="max-w-3xl transition-opacity duration-500">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-200">{copy.eyebrow}</p>
                     <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
@@ -403,7 +403,7 @@ export default function VenuesIndex({
 
             {/* Hero — Admin → Slider (Ana sayfa hero); /mekanlar metinleri → Ayarlar → Mekân listesi hero */}
             <section
-                className="hero-full-bleed relative min-h-[min(56vh,32rem)] overflow-hidden"
+                className="hero-full-bleed relative min-h-[min(62vh,38rem)] overflow-hidden sm:min-h-[min(64vh,40rem)]"
                 aria-label={isVenuesPage ? 'Mekân listesi hero' : 'Sahnebul ana sayfa hero'}
             >
                 <HomeHeroCarousel imageUrls={heroImageUrls} contents={heroContents} />
@@ -411,7 +411,7 @@ export default function VenuesIndex({
 
             <AdSlot slotKey="home_below_hero" />
             {!isVenuesPage ? (
-                <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-8" aria-label="Bu akşam keşfi">
+                <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-8" aria-label="Yakındaki etkinlikler — canlı harita">
                     <Link
                         href={safeRoute('discover.tonight')}
                         className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 p-5 text-white shadow-lg transition hover:border-amber-500/40 hover:shadow-xl dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:p-6"
@@ -422,10 +422,10 @@ export default function VenuesIndex({
                                 <Flame className="h-7 w-7" aria-hidden />
                             </span>
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/90">Anlık sahne</p>
-                                <h2 className="font-display mt-1 text-xl font-bold sm:text-2xl">Bu akşam ne yapsam? — Canlı etkinlik haritası</h2>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/90">Canlı harita</p>
+                                <h2 className="font-display mt-1 text-xl font-bold sm:text-2xl">Yakındaki etkinlikleri keşfet</h2>
                                 <p className="mt-1 max-w-xl text-sm text-zinc-300">
-                                    Tarzını seç; şehirde bu akşam nerede hareket var gör, popüler mekânlara tek dokunuşla yol tarifi al.
+                                    Haritada bu akşam nerede yoğunluk var görün; tarza göre süzün, etkinliğe veya yol tarifine geçin.
                                 </p>
                             </div>
                         </div>
