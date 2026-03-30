@@ -5,8 +5,14 @@ import {
     promoVideoSrcLooksLikeWebm,
     type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+const SWIPE_MIN_PX = 48;
+
+function slideDomKey(it: PromoGalleryItem, i: number): string {
+    return `${i}\x1f${it.video_path?.trim() ?? ''}\x1f${it.embed_url?.trim() ?? ''}\x1f${it.poster_path?.trim() ?? ''}`;
+}
 
 type PromoStoryFullscreenViewerProps = {
     open: boolean;
@@ -23,19 +29,35 @@ export function PromoStoryFullscreenViewer({
     resolveStorageSrc,
     initialIndex = 0,
 }: Readonly<PromoStoryFullscreenViewerProps>) {
-    const [idx, setIdx] = useState(initialIndex);
+    const [idx, setIdx] = useState(0);
     const n = items.length;
+    const touchStartX = useRef<number | null>(null);
+    const sessionOpenRef = useRef(false);
 
     useEffect(() => {
-        if (open) {
-            setIdx(initialIndex >= 0 && initialIndex < n ? initialIndex : 0);
+        if (!open) {
+            sessionOpenRef.current = false;
+            return;
         }
+        if (!sessionOpenRef.current) {
+            const start = initialIndex >= 0 && initialIndex < n ? initialIndex : 0;
+            setIdx(start);
+            sessionOpenRef.current = true;
+            return;
+        }
+        setIdx((i) => {
+            if (n <= 0) return 0;
+            return Math.min(i, n - 1);
+        });
     }, [open, initialIndex, n]);
 
     const go = useCallback(
         (d: number) => {
             if (n <= 0) return;
-            setIdx((i) => (i + d + n) % n);
+            setIdx((i) => {
+                const cur = Math.min(Math.max(0, i), n - 1);
+                return (cur + d + n) % n;
+            });
         },
         [n],
     );
@@ -43,12 +65,22 @@ export function PromoStoryFullscreenViewer({
     useEffect(() => {
         if (!open || n === 0) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowLeft') go(-1);
-            if (e.key === 'ArrowRight') go(1);
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                go(-1);
+                return;
+            }
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                go(1);
+            }
         };
-        globalThis.addEventListener('keydown', onKey);
-        return () => globalThis.removeEventListener('keydown', onKey);
+        globalThis.addEventListener('keydown', onKey, true);
+        return () => globalThis.removeEventListener('keydown', onKey, true);
     }, [open, n, go, onClose]);
 
     useEffect(() => {
@@ -64,7 +96,8 @@ export function PromoStoryFullscreenViewer({
         return null;
     }
 
-    const it = items[idx];
+    const safeIdx = Math.min(Math.max(0, idx), n - 1);
+    const it = items[safeIdx];
     const videoSrc = it.video_path ? resolveStorageSrc(it.video_path) : null;
     const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
     const embed = it.embed_url?.trim() ?? '';
@@ -82,7 +115,7 @@ export function PromoStoryFullscreenViewer({
         >
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
                 <p className="text-sm font-medium text-white">
-                    {idx + 1} / {n}
+                    {safeIdx + 1} / {n}
                 </p>
                 <button
                     type="button"
@@ -94,11 +127,21 @@ export function PromoStoryFullscreenViewer({
             </div>
 
             {n > 1 ? (
-                <div className="flex shrink-0 gap-1 px-3 pt-3" aria-hidden>
-                    {items.map((_, i) => (
-                        <div
-                            key={`seg-${i}`}
-                            className={`h-0.5 min-w-0 flex-1 rounded-full ${i === idx ? 'bg-white' : 'bg-white/25'}`}
+                <div className="flex shrink-0 gap-1 px-3 pt-3" role="tablist" aria-label="Tanıtım slaytları">
+                    {items.map((row, i) => (
+                        <button
+                            key={`seg-${slideDomKey(row, i)}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={i === safeIdx}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIdx(i);
+                            }}
+                            className={`h-1 min-h-[4px] min-w-0 flex-1 rounded-full transition-colors ${
+                                i === safeIdx ? 'bg-white' : 'bg-white/25 hover:bg-white/40'
+                            }`}
+                            aria-label={`Slayt ${i + 1}`}
                         />
                     ))}
                 </div>
@@ -128,12 +171,33 @@ export function PromoStoryFullscreenViewer({
                 <div
                     className="relative z-10 flex h-full max-h-[min(calc(100dvh-8rem),calc(100vh-8rem))] w-full max-w-lg flex-col items-center justify-center sm:max-w-xl"
                     onClick={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => {
+                        const x = e.changedTouches[0]?.clientX;
+                        touchStartX.current = x ?? null;
+                    }}
+                    onTouchEnd={(e) => {
+                        const start = touchStartX.current;
+                        touchStartX.current = null;
+                        if (start == null || n <= 1) return;
+                        const end = e.changedTouches[0]?.clientX;
+                        if (end == null) return;
+                        const dx = end - start;
+                        if (dx > SWIPE_MIN_PX) {
+                            go(-1);
+                        } else if (dx < -SWIPE_MIN_PX) {
+                            go(1);
+                        }
+                    }}
                     role="presentation"
                 >
-                    <div className="relative aspect-[9/16] h-full max-h-full w-auto overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10">
+                    <div
+                        key={slideDomKey(it, safeIdx)}
+                        className="relative aspect-[9/16] h-full max-h-full w-auto overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10"
+                    >
                         {videoSrc ? (
                             <>
                                 <video
+                                    key={videoSrc}
                                     controls
                                     playsInline
                                     autoPlay
@@ -152,6 +216,7 @@ export function PromoStoryFullscreenViewer({
                             </>
                         ) : igIframeSrc ? (
                             <iframe
+                                key={igIframeSrc}
                                 src={igIframeSrc}
                                 title="Instagram"
                                 className="h-full min-h-[50vh] w-full min-w-[16rem] border-0"
