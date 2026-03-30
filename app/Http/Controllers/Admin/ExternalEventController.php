@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ImportExternalMarketplaceEventsJob;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\ExternalEvent;
 use App\Services\ExternalEventDomainSyncService;
+use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
-use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -354,12 +355,10 @@ class ExternalEventController extends Controller
     {
         if (! Schema::hasTable('external_events')) {
             $msg = 'external_events tablosu bulunamadı. Önce migration çalıştırın.';
-            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+            $this->persistLastCrawlReport(ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []));
 
             return back()->with('error', $msg);
         }
-
-        $this->relaxCrawlerExecutionTimeLimit();
 
         $validated = $this->validateCrawlRequest($request);
         [$cityNames, $categoryNames] = $this->resolveCityAndCategoryNames($validated);
@@ -367,42 +366,24 @@ class ExternalEventController extends Controller
         $configured = array_keys(config('crawler.sources', []));
         if ($configured === []) {
             $msg = 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).';
-            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+            $this->persistLastCrawlReport(ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []));
 
             return back()->with('error', $msg);
         }
 
-        try {
-            $results = $this->marketplaceImport->import(
-                $validated['source'],
-                $validated['limit'],
-                false,
-                $validated['date_from'],
-                $validated['date_to'],
-                $cityNames,
-                $categoryNames,
-            );
-        } catch (\Throwable $e) {
-            report($e);
-            $msg = 'Veri çekilirken hata oluştu: '.CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage());
-            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
+        ImportExternalMarketplaceEventsJob::dispatch(
+            $validated['source'],
+            $validated['limit'],
+            $validated['date_from'],
+            $validated['date_to'],
+            $cityNames,
+            $categoryNames,
+        )->afterResponse();
 
-            return back()->with('error', $msg);
-        }
-
-        if ($results === []) {
-            $msg = 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).';
-            $this->persistLastCrawlReport($this->minimalCrawlReport('error', $msg, 0, []));
-
-            return back()->with('error', $msg);
-        }
-
-        $outcome = $this->crawlOutcomeFromResults($results);
-        $this->persistLastCrawlReport($outcome['report']);
-
-        $flashKey = $outcome['report']['status'] === 'error' ? 'error' : 'success';
-
-        return back()->with($flashKey, $outcome['message']);
+        return back()->with(
+            'success',
+            'Veri çekme başladı; sayfa hemen yanıtlanır (504 ağ geçidi zaman aşımı oluşmaz). Çekim birkaç dakika sürebilir — bittikten sonra sayfayı yenileyip üstteki «Son veri çekme» özetine bakın.',
+        );
     }
 
     /**
@@ -412,89 +393,5 @@ class ExternalEventController extends Controller
     {
         Session::put('external_events_last_crawl', $report);
         Cache::forever('external_events_last_crawl_snapshot', $report);
-    }
-
-    /**
-     * @param  list<array{source: string, processed: int, error: string|null}>  $rows
-     * @return array{finished_at: string, status: string, total_processed: int, rows: list<array{source: string, processed: int, error: string|null}>, summary: string}
-     */
-    private function minimalCrawlReport(string $status, string $summary, int $totalProcessed, array $rows): array
-    {
-        return [
-            'finished_at' => now()->timezone(config('app.timezone'))->format('d.m.Y H:i:s'),
-            'status' => $status,
-            'total_processed' => $totalProcessed,
-            'rows' => $rows,
-            'summary' => $summary,
-        ];
-    }
-
-    /**
-     * @param  list<array{source: string, processed: int, synced: int, error?: string}>  $results
-     * @return array{message: string, report: array{finished_at: string, status: string, total_processed: int, rows: list<array{source: string, processed: int, error: string|null}>, summary: string}}
-     */
-    private function crawlOutcomeFromResults(array $results): array
-    {
-        $totalProcessed = 0;
-        $perSourceOk = [];
-        /** @var array<string, list<string>> $errorGroups compact message => source keys */
-        $errorGroups = [];
-        $rows = [];
-
-        foreach ($results as $row) {
-            $source = (string) ($row['source'] ?? '?');
-            $err = ! empty($row['error']) ? (string) $row['error'] : null;
-            $n = (int) ($row['processed'] ?? 0);
-            $rows[] = [
-                'source' => $source,
-                'processed' => $n,
-                'error' => $err,
-            ];
-            if ($err !== null) {
-                $errorGroups[$err][] = $source;
-
-                continue;
-            }
-            $totalProcessed += $n;
-            if ($n > 0) {
-                $perSourceOk[] = $source.' → '.$n;
-            }
-        }
-
-        $errorParts = [];
-        foreach ($errorGroups as $errMsg => $sources) {
-            $sources = array_values(array_unique($sources));
-            sort($sources, SORT_STRING);
-            $errorParts[] = implode(', ', $sources).': '.$errMsg;
-        }
-
-        if ($errorParts !== [] && $totalProcessed === 0) {
-            $message = 'Crawl tamamlandı ancak kayıt işlenemedi. '.implode(' | ', $errorParts);
-            $report = $this->minimalCrawlReport('error', $message, 0, $rows);
-
-            return ['message' => $message, 'report' => $report];
-        }
-
-        if ($totalProcessed === 0 && $errorParts === []) {
-            $message = 'Crawl tamamlandı. Filtreye veya limite uyan yeni kayıt yok (0 işlendi). Tarih, şehir veya önizlemeyi kontrol edin.';
-            $report = $this->minimalCrawlReport('info', $message, 0, $rows);
-
-            return ['message' => $message, 'report' => $report];
-        }
-
-        $headline = 'Crawl tamamlandı. Toplam '.$totalProcessed.' aday kayıt yazıldı veya güncellendi.';
-        $rest = [];
-        if ($perSourceOk !== []) {
-            $rest[] = 'Kaynaklar: '.implode(' · ', $perSourceOk).'.';
-        }
-        if ($errorParts !== []) {
-            $rest[] = 'Uyarı: '.implode(' | ', $errorParts);
-        }
-        $message = $rest === [] ? $headline : $headline.' '.implode(' ', $rest);
-
-        $status = $errorParts !== [] ? 'warning' : 'success';
-        $report = $this->minimalCrawlReport($status, $message, $totalProcessed, $rows);
-
-        return ['message' => $message, 'report' => $report];
     }
 }

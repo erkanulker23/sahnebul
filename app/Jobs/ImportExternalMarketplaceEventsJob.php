@@ -2,12 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
+use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ImportExternalMarketplaceEventsJob implements ShouldQueue
@@ -30,7 +33,7 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
         public array $cityNames,
         public array $categoryNames,
     ) {
-        $this->timeout = max(120, (int) config('crawler.max_execution_seconds', 300));
+        $this->timeout = max(180, (int) config('crawler.max_execution_seconds', 300));
     }
 
     public function handle(MarketplaceExternalEventImportService $import): void
@@ -39,18 +42,33 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
         set_time_limit($seconds);
         ini_set('max_execution_time', (string) $seconds);
 
-        $results = $import->import(
-            $this->sourceOption,
-            $this->limit,
-            false,
-            $this->dateFrom,
-            $this->dateTo,
-            $this->cityNames,
-            $this->categoryNames,
-        );
+        try {
+            $results = $import->import(
+                $this->sourceOption,
+                $this->limit,
+                false,
+                $this->dateFrom,
+                $this->dateTo,
+                $this->cityNames,
+                $this->categoryNames,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+            $msg = 'Veri çekilirken hata oluştu: '.CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage());
+            $report = ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []);
+            Cache::forever('external_events_last_crawl_snapshot', $report);
+            Log::warning('External marketplace crawl işi hata', ['message' => $msg]);
+
+            return;
+        }
 
         if ($results === []) {
+            $msg = 'Yapılandırılmış crawl kaynağı yok (config/crawler.php).';
             Log::warning('External marketplace crawl: yapılandırılmış kaynak yok');
+            Cache::forever(
+                'external_events_last_crawl_snapshot',
+                ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []),
+            );
 
             return;
         }
@@ -68,5 +86,19 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                 ]);
             }
         }
+
+        $outcome = ExternalMarketplaceCrawlReportBuilder::outcomeFromImportResults($results);
+        Cache::forever('external_events_last_crawl_snapshot', $outcome['report']);
+    }
+
+    public function failed(?\Throwable $e): void
+    {
+        $msg = $e !== null
+            ? 'Veri çekilirken hata oluştu: '.CrawlerHttpResponseInspector::humanizeCrawlerErrorMessage($e->getMessage())
+            : 'Veri çekme işi başarısız oldu.';
+        Cache::forever(
+            'external_events_last_crawl_snapshot',
+            ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []),
+        );
     }
 }

@@ -46,6 +46,10 @@ class MarketplaceCrawlerService
             return $this->crawlBiletinialListing($sourceConfig);
         }
 
+        if ($source === 'biletix') {
+            return $this->crawlBiletixPagedListing($sourceConfig);
+        }
+
         $html = Http::timeout((int) config('crawler.timeout', 20))
             ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
             ->get((string) $sourceConfig['url'])
@@ -54,9 +58,7 @@ class MarketplaceCrawlerService
 
         $events = $this->extractJsonLdEvents($html);
         if (empty($events)) {
-            $events = $source === 'biletix'
-                ? $this->extractBiletixEvents($html)
-                : [];
+            $events = [];
         }
         $normalized = [];
 
@@ -597,22 +599,43 @@ class MarketplaceCrawlerService
      */
     private function crawlBiletinialListing(array $sourceConfig): array
     {
-        $listingUrl = (string) $sourceConfig['url'];
-        $html = Http::timeout((int) config('crawler.timeout', 25))
-            ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
-            ->get($listingUrl)
-            ->throw()
-            ->body();
+        $listingUrls = isset($sourceConfig['listing_urls']) && is_array($sourceConfig['listing_urls']) && $sourceConfig['listing_urls'] !== []
+            ? array_values(array_unique(array_filter(array_map('strval', $sourceConfig['listing_urls']))))
+            : [(string) $sourceConfig['url']];
 
-        $paths = $this->extractBiletinialMuzikPathsFromListingHtml($html);
-        $paths = array_values(array_unique($paths));
+        $listingDelayUs = max(0, (int) config('crawler.biletinial_listing_delay_us', 350_000));
+        $pathKeys = [];
+
+        foreach ($listingUrls as $idx => $listingUrl) {
+            if ($idx > 0 && $listingDelayUs > 0) {
+                usleep($listingDelayUs);
+            }
+            $html = Http::timeout((int) config('crawler.timeout', 25))
+                ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                ->get($listingUrl)
+                ->throw()
+                ->body();
+
+            $segment = $this->biletinialCategorySegmentFromListingUrl($listingUrl);
+            foreach ($this->extractBiletinialEventPathsFromListingHtml($html, $segment) as $p) {
+                $pathKeys[$p] = true;
+            }
+        }
+
+        $paths = array_keys($pathKeys);
         $base = 'https://biletinial.com';
         $normalized = [];
-        $maxDetailPages = max(10, min(120, (int) config('crawler.biletinial_max_detail_pages', 55)));
+        $maxDetailPages = max(10, min(800, (int) config('crawler.biletinial_max_detail_pages', 200)));
+        $detailDelayUs = max(0, (int) config('crawler.biletinial_detail_delay_us', 120_000));
+        $chunkSize = max(1, (int) config('crawler.biletinial_detail_chunk_size', 5));
+        $chunkPauseUs = max(0, (int) config('crawler.biletinial_chunk_pause_us', 550_000));
 
         foreach (array_slice($paths, 0, $maxDetailPages) as $i => $path) {
             if ($i > 0) {
-                usleep(120000);
+                usleep($detailDelayUs);
+                if ($i % $chunkSize === 0) {
+                    usleep($chunkPauseUs);
+                }
             }
             $url = $this->normalizeUrl($path, $base);
             try {
@@ -636,28 +659,154 @@ class MarketplaceCrawlerService
         return $normalized;
     }
 
+    private function biletinialCategorySegmentFromListingUrl(string $listingUrl): string
+    {
+        $path = parse_url($listingUrl, PHP_URL_PATH) ?: '';
+        $path = trim($path, '/');
+        $parts = explode('/', $path);
+        if (count($parts) >= 2 && strtolower($parts[0]) === 'tr-tr') {
+            return $parts[1];
+        }
+
+        return 'muzik';
+    }
+
     /**
      * @return list<string>
      */
-    private function extractBiletinialMuzikPathsFromListingHtml(string $html): array
+    private function extractBiletinialEventPathsFromListingHtml(string $html, string $categorySegment): array
     {
         $paths = [];
-        // Etkinlik slug'ları rakam/tire içerir; yalnızca dil kökü "/tr-tr/muzik" hariç tutulur. (# ayırıcı kullanma — sınıf içinde kırılır.)
-        if (preg_match_all('~href=["\'](/tr-tr/muzik/[^"\'?>\s]+)["\']~iu', $html, $m)) {
-            foreach ($m[1] as $p) {
-                $p = html_entity_decode($p, ENT_QUOTES | ENT_HTML5);
-                $p = rtrim($p, '/');
-                if ($p === '' || preg_match('#^/tr-tr/muzik/?$#u', $p)) {
-                    continue;
-                }
-                if (substr_count($p, '/') < 3) {
-                    continue;
-                }
-                $paths[$p] = true;
+        $segment = preg_quote($categorySegment, '~');
+        if (! preg_match_all('~href=["\'](/tr-tr/'.$segment.'/[^"\'?>\s]+)["\']~iu', $html, $m)) {
+            return [];
+        }
+
+        foreach ($m[1] as $p) {
+            $p = html_entity_decode($p, ENT_QUOTES | ENT_HTML5);
+            $p = rtrim($p, '/');
+            if ($p === '' || preg_match('#^/tr-tr/'.preg_quote($categorySegment, '#').'/?$#iu', $p)) {
+                continue;
             }
+            if (substr_count($p, '/') < 3) {
+                continue;
+            }
+            $paths[$p] = true;
         }
 
         return array_keys($paths);
+    }
+
+    /**
+     * Biletix anasayfa: ?page= ile ek "htevent" kutuları (sayfa başına ~20 kart; üst üste binenler elenir).
+     *
+     * @param  array<string, mixed>  $sourceConfig
+     * @return list<array<string, mixed>>
+     */
+    private function crawlBiletixPagedListing(array $sourceConfig): array
+    {
+        $baseUrl = (string) $sourceConfig['url'];
+        $maxPages = max(1, min(60, (int) config('crawler.biletix_max_pages', 15)));
+        $pageDelayUs = max(0, (int) config('crawler.biletix_page_delay_us', 280_000));
+        $chunkSize = max(1, min(20, (int) config('crawler.biletix_page_chunk_size', 5)));
+        $chunkPauseUs = max(0, (int) config('crawler.biletix_chunk_pause_us', 500_000));
+
+        $seenKeys = [];
+        $normalized = [];
+        $staleDupPages = 0;
+
+        for ($page = 1; $page <= $maxPages; $page++) {
+            if ($page > 1) {
+                usleep($pageDelayUs);
+                if (($page - 1) % $chunkSize === 0) {
+                    usleep($chunkPauseUs);
+                }
+            }
+
+            $url = $this->biletixListingUrlForPage($baseUrl, $page);
+
+            try {
+                $html = Http::timeout((int) config('crawler.timeout', 20))
+                    ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                    ->get($url)
+                    ->throw()
+                    ->body();
+            } catch (\Throwable) {
+                break;
+            }
+
+            $events = $this->extractJsonLdEvents($html);
+            if ($events === []) {
+                $events = $this->extractBiletixEvents($html);
+            }
+
+            if ($events === []) {
+                break;
+            }
+
+            $pageNew = 0;
+            foreach ($events as $event) {
+                $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
+                if ($row === null) {
+                    continue;
+                }
+                $key = $this->biletixRowDedupeKey($row);
+                if (isset($seenKeys[$key])) {
+                    continue;
+                }
+                $seenKeys[$key] = true;
+                $normalized[] = $row;
+                $pageNew++;
+            }
+
+            if ($pageNew === 0) {
+                $staleDupPages++;
+                if ($staleDupPages >= 2) {
+                    break;
+                }
+            } else {
+                $staleDupPages = 0;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function biletixListingUrlForPage(string $baseUrl, int $page): string
+    {
+        if ($page <= 1) {
+            return $baseUrl;
+        }
+
+        $parts = parse_url($baseUrl);
+        if ($parts === false || empty($parts['host'])) {
+            return $baseUrl.(str_contains($baseUrl, '?') ? '&' : '?').'page='.$page;
+        }
+
+        $query = [];
+        if (! empty($parts['query'])) {
+            parse_str($parts['query'], $query);
+        }
+        $query['page'] = $page;
+        $scheme = $parts['scheme'] ?? 'https';
+        $host = $parts['host'];
+        $path = $parts['path'] ?? '/';
+        $qs = http_build_query($query);
+
+        return $scheme.'://'.$host.$path.'?'.$qs;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function biletixRowDedupeKey(array $row): string
+    {
+        $url = (string) ($row['external_url'] ?? '');
+        if ($url !== '') {
+            return $url;
+        }
+
+        return sha1((string) ($row['title'] ?? '').'|'.serialize($row['start_date'] ?? '').'|'.($row['venue_name'] ?? ''));
     }
 
     /**

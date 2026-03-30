@@ -5,6 +5,13 @@ return [
         /** Konser listesi — kartlar detay sayfasına gider; crawler her detaydaki tüm tarih/mekan satırlarını okur. */
         'biletinial' => [
             'url' => 'https://biletinial.com/tr-tr/muzik',
+            /**
+             * Aynı URL kalıbı (/tr-tr/{kategori}/slug) için birden fazla liste sayfası; linkler birleştirilir.
+             */
+            'listing_urls' => [
+                'https://biletinial.com/tr-tr/muzik',
+                'https://biletinial.com/tr-tr/etkinlik',
+            ],
             'city' => 'İstanbul',
         ],
         'biletix' => [
@@ -79,6 +86,29 @@ return [
      */
     'max_execution_seconds' => (int) env('CRAWLER_MAX_EXECUTION_SECONDS', 300),
 
-    /** Biletinial liste sonrası açılacak etkinlik detay URL sayısı üst sınırı (her biri ~0,1 sn + HTTP). */
-    'biletinial_max_detail_pages' => (int) env('BILETINIAL_CRAWL_MAX_DETAIL_PAGES', 55),
+    /**
+     * Biletinial: liste(ler)den toplanan benzersiz etkinlik yollarından kaçının detayı istenecek (üst sınır).
+     * Önceki varsayılan 55 çok düşük kalıyordu; yavaş tarama için chunk bekleme ayarlarıyla birlikte kullanın.
+     */
+    'biletinial_max_detail_pages' => (int) env('BILETINIAL_CRAWL_MAX_DETAIL_PAGES', 200),
+
+    /** Biletinial: ardışık liste sayfaları (müzik, etkinlik, …) arasında mikrosaniye bekleme */
+    'biletinial_listing_delay_us' => (int) env('BILETINIAL_LISTING_DELAY_US', 350_000),
+
+    /** Biletinial: her detay isteği arası (varsayılan ~120 ms) */
+    'biletinial_detail_delay_us' => (int) env('BILETINIAL_DETAIL_DELAY_US', 120_000),
+
+    /** Her N detaydan sonra ekstra bekleme (ör. 5 ve 5 yavaş çekim) */
+    'biletinial_detail_chunk_size' => max(1, (int) env('BILETINIAL_DETAIL_CHUNK_SIZE', 5)),
+
+    'biletinial_chunk_pause_us' => (int) env('BILETINIAL_CHUNK_PAUSE_US', 550_000),
+
+    /** Biletix anasayfa ?page=2,3,… ile ek etkinlik kutuları */
+    'biletix_max_pages' => max(1, (int) env('BILETIX_CRAWL_MAX_PAGES', 15)),
+
+    'biletix_page_delay_us' => (int) env('BILETIX_PAGE_DELAY_US', 280_000),
+
+    'biletix_page_chunk_size' => max(1, (int) env('BILETIX_PAGE_CHUNK_SIZE', 5)),
+
+    'biletix_chunk_pause_us' => (int) env('BILETIX_CHUNK_PAUSE_US', 500_000),
 ];

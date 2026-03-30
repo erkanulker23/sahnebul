@@ -456,9 +456,9 @@ export default function AdminExternalEventsIndex({
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">bubilet.com.tr/{'{şehir}'}/etiket/…</code> adresindeki şehir segmentidir (ör. Ankara seçilirse{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">/ankara/etiket/</code>). Hiç şehir seçmezseniz{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">BUBILET_DEFAULT_CITY_SLUG</code> / yapılandırmadaki varsayılan şehir kullanılır. Diğer kaynaklar
-                        için şehir, çekilen satırların şehir alanına göre süzülür. Önce önizleyip kontrol edin; &quot;Verileri çek&quot; sunucuda biter;{' '}
-                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">sonuç üstteki «Son veri çekme» kutusunda</strong> kalır. İşlem uzun sürebilir; proxy zaman aşımı varsa
-                        tarayıcı hata verebilir.{' '}
+                        için şehir, çekilen satırların şehir alanına göre süzülür. Önce önizleyip kontrol edin; «Verileri çek» isteği hemen biter (504 ağ geçidi zaman aşımı oluşmaz), asıl tarama ise
+                        sunucuda bir süre daha sürer;{' '}
+                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">özet üstteki «Son veri çekme» kutusunda</strong> bittikten sonra kalır — birkaç dakika sonra sayfayı yenileyin.{' '}
                         <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             Bubilet: Konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri seçilen şehir(ler) için birlikte taranır; tarayıcıda gördüğünüzden fazlası
                             çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
