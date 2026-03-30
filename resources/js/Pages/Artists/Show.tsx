@@ -25,6 +25,7 @@ import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { EditorialShareStrip } from '@/Components/EditorialShareStrip';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
+import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Calendar, Music2, Pause, PenLine, Play, Plus, Users } from 'lucide-react';
@@ -565,112 +566,127 @@ export default function ArtistShow({
             />
 
             <div className="min-h-screen">
-                {bannerPhoto ? (
-                    <div className="relative h-36 w-full overflow-hidden sm:h-44">
-                        <img src={bannerPhoto} alt="" className="h-full w-full object-cover" decoding="async" />
-                        <div
-                            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-100/90 to-transparent dark:from-zinc-900/95"
-                            aria-hidden
+                <section
+                    className={`hero-full-bleed relative flex min-h-[min(52vh,30rem)] flex-col overflow-hidden sm:min-h-[min(56vh,32rem)] ${
+                        bannerPhoto ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'
+                    }`}
+                >
+                    {bannerPhoto ? (
+                        <img
+                            src={bannerPhoto}
+                            alt={artist.name}
+                            className="absolute inset-0 h-full w-full object-cover object-[center_25%]"
+                            decoding="async"
                         />
-                    </div>
-                ) : null}
-                <section className="border-b border-zinc-200 bg-zinc-100/90 dark:border-white/10 dark:bg-zinc-900/90">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <Link
-                                href={route('artists.index')}
-                                className="text-sm font-medium text-amber-800 transition hover:text-amber-950 dark:text-amber-400 dark:hover:text-amber-300"
-                            >
-                                ← Tüm Sanatçılar
-                            </Link>
-                            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
-                                <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-zinc-900">
-                                    {artist.genre ?? 'Sanatçı'}
-                                </span>
-                                {artist.is_verified_profile ? (
-                                    <VerifiedArtistProfileBadge
-                                        size="sm"
-                                        className="border-emerald-500/25 bg-emerald-500/10 text-emerald-900 dark:border-emerald-400/35 dark:bg-emerald-500/15 dark:text-emerald-100"
-                                    />
-                                ) : null}
-                                <button
-                                    type="button"
-                                    onClick={() => setSuggestEditOpen(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 sm:text-sm"
+                    ) : (
+                        <ArtistHeroFallbackBackdrop />
+                    )}
+                    <div
+                        className={
+                            bannerPhoto
+                                ? 'absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/75 to-zinc-950/35'
+                                : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
+                        }
+                        aria-hidden
+                    />
+                    <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 pb-10 pt-8 sm:px-5 sm:pb-12 sm:pt-10 lg:px-8 lg:pt-12">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <Link
+                                    href={route('artists.index')}
+                                    className="text-sm font-medium text-amber-300 transition hover:text-amber-200"
                                 >
-                                    <PenLine className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
-                                    Düzenleme öner
-                                </button>
-                            </div>
-                        </div>
-                        <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
-                            <div className="flex shrink-0 justify-center sm:justify-start">
-                                <ProfilePromoStoryAvatarWrap
-                                    entityKind="artist"
-                                    entityId={artist.id}
-                                    storyPromoItems={artistPageStoryPromoItems}
-                                    scrollTargetId="sayfa-tanitim-videolari"
-                                    onActivate={() => setPromoStoryViewerOpen(true)}
-                                >
-                                    <div className="rounded-2xl bg-white p-1 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:ring-white/10">
-                                        <div className="relative h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[0.875rem] bg-zinc-200 dark:bg-zinc-900 sm:h-28 sm:w-28">
-                                            {profilePhoto ? (
-                                                <img src={profilePhoto} alt={artist.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-300 to-zinc-500 dark:from-zinc-700 dark:to-zinc-900">
-                                                    <span className="text-4xl opacity-50" aria-hidden>
-                                                        🎤
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {artist.is_new_on_platform ? (
-                                                <div className="pointer-events-none absolute inset-x-0 top-1 z-10 flex justify-center px-1">
-                                                    <CatalogNewBadge className="scale-90 shadow-md ring-1 ring-black/15 dark:ring-white/25" />
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                </ProfilePromoStoryAvatarWrap>
-                            </div>
-                            <div className="min-w-0 flex-1 text-center sm:text-left">
-                                <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-950 dark:text-white sm:text-3xl lg:text-4xl">
-                                    {artist.name}
-                                </h1>
-                                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400 sm:justify-start">
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <Calendar className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-                                        {stats.total_events.toLocaleString('tr-TR')} etkinlik
+                                    ← Tüm Sanatçılar
+                                </Link>
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-zinc-900 sm:text-sm">
+                                        {artist.genre ?? 'Sanatçı'}
                                     </span>
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <Users className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-                                        {stats.favorites_followers_count.toLocaleString('tr-TR')} takipçi
-                                    </span>
-                                </div>
-                                <div className="mt-4 flex justify-center sm:justify-start">
-                                    {artistFavorite.canToggle ? (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
-                                            }
-                                            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition ${
-                                                artistFavorite.isFavorited
-                                                    ? 'border-amber-500/50 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100 dark:hover:bg-amber-500/25'
-                                                    : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700'
-                                            }`}
-                                        >
-                                            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-                                            {artistFavorite.isFavorited ? 'Takiptesin' : 'Takip Et'}
-                                        </button>
-                                    ) : !user ? (
-                                        <Link
-                                            href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
-                                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-                                        >
-                                            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-                                            Takip Et
-                                        </Link>
+                                    {artist.is_verified_profile ? (
+                                        <VerifiedArtistProfileBadge
+                                            size="sm"
+                                            className="border-emerald-400/35 bg-emerald-500/15 text-emerald-100"
+                                        />
                                     ) : null}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSuggestEditOpen(true)}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15 sm:text-sm"
+                                    >
+                                        <PenLine className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
+                                        Düzenleme öner
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="mt-8 flex max-w-4xl flex-col gap-8 sm:mt-10 sm:flex-row sm:items-end sm:gap-10">
+                                <div className="flex shrink-0 justify-center sm:justify-start sm:pb-1">
+                                    <ProfilePromoStoryAvatarWrap
+                                        entityKind="artist"
+                                        entityId={artist.id}
+                                        storyPromoItems={artistPageStoryPromoItems}
+                                        scrollTargetId="sayfa-tanitim-videolari"
+                                        onActivate={() => setPromoStoryViewerOpen(true)}
+                                    >
+                                        <div className="rounded-2xl bg-zinc-50/10 p-1 ring-2 ring-white/30 backdrop-blur-[2px]">
+                                            <div className="relative h-28 w-28 overflow-hidden rounded-[0.85rem] bg-zinc-800 sm:h-36 sm:w-36 md:h-40 md:w-40">
+                                                {profilePhoto ? (
+                                                    <img src={profilePhoto} alt={artist.name} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                        <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
+                                                            🎤
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {artist.is_new_on_platform ? (
+                                                    <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-2">
+                                                        <CatalogNewBadge className="shadow-lg ring-2 ring-black/25 dark:ring-white/30" />
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    </ProfilePromoStoryAvatarWrap>
+                                </div>
+                                <div className="min-w-0 flex-1 pb-0.5 text-center sm:text-left">
+                                    <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                                        {artist.name}
+                                    </h1>
+                                    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm text-zinc-200 sm:justify-start">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <Calendar className="h-4 w-4 shrink-0 text-amber-300/90" strokeWidth={2} aria-hidden />
+                                            {stats.total_events.toLocaleString('tr-TR')} etkinlik
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <Users className="h-4 w-4 shrink-0 text-amber-300/90" strokeWidth={2} aria-hidden />
+                                            {stats.favorites_followers_count.toLocaleString('tr-TR')} takipçi
+                                        </span>
+                                    </div>
+                                    <div className="mt-5 flex justify-center sm:justify-start">
+                                        {artistFavorite.canToggle ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.post(route('user.favorites.artists.toggle', artist.id), {}, { preserveScroll: true })
+                                                }
+                                                className={`inline-flex items-center gap-1.5 rounded-full border px-5 py-2.5 text-sm font-bold transition ${
+                                                    artistFavorite.isFavorited
+                                                        ? 'border-white/50 bg-white/10 text-white hover:bg-white/15'
+                                                        : 'border-white text-white hover:bg-white/10'
+                                                }`}
+                                            >
+                                                <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                                                {artistFavorite.isFavorited ? 'Takiptesin' : 'Takip Et'}
+                                            </button>
+                                        ) : !user ? (
+                                            <Link
+                                                href={route('login', { redirect: `/sanatcilar/${artist.slug}` })}
+                                                className="inline-flex items-center gap-1.5 rounded-full border border-white px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
+                                            >
+                                                <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                                                Takip Et
+                                            </Link>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </div>
                         </div>
