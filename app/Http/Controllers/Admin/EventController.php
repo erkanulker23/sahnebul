@@ -231,6 +231,8 @@ class EventController extends Controller
             'event_type' => $request->input('event_type') ?: null,
             'promo_show_on_venue_profile_posts' => $request->boolean('promo_show_on_venue_profile_posts'),
             'promo_show_on_venue_profile_videos' => $request->boolean('promo_show_on_venue_profile_videos'),
+            'promo_show_on_artist_profile_posts' => $request->boolean('promo_show_on_artist_profile_posts'),
+            'promo_show_on_artist_profile_videos' => $request->boolean('promo_show_on_artist_profile_videos'),
         ]);
 
         $validated = $request->validate([
@@ -282,6 +284,8 @@ class EventController extends Controller
             'ticket_purchase_note' => 'nullable|string|max:5000',
             'promo_show_on_venue_profile_posts' => 'boolean',
             'promo_show_on_venue_profile_videos' => 'boolean',
+            'promo_show_on_artist_profile_posts' => 'boolean',
+            'promo_show_on_artist_profile_videos' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -334,11 +338,20 @@ class EventController extends Controller
         if (Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
             $validated['promo_venue_profile_moderation'] = EventPromoVenueProfileModeration::APPROVED;
         }
+        if (Schema::hasColumn('events', 'promo_artist_profile_moderation')) {
+            $validated['promo_artist_profile_moderation'] = EventPromoVenueProfileModeration::APPROVED;
+        }
         if (! Schema::hasColumn('events', 'promo_show_on_venue_profile_posts')) {
             unset($validated['promo_show_on_venue_profile_posts'], $validated['promo_show_on_venue_profile_videos']);
         }
+        if (! Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+            unset($validated['promo_show_on_artist_profile_posts'], $validated['promo_show_on_artist_profile_videos']);
+        }
         if (! Schema::hasColumn('events', 'promo_venue_profile_moderation')) {
             unset($validated['promo_venue_profile_moderation']);
+        }
+        if (! Schema::hasColumn('events', 'promo_artist_profile_moderation')) {
+            unset($validated['promo_artist_profile_moderation']);
         }
 
         $artistIds = $validated['artist_ids'];
@@ -375,6 +388,18 @@ class EventController extends Controller
         ])->save();
 
         return back()->with('success', 'Etkinlik tanıtımı mekân profili için onaylandı.');
+    }
+
+    public function approvePromoArtistProfile(Event $event)
+    {
+        if (! Schema::hasColumn('events', 'promo_artist_profile_moderation')) {
+            return back()->with('error', 'Bu özellik henüz veritabanında yok; migrasyon çalıştırın.');
+        }
+        $event->forceFill([
+            'promo_artist_profile_moderation' => EventPromoVenueProfileModeration::APPROVED,
+        ])->save();
+
+        return back()->with('success', 'Etkinlik tanıtımı sanatçı profili için onaylandı.');
     }
 
     public function bulkPublish(Request $request)

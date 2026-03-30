@@ -168,7 +168,7 @@ export default function SehirSecCityEvents({
         <AppLayout>
             <SeoHead title={`${cityName} — Popüler etkinlikler`} description={desc} />
 
-            <div className="-mx-2.5 -mt-5 w-[calc(100%+1.25rem)] max-w-none sm:-mx-4 sm:-mt-6 sm:w-[calc(100%+2rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]">
+            <div className="-mx-2.5 w-[calc(100%+1.25rem)] max-w-none sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]">
                 <section className="relative overflow-hidden border-b border-zinc-200 bg-zinc-950 px-4 py-10 dark:border-zinc-800 sm:px-6 lg:px-8">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-950 to-zinc-950" />
                     <div className="relative z-10 mx-auto max-w-7xl">

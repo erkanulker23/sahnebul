@@ -1,7 +1,11 @@
 import {
     PublicPromoGallerySection,
     artistPromoLabels,
+    filterPublicPromoItems,
     promoGalleryItemsFromEntity,
+    promoKindOf,
+    venuePromoLabels,
+    type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
 import { InstagramPromoPreviewOnly } from '@/Components/InstagramPostEmbed';
 import PhoneInput from '@/Components/PhoneInput';
@@ -23,7 +27,7 @@ import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop'
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Music2, Pause, PenLine, Play } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
     name: string;
@@ -215,6 +219,24 @@ interface Artist {
     is_new_on_platform?: boolean;
 }
 
+interface ArtistEventPromoSection {
+    event_id: number;
+    title: string;
+    slug_segment: string;
+    items: PromoGalleryItem[];
+    start_date?: string | null;
+    end_date?: string | null;
+}
+
+function artistPromoSectionSortTimestamp(sec: ArtistEventPromoSection): number {
+    const raw = sec.start_date ?? sec.end_date;
+    if (!raw) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+    const t = new Date(raw).getTime();
+    return Number.isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+}
+
 interface Props {
     artist: Artist;
     /** Sunucu: Organization + MusicGroup + BreadcrumbList (@graph) */
@@ -241,6 +263,7 @@ interface Props {
     claimStatus?: string | null;
     artistFavorite?: { canToggle: boolean; isFavorited: boolean };
     organizationAffiliation?: { label: string } | null;
+    artistEventPromoSections?: ArtistEventPromoSection[];
 }
 
 function SpotifyTrackPreview({
@@ -320,6 +343,7 @@ export default function ArtistShow({
     claimStatus,
     artistFavorite = { canToggle: false, isFavorited: false },
     organizationAffiliation = null,
+    artistEventPromoSections = [],
 }: Readonly<Props>) {
     const page = usePage().props as {
         auth?: { user?: { id: number } | null };
@@ -367,6 +391,47 @@ export default function ArtistShow({
         if (!path) return null;
         return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
     };
+
+    const artistEventPromoSectionsSorted = useMemo(
+        () =>
+            [...artistEventPromoSections].sort((a, b) => {
+                const ta = artistPromoSectionSortTimestamp(a);
+                const tb = artistPromoSectionSortTimestamp(b);
+                if (ta !== tb) {
+                    return ta - tb;
+                }
+                return a.event_id - b.event_id;
+            }),
+        [artistEventPromoSections],
+    );
+
+    const mergedArtistEventPromoItems = useMemo(
+        () => artistEventPromoSectionsSorted.flatMap((s) => s.items),
+        [artistEventPromoSectionsSorted],
+    );
+
+    const artistEventPromoStoryTiles = useMemo(() => {
+        const tiles: { item: PromoGalleryItem; footer?: ReactNode }[] = [];
+        for (const sec of artistEventPromoSectionsSorted) {
+            for (const it of filterPublicPromoItems(sec.items)) {
+                if (promoKindOf(it) !== 'story') {
+                    continue;
+                }
+                tiles.push({
+                    item: it,
+                    footer: (
+                        <Link
+                            href={route('events.show', sec.slug_segment)}
+                            className="text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                        >
+                            Etkinliği aç
+                        </Link>
+                    ),
+                });
+            }
+        }
+        return tiles;
+    }, [artistEventPromoSectionsSorted]);
     useEffect(() => {
         if (canonicalUrl && /^https?:\/\//i.test(canonicalUrl)) {
             setResolvedShareUrl(canonicalUrl);
@@ -831,6 +896,26 @@ export default function ArtistShow({
                                     </div>
                                 </div>
                             )}
+
+                            {artistEventPromoSections.length > 0 ? (
+                                <section className="mt-10 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
+                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik tanıtımları</h2>
+                                    <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
+                                        Bu etkinliklerin tanıtımı sanatçı sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
+                                    </p>
+                                    <PublicPromoGallerySection
+                                        items={mergedArtistEventPromoItems}
+                                        storyTiles={artistEventPromoStoryTiles}
+                                        resolveStorageSrc={(path) => {
+                                            if (!path) return null;
+                                            return path.startsWith('http://') || path.startsWith('https://')
+                                                ? path
+                                                : `/storage/${path}`;
+                                        }}
+                                        labels={venuePromoLabels}
+                                    />
+                                </section>
+                            ) : null}
 
                             <div className="mt-10">
                                 <PublicPromoGallerySection

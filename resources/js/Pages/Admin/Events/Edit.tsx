@@ -56,6 +56,9 @@ interface EventModel {
     promo_show_on_venue_profile_posts?: boolean;
     promo_show_on_venue_profile_videos?: boolean;
     promo_venue_profile_moderation?: string | null;
+    promo_show_on_artist_profile_posts?: boolean;
+    promo_show_on_artist_profile_videos?: boolean;
+    promo_artist_profile_moderation?: string | null;
 }
 
 interface Props {
@@ -131,6 +134,8 @@ export default function AdminEventEdit({
         ticket_purchase_note: event.ticket_purchase_note ?? '',
         promo_show_on_venue_profile_posts: Boolean(event.promo_show_on_venue_profile_posts),
         promo_show_on_venue_profile_videos: Boolean(event.promo_show_on_venue_profile_videos),
+        promo_show_on_artist_profile_posts: Boolean(event.promo_show_on_artist_profile_posts),
+        promo_show_on_artist_profile_videos: Boolean(event.promo_show_on_artist_profile_videos),
     });
 
     transform((d) => {
@@ -613,6 +618,13 @@ export default function AdminEventEdit({
                             onChangeShowVideos: (v) => setData('promo_show_on_venue_profile_videos', v),
                             moderationStatus: event.promo_venue_profile_moderation ?? null,
                         }}
+                        eventArtistProfilePromoToggles={{
+                            showPosts: data.promo_show_on_artist_profile_posts,
+                            showVideos: data.promo_show_on_artist_profile_videos,
+                            onChangeShowPosts: (v) => setData('promo_show_on_artist_profile_posts', v),
+                            onChangeShowVideos: (v) => setData('promo_show_on_artist_profile_videos', v),
+                            moderationStatus: event.promo_artist_profile_moderation ?? null,
+                        }}
                     />
 
                     <div className="flex flex-wrap gap-3">
@@ -632,6 +644,17 @@ export default function AdminEventEdit({
                                 className="rounded-lg border border-amber-500/60 bg-amber-950/50 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-900/50"
                             >
                                 Mekân profili tanıtımını onayla
+                            </button>
+                        )}
+                        {event.promo_artist_profile_moderation === 'pending_review' && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    router.post(route('admin.events.approve-promo-artist-profile', event.id), {}, { preserveScroll: true })
+                                }
+                                className="rounded-lg border border-sky-500/60 bg-sky-950/50 px-4 py-2 text-sm font-semibold text-sky-100 hover:bg-sky-900/50"
+                            >
+                                Sanatçı profili tanıtımını onayla
                             </button>
                         )}
                         {event.status === 'draft' && (

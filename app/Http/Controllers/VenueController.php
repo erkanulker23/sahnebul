@@ -271,7 +271,10 @@ class VenueController extends Controller
             }
             foreach ($promoQuery
                 ->with(['artists:id,name,slug,avatar'])
-                ->orderBy('start_date')
+                /** `start_date` boş etkinliklerde bitiş / tek tarih alanına göre sıra; yoksa sonda. */
+                ->orderByRaw('CASE WHEN COALESCE(start_date, end_date) IS NULL THEN 1 ELSE 0 END')
+                ->orderByRaw('COALESCE(start_date, end_date) ASC')
+                ->orderBy('events.id')
                 ->limit(80)
                 ->get() as $ev) {
                 if (! $ev instanceof Event || ! $ev->isPromoEligibleForVenueProfilePage()) {
@@ -286,6 +289,8 @@ class VenueController extends Controller
                     'title' => $ev->title,
                     'slug_segment' => $ev->publicUrlSegment(),
                     'items' => $items,
+                    'start_date' => $ev->start_date?->toIso8601String(),
+                    'end_date' => $ev->end_date?->toIso8601String(),
                 ];
             }
         }

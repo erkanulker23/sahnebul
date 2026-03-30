@@ -81,7 +81,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
     };
 
     return (
-        <div className="flex min-h-[100dvh] flex-col overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+        <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
             <AppHeader />
             <EmailVerificationBanner />
             <BrowserNotificationsBar />
@@ -94,7 +94,7 @@ export default function AppLayout({ children }: Readonly<PropsWithChildren>) {
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
-            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 py-5 sm:px-4 sm:py-6 lg:px-8">{children}</main>
+            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-5 pt-0 sm:px-4 sm:pb-6 lg:px-8">{children}</main>
 
             <div className="mt-auto flex w-full flex-col">
                 <AdSlot

@@ -91,6 +91,7 @@ export default function AdminEntityPromoGalleryPanel({
     variant,
     showVideoUrlBackgroundOption = true,
     eventVenueProfilePromoToggles = null,
+    eventArtistProfilePromoToggles = null,
 }: Readonly<{
     entity: EntityWithPromo;
     routes: AdminEntityPromoGalleryRoutes;
@@ -99,6 +100,8 @@ export default function AdminEntityPromoGalleryPanel({
     showVideoUrlBackgroundOption?: boolean;
     /** Yalnız etkinlik: mekân sayfasında gönderi / video tanıtımı tikleri */
     eventVenueProfilePromoToggles?: EventVenueProfilePromoToggles | null;
+    /** Yalnız etkinlik: sanatçı sayfasında (kadro) gösterim tikleri */
+    eventArtistProfilePromoToggles?: EventVenueProfilePromoToggles | null;
 }>) {
     const copy = COPY[variant];
     const fieldResize = cn(
@@ -424,6 +427,11 @@ export default function AdminEntityPromoGalleryPanel({
                     Tanıtım dosyası yükleyen kişi yönetici değilse bu akış uygulanır; yönetici düzenlemeleri doğrudan onaylı sayılır.
                 </p>
             ) : null}
+            {variant === 'event' && eventArtistProfilePromoToggles?.moderationStatus === 'pending_review' ? (
+                <p className="rounded-md border border-sky-500/40 bg-sky-950/35 px-3 py-2 text-[11px] text-sky-100/95">
+                    Sanatçı profili tanıtımı <strong className="text-sky-50">onay bekliyor</strong>. Yönetici onayladıktan sonra ilgili sanatçı sayfasında görünür.
+                </p>
+            ) : null}
 
             {/* —— Post görselleri —— */}
             <section
@@ -447,6 +455,21 @@ export default function AdminEntityPromoGalleryPanel({
                                 Bu gönderi görsellerini <strong className="text-fuchsia-100/90">mekân profil sayfasında</strong> göster. Etkinlik günü
                                 sonuna kadar listelenir; süre bittikten sonra dosyalar sunucudan otomatik silinir (etkinlik kaydı kalır). Sayfanın altındaki{' '}
                                 <strong className="text-zinc-300">Kaydet</strong> ile tikleri kaydedin.
+                            </span>
+                        </label>
+                    ) : null}
+                    {variant === 'event' && eventArtistProfilePromoToggles ? (
+                        <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-sky-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                            <input
+                                type="checkbox"
+                                checked={eventArtistProfilePromoToggles.showPosts}
+                                onChange={(e) => eventArtistProfilePromoToggles.onChangeShowPosts(e.target.checked)}
+                                className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-sky-400"
+                            />
+                            <span>
+                                Bu gönderi görsellerini <strong className="text-sky-100/90">sanatçı profil sayfasında</strong> göster (etkinlik kadrosunda yer
+                                alan sanatçılar). Aynı görünürlük süresi ve otomatik silme kuralları geçerlidir. Tikleri{' '}
+                                <strong className="text-zinc-300">Kaydet</strong> ile kaydedin.
                             </span>
                         </label>
                     ) : null}
@@ -540,6 +563,20 @@ export default function AdminEntityPromoGalleryPanel({
                                 Bu tanıtım videolarını <strong className="text-amber-100/90">mekân profil sayfasında</strong> göster. Etkinlik günü sonuna
                                 kadar; ardından video dosyaları sistemden kaldırılır. Tikleri genel <strong className="text-zinc-300">Kaydet</strong> ile
                                 kaydedin.
+                            </span>
+                        </label>
+                    ) : null}
+                    {variant === 'event' && eventArtistProfilePromoToggles ? (
+                        <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-sky-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
+                            <input
+                                type="checkbox"
+                                checked={eventArtistProfilePromoToggles.showVideos}
+                                onChange={(e) => eventArtistProfilePromoToggles.onChangeShowVideos(e.target.checked)}
+                                className="mt-0.5 rounded border-zinc-600 bg-zinc-800 text-sky-400"
+                            />
+                            <span>
+                                Bu tanıtım videolarını <strong className="text-sky-100/90">sanatçı profil sayfasında</strong> göster. Süre ve silme kuralları
+                                mekân satırı ile aynıdır. Tikleri <strong className="text-zinc-300">Kaydet</strong> ile kaydedin.
                             </span>
                         </label>
                     ) : null}

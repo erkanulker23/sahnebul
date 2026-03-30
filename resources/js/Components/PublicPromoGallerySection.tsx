@@ -315,8 +315,9 @@ export function PublicPromoGallerySection({
         return null;
     }
 
+    /** Her ekranda yan yana 2 — minmax(0,1fr) ile mobilde içerik genişliği taşması önlenir. */
     const promoStoryGrid =
-        'mt-4 grid w-full max-w-full list-none grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5';
+        'mt-4 grid w-full min-w-0 max-w-full list-none grid-cols-2 gap-3 sm:gap-4 [grid-template-columns:repeat(2,minmax(0,1fr))]';
 
     /** Gönderi kapakları: sanatçı «Galeri» ile aynı — kare önizleme, görsel oranı bozulmaz (object-cover). Mobilde 4 sütun. */
     const promoPostGrid =
@@ -361,7 +362,7 @@ export function PublicPromoGallerySection({
                         <iframe
                             src={igIframeSrc}
                             title="Instagram gönderisi veya Reels"
-                            className="pointer-events-auto absolute left-1/2 top-1/2 h-[118%] w-[min(104%,42rem)] max-w-none -translate-x-1/2 -translate-y-1/2 border-0"
+                            className="pointer-events-auto absolute left-1/2 top-1/2 h-[118%] w-full max-w-full -translate-x-1/2 -translate-y-1/2 border-0 sm:w-[min(104%,42rem)] sm:max-w-none"
                             allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
                             allowFullScreen
                             loading="lazy"
@@ -423,7 +424,7 @@ export function PublicPromoGallerySection({
     return (
         <div className="scroll-mt-24 space-y-10">
             {storyEntries.length > 0 ? (
-                <section className="w-full max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
+                <section className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-zinc-900/60 sm:p-6">
                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">{labels.storiesTitle}</h2>
                     {(labels.storiesDescription?.trim() ?? '') !== '' ? (
                         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
@@ -442,7 +443,9 @@ export function PublicPromoGallerySection({
                                 >
                                     {renderStoryCellInner(it, idx)}
                                     {footer ? (
-                                        <div className="px-0.5 text-center">{footer}</div>
+                                        <div className="w-full min-w-0 px-0.5 text-center text-balance [&_a]:inline-block [&_a]:max-w-full [&_a]:break-words">
+                                            {footer}
+                                        </div>
                                     ) : null}
                                 </li>
                             );

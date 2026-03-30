@@ -45,7 +45,7 @@ export default function ExternalEventShow({ event }: Readonly<Props>) {
                 canonicalUrl={canonicalUrl}
             />
 
-            <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8">
+            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
                 <section className="relative min-h-[min(48vh,26rem)] overflow-hidden">
                     {event.image_url ? (
                         <img src={event.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />

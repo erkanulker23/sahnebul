@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Artist;
 
+use App\Http\Controllers\Concerns\PromoGalleryImportActions;
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
 use App\Models\ArtistEventProposal;
@@ -13,9 +14,11 @@ use App\Models\Review;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
+use App\Services\EventMediaImportFromUrlService;
 use App\Support\AdminDatetimeLocal;
 use App\Support\ArtistProfileInputs;
 use App\Support\EventListingTypes;
+use App\Support\EventPromoVenueProfileModeration;
 use App\Support\TurkishPhone;
 use App\Support\UserContactValidation;
 use Carbon\Carbon;
@@ -23,11 +26,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class EventController extends Controller
 {
+    use PromoGalleryImportActions;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -78,6 +84,7 @@ class EventController extends Controller
                 $e->status === 'published' ? $e->publicUrlSegment() : null
             );
             $e->setAttribute('panel_can_edit', (int) $e->venue->user_id === (int) $user->id);
+            $e->setAttribute('panel_can_edit_artist_profile_promo', $this->userMayEditArtistProfilePromo($user, $e));
             $min = $e->minPrice();
             $e->setAttribute('min_price', $min !== null ? round($min, 2) : null);
 
@@ -602,6 +609,7 @@ class EventController extends Controller
             'venueReviews' => $venueReviews,
             'eventReviews' => $eventReviews,
             'eventTypeOptions' => EventListingTypes::options(),
+            'mayEditArtistProfilePromo' => $this->userMayEditArtistProfilePromo($request->user(), $event),
         ]);
     }
 
@@ -618,6 +626,8 @@ class EventController extends Controller
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
             'event_type' => $request->input('event_type') ?: null,
+            'promo_show_on_venue_profile_posts' => $request->boolean('promo_show_on_venue_profile_posts'),
+            'promo_show_on_venue_profile_videos' => $request->boolean('promo_show_on_venue_profile_videos'),
         ]);
 
         $validated = $request->validate([
@@ -682,6 +692,8 @@ class EventController extends Controller
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
+            'promo_show_on_venue_profile_posts' => 'boolean',
+            'promo_show_on_venue_profile_videos' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -700,13 +712,148 @@ class EventController extends Controller
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
 
+        $venuePromoTouched = false;
+        if (Schema::hasColumn('events', 'promo_show_on_venue_profile_posts')) {
+            $nextPosts = (bool) ($validated['promo_show_on_venue_profile_posts'] ?? false);
+            $nextVideos = (bool) ($validated['promo_show_on_venue_profile_videos'] ?? false);
+            $venuePromoTouched = ((bool) ($event->promo_show_on_venue_profile_posts ?? false)) !== $nextPosts
+                || ((bool) ($event->promo_show_on_venue_profile_videos ?? false)) !== $nextVideos;
+        } else {
+            unset($validated['promo_show_on_venue_profile_posts'], $validated['promo_show_on_venue_profile_videos']);
+        }
+
         DB::transaction(function () use ($event, $validated, $ticketTiers, $artistIds): void {
             $event->update($validated);
             $event->syncTicketTiers($ticketTiers);
             $event->syncArtistsByIds($artistIds);
         });
 
+        if ($venuePromoTouched) {
+            EventPromoVenueProfileModeration::syncVenueTogglesNonAdmin($event->fresh());
+        }
+
         return back()->with('success', 'Etkinlik güncellendi.');
+    }
+
+    public function importEventPromoMediaFromUrl(Request $request, Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $this->assertUserOwnsEventVenue($request->user(), $event);
+
+        return $this->promoImportMediaFromUrlResponse($request, $event, $importer, false);
+    }
+
+    public function appendEventPromoFiles(Request $request, Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $this->assertUserOwnsEventVenue($request->user(), $event);
+
+        return $this->promoAppendFilesResponse($request, $event, $importer);
+    }
+
+    public function clearEventPromoMedia(Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $this->assertUserOwnsEventVenue(auth()->user(), $event);
+
+        return $this->promoClearResponse($event, $importer);
+    }
+
+    public function removeEventPromoGalleryItem(Request $request, Event $event, EventMediaImportFromUrlService $importer)
+    {
+        $this->assertUserOwnsEventVenue($request->user(), $event);
+
+        return $this->promoRemoveItemResponse($request, $event, $importer);
+    }
+
+    public function editArtistProfilePromo(Request $request, Event $event)
+    {
+        $user = $request->user();
+        if ($user === null || ! $this->userMayEditArtistProfilePromo($user, $event)) {
+            abort(403);
+        }
+
+        return Inertia::render('Artist/Events/ArtistProfilePromo', [
+            'event' => [
+                'id' => $event->id,
+                'title' => $event->title,
+                'slug_segment' => $event->publicUrlSegment(),
+                'promo_show_on_artist_profile_posts' => (bool) ($event->promo_show_on_artist_profile_posts ?? false),
+                'promo_show_on_artist_profile_videos' => (bool) ($event->promo_show_on_artist_profile_videos ?? false),
+                'promo_artist_profile_moderation' => Schema::hasColumn('events', 'promo_artist_profile_moderation')
+                    ? ($event->promo_artist_profile_moderation ?? null)
+                    : null,
+            ],
+        ]);
+    }
+
+    public function updateArtistProfilePromo(Request $request, Event $event)
+    {
+        $user = $request->user();
+        if ($user === null || ! $this->userMayEditArtistProfilePromo($user, $event)) {
+            abort(403);
+        }
+        if (! Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+            return back()->with('error', 'Bu özellik henüz etkin.');
+        }
+
+        $request->merge([
+            'promo_show_on_artist_profile_posts' => $request->boolean('promo_show_on_artist_profile_posts'),
+            'promo_show_on_artist_profile_videos' => $request->boolean('promo_show_on_artist_profile_videos'),
+        ]);
+        $validated = $request->validate([
+            'promo_show_on_artist_profile_posts' => 'boolean',
+            'promo_show_on_artist_profile_videos' => 'boolean',
+        ]);
+
+        $nextPosts = (bool) ($validated['promo_show_on_artist_profile_posts'] ?? false);
+        $nextVideos = (bool) ($validated['promo_show_on_artist_profile_videos'] ?? false);
+        $dirty = ((bool) ($event->promo_show_on_artist_profile_posts ?? false)) !== $nextPosts
+            || ((bool) ($event->promo_show_on_artist_profile_videos ?? false)) !== $nextVideos;
+
+        $event->forceFill([
+            'promo_show_on_artist_profile_posts' => $nextPosts,
+            'promo_show_on_artist_profile_videos' => $nextVideos,
+        ])->save();
+
+        if ($dirty) {
+            EventPromoVenueProfileModeration::syncArtistTogglesNonAdmin($event->fresh());
+        }
+
+        return back()->with('success', 'Sanatçı profili tanıtım tercihleri kaydedildi.');
+    }
+
+    private function assertUserOwnsEventVenue(?User $user, Event $event): void
+    {
+        $event->loadMissing('venue');
+        if ($user === null || (int) $event->venue->user_id !== (int) $user->id) {
+            abort(403);
+        }
+    }
+
+    private function userMayEditArtistProfilePromo(User $user, Event $event): bool
+    {
+        if (! Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+            return false;
+        }
+        if ($event->status !== 'published') {
+            return false;
+        }
+        $onIds = $event->artists()->pluck('artists.id')->map(fn ($id) => (int) $id)->all();
+        if ($onIds === []) {
+            return false;
+        }
+
+        $linkedIds = Artist::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        if (count(array_intersect($linkedIds, $onIds)) > 0) {
+            return true;
+        }
+
+        $managed = $this->managedApprovedArtistIds($user)->map(fn ($id) => (int) $id)->all();
+
+        return count(array_intersect($managed, $onIds)) > 0;
     }
 
     /** @return Collection<int, int> */

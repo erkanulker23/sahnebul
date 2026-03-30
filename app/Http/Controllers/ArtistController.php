@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\ArtistClaimRequest;
 use App\Models\ArtistMedia;
+use App\Models\Event;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
 use App\Support\CatalogEntityNew;
 use App\Support\DailyUniqueEntityView;
+use App\Support\EventPromoVenueProfileModeration;
 use App\Support\InertiaDocumentMeta;
 use App\Support\PublicStructuredData;
 use App\Support\TurkishAlphabet;
@@ -378,6 +380,43 @@ class ArtistController extends Controller
             $organizationAffiliation = ['label' => $label];
         }
 
+        $artistEventPromoSections = [];
+        if (Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+            $promoQuery = Event::query()
+                ->published()
+                ->whereHas('artists', fn ($q) => $q->where('artists.id', $artist->id))
+                ->where(function ($q): void {
+                    $q->where('promo_show_on_artist_profile_posts', true)
+                        ->orWhere('promo_show_on_artist_profile_videos', true);
+                });
+            if (Schema::hasColumn('events', 'promo_artist_profile_moderation')) {
+                $promoQuery->where('promo_artist_profile_moderation', EventPromoVenueProfileModeration::APPROVED);
+            }
+            foreach ($promoQuery
+                ->with(['artists:id,name,slug,avatar'])
+                ->orderByRaw('CASE WHEN COALESCE(start_date, end_date) IS NULL THEN 1 ELSE 0 END')
+                ->orderByRaw('COALESCE(start_date, end_date) ASC')
+                ->orderBy('events.id')
+                ->limit(80)
+                ->get() as $ev) {
+                if (! $ev instanceof Event || ! $ev->isPromoEligibleForArtistProfilePage()) {
+                    continue;
+                }
+                $items = $ev->promoItemsForArtistProfilePage();
+                if ($items === []) {
+                    continue;
+                }
+                $artistEventPromoSections[] = [
+                    'event_id' => $ev->id,
+                    'title' => $ev->title,
+                    'slug_segment' => $ev->publicUrlSegment(),
+                    'items' => $items,
+                    'start_date' => $ev->start_date?->toIso8601String(),
+                    'end_date' => $ev->end_date?->toIso8601String(),
+                ];
+            }
+        }
+
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
             'organizationAffiliation' => $organizationAffiliation,
@@ -386,6 +425,7 @@ class ArtistController extends Controller
             'pastEvents' => $pastEvents,
             'stats' => $stats,
             'latestTracks' => $latestTracks,
+            'artistEventPromoSections' => $artistEventPromoSections,
             'claimStatus' => auth()->check()
                 ? ArtistClaimRequest::where('artist_id', $artist->id)->where('user_id', auth()->id())->value('status')
                 : null,

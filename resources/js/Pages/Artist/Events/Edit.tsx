@@ -1,10 +1,12 @@
 import AdminArtistMultiSelect from '@/Components/AdminArtistMultiSelect';
+import AdminEntityPromoGalleryPanel from '@/Components/Admin/AdminEntityPromoGalleryPanel';
 import EventEntryPaidField from '@/Components/EventEntryPaidField';
 import RichTextEditor from '@/Components/RichTextEditor';
 import TicketSalesEditor, { emptyTicketOutletRow, inferTicketAcquisitionMode, outletsFromServer } from '@/Components/TicketSalesEditor';
 import TicketTiersEditor, { tiersToPayload, type TierRow } from '@/Components/TicketTiersEditor';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
+import { artistPanelEventPromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { Link, useForm } from '@inertiajs/react';
 
@@ -35,6 +37,17 @@ interface Event {
     ticket_acquisition_mode?: string | null;
     ticket_outlets?: { label: string; url: string }[];
     ticket_purchase_note?: string | null;
+    promo_video_path?: string | null;
+    promo_embed_url?: string | null;
+    promo_gallery?: {
+        embed_url?: string | null;
+        video_path?: string | null;
+        poster_path?: string | null;
+        promo_kind?: 'story' | 'post' | null;
+    }[] | null;
+    promo_show_on_venue_profile_posts?: boolean;
+    promo_show_on_venue_profile_videos?: boolean;
+    promo_venue_profile_moderation?: string | null;
 }
 
 interface CatalogArtist {
@@ -58,6 +71,7 @@ interface Props {
     venueReviews: PanelReviewRow[];
     eventReviews: PanelReviewRow[];
     eventTypeOptions: { slug: string; label: string }[];
+    mayEditArtistProfilePromo?: boolean;
 }
 
 function storageSrc(path: string | null | undefined): string | null {
@@ -130,6 +144,7 @@ export default function ArtistEventEdit({
     venueReviews,
     eventReviews,
     eventTypeOptions,
+    mayEditArtistProfilePromo = false,
 }: Readonly<Props>) {
     const { data, setData, put, processing, errors, transform } = useForm({
         venue_id: String(event.venue_id),
@@ -152,6 +167,8 @@ export default function ArtistEventEdit({
         ticket_acquisition_mode: inferTicketAcquisitionMode(event),
         ticket_outlets: outletsFromServer(event.ticket_outlets),
         ticket_purchase_note: event.ticket_purchase_note ?? '',
+        promo_show_on_venue_profile_posts: Boolean(event.promo_show_on_venue_profile_posts),
+        promo_show_on_venue_profile_videos: Boolean(event.promo_show_on_venue_profile_videos),
     });
 
     transform((form) => {
@@ -410,6 +427,33 @@ export default function ArtistEventEdit({
                         <option value="published">Yayında</option>
                     </select>
                 </div>
+
+                {mayEditArtistProfilePromo ? (
+                    <p className="rounded-lg border border-sky-500/30 bg-sky-950/20 px-4 py-3 text-sm text-sky-100/90">
+                        Kadroda kendi profiliniz (veya yönettığiniz sanatçı) varsa tanıtımı{' '}
+                        <Link
+                            href={route('artist.events.artist-profile-promo.edit', event.id)}
+                            className="font-semibold text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                        >
+                            sanatçı sayfasında gösterme
+                        </Link>{' '}
+                        tercihlerini ayrıca buradan açın. Yönetici onayı gerekebilir.
+                    </p>
+                ) : null}
+
+                <AdminEntityPromoGalleryPanel
+                    entity={event}
+                    variant="event"
+                    routes={artistPanelEventPromoGalleryRoutes(event.id)}
+                    eventVenueProfilePromoToggles={{
+                        showPosts: data.promo_show_on_venue_profile_posts,
+                        showVideos: data.promo_show_on_venue_profile_videos,
+                        onChangeShowPosts: (v) => setData('promo_show_on_venue_profile_posts', v),
+                        onChangeShowVideos: (v) => setData('promo_show_on_venue_profile_videos', v),
+                        moderationStatus: event.promo_venue_profile_moderation ?? null,
+                    }}
+                />
+
                 <button
                     type="submit"
                     disabled={processing}

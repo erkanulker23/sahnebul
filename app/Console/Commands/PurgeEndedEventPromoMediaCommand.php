@@ -51,6 +51,12 @@ class PurgeEndedEventPromoMediaCommand extends Command
                             'promo_show_on_venue_profile_videos' => false,
                         ])->saveQuietly();
                     }
+                    if (Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+                        $event->forceFill([
+                            'promo_show_on_artist_profile_posts' => false,
+                            'promo_show_on_artist_profile_videos' => false,
+                        ])->saveQuietly();
+                    }
                 }
             });
 

@@ -45,13 +45,10 @@
 @layer utilities {
     /**
      * AppLayout <main> içindeki hero’ları viewport kenarına kadar genişletir
-     * (max-width + yatay padding kırılması).
-     */
-    /**
-     * AppLayout <main> üst padding’ini (py-5 / sm:py-6) dengeleyerek menü ile hero arasındaki boşluğu kaldırır.
+     * (max-width + yatay padding kırılması). Üst boşluk yok: <main> pt-0.
      */
     .hero-full-bleed {
-        @apply relative -mt-5 ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden sm:-mt-6;
+        @apply relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden;
     }
 }
 

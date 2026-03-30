@@ -97,6 +97,18 @@ interface VenueEventPromoSection {
     title: string;
     slug_segment: string;
     items: PromoGalleryItem[];
+    /** İstemci sıralaması; sunucu zaten COALESCE(start_date, end_date) ile sıralar. */
+    start_date?: string | null;
+    end_date?: string | null;
+}
+
+function venuePromoSectionSortTimestamp(sec: VenueEventPromoSection): number {
+    const raw = sec.start_date ?? sec.end_date;
+    if (!raw) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+    const t = new Date(raw).getTime();
+    return Number.isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
 }
 
 interface Props {
@@ -310,14 +322,27 @@ export default function VenueShow({
         return () => window.clearTimeout(t);
     }, [venue.slug]);
 
-    const mergedVenueEventPromoItems = useMemo(
-        () => venueEventPromoSections.flatMap((s) => s.items),
+    const venueEventPromoSectionsSorted = useMemo(
+        () =>
+            [...venueEventPromoSections].sort((a, b) => {
+                const ta = venuePromoSectionSortTimestamp(a);
+                const tb = venuePromoSectionSortTimestamp(b);
+                if (ta !== tb) {
+                    return ta - tb;
+                }
+                return a.event_id - b.event_id;
+            }),
         [venueEventPromoSections],
+    );
+
+    const mergedVenueEventPromoItems = useMemo(
+        () => venueEventPromoSectionsSorted.flatMap((s) => s.items),
+        [venueEventPromoSectionsSorted],
     );
 
     const venueEventPromoStoryTiles = useMemo(() => {
         const tiles: { item: PromoGalleryItem; footer?: React.ReactNode }[] = [];
-        for (const sec of venueEventPromoSections) {
+        for (const sec of venueEventPromoSectionsSorted) {
             for (const it of filterPublicPromoItems(sec.items)) {
                 if (promoKindOf(it) !== 'story') {
                     continue;
@@ -336,7 +361,7 @@ export default function VenueShow({
             }
         }
         return tiles;
-    }, [venueEventPromoSections]);
+    }, [venueEventPromoSectionsSorted]);
 
     const cover = imageSrc(venue.cover_image);
     const galleryPhotos = (venue.media ?? [])
@@ -530,7 +555,7 @@ export default function VenueShow({
                             )}
 
                             {venueEventPromoSections.length > 0 ? (
-                                <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-8">
+                                <section className="mt-8 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
                                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Mekân tanıtımları</h2>
                                     <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
                                         Bu etkinliklerin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.

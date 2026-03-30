@@ -256,6 +256,19 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
         ->name('events.propose');
     Route::get('/etkinlikler/{event}/duzenle', [ArtistEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [ArtistEventController::class, 'update'])->name('events.update');
+    Route::post('/etkinlikler/{event}/adresten-medya', [ArtistEventController::class, 'importEventPromoMediaFromUrl'])
+        ->middleware('throttle:20,1')
+        ->name('events.import-promo-media');
+    Route::post('/etkinlikler/{event}/tanitim-dosya-yukle', [ArtistEventController::class, 'appendEventPromoFiles'])
+        ->middleware('throttle:15,1')
+        ->name('events.append-promo-files');
+    Route::post('/etkinlikler/{event}/tanitim-medya-temizle', [ArtistEventController::class, 'clearEventPromoMedia'])
+        ->name('events.clear-promo-media');
+    Route::post('/etkinlikler/{event}/tanitim-galeri-oge-sil', [ArtistEventController::class, 'removeEventPromoGalleryItem'])
+        ->middleware('throttle:30,1')
+        ->name('events.remove-promo-item');
+    Route::get('/etkinlikler/{event}/sanatci-profil-tanitim', [ArtistEventController::class, 'editArtistProfilePromo'])->name('events.artist-profile-promo.edit');
+    Route::put('/etkinlikler/{event}/sanatci-profil-tanitim', [ArtistEventController::class, 'updateArtistProfilePromo'])->name('events.artist-profile-promo.update');
     Route::post('/etkinlikler/{event}/rapor', [ArtistEventArtistReportController::class, 'store'])
         ->middleware('throttle:12,1')
         ->name('events.report');
@@ -359,6 +372,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/etkinlikler/{event}/onayla', [AdminEventController::class, 'approve'])->name('events.approve');
     Route::post('/etkinlikler/{event}/mekan-profil-tanitim-onayla', [AdminEventController::class, 'approvePromoVenueProfile'])
         ->name('events.approve-promo-venue-profile');
+    Route::post('/etkinlikler/{event}/sanatci-profil-tanitim-onayla', [AdminEventController::class, 'approvePromoArtistProfile'])
+        ->name('events.approve-promo-artist-profile');
     Route::delete('/etkinlikler/{event}', [AdminEventController::class, 'destroy'])->name('events.destroy');
     Route::get('/dis-kaynak-etkinlikler', [AdminExternalEventController::class, 'index'])->name('external-events.index');
     Route::post('/dis-kaynak-etkinlikler/son-cekme-temizle', [AdminExternalEventController::class, 'dismissLastCrawlReport'])

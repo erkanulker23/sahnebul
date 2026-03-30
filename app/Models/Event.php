@@ -37,6 +37,7 @@ class Event extends Model
         'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'promo_gallery', 'status',
         'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
         'promo_show_on_venue_profile_posts', 'promo_show_on_venue_profile_videos', 'promo_venue_profile_moderation',
+        'promo_show_on_artist_profile_posts', 'promo_show_on_artist_profile_videos', 'promo_artist_profile_moderation',
     ];
 
     protected $casts = [
@@ -51,6 +52,8 @@ class Event extends Model
         'promo_gallery' => 'array',
         'promo_show_on_venue_profile_posts' => 'boolean',
         'promo_show_on_venue_profile_videos' => 'boolean',
+        'promo_show_on_artist_profile_posts' => 'boolean',
+        'promo_show_on_artist_profile_videos' => 'boolean',
     ];
 
     public function venue(): BelongsTo
@@ -271,6 +274,14 @@ class Event extends Model
     }
 
     /**
+     * Tanıtımın profilde kaldırılacağı son an — mekân ve sanatçı satırları aynı takvimi kullanır.
+     */
+    public function promoProfileDisplayUntil(): ?Carbon
+    {
+        return $this->promoVenueDisplayUntil();
+    }
+
+    /**
      * Ziyaretçi mekân sayfasında bu etkinliğin tanıtımı listelensin mi (onay + tik + süre).
      */
     public function isPromoEligibleForVenueProfilePage(): bool
@@ -285,7 +296,30 @@ class Event extends Model
         if (! ($this->promo_show_on_venue_profile_posts ?? false) && ! ($this->promo_show_on_venue_profile_videos ?? false)) {
             return false;
         }
-        $until = $this->promoVenueDisplayUntil();
+        $until = $this->promoProfileDisplayUntil();
+        if ($until === null) {
+            return false;
+        }
+
+        return $until->gte(now());
+    }
+
+    /**
+     * Ziyaretçi sanatçı sayfasında (kadroda bu sanatçı varken) etkinlik tanıtımı listelensin mi.
+     */
+    public function isPromoEligibleForArtistProfilePage(): bool
+    {
+        if ($this->status !== 'published') {
+            return false;
+        }
+        $mod = $this->promo_artist_profile_moderation ?? EventPromoVenueProfileModeration::APPROVED;
+        if ($mod !== EventPromoVenueProfileModeration::APPROVED) {
+            return false;
+        }
+        if (! ($this->promo_show_on_artist_profile_posts ?? false) && ! ($this->promo_show_on_artist_profile_videos ?? false)) {
+            return false;
+        }
+        $until = $this->promoProfileDisplayUntil();
         if ($until === null) {
             return false;
         }
@@ -298,7 +332,7 @@ class Event extends Model
      */
     public function shouldPurgePromoMediaBySchedule(): bool
     {
-        $until = $this->promoVenueDisplayUntil();
+        $until = $this->promoProfileDisplayUntil();
         if ($until === null) {
             return false;
         }
@@ -469,6 +503,37 @@ class Event extends Model
             $merged = array_merge($merged, $videos);
         }
         if ($this->promo_show_on_venue_profile_posts ?? false) {
+            $merged = array_merge($merged, $posts);
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Sanatçı profilinde gösterilecek öğeler (tik’lere göre; önce videolar, sonra gönderiler).
+     *
+     * @return list<array{embed_url: string|null, video_path: string|null, poster_path: string|null, promo_kind: string|null}>
+     */
+    public function promoItemsForArtistProfilePage(): array
+    {
+        $rows = $this->normalizedPromoGalleryRowsForPublic();
+        $videos = [];
+        $posts = [];
+        foreach ($rows as $row) {
+            if (! self::promoRowHasPublicContent($row)) {
+                continue;
+            }
+            if (self::promoRowKindForPublic($row) === 'story') {
+                $videos[] = $row;
+            } else {
+                $posts[] = $row;
+            }
+        }
+        $merged = [];
+        if ($this->promo_show_on_artist_profile_videos ?? false) {
+            $merged = array_merge($merged, $videos);
+        }
+        if ($this->promo_show_on_artist_profile_posts ?? false) {
             $merged = array_merge($merged, $posts);
         }
 

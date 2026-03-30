@@ -50,7 +50,7 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                 description="Şehrine göre Sahnebul etkinlikleri — /etkinlikler ile aynı yayınlanmış program."
             />
 
-            <div className="-mx-4 -mt-6 sm:-mx-6 lg:-mx-8">
+            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
                 <section className="relative min-h-[min(52vh,28rem)] overflow-hidden">
                     <img
                         src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2400&auto=format&fit=crop"

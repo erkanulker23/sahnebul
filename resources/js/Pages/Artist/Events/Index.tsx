@@ -28,6 +28,7 @@ interface Event {
     min_price?: number | null;
     public_url_segment?: string | null;
     panel_can_edit?: boolean;
+    panel_can_edit_artist_profile_promo?: boolean;
     artist_report?: { status: string; id: number } | null;
     venue: { name: string; slug: string };
     artists?: { id: number; name: string }[];
@@ -371,6 +372,14 @@ export default function ArtistEventsIndex({
                                                 Düzenleme: mekân sahibi
                                             </span>
                                         )}
+                                        {ev.panel_can_edit_artist_profile_promo ? (
+                                            <Link
+                                                href={route('artist.events.artist-profile-promo.edit', ev.id)}
+                                                className="inline-flex flex-1 items-center justify-center rounded-xl border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20 sm:flex-none"
+                                            >
+                                                Sanatçı profil tanıtımı
+                                            </Link>
+                                        ) : null}
                                     </div>
                                     {ev.panel_can_edit === false && ev.artist_report?.status !== 'pending' && openReportForId !== ev.id ? (
                                         <button
