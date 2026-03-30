@@ -316,8 +316,16 @@ class VenueController extends Controller
             }
             $validated['cover_image'] = $request->file('cover_upload')->store('venue-covers', 'public');
         } else {
+            $incoming = $validated['cover_image'] ?? null;
+            if ($incoming !== null && trim((string) $incoming) === '') {
+                $incoming = null;
+            }
+            /** Kapak kaldırıldıysa yerel dosyayı diskten sil (mirror yalnızca dolu URL ile çalışır). */
+            if ($incoming === null && $venue->cover_image && ! Str::startsWith($venue->cover_image, ['http://', 'https://'])) {
+                Storage::disk('public')->delete($venue->cover_image);
+            }
             $validated['cover_image'] = $this->mirrorRemoteVenueCoverIfNeeded(
-                $validated['cover_image'] ?? null,
+                $incoming,
                 $venue->cover_image,
             );
         }

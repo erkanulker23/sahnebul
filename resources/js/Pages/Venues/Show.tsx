@@ -340,7 +340,10 @@ export default function VenueShow({
     );
 
     const mergedVenueEventPromoItems = useMemo(
-        () => venueEventPromoSectionsSorted.flatMap((s) => s.items),
+        () =>
+            venueEventPromoSectionsSorted.flatMap((s) =>
+                promoGalleryItemsFromEntity({ promo_gallery: s.items }),
+            ),
         [venueEventPromoSectionsSorted],
     );
 
@@ -364,7 +367,8 @@ export default function VenueShow({
     const venueEventPromoStoryTiles = useMemo(() => {
         const tiles: { item: PromoGalleryItem; footer?: React.ReactNode }[] = [];
         for (const sec of venueEventPromoSectionsSorted) {
-            for (const it of filterPublicPromoItems(sec.items)) {
+            const sectionItems = promoGalleryItemsFromEntity({ promo_gallery: sec.items });
+            for (const it of filterPublicPromoItems(sectionItems)) {
                 if (promoKindOf(it) !== 'story') {
                     continue;
                 }

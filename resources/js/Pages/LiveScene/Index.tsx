@@ -120,9 +120,8 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
     const popular = payload?.popular ?? [];
     const stats = payload?.stats ?? { venue_count: 0, event_count: 0 };
 
-    const browseHref = useMemo(() => {
-        const params: Record<string, string> = { period: 'today' };
-        const v = vibes.find((x) => x.id === vibe);
+    const browseWeekHref = useMemo(() => {
+        const params: Record<string, string> = { period: 'week' };
         if (vibe === 'sahne_konser') {
             params.event_type = 'konser';
         } else if (vibe === 'kultur') {
@@ -133,7 +132,21 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
             params.event_type = 'cocuk-aktiviteleri';
         }
         return route('events.index', params);
-    }, [vibe, vibes]);
+    }, [vibe]);
+
+    const browseTodayHref = useMemo(() => {
+        const params: Record<string, string> = { period: 'today' };
+        if (vibe === 'sahne_konser') {
+            params.event_type = 'konser';
+        } else if (vibe === 'kultur') {
+            params.event_type = 'tiyatro';
+        } else if (vibe === 'komedi') {
+            params.event_type = 'stand-up';
+        } else if (vibe === 'aile') {
+            params.event_type = 'cocuk-aktiviteleri';
+        }
+        return route('events.index', params);
+    }, [vibe]);
 
     return (
         <AppLayout>
@@ -156,22 +169,24 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                             <span className="text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-orange-300 bg-clip-text">gidelim?</span>
                         </h1>
                         <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-300 sm:text-lg">
-                            Konumunuza ve seçtiğiniz tarza göre harita ısınır; bu akşam ve şu an devam eden etkinliklere göre yoğun bölgeleri görün. Tek dokunuşla programa veya yol tarifine geçin.
+                            Harita <strong className="font-semibold text-zinc-100">bugünden itibaren 7 gün</strong> içindeki etkinlikleri gösterir;{' '}
+                            <strong className="font-semibold text-zinc-100">bugünkü olanlar</strong> listede ve işaretçi açılır penceresinde öne çıkar. Yoğunluk,
+                            seçtiğiniz tarza göre bu penceredeki etkinlik sayısına göre hesaplanır.
                         </p>
                         <div className="mt-8 flex flex-wrap gap-3">
                             <Link
-                                href={browseHref}
+                                href={browseWeekHref}
                                 className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-500/15 transition hover:bg-amber-300"
                             >
-                                Bugünkü listeyi aç
+                                7 günlük etkinlik listesi
                                 <ArrowRight className="h-4 w-4" aria-hidden />
                             </Link>
                             <Link
-                                href={route('events.index', { period: 'week' })}
+                                href={browseTodayHref}
                                 className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
                             >
                                 <Calendar className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                                Bu hafta ne yapsam? — 7 günlük liste
+                                Sadece bugün
                             </Link>
                             <button
                                 type="button"
@@ -190,7 +205,7 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                         <div>
                             <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Tarzını seç</h2>
                             <p className="mt-1 max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
-                                Her kart haritayı ve listeyi daraltır; «Tümü» ile şehir genelindeki canlı yoğunluğu görürsün.
+                                Her kart haritayı ve listeyi daraltır (7 günlük pencerede); «Tümü» ile aynı tarih aralığında genel yoğunluğu görürsün.
                             </p>
                         </div>
                         {payload?.generated_at ? (
@@ -264,7 +279,7 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                             <p className="mt-1 font-display text-3xl font-bold text-zinc-900 dark:text-white">{stats.venue_count}</p>
                         </div>
                         <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-900/50">
-                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Etkinlik (bu pencere)</p>
+                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Etkinlik (7 gün)</p>
                             <p className="mt-1 font-display text-3xl font-bold text-zinc-900 dark:text-white">{stats.event_count}</p>
                         </div>
                         <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-900/50">
@@ -312,14 +327,19 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                 <LiveSceneHeatMap spots={spots} highlightVenueId={highlightVenueId} className="h-full" />
                             </div>
                             <p className="mt-3 text-center text-xs text-zinc-500 dark:text-zinc-500">
-                                Marker boyutu ve renk — aynı anda o noktadaki etkinlik sayısına göre ölçeklenir (yoğunluk görecelidir).
+                                Marker boyutu ve renk — seçili 7 günlük pencerede o mekândaki etkinlik sayısına göre ölçeklenir (yoğunluk görecelidir).
                             </p>
                         </div>
 
                         <aside className="lg:col-span-2">
-                            <div className="mb-3 flex items-center gap-2">
-                                <Navigation className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden />
-                                <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Şu an popüler noktalar</h2>
+                            <div className="mb-3 flex gap-2">
+                                <Navigation className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                                <div>
+                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Yoğun mekânlar</h2>
+                                    <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-500">
+                                        Önce bugünkü etkinliği olanlar, sonra önümüzdeki günler.
+                                    </p>
+                                </div>
                             </div>
                             {popular.length === 0 && !loading ? (
                                 <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600 dark:border-white/10 dark:bg-zinc-900/50 dark:text-zinc-400">
@@ -335,9 +355,23 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                 </div>
                             ) : (
                                 <ul className="space-y-2">
-                                    {popular.map((p, idx) => (
-                                        <li key={p.venue_id}>
-                                            <button
+                                    {popular.map((p, idx) => {
+                                        const prev = idx > 0 ? popular[idx - 1] : null;
+                                        const todayN = p.today_event_count ?? 0;
+                                        let sectionTitle: string | null = null;
+                                        if (idx === 0) {
+                                            sectionTitle = todayN > 0 ? 'Bugün' : 'Önümüzdeki 7 gün';
+                                        } else if (prev && (prev.today_event_count ?? 0) > 0 && todayN === 0) {
+                                            sectionTitle = 'Önümüzdeki günler';
+                                        }
+                                        return (
+                                            <li key={p.venue_id} className="space-y-2">
+                                                {sectionTitle ? (
+                                                    <p className="pt-2 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                                        {sectionTitle}
+                                                    </p>
+                                                ) : null}
+                                                <button
                                                 type="button"
                                                 onClick={() => setHighlightVenueId(p.venue_id === highlightVenueId ? null : p.venue_id)}
                                                 className={cn(
@@ -354,8 +388,15 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                                         </span>
                                                         <span className="align-middle">{p.name}</span>
                                                     </span>
-                                                    <span className="shrink-0 rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                                                        {p.event_count} etkinlik
+                                                    <span className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                                        {todayN > 0 ? (
+                                                            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-zinc-950">
+                                                                {todayN} bugün
+                                                            </span>
+                                                        ) : null}
+                                                        <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                                            {p.event_count} / 7 gün
+                                                        </span>
                                                     </span>
                                                 </span>
                                                 {(p.city_name || p.category_name) && (
@@ -364,8 +405,9 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                                                     </span>
                                                 )}
                                             </button>
-                                        </li>
-                                    ))}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </aside>

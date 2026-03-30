@@ -409,7 +409,10 @@ export default function ArtistShow({
     );
 
     const mergedArtistEventPromoItems = useMemo(
-        () => artistEventPromoSectionsSorted.flatMap((s) => s.items),
+        () =>
+            artistEventPromoSectionsSorted.flatMap((s) =>
+                promoGalleryItemsFromEntity({ promo_gallery: s.items }),
+            ),
         [artistEventPromoSectionsSorted],
     );
 
@@ -434,7 +437,8 @@ export default function ArtistShow({
     const artistEventPromoStoryTiles = useMemo(() => {
         const tiles: { item: PromoGalleryItem; footer?: ReactNode }[] = [];
         for (const sec of artistEventPromoSectionsSorted) {
-            for (const it of filterPublicPromoItems(sec.items)) {
+            const sectionItems = promoGalleryItemsFromEntity({ promo_gallery: sec.items });
+            for (const it of filterPublicPromoItems(sectionItems)) {
                 if (promoKindOf(it) !== 'story') {
                     continue;
                 }

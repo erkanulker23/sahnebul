@@ -15,6 +15,7 @@ export type LiveSceneMapEvent = {
     start_date: string | null;
     end_date: string | null;
     segment: string;
+    overlaps_today?: boolean;
 };
 
 export type LiveSceneSpot = {
@@ -27,6 +28,8 @@ export type LiveSceneSpot = {
     city_name?: string | null;
     category_name?: string | null;
     event_count: number;
+    /** Bugün (yerel tarih) ile çakışan etkinlik sayısı — liste ve harita önceliği için. */
+    today_event_count?: number;
     intensity: number;
     events: LiveSceneMapEvent[];
 };
@@ -232,8 +235,13 @@ export default function LiveSceneHeatMap({
                                     </p>
                                     <h3 className="font-display relative mt-1.5 text-lg font-bold leading-snug tracking-tight">{s.name}</h3>
                                     <div className="relative mt-2 flex flex-wrap items-center gap-2">
+                                        {(s.today_event_count ?? 0) > 0 ? (
+                                            <span className="inline-flex items-center rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-zinc-950 shadow-sm">
+                                                {s.today_event_count} bugün
+                                            </span>
+                                        ) : null}
                                         <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm dark:bg-amber-400 dark:text-zinc-950">
-                                            {s.event_count} etkinlik
+                                            {s.event_count} etkinlik (7 gün)
                                         </span>
                                         {intensityBand(s.intensity) === 3 ? (
                                             <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">Yoğun nokta</span>
@@ -266,11 +274,18 @@ export default function LiveSceneHeatMap({
                                                     >
                                                         {ev.title}
                                                     </Link>
-                                                    {typeLab ? (
-                                                        <span className="shrink-0 rounded-md border border-zinc-200 bg-white px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                                                            {typeLab}
-                                                        </span>
-                                                    ) : null}
+                                                    <span className="flex shrink-0 flex-wrap items-center gap-1">
+                                                        {ev.overlaps_today ? (
+                                                            <span className="rounded-md border border-amber-400/70 bg-amber-100 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-200">
+                                                                Bugün
+                                                            </span>
+                                                        ) : null}
+                                                        {typeLab ? (
+                                                            <span className="rounded-md border border-zinc-200 bg-white px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+                                                                {typeLab}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
                                                 </div>
                                                 <p className="mt-0.5 text-[11px] font-medium tabular-nums text-zinc-500 dark:text-zinc-500">
                                                     {formatStartLabel(ev.start_date)}

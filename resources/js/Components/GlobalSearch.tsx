@@ -188,6 +188,46 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
         };
     }, [open, q, trendingFetched]);
 
+    /** Mobil: boy kilidi repaint’ten önce — aksi halde ölçüm sonrası bir kare «zıplama» olur. Yalnız [open]: her tuşta scroll’u çözüp yeniden kilitleme. */
+    useLayoutEffect(() => {
+        if (!open || typeof document === 'undefined') {
+            return;
+        }
+        const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
+        if (!narrow) {
+            return;
+        }
+        const y = window.scrollY;
+        const html = document.documentElement;
+        const body = document.body;
+        const prevHtmlOverflow = html.style.overflow;
+        const prev = {
+            position: body.style.position,
+            top: body.style.top,
+            left: body.style.left,
+            right: body.style.right,
+            width: body.style.width,
+            overflow: body.style.overflow,
+        };
+        html.style.overflow = 'hidden';
+        body.style.position = 'fixed';
+        body.style.top = `-${y}px`;
+        body.style.left = '0';
+        body.style.right = '0';
+        body.style.width = '100%';
+        body.style.overflow = 'hidden';
+        return () => {
+            html.style.overflow = prevHtmlOverflow;
+            body.style.position = prev.position;
+            body.style.top = prev.top;
+            body.style.left = prev.left;
+            body.style.right = prev.right;
+            body.style.width = prev.width;
+            body.style.overflow = prev.overflow;
+            window.scrollTo(0, y);
+        };
+    }, [open]);
+
     useLayoutEffect(() => {
         if (!open) {
             setPanelBox(null);
@@ -245,42 +285,6 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             }
         };
     }, [open, q, loading, data.artists.length, data.venues.length, data.events.length, trending.length, trendingLoading]);
-
-    /** Mobil klavye / viewport kaydırmasında arka planın oynayıp düzeni kaydırmasını önler */
-    useEffect(() => {
-        if (!open || typeof document === 'undefined') {
-            return;
-        }
-        const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
-        if (!narrow) {
-            return;
-        }
-        const y = window.scrollY;
-        const { style } = document.body;
-        const prev = {
-            position: style.position,
-            top: style.top,
-            left: style.left,
-            right: style.right,
-            width: style.width,
-            overflow: style.overflow,
-        };
-        style.position = 'fixed';
-        style.top = `-${y}px`;
-        style.left = '0';
-        style.right = '0';
-        style.width = '100%';
-        style.overflow = 'hidden';
-        return () => {
-            style.position = prev.position;
-            style.top = prev.top;
-            style.left = prev.left;
-            style.right = prev.right;
-            style.width = prev.width;
-            style.overflow = prev.overflow;
-            window.scrollTo(0, y);
-        };
-    }, [open]);
 
     useEffect(() => {
         const onDoc = (e: MouseEvent) => {
@@ -368,25 +372,32 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                 typeof document !== 'undefined' &&
                 (showIdlePanel || showSearchPanel) &&
                 createPortal(
-                    <div
-                        ref={panelSurfaceRef}
-                        style={{
-                            position: 'fixed',
-                            top: panelBox.top,
-                            left: panelBox.left,
-                            width: panelBox.width,
-                            maxWidth: 'calc(100vw - 24px)',
-                            boxSizing: 'border-box',
-                            zIndex: 130,
-                            maxHeight: panelMaxHeight,
-                            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                            touchAction: 'pan-y',
-                        }}
-                        className={cn(
-                            'overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-zinc-700 dark:bg-zinc-900',
-                            showSearchPanel && 'rounded-xl shadow-ds-lg',
-                        )}
-                    >
+                    <>
+                        <button
+                            type="button"
+                            className="fixed inset-0 z-40 bg-zinc-950/50 lg:hidden"
+                            aria-label="Aramayı kapat"
+                            onClick={() => setOpen(false)}
+                        />
+                        <div
+                            ref={panelSurfaceRef}
+                            style={{
+                                position: 'fixed',
+                                top: panelBox.top,
+                                left: panelBox.left,
+                                width: panelBox.width,
+                                maxWidth: 'calc(100vw - 24px)',
+                                boxSizing: 'border-box',
+                                zIndex: 130,
+                                maxHeight: panelMaxHeight,
+                                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                                touchAction: 'pan-y',
+                            }}
+                            className={cn(
+                                'overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-zinc-700 dark:bg-zinc-900',
+                                showSearchPanel && 'rounded-xl shadow-ds-lg',
+                            )}
+                        >
                         {showIdlePanel ? (
                             <div className="p-4 sm:p-5" role="dialog" aria-label="Öne çıkan etkinlikler ve etiketler">
                                 <div className="mb-5">
@@ -597,7 +608,8 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                 )}
                             </div>
                         ) : null}
-                    </div>,
+                        </div>
+                    </>,
                     document.body,
                 )}
         </div>

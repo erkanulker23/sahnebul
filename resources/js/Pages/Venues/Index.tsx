@@ -151,16 +151,16 @@ function HomeHeroCarousel({
             ))}
             <div className="absolute inset-0 bg-zinc-900/55" />
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/85 via-zinc-900/40 to-zinc-950/20" />
-            <div className="relative z-[2] mx-auto max-w-7xl px-3 py-20 sm:px-5 sm:py-24 lg:px-8 lg:py-32">
-                <div key={safeIdx} className="max-w-3xl transition-opacity duration-500">
+            <div className="relative z-[2] mx-auto max-w-7xl min-w-0 px-3 py-20 sm:px-5 sm:py-24 lg:px-8 lg:py-32">
+                <div key={safeIdx} className="max-w-3xl min-w-0 transition-opacity duration-500">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-200">{copy.eyebrow}</p>
-                    <h1 className="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+                    <h1 className="font-display text-5xl font-bold tracking-tight text-white break-words text-balance sm:text-6xl lg:text-7xl">
                         <span className="block">{copy.headline}</span>
                         <span className="mt-2 block bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent sm:mt-3">
                             {copy.headline_accent}
                         </span>
                     </h1>
-                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-300 sm:text-lg">{copy.body}</p>
+                    <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-300 break-words text-balance sm:text-lg">{copy.body}</p>
                 </div>
             </div>
             {n > 1 ? (

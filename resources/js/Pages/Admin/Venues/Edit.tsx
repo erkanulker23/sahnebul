@@ -634,9 +634,32 @@ export default function AdminVenueEdit({
                         )}
                         {coverImportError && <p className="mt-2 text-sm text-red-400">{coverImportError}</p>}
                         {googleGalleryError && <p className="mt-2 text-sm text-red-400">{googleGalleryError}</p>}
-                        {storageUrl(data.cover_image) && (
-                            <img src={storageUrl(data.cover_image) ?? ''} alt="" className="mt-2 h-32 max-w-md rounded-lg object-cover" />
-                        )}
+                        {data.cover_image?.trim() ? (
+                            <div className="mt-2 flex flex-wrap items-end gap-3">
+                                {storageUrl(data.cover_image) ? (
+                                    <img src={storageUrl(data.cover_image) ?? ''} alt="" className="h-32 max-w-md rounded-lg object-cover" />
+                                ) : (
+                                    <p className="text-sm text-zinc-500">Önizleme yok; yine de kapak kaydı silinebilir.</p>
+                                )}
+                                <button
+                                    type="button"
+                                    className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-500/20 dark:text-red-300 dark:hover:bg-red-500/20"
+                                    onClick={() => {
+                                        if (
+                                            !confirm(
+                                                'Kapak URL’si temizlenecek; değişikliği uygulamak için ardından «Kaydet»e basın. Devam edilsin mi?',
+                                            )
+                                        ) {
+                                            return;
+                                        }
+                                        setData('cover_image', '');
+                                        setData('cover_upload', null);
+                                    }}
+                                >
+                                    Kapak görselini kaldır
+                                </button>
+                            </div>
+                        ) : null}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak görseli (dosya)</label>

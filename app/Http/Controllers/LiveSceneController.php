@@ -40,7 +40,7 @@ class LiveSceneController extends Controller
                 ->whereNotNull('longitude'))
             ->whereStillVisibleOnPublicListing();
 
-        LiveTonightEventQuery::applyTonightOrLiveWindow($query);
+        LiveTonightEventQuery::applySevenDayMapWindow($query);
         TonightVibePresets::applyToQuery($query, $vibe === '' ? null : $vibe);
 
         $query->orderBy('events.start_date');
@@ -73,10 +73,14 @@ class LiveSceneController extends Controller
                 continue;
             }
             $count = $venueEvents->count();
+            $todayCount = $venueEvents->filter(fn (Event $e) => LiveTonightEventQuery::eventOverlapsLocalToday($e))->count();
             $intensity = round(min(1, $count / $maxCount), 4);
 
-            $eventPayloads = $venueEvents
-                ->sortBy('start_date')
+            $sorted = $venueEvents->sortBy(fn (Event $e) => $e->start_date?->timestamp ?? 0)->values();
+            $todayFirst = $sorted->filter(fn (Event $e) => LiveTonightEventQuery::eventOverlapsLocalToday($e))->values();
+            $rest = $sorted->reject(fn (Event $e) => LiveTonightEventQuery::eventOverlapsLocalToday($e))->values();
+            $eventPayloads = $todayFirst
+                ->concat($rest)
                 ->take(8)
                 ->map(fn (Event $e) => self::eventToSpotItem($e))
                 ->values()
@@ -94,12 +98,21 @@ class LiveSceneController extends Controller
                 'city_name' => $venue->city?->name,
                 'category_name' => $venue->category?->name,
                 'event_count' => $count,
+                'today_event_count' => $todayCount,
                 'intensity' => $intensity,
                 'events' => $eventPayloads,
             ];
         }
 
-        usort($spots, fn (array $a, array $b) => $b['event_count'] <=> $a['event_count']);
+        usort($spots, function (array $a, array $b) {
+            $ta = (int) ($a['today_event_count'] ?? 0);
+            $tb = (int) ($b['today_event_count'] ?? 0);
+            if ($ta !== $tb) {
+                return $tb <=> $ta;
+            }
+
+            return $b['event_count'] <=> $a['event_count'];
+        });
 
         $popular = array_slice($spots, 0, 14);
 
@@ -131,6 +144,7 @@ class LiveSceneController extends Controller
             'start_date' => $start instanceof Carbon ? $start->toIso8601String() : null,
             'end_date' => $end instanceof Carbon ? $end->toIso8601String() : null,
             'segment' => $event->publicUrlSegment(),
+            'overlaps_today' => LiveTonightEventQuery::eventOverlapsLocalToday($event),
         ];
     }
 }
