@@ -143,7 +143,7 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
             />
 
             <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-                <section className="relative overflow-hidden border-b border-zinc-200/80 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 px-3 py-12 text-white sm:px-5 sm:py-16 lg:px-8">
+                <section className="relative isolate ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-hidden border-b border-zinc-200/80 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 px-3 py-12 text-white sm:px-5 sm:py-16 lg:px-8">
                     <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/25 blur-3xl" />
                     <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl" />
                     <div className="relative mx-auto max-w-7xl">
