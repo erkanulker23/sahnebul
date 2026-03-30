@@ -17,6 +17,14 @@ class CrawlMarketplacesCommand extends Command
         $limit = (int) $this->option('limit');
         $sync = (bool) $this->option('sync');
 
+        if ($sourceOption === 'bubilet' || $sourceOption === 'all') {
+            $this->warn(
+                'Crawl başladı. Bubilet birçok liste + etkinlik sayfası indirir; işlem bitene kadar çıktı beklemesi normaldir (genelde 2–10 dk, ağa bağlı).',
+            );
+        } else {
+            $this->line("Crawl başladı (kaynak: {$sourceOption}, limit: {$limit}).");
+        }
+
         foreach ($import->import($sourceOption, $limit, $sync, null, null, [], []) as $result) {
             $source = $result['source'];
 
@@ -28,6 +36,8 @@ class CrawlMarketplacesCommand extends Command
 
             $this->line("{$source}: {$result['processed']} kayıt işlendi, {$result['synced']} kayıt sisteme senkronlandı.");
         }
+
+        $this->info('Crawl tamam.');
 
         return self::SUCCESS;
     }

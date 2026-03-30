@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>Sayfa bulunamadı (404) — {{ config('app.name', 'Sahnebul') }}</title>
-    <link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
+    @php
+        $e404fav = public_path('favicon.svg');
+        $e404favV = is_file($e404fav) ? filemtime($e404fav) : time();
+    @endphp
+    <link rel="icon" href="{{ url('/favicon.svg') }}?v={{ $e404favV }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">

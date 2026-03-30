@@ -57,7 +57,11 @@ class HandleInertiaRequests extends Middleware
         );
         if ($faviconUrl === null || trim((string) $faviconUrl) === '') {
             // Relative path: Valet hostname may differ from APP_URL.
-            $faviconUrl = '/favicon.svg';
+            // ?v=filemtime — tarayıcı favicon önbelleğini güncel dosyaya zorlar.
+            $faviconFile = public_path('favicon.svg');
+            $faviconUrl = is_file($faviconFile)
+                ? '/favicon.svg?v='.filemtime($faviconFile)
+                : '/favicon.svg';
         }
         $keywords = isset($seoBlock['keywords']) ? trim((string) $seoBlock['keywords']) : '';
         $twitterHandle = isset($seoBlock['twitter_handle']) ? trim((string) $seoBlock['twitter_handle']) : '';

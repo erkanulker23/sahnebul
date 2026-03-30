@@ -24,6 +24,17 @@
         @if (is_string($inertiaFavicon) && $inertiaFavicon !== '')
             <link rel="icon" href="{{ $inertiaFavicon }}" @if (str_ends_with(strtolower(parse_url($inertiaFavicon, PHP_URL_PATH) ?: ''), '.svg')) type="image/svg+xml" @endif>
         @endif
+        @php
+            $faviconPathOnly = is_string($inertiaFavicon) ? strtolower((string) (parse_url($inertiaFavicon, PHP_URL_PATH) ?: '')) : '';
+        @endphp
+        @if ($faviconPathOnly === '/favicon.svg')
+            @php
+                $defaultIco = public_path('favicon.ico');
+                $defaultIcoVer = is_file($defaultIco) ? filemtime($defaultIco) : time();
+            @endphp
+            {{-- Bazı istemciler yalnızca /favicon.ico ister; varsayılan SVG ile aynı görsel --}}
+            <link rel="icon" type="image/x-icon" href="{{ url('/favicon.ico') }}?v={{ $defaultIcoVer }}">
+        @endif
         <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
         <meta name="theme-color" content="#ea580c" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)">
