@@ -1,3 +1,4 @@
+import { ProfilePromoStoryAvatarWrap } from '@/Components/ProfilePromoStoryAvatarWrap';
 import {
     PublicPromoGallerySection,
     filterPublicPromoItems,
@@ -340,6 +341,23 @@ export default function VenueShow({
         [venueEventPromoSectionsSorted],
     );
 
+    /** Profil fotoğrafı halkası: mekân galerisi + etkinlik tanıtım «hikâye» videoları. */
+    const venuePageStoryPromoItems = useMemo(() => {
+        const own = filterPublicPromoItems(promoGalleryItemsFromEntity(venue)).filter((it) => promoKindOf(it) === 'story');
+        const fromEvents = filterPublicPromoItems(mergedVenueEventPromoItems).filter((it) => promoKindOf(it) === 'story');
+        const seen = new Set<string>();
+        const out: PromoGalleryItem[] = [];
+        for (const it of [...own, ...fromEvents]) {
+            const k = `${it.video_path ?? ''}\x1e${it.embed_url ?? ''}\x1e${it.poster_path ?? ''}`;
+            if (seen.has(k)) {
+                continue;
+            }
+            seen.add(k);
+            out.push(it);
+        }
+        return out;
+    }, [venue, mergedVenueEventPromoItems]);
+
     const venueEventPromoStoryTiles = useMemo(() => {
         const tiles: { item: PromoGalleryItem; footer?: React.ReactNode }[] = [];
         for (const sec of venueEventPromoSectionsSorted) {
@@ -444,92 +462,118 @@ export default function VenueShow({
                             </svg>
                             Mekanlar
                         </Link>
-                        <div className="mt-6 max-w-4xl">
-                            <p className="text-sm text-zinc-200">{venue.city.name}</p>
-                            <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">{venue.name}</h1>
-                            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-                                <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
-                                {venue.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/30" /> : null}
-                                {venue.capacity != null && venue.capacity > 0 && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                        <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        {venue.capacity} kişi
+                        <div className="mt-6 flex max-w-4xl flex-col gap-6 sm:flex-row sm:items-start">
+                            <div className="flex shrink-0 justify-center sm:justify-start">
+                                <ProfilePromoStoryAvatarWrap
+                                    entityKind="venue"
+                                    entityId={venue.id}
+                                    storyPromoItems={venuePageStoryPromoItems}
+                                    scrollTargetId="sayfa-tanitim-videolari"
+                                >
+                                    <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
+                                        <div className="relative h-28 w-28 overflow-hidden rounded-full bg-zinc-200 ring-2 ring-white/25 dark:bg-zinc-900 dark:ring-white/20 sm:h-32 sm:w-32">
+                                            {heroBackdrop ? (
+                                                <img src={heroBackdrop} alt={venue.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                    <Building2
+                                                        className="h-10 w-10 text-amber-400/35 dark:text-amber-400/40"
+                                                        strokeWidth={1}
+                                                        aria-hidden
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </ProfilePromoStoryAvatarWrap>
+                            </div>
+                            <div className="min-w-0 flex-1 text-center sm:text-left">
+                                <p className="text-sm text-zinc-200">{venue.city.name}</p>
+                                <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">{venue.name}</h1>
+                                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
+                                    <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
+                                    {venue.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/30" /> : null}
+                                    {venue.capacity != null && venue.capacity > 0 && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
+                                            <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            {venue.capacity} kişi
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm sm:justify-start">
+                                    <div className="flex items-center gap-2 text-zinc-300">
+                                        <div className="flex text-amber-400">
+                                            {'★'.repeat(Math.min(5, venue.rating_avg || 0))}
+                                            <span className="text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg || 0))}</span>
+                                        </div>
+                                        <span className="font-semibold text-white">{venue.rating_avg || '-'}</span>
+                                        <span className="text-zinc-400">({reviewCount} değerlendirme)</span>
+                                    </div>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-zinc-200">
+                                        <Eye className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden strokeWidth={2} />
+                                        {(venue.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
                                     </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSuggestEditOpen(true)}
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-medium text-amber-200 transition hover:bg-white/15"
+                                    >
+                                        <PenLine className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2} />
+                                        Düzenleme öner
+                                    </button>
+                                </div>
+                                {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
+                                    <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">İletişim</span>
+                                        <div className="flex flex-wrap gap-2">
+                                            {venue.phone && (
+                                                <a
+                                                    href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
+                                                    className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
+                                                >
+                                                    {venue.phone}
+                                                </a>
+                                            )}
+                                            {venue.whatsapp && (
+                                                <a
+                                                    href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-500/30"
+                                                >
+                                                    WhatsApp
+                                                </a>
+                                            )}
+                                            {venue.website && (
+                                                <a
+                                                    href={venue.website}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
+                                                >
+                                                    Web
+                                                </a>
+                                            )}
+                                            {venue.social_links &&
+                                                sortVenueSocialEntries(venue.social_links)
+                                                    .slice(0, 3)
+                                                    .map(([key, url]) => (
+                                                        <a
+                                                            key={key}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15"
+                                                        >
+                                                            {venueSocialLinkTitle(key)}
+                                                        </a>
+                                                    ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-                                <div className="flex items-center gap-2 text-zinc-300">
-                                    <div className="flex text-amber-400">
-                                        {'★'.repeat(Math.min(5, venue.rating_avg || 0))}
-                                        <span className="text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg || 0))}</span>
-                                    </div>
-                                    <span className="font-semibold text-white">{venue.rating_avg || '-'}</span>
-                                    <span className="text-zinc-400">({reviewCount} değerlendirme)</span>
-                                </div>
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-zinc-200">
-                                    <Eye className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden strokeWidth={2} />
-                                    {(venue.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setSuggestEditOpen(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-medium text-amber-200 transition hover:bg-white/15"
-                                >
-                                    <PenLine className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2} />
-                                    Düzenleme öner
-                                </button>
-                            </div>
-                            {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
-                                <div className="mt-6 flex flex-col gap-2 border-t border-white/10 pt-6">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">İletişim</span>
-                                    <div className="flex flex-wrap gap-2">
-                                        {venue.phone && (
-                                            <a
-                                                href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
-                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
-                                            >
-                                                {venue.phone}
-                                            </a>
-                                        )}
-                                        {venue.whatsapp && (
-                                            <a
-                                                href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="rounded-full bg-emerald-500/20 px-3 py-1.5 text-sm text-emerald-300 transition hover:bg-emerald-500/30"
-                                            >
-                                                WhatsApp
-                                            </a>
-                                        )}
-                                        {venue.website && (
-                                            <a
-                                                href={venue.website}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-amber-300 transition hover:bg-white/15"
-                                            >
-                                                Web
-                                            </a>
-                                        )}
-                                        {venue.social_links &&
-                                            sortVenueSocialEntries(venue.social_links)
-                                                .slice(0, 3)
-                                                .map(([key, url]) => (
-                                                    <a
-                                                        key={key}
-                                                        href={url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-white/15"
-                                                    >
-                                                        {venueSocialLinkTitle(key)}
-                                                    </a>
-                                                ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </section>
@@ -554,15 +598,30 @@ export default function VenueShow({
                                 <VenuePhotoGallery key={venue.slug} photos={galleryPhotos} venueName={venue.name} />
                             )}
 
-                            {venueEventPromoSections.length > 0 ? (
-                                <section className="mt-8 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
-                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Mekân tanıtımları</h2>
-                                    <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
-                                        Bu etkinliklerin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
-                                    </p>
+                            <div id="sayfa-tanitim-videolari" className="scroll-mt-24">
+                                {venueEventPromoSections.length > 0 ? (
+                                    <section className="mt-8 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
+                                        <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Mekân tanıtımları</h2>
+                                        <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
+                                            Bu etkinliklerin tanıtımı mekân sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
+                                        </p>
+                                        <PublicPromoGallerySection
+                                            items={mergedVenueEventPromoItems}
+                                            storyTiles={venueEventPromoStoryTiles}
+                                            resolveStorageSrc={(path) => {
+                                                if (!path) return null;
+                                                return path.startsWith('http://') || path.startsWith('https://')
+                                                    ? path
+                                                    : `/storage/${path}`;
+                                            }}
+                                            labels={venuePromoLabels}
+                                        />
+                                    </section>
+                                ) : null}
+
+                                <div className="mt-8">
                                     <PublicPromoGallerySection
-                                        items={mergedVenueEventPromoItems}
-                                        storyTiles={venueEventPromoStoryTiles}
+                                        items={promoGalleryItemsFromEntity(venue)}
                                         resolveStorageSrc={(path) => {
                                             if (!path) return null;
                                             return path.startsWith('http://') || path.startsWith('https://')
@@ -571,20 +630,7 @@ export default function VenueShow({
                                         }}
                                         labels={venuePromoLabels}
                                     />
-                                </section>
-                            ) : null}
-
-                            <div className="mt-8">
-                                <PublicPromoGallerySection
-                                    items={promoGalleryItemsFromEntity(venue)}
-                                    resolveStorageSrc={(path) => {
-                                        if (!path) return null;
-                                        return path.startsWith('http://') || path.startsWith('https://')
-                                            ? path
-                                            : `/storage/${path}`;
-                                    }}
-                                    labels={venuePromoLabels}
-                                />
+                                </div>
                             </div>
 
                             <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-white/5 dark:bg-zinc-900/30">

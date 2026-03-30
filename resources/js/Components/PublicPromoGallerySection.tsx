@@ -217,6 +217,16 @@ export type PublicPromoStoryTile = {
     footer?: ReactNode;
 };
 
+/** Birleştirilmiş galeri satırlarında footer eşleştirmesi için (aynı dosya/URL birden fazla etkinlikte olabilir). */
+function promoStoryStableKey(it: PromoGalleryItem): string {
+    return [
+        it.video_path?.trim() ?? '',
+        it.embed_url?.trim() ?? '',
+        it.poster_path?.trim() ?? '',
+        it.promo_kind ?? '',
+    ].join('\x1e');
+}
+
 export function PublicPromoGallerySection({
     items,
     resolveStorageSrc,
@@ -233,12 +243,30 @@ export function PublicPromoGallerySection({
 
     const storyItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'story'), [visible]);
 
+    /** Kaynak doğruluk: `items` birleşiminden türeyen story listesi. `storyTiles` yalnızca alt bilgi (footer) için kullanılır; aksi halde uzunluk uyumsuzluğunda öğeler düşebilirdi. */
     const storyEntries = useMemo((): PublicPromoStoryTile[] => {
-        if (storyTiles !== undefined) {
-            return storyTiles.length > 0 ? storyTiles : storyItems.map((item) => ({ item }));
+        const fromItems: PublicPromoStoryTile[] = storyItems.map((item) => ({ item }));
+        if (storyTiles === undefined || storyTiles.length === 0) {
+            return fromItems;
         }
-        return storyItems.map((item) => ({ item }));
-    }, [storyTiles, storyItems]);
+        if (storyTiles.length === fromItems.length) {
+            return fromItems.map((row, i) => ({
+                item: row.item,
+                footer: storyTiles[i]?.footer,
+            }));
+        }
+        const footerByKey = new Map<string, ReactNode>();
+        for (const t of storyTiles) {
+            const k = promoStoryStableKey(t.item);
+            if (!footerByKey.has(k)) {
+                footerByKey.set(k, t.footer);
+            }
+        }
+        return fromItems.map((row) => ({
+            item: row.item,
+            footer: footerByKey.get(promoStoryStableKey(row.item)),
+        }));
+    }, [storyItems, storyTiles]);
 
     const postItems = useMemo(() => visible.filter((it) => promoKindOf(it) === 'post'), [visible]);
 
@@ -313,13 +341,13 @@ export function PublicPromoGallerySection({
         return null;
     }
 
-    /** Her ekranda yan yana 2 — minmax(0,1fr) ile mobilde içerik genişliği taşması önlenir. */
+    /** Mobil/tablet: 2 sütun; masaüstü (lg): 3 sütun — sanatçı / mekân detay ile uyumlu. */
     const promoStoryGrid =
-        'mt-4 grid w-full min-w-0 max-w-full list-none grid-cols-2 gap-3 sm:gap-4 [grid-template-columns:repeat(2,minmax(0,1fr))]';
+        'mt-4 grid w-full min-w-0 max-w-full list-none grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 lg:gap-4';
 
-    /** Gönderi kapakları: sanatçı «Galeri» ile aynı — kare önizleme, görsel oranı bozulmaz (object-cover). Mobilde 4 sütun. */
+    /** Gönderi kapakları: masaüstünde 3 sütun; küçük ekranda 2. */
     const promoPostGrid =
-        'mt-4 grid w-full max-w-full list-none grid-cols-4 gap-0.5 sm:grid-cols-3 sm:gap-1 md:grid-cols-4';
+        'mt-4 grid w-full max-w-full list-none grid-cols-2 gap-0.5 sm:gap-1 lg:grid-cols-3';
 
     const promoPortraitTile =
         'relative aspect-[9/16] min-h-0 min-w-0 w-full max-w-full overflow-hidden rounded-sm border border-zinc-200 bg-zinc-950 dark:border-white/10';
@@ -436,7 +464,7 @@ export function PublicPromoGallerySection({
                             const embed = it.embed_url?.trim() ?? '';
                             return (
                                 <li
-                                    key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
+                                    key={`promo-story-${idx}-${promoStoryStableKey(it)}`}
                                     className="flex min-w-0 flex-col gap-2"
                                 >
                                     {renderStoryCellInner(it, idx)}

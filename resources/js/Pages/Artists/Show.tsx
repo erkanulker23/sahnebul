@@ -1,3 +1,4 @@
+import { ProfilePromoStoryAvatarWrap } from '@/Components/ProfilePromoStoryAvatarWrap';
 import {
     PublicPromoGallerySection,
     artistPromoLabels,
@@ -410,6 +411,23 @@ export default function ArtistShow({
         [artistEventPromoSectionsSorted],
     );
 
+    /** Profil fotoğrafı halkası (Instagram benzeri): kendi + etkinlik tanıtım videoları. */
+    const artistPageStoryPromoItems = useMemo(() => {
+        const own = filterPublicPromoItems(promoGalleryItemsFromEntity(artist)).filter((it) => promoKindOf(it) === 'story');
+        const fromEvents = filterPublicPromoItems(mergedArtistEventPromoItems).filter((it) => promoKindOf(it) === 'story');
+        const seen = new Set<string>();
+        const out: PromoGalleryItem[] = [];
+        for (const it of [...own, ...fromEvents]) {
+            const k = `${it.video_path ?? ''}\x1e${it.embed_url ?? ''}\x1e${it.poster_path ?? ''}`;
+            if (seen.has(k)) {
+                continue;
+            }
+            seen.add(k);
+            out.push(it);
+        }
+        return out;
+    }, [artist, mergedArtistEventPromoItems]);
+
     const artistEventPromoStoryTiles = useMemo(() => {
         const tiles: { item: PromoGalleryItem; footer?: ReactNode }[] = [];
         for (const sec of artistEventPromoSectionsSorted) {
@@ -617,9 +635,11 @@ export default function ArtistShow({
                         <div className="shrink-0 lg:w-80">
                             <div className="sticky top-24">
                                 <div className="flex w-full justify-center">
-                                    <div
-                                        className="inline-flex shrink-0 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] p-[3px] shadow-[0_10px_40px_-10px_rgba(238,42,123,0.45)] dark:shadow-[0_12px_42px_-12px_rgba(98,40,215,0.5)]"
-                                        title={artist.name}
+                                    <ProfilePromoStoryAvatarWrap
+                                        entityKind="artist"
+                                        entityId={artist.id}
+                                        storyPromoItems={artistPageStoryPromoItems}
+                                        scrollTargetId="sayfa-tanitim-videolari"
                                     >
                                         <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
                                             <div className="relative h-40 w-40 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-900 sm:h-44 sm:w-44 md:h-48 md:w-48">
@@ -643,7 +663,7 @@ export default function ArtistShow({
                                                 ) : null}
                                             </div>
                                         </div>
-                                    </div>
+                                    </ProfilePromoStoryAvatarWrap>
                                 </div>
 
                                 <div className="mt-6 flex flex-col gap-3">
@@ -897,37 +917,39 @@ export default function ArtistShow({
                                 </div>
                             )}
 
-                            {artistEventPromoSections.length > 0 ? (
-                                <section className="mt-10 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
-                                    <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik tanıtımları</h2>
-                                    <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
-                                        Bu etkinliklerin tanıtımı sanatçı sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
-                                    </p>
+                            <div id="sayfa-tanitim-videolari" className="scroll-mt-24">
+                                {artistEventPromoSections.length > 0 ? (
+                                    <section className="mt-10 min-w-0 max-w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-zinc-900/30 sm:p-6 sm:p-8">
+                                        <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Etkinlik tanıtımları</h2>
+                                        <p className="mt-2 mb-6 text-xs text-zinc-600 dark:text-zinc-500">
+                                            Bu etkinliklerin tanıtımı sanatçı sayfasında gösterilmeyi seçilmiştir; etkinlik günü sonuna kadar burada kalır.
+                                        </p>
+                                        <PublicPromoGallerySection
+                                            items={mergedArtistEventPromoItems}
+                                            storyTiles={artistEventPromoStoryTiles}
+                                            resolveStorageSrc={(path) => {
+                                                if (!path) return null;
+                                                return path.startsWith('http://') || path.startsWith('https://')
+                                                    ? path
+                                                    : `/storage/${path}`;
+                                            }}
+                                            labels={{ ...venuePromoLabels, postsDescription: '' }}
+                                        />
+                                    </section>
+                                ) : null}
+
+                                <div className="mt-10">
                                     <PublicPromoGallerySection
-                                        items={mergedArtistEventPromoItems}
-                                        storyTiles={artistEventPromoStoryTiles}
+                                        items={promoGalleryItemsFromEntity(artist)}
                                         resolveStorageSrc={(path) => {
                                             if (!path) return null;
                                             return path.startsWith('http://') || path.startsWith('https://')
                                                 ? path
                                                 : `/storage/${path}`;
                                         }}
-                                        labels={{ ...venuePromoLabels, postsDescription: '' }}
+                                        labels={artistPromoLabels}
                                     />
-                                </section>
-                            ) : null}
-
-                            <div className="mt-10">
-                                <PublicPromoGallerySection
-                                    items={promoGalleryItemsFromEntity(artist)}
-                                    resolveStorageSrc={(path) => {
-                                        if (!path) return null;
-                                        return path.startsWith('http://') || path.startsWith('https://')
-                                            ? path
-                                            : `/storage/${path}`;
-                                    }}
-                                    labels={artistPromoLabels}
-                                />
+                                </div>
                             </div>
 
                             <div className="mt-10 space-y-12">
