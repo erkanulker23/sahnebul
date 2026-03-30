@@ -72,6 +72,7 @@ use App\Http\Controllers\User\EventIcsController;
 use App\Http\Controllers\User\EventReminderController;
 use App\Http\Controllers\User\EventReminderPreferenceController;
 use App\Http\Controllers\User\FavoriteArtistController;
+use App\Http\Controllers\User\FavoriteVenueController;
 use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
@@ -183,6 +184,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/hesabim/favori-sanatci/{artist}', [FavoriteArtistController::class, 'toggle'])
         ->whereNumber('artist')
         ->name('user.favorites.artists.toggle');
+    Route::post('/hesabim/takip-mekan/{venue}', [FavoriteVenueController::class, 'toggle'])
+        ->whereNumber('venue')
+        ->name('user.favorites.venues.toggle');
     Route::post('/hesabim/etkinlik-hatirlat/{event}', [EventReminderController::class, 'toggle'])
         ->whereNumber('event')
         ->name('user.event-reminders.toggle');

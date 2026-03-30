@@ -2,24 +2,45 @@ import { Modal } from '@/Components/ui/Modal';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type EntityKind = 'artist' | 'venue';
 
-const SOCIAL_KEYS = ['instagram', 'twitter', 'x', 'youtube', 'spotify', 'tiktok', 'facebook'] as const;
+/** Tek X (Twitter) alanı; gönderimde hem `twitter` hem `x` anahtarları senkron (eski verilerle uyum). */
+const SOCIAL_KEYS = ['instagram', 'twitter', 'youtube', 'spotify', 'tiktok', 'facebook'] as const;
 type SocialKey = (typeof SOCIAL_KEYS)[number];
 
 function socialLabel(k: SocialKey): string {
     const map: Record<SocialKey, string> = {
         instagram: 'Instagram',
-        twitter: 'Twitter / X',
-        x: 'X',
+        twitter: 'X (Twitter)',
         youtube: 'YouTube',
         spotify: 'Spotify',
         tiktok: 'TikTok',
         facebook: 'Facebook',
     };
     return map[k];
+}
+
+function twitterXSnapshotHint(social: Record<string, string> | null | undefined): string | null {
+    if (!social) {
+        return null;
+    }
+    const t = typeof social.twitter === 'string' ? social.twitter.trim() : '';
+    const x = typeof social.x === 'string' ? social.x.trim() : '';
+    if (t !== '' && x !== '' && t !== x) {
+        return `${t} · ${x}`;
+    }
+    const one = t || x;
+    return one !== '' ? one : null;
+}
+
+function stripTagsToPlainPreview(raw: string, maxLen: number): string {
+    const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (plain === '') {
+        return '—';
+    }
+    return plain.length > maxLen ? `${plain.slice(0, maxLen)}…` : plain;
 }
 
 function firstError(v: unknown): string {
@@ -145,6 +166,12 @@ export default function SuggestEditModal({
 
         if (isArtist) {
             const social_links = trimRecord(social as Record<string, string>);
+            const tw = social_links.twitter?.trim();
+            if (tw) {
+                social_links.twitter = tw;
+                social_links.x = tw;
+            }
+
             const manager_info = trimRecord({
                 name: managerName,
                 company: managerCompany,
@@ -188,7 +215,23 @@ export default function SuggestEditModal({
 
     const inputClass =
         'mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white';
-    const hintClass = 'mt-0.5 text-xs text-zinc-500 dark:text-zinc-500';
+    const hintClass = 'text-xs leading-snug text-zinc-500 dark:text-zinc-400';
+    /** Izgara hücrelerinde “Şu an” satırı yüksekliği sabit — girişler aynı hizada. */
+    const gridHintSlotClass = 'flex min-h-[2.625rem] flex-col justify-end';
+
+    const GridCurrentHint = ({ children }: { children: ReactNode }) =>
+        snap ? <div className={gridHintSlotClass}>{children}</div> : null;
+
+    const gridHintBody = (hasValue: boolean, line: ReactNode) =>
+        hasValue ? (
+            <p className={hintClass}>
+                Şu an: <span className="break-all text-zinc-600 dark:text-zinc-300">{line}</span>
+            </p>
+        ) : (
+            <p className={`${hintClass} invisible`} aria-hidden>
+                Şu an: —
+            </p>
+        );
 
     return (
         <Modal show={open} onClose={onClose} maxWidth="lg">
@@ -246,7 +289,16 @@ export default function SuggestEditModal({
                                         <label htmlFor="suggest-website" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                             Web sitesi
                                         </label>
-                                        {snap ? <p className={hintClass}>Profilde şu an: {currentHint(snap.website)}</p> : null}
+                                        {snap ? (
+                                            <div className="flex min-h-[2.625rem] flex-col justify-end">
+                                                <p className={hintClass}>
+                                                    Profilde şu an:{' '}
+                                                    <span className="break-all text-zinc-600 dark:text-zinc-300">
+                                                        {currentHint(snap.website)}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        ) : null}
                                         <input
                                             id="suggest-website"
                                             value={website}
@@ -262,14 +314,16 @@ export default function SuggestEditModal({
                                             Biyografi (önerilen metin)
                                         </label>
                                         {snap ? (
-                                            <p className={hintClass}>
-                                                Profilde şu an:{' '}
-                                                {snap.bio?.trim()
-                                                    ? snap.bio.trim().length > 140
-                                                        ? `${snap.bio.trim().slice(0, 140)}…`
-                                                        : snap.bio.trim()
-                                                    : '—'}
-                                            </p>
+                                            <div className="flex min-h-[3.25rem] flex-col justify-end">
+                                                <p className={`${hintClass} line-clamp-2`}>
+                                                    Profilde şu an:{' '}
+                                                    <span className="text-zinc-600 dark:text-zinc-300">
+                                                        {snap.bio?.trim()
+                                                            ? stripTagsToPlainPreview(snap.bio, 220)
+                                                            : '—'}
+                                                    </span>
+                                                </p>
+                                            </div>
                                         ) : null}
                                         <textarea
                                             id="suggest-bio"
@@ -286,34 +340,51 @@ export default function SuggestEditModal({
                                     <div>
                                         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Sosyal medya</p>
                                         <p className={hintClass}>Bağlantı, kullanıcı adı veya tam URL girebilirsiniz.</p>
-                                        <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                                            {SOCIAL_KEYS.map((k) => (
-                                                <div key={k}>
-                                                    <label htmlFor={`suggest-soc-${k}`} className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                                        {socialLabel(k)}
-                                                    </label>
-                                                    {snap?.social_links?.[k] ? (
-                                                        <p className={hintClass}>Şu an: {currentHint(snap.social_links[k])}</p>
-                                                    ) : null}
-                                                    <input
-                                                        id={`suggest-soc-${k}`}
-                                                        value={social[k]}
-                                                        onChange={(ev) => setSocial((prev) => ({ ...prev, [k]: ev.target.value }))}
-                                                        className={inputClass}
-                                                    />
-                                                </div>
-                                            ))}
+                                        <div className="mt-2 grid items-start gap-x-3 gap-y-4 sm:grid-cols-2">
+                                            {SOCIAL_KEYS.map((k) => {
+                                                const raw: string =
+                                                    k === 'twitter'
+                                                        ? twitterXSnapshotHint(snap?.social_links ?? undefined) ?? ''
+                                                        : snap?.social_links?.[k]?.trim() ?? '';
+                                                const showHint = raw !== '';
+                                                const hintText = showHint ? raw : '';
+                                                return (
+                                                    <div key={k} className="flex min-w-0 flex-col">
+                                                        <label
+                                                            htmlFor={`suggest-soc-${k}`}
+                                                            className="block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                                                        >
+                                                            {socialLabel(k)}
+                                                        </label>
+                                                        <GridCurrentHint>
+                                                            {gridHintBody(
+                                                                showHint,
+                                                                <span className="line-clamp-2">{hintText}</span>,
+                                                            )}
+                                                        </GridCurrentHint>
+                                                        <input
+                                                            id={`suggest-soc-${k}`}
+                                                            value={social[k]}
+                                                            onChange={(ev) => setSocial((prev) => ({ ...prev, [k]: ev.target.value }))}
+                                                            className={inputClass}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
                                     <div className="border-t border-zinc-200 pt-4 dark:border-white/10">
                                         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Menajer / temsilci (profildeki blok)</p>
-                                        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                                        <div className="mt-2 grid items-start gap-x-3 gap-y-4 sm:grid-cols-2">
                                             <div className="sm:col-span-2">
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Ad soyad</label>
-                                                {snap?.manager_info?.name ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.manager_info.name)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.manager_info?.name?.trim(),
+                                                        currentHint(snap?.manager_info?.name),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     value={managerName}
                                                     onChange={(e) => setManagerName(e.target.value)}
@@ -322,9 +393,12 @@ export default function SuggestEditModal({
                                             </div>
                                             <div className="sm:col-span-2">
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Şirket / ajans</label>
-                                                {snap?.manager_info?.company ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.manager_info.company)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.manager_info?.company?.trim(),
+                                                        currentHint(snap?.manager_info?.company),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     value={managerCompany}
                                                     onChange={(e) => setManagerCompany(e.target.value)}
@@ -333,9 +407,12 @@ export default function SuggestEditModal({
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Telefon</label>
-                                                {snap?.manager_info?.phone ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.manager_info.phone)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.manager_info?.phone?.trim(),
+                                                        currentHint(snap?.manager_info?.phone),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     value={managerPhone}
                                                     onChange={(e) => setManagerPhone(e.target.value)}
@@ -347,9 +424,12 @@ export default function SuggestEditModal({
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">E-posta</label>
-                                                {snap?.manager_info?.email ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.manager_info.email)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.manager_info?.email?.trim(),
+                                                        currentHint(snap?.manager_info?.email),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     type="email"
                                                     value={managerEmail}
@@ -365,12 +445,15 @@ export default function SuggestEditModal({
 
                                     <div className="border-t border-zinc-200 pt-4 dark:border-white/10">
                                         <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Herkese açık iletişim (profildeki blok)</p>
-                                        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                                        <div className="mt-2 grid items-start gap-x-3 gap-y-4 sm:grid-cols-2">
                                             <div>
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">E-posta</label>
-                                                {snap?.public_contact?.email ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.public_contact.email)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.public_contact?.email?.trim(),
+                                                        currentHint(snap?.public_contact?.email),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     type="email"
                                                     value={pubEmail}
@@ -383,9 +466,12 @@ export default function SuggestEditModal({
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Telefon</label>
-                                                {snap?.public_contact?.phone ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.public_contact.phone)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.public_contact?.phone?.trim(),
+                                                        currentHint(snap?.public_contact?.phone),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <input
                                                     value={pubPhone}
                                                     onChange={(e) => setPubPhone(e.target.value)}
@@ -397,9 +483,12 @@ export default function SuggestEditModal({
                                             </div>
                                             <div className="sm:col-span-2">
                                                 <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Not / açıklama</label>
-                                                {snap?.public_contact?.note ? (
-                                                    <p className={hintClass}>Şu an: {currentHint(snap.public_contact.note)}</p>
-                                                ) : null}
+                                                <GridCurrentHint>
+                                                    {gridHintBody(
+                                                        !!snap?.public_contact?.note?.trim(),
+                                                        currentHint(snap?.public_contact?.note),
+                                                    )}
+                                                </GridCurrentHint>
                                                 <textarea
                                                     value={pubNote}
                                                     onChange={(e) => setPubNote(e.target.value)}

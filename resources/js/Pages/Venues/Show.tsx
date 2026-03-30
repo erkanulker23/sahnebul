@@ -26,7 +26,7 @@ import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Building2, Eye, Globe, Navigation, PenLine, Phone } from 'lucide-react';
+import { Building2, Calendar, Eye, Globe, Map, MapPin, Navigation, PenLine, Phone, Plus, Users } from 'lucide-react';
 import {
     googleMapsDirectionsUrl,
     googleMapsOpenUrl,
@@ -122,6 +122,8 @@ interface Props {
     venuePageSeo?: VenuePageSeo | null;
     claimStatus?: string | null;
     venueEventPromoSections?: VenueEventPromoSection[];
+    venueHeaderStats?: { published_events_count: number; followers_count: number };
+    venueFollow?: { canToggle: boolean; isFollowing: boolean };
 }
 
 function buildVenueJsonLd(params: {
@@ -246,6 +248,8 @@ export default function VenueShow({
     venuePageSeo = null,
     claimStatus,
     venueEventPromoSections = [],
+    venueHeaderStats = { published_events_count: 0, followers_count: 0 },
+    venueFollow = { canToggle: false, isFollowing: false },
 }: Readonly<Props>) {
     const page = usePage();
     const auth = page.props.auth as { user: { id: number; role?: string } | null; is_platform_admin?: boolean };
@@ -437,42 +441,24 @@ export default function VenueShow({
             />
 
             <div className="min-h-screen">
-                <section
-                    className={`hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden ${heroBackdrop ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-950'}`}
-                >
+                <section className="border-b border-zinc-200 bg-zinc-100/90 dark:border-white/10 dark:bg-zinc-900/90">
                     {heroBackdrop ? (
-                        <img src={heroBackdrop} alt={venue.name} className="absolute inset-0 h-full w-full object-cover" />
-                    ) : (
-                        <div className="absolute inset-0" aria-hidden>
-                            <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-800 dark:via-zinc-950 dark:to-black" />
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(217,119,6,0.2),transparent_55%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_20%_25%,rgba(245,158,11,0.22),transparent_55%)]" />
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.1),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_50%_at_85%_70%,rgba(180,83,9,0.12),transparent_50%)]" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Building2
-                                    className="h-[min(40vw,11rem)] w-[min(40vw,11rem)] text-amber-700/20 dark:text-amber-400/15"
-                                    strokeWidth={1}
-                                />
-                            </div>
+                        <div className="relative h-36 w-full overflow-hidden sm:h-44">
+                            <img src={heroBackdrop} alt="" className="h-full w-full object-cover" decoding="async" />
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-100/95 to-transparent dark:from-zinc-900/95" aria-hidden />
                         </div>
-                    )}
-                    <div
-                        className={
-                            heroBackdrop
-                                ? 'absolute inset-0 bg-zinc-950/70'
-                                : 'absolute inset-0 bg-zinc-950/52 dark:bg-zinc-950/70'
-                        }
-                    />
-                    <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+                    ) : null}
+                    <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                         <Link
                             href={route('venues.index')}
-                            className="inline-flex items-center gap-2 text-sm text-amber-300 hover:text-amber-200"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-amber-800 transition hover:text-amber-950 dark:text-amber-400 dark:hover:text-amber-300"
                         >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
                             Mekanlar
                         </Link>
-                        <div className="mt-6 flex max-w-4xl flex-col gap-6 sm:flex-row sm:items-start">
+                        <div className="mt-5 flex flex-col gap-5 sm:mt-6 sm:flex-row sm:items-start sm:gap-6">
                             <div className="flex shrink-0 justify-center sm:justify-start">
                                 <ProfilePromoStoryAvatarWrap
                                     entityKind="venue"
@@ -481,14 +467,14 @@ export default function VenueShow({
                                     scrollTargetId="sayfa-tanitim-videolari"
                                     onActivate={() => setPromoStoryViewerOpen(true)}
                                 >
-                                    <div className="rounded-full bg-zinc-50 p-[3px] dark:bg-zinc-950">
-                                        <div className="relative h-28 w-28 overflow-hidden rounded-full bg-zinc-200 ring-2 ring-white/25 dark:bg-zinc-900 dark:ring-white/20 sm:h-32 sm:w-32">
+                                    <div className="rounded-2xl bg-white p-1 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:ring-white/10">
+                                        <div className="relative h-[5.5rem] w-[5.5rem] overflow-hidden rounded-[0.875rem] bg-zinc-200 dark:bg-zinc-900 sm:h-28 sm:w-28">
                                             {heroBackdrop ? (
                                                 <img src={heroBackdrop} alt={venue.name} className="h-full w-full object-cover" />
                                             ) : (
-                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-300 to-zinc-400 dark:from-zinc-700 dark:to-zinc-800">
                                                     <Building2
-                                                        className="h-10 w-10 text-amber-400/35 dark:text-amber-400/40"
+                                                        className="h-11 w-11 text-amber-800/35 dark:text-amber-400/40"
                                                         strokeWidth={1}
                                                         aria-hidden
                                                     />
@@ -499,54 +485,110 @@ export default function VenueShow({
                                 </ProfilePromoStoryAvatarWrap>
                             </div>
                             <div className="min-w-0 flex-1 text-center sm:text-left">
-                                <p className="text-sm text-zinc-200">{venue.city.name}</p>
-                                <h1 className="mt-2 font-display text-4xl font-bold text-white sm:text-5xl lg:text-6xl">{venue.name}</h1>
-                                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm sm:justify-start">
-                                    <span className="rounded-full bg-amber-500 px-3 py-1 font-semibold text-zinc-900">{venue.category.name}</span>
-                                    {venue.is_new_on_platform ? <CatalogNewBadge className="shadow-lg ring-white/30" /> : null}
-                                    {venue.is_verified_profile ? (
-                                        <VerifiedArtistProfileBadge variant="venue" size="md" className="shadow-lg ring-white/25" />
+                                <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-950 dark:text-white sm:text-3xl lg:text-4xl">
+                                    {venue.name}
+                                </h1>
+                                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400 sm:justify-start">
+                                    <MapPin className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                                    {venue.city.name}
+                                </p>
+                                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400 sm:justify-start">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Calendar className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                                        {venueHeaderStats.published_events_count.toLocaleString('tr-TR')} etkinlik
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <Users className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                                        {venueHeaderStats.followers_count.toLocaleString('tr-TR')} takipçi
+                                    </span>
+                                </div>
+                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                                    {venueFollow.canToggle ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(route('user.favorites.venues.toggle', venue.id), {}, { preserveScroll: true })
+                                            }
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                                                venueFollow.isFollowing
+                                                    ? 'border-amber-500/50 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100 dark:hover:bg-amber-500/25'
+                                                    : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700'
+                                            }`}
+                                        >
+                                            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                                            {venueFollow.isFollowing ? 'Takiptesin' : 'Takip Et'}
+                                        </button>
+                                    ) : !user ? (
+                                        <Link
+                                            href={route('login', { redirect: `/mekanlar/${venue.slug}` })}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                                        >
+                                            <Plus className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                                            Takip Et
+                                        </Link>
                                     ) : null}
-                                    {venue.capacity != null && venue.capacity > 0 && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-zinc-100">
-                                            <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            {venue.capacity} kişi
-                                        </span>
-                                    )}
+                                    {directionsUrl ? (
+                                        <a
+                                            href={directionsUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                                        >
+                                            <Map className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={2} aria-hidden />
+                                            Yol tarifi al
+                                        </a>
+                                    ) : null}
                                 </div>
                                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm sm:justify-start">
-                                    <div className="flex items-center gap-2 text-zinc-300">
-                                        <div className="flex text-amber-400">
+                                    <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-zinc-900 sm:text-sm">
+                                        {venue.category.name}
+                                    </span>
+                                    {venue.is_new_on_platform ? <CatalogNewBadge /> : null}
+                                    {venue.is_verified_profile ? (
+                                        <VerifiedArtistProfileBadge variant="venue" size="sm" className="shadow-sm" />
+                                    ) : null}
+                                    {venue.capacity != null && venue.capacity > 0 ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-700 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-200 sm:text-sm">
+                                            <Users className="h-3.5 w-3.5 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                                            {venue.capacity} kişi
+                                        </span>
+                                    ) : null}
+                                </div>
+                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm sm:justify-start">
+                                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                                        <div className="flex text-amber-500">
                                             {'★'.repeat(Math.min(5, venue.rating_avg || 0))}
-                                            <span className="text-zinc-600">{'★'.repeat(5 - Math.min(5, venue.rating_avg || 0))}</span>
+                                            <span className="text-zinc-300 dark:text-zinc-600">
+                                                {'★'.repeat(5 - Math.min(5, venue.rating_avg || 0))}
+                                            </span>
                                         </div>
-                                        <span className="font-semibold text-white">{venue.rating_avg || '-'}</span>
-                                        <span className="text-zinc-400">({reviewCount} değerlendirme)</span>
+                                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{venue.rating_avg || '-'}</span>
+                                        <span className="text-zinc-500 dark:text-zinc-500">({reviewCount} değerlendirme)</span>
                                     </div>
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-zinc-200">
-                                        <Eye className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden strokeWidth={2} />
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-300 sm:text-sm">
+                                        <Eye className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden strokeWidth={2} />
                                         {(venue.view_count ?? 0).toLocaleString('tr-TR')} görüntülenme
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => setSuggestEditOpen(true)}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-sm font-medium text-amber-200 transition hover:bg-white/15"
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 sm:text-sm"
                                     >
                                         <PenLine className="h-3.5 w-3.5 shrink-0" aria-hidden strokeWidth={2} />
                                         Düzenleme öner
                                     </button>
                                 </div>
                                 {(venue.phone || venue.whatsapp || venue.website || (venue.social_links && Object.keys(venue.social_links).length > 0)) && (
-                                    <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-6">
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">İletişim</span>
+                                    <div className="mt-6 flex flex-col gap-3 border-t border-zinc-200 pt-6 dark:border-white/10">
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                                            İletişim
+                                        </span>
                                         {(venue.phone || venue.whatsapp) && (
-                                            <div className="flex flex-wrap gap-2">
+                                            <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
                                                 {venue.phone && (
                                                     <a
                                                         href={`tel:${venue.phone.replaceAll(/\s/g, '')}`}
-                                                        className="inline-flex items-center gap-2 rounded-full border border-amber-400/35 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-100 shadow-sm transition hover:border-amber-400/55 hover:bg-amber-500/25"
+                                                        className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-950 shadow-sm transition hover:bg-amber-100 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-100 dark:hover:bg-amber-500/20"
                                                     >
                                                         <Phone className="h-4 w-4 shrink-0 opacity-90" aria-hidden strokeWidth={2} />
                                                         {venue.phone}
@@ -557,7 +599,7 @@ export default function VenueShow({
                                                         href={`https://wa.me/${venue.whatsapp.replaceAll(/[^\d]/g, '')}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-100 transition hover:border-emerald-400/60 hover:bg-emerald-500/30"
+                                                        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/45 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900 transition hover:bg-emerald-100 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-100 dark:hover:bg-emerald-500/20"
                                                     >
                                                         <SocialPlatformIcon platform="whatsapp" className="h-4 w-4 shrink-0" />
                                                         WhatsApp
@@ -566,7 +608,7 @@ export default function VenueShow({
                                             </div>
                                         )}
                                         {(venue.website || (venue.social_links && sortVenueSocialEntries(venue.social_links).length > 0)) && (
-                                            <div className="flex flex-wrap items-center gap-2">
+                                            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                                                 <span className="sr-only">Web ve sosyal bağlantılar</span>
                                                 {venue.website && (
                                                     <a
@@ -575,7 +617,7 @@ export default function VenueShow({
                                                         rel="noopener noreferrer"
                                                         title="Web sitesi"
                                                         aria-label="Web sitesi — yeni sekmede aç"
-                                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition hover:border-amber-400/50 hover:bg-white/15 hover:text-amber-200"
+                                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 shadow-sm transition hover:border-amber-400/60 hover:bg-amber-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40 dark:hover:bg-zinc-700"
                                                     >
                                                         <Globe className="h-[1.15rem] w-[1.15rem] shrink-0" strokeWidth={2} aria-hidden />
                                                     </a>
@@ -589,7 +631,7 @@ export default function VenueShow({
                                                             rel="noopener noreferrer"
                                                             title={venueSocialLinkTitle(key)}
                                                             aria-label={`${venueSocialLinkTitle(key)} — yeni sekmede aç`}
-                                                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition hover:border-amber-400/50 hover:bg-white/15 hover:text-amber-200"
+                                                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-800 shadow-sm transition hover:border-amber-400/60 hover:bg-amber-50 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-amber-500/40 dark:hover:bg-zinc-700"
                                                         >
                                                             <SocialPlatformIcon platform={key} className="h-5 w-5" />
                                                         </a>

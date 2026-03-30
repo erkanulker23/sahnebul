@@ -110,6 +110,30 @@ function storageUrl(path: string | null): string | null {
     return `/storage/${path}`;
 }
 
+function UrlImagePreviewFallback({ url }: Readonly<{ url: string }>) {
+    const u = url.trim();
+    if (!u.startsWith('http')) {
+        return null;
+    }
+    return (
+        <div className="max-w-md rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:border-amber-500/35 dark:bg-amber-500/10 dark:text-amber-100">
+            <p className="font-medium">Önizleme yüklenemedi</p>
+            <p className="mt-1 text-amber-900/90 dark:text-amber-200/90">
+                Instagram, Facebook ve bazı CDN adresleri tarayıcıda <code className="rounded bg-black/10 px-0.5 dark:bg-white/10">Referer</code> nedeniyle
+                bloklanabilir; bu kayıttan bağımsızdır. Kaydettiğinizde sunucu görseli indirmeyi dener; olmazsa dosya yükleyin veya kalıcı bir görsel URL’si kullanın.
+            </p>
+            <a
+                href={u}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block font-semibold text-amber-800 underline-offset-2 hover:underline dark:text-amber-300"
+            >
+                Adresi yeni sekmede aç
+            </a>
+        </div>
+    );
+}
+
 export default function AdminArtistEdit({
     artist,
     musicGenreOptions,
@@ -119,6 +143,10 @@ export default function AdminArtistEdit({
     artistOwnerSubscription = null,
 }: Readonly<Props>) {
     const [editTab, setEditTab] = useState<'genel' | 'gorsel' | 'sosyal' | 'icerik' | 'galeri'>('genel');
+    /** Instagram/Facebook CDN vb. tarayıcıda Referer ile engelleyebilir; sunucu indirmesi ayrı. */
+    const [avatarUrlPreviewFailed, setAvatarUrlPreviewFailed] = useState(false);
+    const [bannerUrlPreviewFailed, setBannerUrlPreviewFailed] = useState(false);
+
     const sl = artist.social_links ?? {};
     const mgr = artist.manager_info ?? {};
     const pub = artist.public_contact ?? {};
@@ -158,6 +186,13 @@ export default function AdminArtistEdit({
     });
 
     const [slugCheck, setSlugCheck] = useState<{ ok: boolean; message: string } | null>(null);
+
+    useEffect(() => {
+        setAvatarUrlPreviewFailed(false);
+    }, [data.avatar]);
+    useEffect(() => {
+        setBannerUrlPreviewFailed(false);
+    }, [data.banner_image]);
 
     useEffect(() => {
         const raw = data.slug.trim();
@@ -497,12 +532,24 @@ export default function AdminArtistEdit({
                             className={field}
                         />
                         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                            https ile başlayan adres kaydederken sunucuya indirilir; veritabanında yerel depolama yolu tutulur.
+                            https ile başlayan adres kaydederken sunucuya indirilir; veritabanında yerel depolama yolu tutulur. Instagram / Facebook CDN bağlantıları
+                            önizlemede boş kalabilir —{' '}
+                            <code className="rounded bg-zinc-200/80 px-0.5 text-[10px] dark:bg-zinc-700/80">referrerPolicy</code> ile denenir; yine de görünmüyorsa
+                            kayıttan sonra yerel dosyaya dönüşüp dönüşmediğini kontrol edin veya dosya yükleyin.
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                            {storageUrl(data.avatar) && (
-                                <img src={storageUrl(data.avatar) ?? ''} alt="" className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700" />
-                            )}
+                        <div className="mt-2 flex flex-wrap items-start gap-3">
+                            {storageUrl(data.avatar) && !avatarUrlPreviewFailed ? (
+                                <img
+                                    src={storageUrl(data.avatar) ?? ''}
+                                    alt=""
+                                    referrerPolicy="no-referrer"
+                                    className="h-24 w-24 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                                    onError={() => setAvatarUrlPreviewFailed(true)}
+                                />
+                            ) : null}
+                            {storageUrl(data.avatar) && avatarUrlPreviewFailed ? (
+                                <UrlImagePreviewFallback url={data.avatar} />
+                            ) : null}
                             {(data.avatar?.trim() || artist.avatar) && (
                                 <button
                                     type="button"
@@ -542,17 +589,24 @@ export default function AdminArtistEdit({
                             className={field}
                         />
                         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                            Banner URL&apos;si de aynı şekilde kayıtta indirilip yerel dosyaya çevrilir.
+                            Banner URL&apos;si de aynı şekilde kayıtta indirilip yerel dosyaya çevrilir. Bazı CDN önizlemeyi engelleyebilir (profil görseli notuna bakın).
                         </p>
-                        {storageUrl(data.banner_image) && (
+                        {storageUrl(data.banner_image) && !bannerUrlPreviewFailed ? (
                             <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
                                 <img
                                     src={storageUrl(data.banner_image) ?? ''}
                                     alt=""
+                                    referrerPolicy="no-referrer"
                                     className="aspect-[21/9] max-h-40 w-full object-cover"
+                                    onError={() => setBannerUrlPreviewFailed(true)}
                                 />
                             </div>
-                        )}
+                        ) : null}
+                        {storageUrl(data.banner_image) && bannerUrlPreviewFailed ? (
+                            <div className="mt-2">
+                                <UrlImagePreviewFallback url={data.banner_image} />
+                            </div>
+                        ) : null}
                         {(data.banner_image?.trim() || artist.banner_image) && (
                             <button
                                 type="button"

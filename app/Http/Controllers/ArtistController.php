@@ -306,6 +306,7 @@ class ArtistController extends Controller
             'upcoming_count' => (clone $statsQuery)->whereNotNull('events.start_date')->whereStillVisibleOnPublicListing()->count(),
             'past_count' => (clone $statsQuery)->whereNotNull('events.start_date')->wherePastOnPublicListing()->count(),
             'venue_count' => (clone $statsQuery)->distinct()->count('events.venue_id'),
+            'favorites_followers_count' => $artist->favoritedByUsers()->count(),
         ];
 
         $latestTracks = [];

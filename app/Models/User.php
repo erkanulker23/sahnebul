@@ -76,6 +76,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return $this->belongsToMany(Artist::class, 'user_favorite_artists')->withTimestamps();
     }
 
+    /** `venue_followers` — kamu mekân sayfası takibi */
+    public function followedVenues(): BelongsToMany
+    {
+        return $this->belongsToMany(Venue::class, 'venue_followers')->withTimestamps();
+    }
+
     public function remindedEvents(): BelongsToMany
     {
         return $this->belongsToMany(Event::class, 'user_event_reminders')
@@ -154,6 +160,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     /** Sanatçıyı favorilere ekle/çıkar (e-posta doğrulaması gerekmez; admin hesapları hariç). */
     public function canFavoriteArtists(): bool
+    {
+        return ! $this->isAdmin();
+    }
+
+    /** Kamu mekânını takip et (admin hesapları hariç). */
+    public function canFollowVenues(): bool
     {
         return ! $this->isAdmin();
     }

@@ -296,10 +296,27 @@ class VenueController extends Controller
             }
         }
 
+        $publishedEventsCount = $venue->events()->published()->count();
+        $followersCount = Schema::hasTable('venue_followers')
+            ? $venue->followers()->count()
+            : 0;
+        $u = auth()->user();
+        $isFollowingVenue = $u !== null
+            && $u->canFollowVenues()
+            && $u->followedVenues()->whereKey($venue->id)->exists();
+
         return Inertia::render('Venues/Show', [
             'venue' => $venue,
             'venuePageSeo' => VenuePageSeo::forLoadedVenue($venue, $appUrl),
             'venueEventPromoSections' => $venueEventPromoSections,
+            'venueHeaderStats' => [
+                'published_events_count' => $publishedEventsCount,
+                'followers_count' => $followersCount,
+            ],
+            'venueFollow' => [
+                'canToggle' => $u !== null && $u->canFollowVenues(),
+                'isFollowing' => $isFollowingVenue,
+            ],
             'claimStatus' => auth()->check()
                 ? VenueClaimRequest::where('venue_id', $venue->id)->where('user_id', auth()->id())->value('status')
                 : null,
