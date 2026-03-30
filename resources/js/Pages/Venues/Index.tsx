@@ -697,8 +697,8 @@ export default function VenuesIndex({
                                                     />
                                                     {featured ? (
                                                         <div className="pointer-events-none absolute left-2 top-2 z-[3] sm:left-3 sm:top-3">
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:shadow-none dark:ring-1 dark:ring-white/25 sm:gap-1.5 sm:px-2.5 sm:text-[10px]">
-                                                                <Star className="h-3 w-3 fill-zinc-950" strokeWidth={2} aria-hidden />
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:from-emerald-200 dark:via-emerald-400 dark:to-emerald-600 dark:text-zinc-950 dark:shadow-lg dark:shadow-emerald-950/50 dark:ring-2 dark:ring-white/40 sm:gap-1.5 sm:px-2.5 sm:text-[10px]">
+                                                                <Star className="h-3 w-3 fill-zinc-950 dark:fill-zinc-950" strokeWidth={2} aria-hidden />
                                                                 Öne çıkan
                                                             </span>
                                                         </div>
@@ -742,7 +742,7 @@ export default function VenuesIndex({
                                                 <div
                                                     className={`p-4 ${
                                                         featured
-                                                            ? 'bg-gradient-to-b from-emerald-50/90 to-white dark:from-emerald-950/38 dark:to-zinc-900/90'
+                                                            ? 'bg-gradient-to-b from-emerald-50/90 to-white dark:border-t-2 dark:border-emerald-500/55 dark:bg-gradient-to-b dark:from-zinc-900 dark:to-zinc-950'
                                                             : ''
                                                     }`}
                                                 >
@@ -753,11 +753,15 @@ export default function VenuesIndex({
                                                         ) : null}
                                                     </div>
                                                     {venue.category?.name ? (
-                                                        <p className="mt-1 text-xs font-medium text-emerald-800 dark:text-emerald-400/90">
+                                                        <p className="mt-1 text-xs font-medium text-emerald-800 dark:text-emerald-300">
                                                             {venue.category.name}
                                                         </p>
                                                     ) : null}
-                                                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">
+                                                    <p
+                                                        className={`mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400 ${
+                                                            featured ? 'dark:text-zinc-300' : ''
+                                                        }`}
+                                                    >
                                                         {venue.address}
                                                     </p>
                                                 </div>
@@ -766,7 +770,7 @@ export default function VenuesIndex({
                                         return (
                                             <li key={venue.id} className="shrink-0 snap-start">
                                                 {featured ? (
-                                                    <div className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_12px_40px_-8px_rgba(16,185,129,0.38)] dark:from-emerald-500/55 dark:via-emerald-700/75 dark:to-emerald-950 dark:shadow-none dark:ring-1 dark:ring-emerald-500/40">
+                                                    <div className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_12px_40px_-8px_rgba(16,185,129,0.38)] dark:from-emerald-400/90 dark:via-emerald-500 dark:to-emerald-700 dark:shadow-[0_8px_32px_-6px_rgba(16,185,129,0.45)] dark:ring-2 dark:ring-emerald-400/50">
                                                         {card}
                                                     </div>
                                                 ) : (
@@ -839,8 +843,8 @@ export default function VenuesIndex({
                                                     />
                                                     {featured ? (
                                                         <div className="pointer-events-none absolute left-2 top-2 z-[14] sm:left-3 sm:top-3">
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:shadow-none dark:ring-1 dark:ring-white/25 sm:gap-1.5 sm:text-xs">
-                                                                <Star className="h-3 w-3 fill-zinc-950 sm:h-3.5 sm:w-3.5" strokeWidth={2} aria-hidden />
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-950 shadow-lg shadow-emerald-900/45 ring-2 ring-white/50 dark:from-emerald-200 dark:via-emerald-400 dark:to-emerald-600 dark:text-zinc-950 dark:shadow-lg dark:shadow-emerald-950/50 dark:ring-2 dark:ring-white/40 sm:gap-1.5 sm:text-xs">
+                                                                <Star className="h-3 w-3 fill-zinc-950 dark:fill-zinc-950 sm:h-3.5 sm:w-3.5" strokeWidth={2} aria-hidden />
                                                                 Öne çıkan
                                                             </span>
                                                         </div>
@@ -884,7 +888,7 @@ export default function VenuesIndex({
                                                 <div
                                                     className={`p-4 ${
                                                         featured
-                                                            ? 'bg-gradient-to-b from-emerald-50/95 to-white dark:from-emerald-950/45 dark:to-zinc-900/95'
+                                                            ? 'bg-gradient-to-b from-emerald-50/95 to-white dark:border-t-2 dark:border-emerald-500/55 dark:bg-gradient-to-b dark:from-zinc-900 dark:to-zinc-950'
                                                             : ''
                                                     }`}
                                                 >
@@ -894,8 +898,12 @@ export default function VenuesIndex({
                                                             <VerifiedArtistProfileBadge variant="venue" className="shrink-0" />
                                                         ) : null}
                                                     </div>
-                                                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                                        {venue.city?.name ?? '-'} • {venue.category?.name ?? '-'}
+                                                    <p
+                                                        className={`mt-1 text-sm text-zinc-600 dark:text-zinc-400 ${
+                                                            featured ? 'dark:text-zinc-300' : ''
+                                                        }`}
+                                                    >
+                                                        {venue.city?.name ?? '-'} · {venue.category?.name ?? '-'}
                                                     </p>
                                                     {(venue.review_count ?? 0) > 0 && (venue.rating_avg ?? 0) > 0 ? (
                                                         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
@@ -909,14 +917,20 @@ export default function VenuesIndex({
                                                             <span className="text-zinc-500 dark:text-zinc-500">({venue.review_count} değerlendirme)</span>
                                                         </div>
                                                     ) : null}
-                                                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-500">{venue.address}</p>
+                                                    <p
+                                                        className={`mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400 ${
+                                                            featured ? 'dark:text-zinc-300' : ''
+                                                        }`}
+                                                    >
+                                                        {venue.address}
+                                                    </p>
                                                 </div>
                                             </Link>
                                         );
                                         return featured ? (
                                             <div
                                                 key={venue.id}
-                                                className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_14px_44px_-8px_rgba(16,185,129,0.42)] dark:from-emerald-500/55 dark:via-emerald-700/75 dark:to-emerald-950 dark:shadow-none dark:ring-1 dark:ring-emerald-500/40"
+                                                className="rounded-2xl bg-gradient-to-br from-emerald-300/95 via-emerald-500 to-emerald-900 p-[2px] shadow-[0_14px_44px_-8px_rgba(16,185,129,0.42)] dark:from-emerald-400/90 dark:via-emerald-500 dark:to-emerald-700 dark:shadow-[0_8px_36px_-8px_rgba(16,185,129,0.45)] dark:ring-2 dark:ring-emerald-400/50"
                                             >
                                                 {link}
                                             </div>
