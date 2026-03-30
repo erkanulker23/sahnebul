@@ -1062,7 +1062,7 @@ export default function ArtistShow({
 
                             {artist.bio?.trim() && (
                                 <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-8 dark:border-white/[0.06] dark:bg-zinc-900/50">
-                                    <h2 className="font-display mb-4 text-xl font-bold text-zinc-900 dark:text-white">Hakkında</h2>
+                                    <h2 className="font-display mb-4 text-xl font-bold text-zinc-900 dark:text-white">Biyografi</h2>
                                     <RichOrPlainContent
                                         content={artist.bio}
                                         richClassName="prose prose-zinc max-w-none dark:prose-invert prose-p:leading-relaxed prose-p:text-zinc-600 dark:prose-p:text-zinc-400 prose-headings:font-semibold prose-a:text-amber-600 dark:prose-a:text-amber-400"

@@ -982,14 +982,17 @@ final class EventMediaImportFromUrlService
         }
         $hasStoredVideo = is_string($videoPath) && trim($videoPath) !== '';
         $slot = $promoGallerySlot === 'video' || $promoGallerySlot === 'post' ? $promoGallerySlot : null;
-        if ($hasStoredVideo) {
+        // Gönderi görselleri kutusu: tam MP4 denenmez; her zaman galeri (post) — slot/null edge-case’lerde de sapma olmasın.
+        if ($posterEmbedOnly) {
+            $resolvedKind = 'post';
+        } elseif ($hasStoredVideo) {
             $resolvedKind = 'story';
         } elseif ($slot === 'video' && $isInstagram && (($shortcode !== null && $shortcode !== '') || $instagramStoryCanonical !== null)) {
             $resolvedKind = 'story';
         } elseif ($slot === 'post') {
             $resolvedKind = 'post';
         } else {
-            $resolvedKind = ($posterEmbedOnly || ! $hasStoredVideo) ? 'post' : 'story';
+            $resolvedKind = (! $hasStoredVideo) ? 'post' : 'story';
         }
         $newItem = [
             'embed_url' => $canonicalEmbed,

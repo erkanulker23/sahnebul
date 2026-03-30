@@ -88,21 +88,45 @@ function normalizePromoGalleryItem(raw: unknown): PromoGalleryItem {
     };
 }
 
+/** Instagram gönderi (/p/, /share/p/) — Reels/tv/hikâye değil; indirilmiş kapaklı eski kayıtları galeride göstermek için. */
+function instagramEmbedIsGalleryPost(embed: string): boolean {
+    const raw = embed.trim();
+    if (raw === '' || !raw.includes('instagram.com')) {
+        return false;
+    }
+    try {
+        const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+        const p = u.pathname.toLowerCase();
+        if (p.includes('/stories/')) {
+            return false;
+        }
+        if (/(^|\/)(reel|reels|tv)\//.test(p.replace(/^\/+/, '/'))) {
+            return false;
+        }
+        return /\/p\/[^/]+/i.test(p) || /\/share\/p\/[^/]+/i.test(p);
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Story = tanıtım videosu / Reels / dikey içerik; post = yalnız kapak görseli (Instagram dışı veya gönderi).
- * Instagram bağlantıları (Reels/gönderi) açıkça `promo_kind: post` değilse story’de üst ızgarada gösterilir.
+ * Eski içe aktarımlar: DB’de yanlışlıkla `story` + /p/ + kapak → yine de gönderi galerisi.
  */
 export function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
     if (it.video_path?.trim()) {
-        return 'story';
-    }
-    if (it.promo_kind === 'story') {
         return 'story';
     }
     if (it.promo_kind === 'post') {
         return 'post';
     }
     const embed = it.embed_url?.trim() ?? '';
+    if (it.promo_kind === 'story' && it.poster_path?.trim() && instagramEmbedIsGalleryPost(embed)) {
+        return 'post';
+    }
+    if (it.promo_kind === 'story') {
+        return 'story';
+    }
     if (embed.includes('instagram.com')) {
         return 'story';
     }
@@ -377,7 +401,7 @@ export function PublicPromoGallerySection({
                         <video
                             controls
                             playsInline
-                            preload="metadata"
+                            preload="auto"
                             className="absolute inset-0 box-border h-full w-full max-w-full object-cover"
                             poster={posterSrc ?? undefined}
                         >
@@ -398,7 +422,7 @@ export function PublicPromoGallerySection({
                             className="pointer-events-auto absolute left-1/2 top-1/2 h-[118%] w-full max-w-full -translate-x-1/2 -translate-y-1/2 border-0 sm:w-[min(104%,42rem)] sm:max-w-none"
                             allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
                             allowFullScreen
-                            loading="lazy"
+                            referrerPolicy="strict-origin-when-cross-origin"
                         />
                     </div>
                 ) : posterSrc ? (

@@ -441,8 +441,23 @@ class MarketplaceCrawlerService
     private function inferBubiletSehirSecCategory(string $title): string
     {
         $t = mb_strtolower($title, 'UTF-8');
-        if (str_contains($t, 'globetrotters')) {
+        if (str_contains($t, 'globetrotters') || str_contains($t, 'futbol') || str_contains($t, 'basketbol') || str_contains($t, 'voleybol') || preg_match('/\bderbi\b|\bmaçı\b|\bgalatasaray\b|\bfenerbahçe\b|\bbeşiktaş\b/u', $t)) {
             return 'Spor';
+        }
+        if (str_contains($t, 'tiyatro') || str_contains($t, 'dramı') || str_contains($t, ' oyunu') || str_contains($t, 'sahne')) {
+            return 'Tiyatro';
+        }
+        if (str_contains($t, 'festival')) {
+            return 'Festival';
+        }
+        if (str_contains($t, 'stand up') || str_contains($t, 'stand-up') || str_contains($t, 'komedi gecesi')) {
+            return 'Stand-up';
+        }
+        if (str_contains($t, 'sergi') || str_contains($t, 'müze')) {
+            return 'Sergi';
+        }
+        if (str_contains($t, 'sinema') || str_contains($t, 'film gösterimi')) {
+            return 'Sinema';
         }
         if (preg_match('/tolgshow|güldür|çok güzel hareketler|hayrettin|ilker ayrik|şehriban|memleket kahkahası|kaos night|zengin mutfağı|gerçekler acıdır|burda olan burda kalır/u', $t)) {
             return 'Gösteri';
@@ -453,11 +468,11 @@ class MarketplaceCrawlerService
         if (str_contains($t, 'candle') && str_contains($t, 'echo')) {
             return 'Müzik';
         }
-        if (str_contains($t, 'konser')) {
+        if (str_contains($t, 'konser') || str_contains($t, 'canlı müzik') || str_contains($t, 'live')) {
             return 'Konser';
         }
 
-        return 'Konser';
+        return 'Etkinlik';
     }
 
     private function bubiletCityNameFromSlug(string $slug): string
@@ -604,7 +619,8 @@ class MarketplaceCrawlerService
             : [(string) $sourceConfig['url']];
 
         $listingDelayUs = max(0, (int) config('crawler.biletinial_listing_delay_us', 350_000));
-        $pathKeys = [];
+        /** @var array<string, string> $pathToListingSegment path => tr-tr alt segment (muzik, tiyatro, …) */
+        $pathToListingSegment = [];
 
         foreach ($listingUrls as $idx => $listingUrl) {
             if ($idx > 0 && $listingDelayUs > 0) {
@@ -618,11 +634,13 @@ class MarketplaceCrawlerService
 
             $segment = $this->biletinialCategorySegmentFromListingUrl($listingUrl);
             foreach ($this->extractBiletinialEventPathsFromListingHtml($html, $segment) as $p) {
-                $pathKeys[$p] = true;
+                if (! isset($pathToListingSegment[$p])) {
+                    $pathToListingSegment[$p] = $segment;
+                }
             }
         }
 
-        $paths = array_keys($pathKeys);
+        $paths = array_keys($pathToListingSegment);
         $base = 'https://biletinial.com';
         $normalized = [];
         $maxDetailPages = max(10, min(800, (int) config('crawler.biletinial_max_detail_pages', 200)));
@@ -648,15 +666,37 @@ class MarketplaceCrawlerService
                 continue;
             }
 
-            foreach ($this->parseBiletinialDetailHtmlToSchemaEvents($detailHtml, $url) as $event) {
+            $listingSegment = $pathToListingSegment[$path] ?? 'etkinlik';
+            foreach ($this->parseBiletinialDetailHtmlToSchemaEvents($detailHtml, $url, $listingSegment) as $event) {
                 $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
                 if ($row !== null) {
+                    $row['category_name'] = $this->categoryNameFromBiletinialListingSegment($listingSegment);
                     $normalized[] = $row;
                 }
             }
         }
 
         return $normalized;
+    }
+
+    /**
+     * Biletinial listeleme URL segmentine göre admin / dış kaynak kategorisi (konser dışı etkinlikler yanlışlıkla "Konser Alanı" olmasın).
+     */
+    private function categoryNameFromBiletinialListingSegment(string $segment): string
+    {
+        $slug = mb_strtolower(trim(str_replace(['/', '\\'], '', $segment)), 'UTF-8');
+        $slug = str_replace('-', '', $slug);
+
+        return match (true) {
+            str_contains($slug, 'muzik') => 'Müzik',
+            str_contains($slug, 'tiyatro') => 'Tiyatro',
+            str_contains($slug, 'spor') => 'Spor',
+            str_contains($slug, 'etkinlik') => 'Etkinlik',
+            str_contains($slug, 'standup') || str_contains($slug, 'stand') => 'Stand-up',
+            str_contains($slug, 'cocuk') => 'Çocuk',
+            str_contains($slug, 'sanat') => 'Sanat',
+            default => Str::title(str_replace('-', ' ', trim($segment, '-'))),
+        };
     }
 
     private function biletinialCategorySegmentFromListingUrl(string $listingUrl): string
@@ -812,7 +852,7 @@ class MarketplaceCrawlerService
     /**
      * @return list<array<string, mixed>>
      */
-    private function parseBiletinialDetailHtmlToSchemaEvents(string $html, string $pageUrl): array
+    private function parseBiletinialDetailHtmlToSchemaEvents(string $html, string $pageUrl, string $listingSegment = 'muzik'): array
     {
         $pageTitle = $this->biletinialPageDisplayTitle($html);
         if ($pageTitle === '') {
@@ -890,6 +930,8 @@ class MarketplaceCrawlerService
                 $location['geo'] = $geo;
             }
 
+            $kw = $this->categoryNameFromBiletinialListingSegment($listingSegment);
+
             $out[] = [
                 '@type' => 'Event',
                 'name' => $pageTitle,
@@ -899,7 +941,7 @@ class MarketplaceCrawlerService
                 'image' => $image ?? '',
                 'performer' => $performer,
                 'location' => $location,
-                'keywords' => 'Müzik',
+                'keywords' => $kw,
                 'biletinial_venue_path' => $mekanHref !== '' ? $this->normalizeUrl($mekanHref, 'https://biletinial.com') : null,
             ];
         }
@@ -1152,7 +1194,15 @@ class MarketplaceCrawlerService
             str_contains($lower, 'spor') => 'Spor',
             str_contains($lower, 'festival') => 'Festival',
             str_contains($lower, 'stand') => 'Stand-up',
-            default => 'Konser Alanı',
+            str_contains($lower, 'sinema') || str_contains($lower, 'film') => 'Sinema',
+            str_contains($lower, 'sergi') || str_contains($lower, 'müze') => 'Sergi',
+            str_contains($lower, 'workshop') || str_contains($lower, 'atölye') => 'Workshop',
+            str_contains($lower, 'çocuk') || str_contains($lower, 'aile') => 'Çocuk',
+            str_contains($lower, 'opera') || str_contains($lower, 'bale') => 'Sahne sanatları',
+            str_contains($lower, 'müzik') || str_contains($lower, 'konser') => 'Müzik',
+            str_contains($lower, 'theatre') || str_contains($lower, 'theater') => 'Tiyatro',
+            str_contains($lower, 'sports') => 'Spor',
+            default => 'Etkinlik',
         };
     }
 

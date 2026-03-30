@@ -34,6 +34,8 @@
     html {
         scroll-behavior: smooth;
         -webkit-tap-highlight-color: transparent;
+        /* Kaydırma çubuğu göster/gizle (overflow: hidden vb.) ile yatay kaymayı azaltır */
+        scrollbar-gutter: stable;
     }
 
     /**

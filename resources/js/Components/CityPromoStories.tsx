@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { usePromoVideoSlidePlayback } from '@/lib/usePromoVideoSlidePlayback';
 import {
     instagramPostOrReelEmbedIframeSrc,
     iosLikeUserAgent,
@@ -117,15 +118,15 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             ? instagramPostOrReelEmbedIframeSrc(embed)
             : null;
 
+    const videoSlideKey =
+        segment && videoSrc ? `${segment.event_id}-${openRing}-${openSegment}-${videoSrc}` : null;
+    usePromoVideoSlidePlayback(videoRef, videoSlideKey, videoSrc);
+
     useEffect(() => {
         if (!segment) {
             return;
         }
         if (videoSrc) {
-            const v = videoRef.current;
-            if (v) {
-                void v.play().catch(() => {});
-            }
             return;
         }
         if (igIframeSrc) {
@@ -248,11 +249,13 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                     ) : igIframeSrc ? (
                         <div className="aspect-[9/16] h-full max-h-[85dvh] w-full max-w-[min(100%,28rem)] overflow-hidden rounded-lg bg-zinc-950">
                             <iframe
+                                key={`${segment.event_id}-${openSegment}-${igIframeSrc}`}
                                 src={igIframeSrc}
                                 title="Instagram"
                                 className="h-full w-full border-0"
                                 allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
                                 allowFullScreen
+                                referrerPolicy="strict-origin-when-cross-origin"
                             />
                         </div>
                     ) : posterSrc ? (

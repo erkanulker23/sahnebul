@@ -93,7 +93,7 @@
             @endif
         @endif
     </head>
-    <body class="font-sans antialiased bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+    <body class="font-sans antialiased overflow-x-clip bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
         @if ($viteReady)
             @inertia
             @php

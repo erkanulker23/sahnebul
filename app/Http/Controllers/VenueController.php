@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
+use App\Support\CaseInsensitiveSearch;
 use App\Support\DailyUniqueEntityView;
 use App\Support\EventPromoVenueProfileModeration;
 use App\Support\HomeHeroSlideDefaults;
@@ -52,7 +53,7 @@ class VenueController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            CaseInsensitiveSearch::whereColumnLikeInsensitive($query, 'name', (string) $request->string('search'));
         }
 
         $venues = $query

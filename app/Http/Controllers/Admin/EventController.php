@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class EventController extends Controller
@@ -356,6 +357,20 @@ class EventController extends Controller
 
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
+
+        $transitioningToPublished = ($validated['status'] ?? '') === 'published'
+            && $event->status !== 'published';
+        if ($transitioningToPublished) {
+            $publishArtistIds = array_values(array_filter(
+                array_map(intval(...), is_array($artistIds) ? $artistIds : []),
+                fn (int $id) => $id > 0,
+            ));
+            if ($publishArtistIds === []) {
+                throw ValidationException::withMessages([
+                    'artist_ids' => 'Yayınlamak için etkinliğe en az bir onaylı sanatçı bağlanmalıdır.',
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($event, $validated, $ticketTiers, $artistIds): void {
             $event->update($validated);

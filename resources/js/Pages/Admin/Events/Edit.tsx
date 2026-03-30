@@ -108,6 +108,8 @@ export default function AdminEventEdit({
     const [venueOptions, setVenueOptions] = useState(venues);
     const coverFileInputRef = useRef<HTMLInputElement>(null);
     const listingFileInputRef = useRef<HTMLInputElement>(null);
+    /** Yayınla, form kaydı ile aynı istekte status=published gönderilsin (ayrı approve çağrısı DB'deki eski sanatçı listesiyle kalıyordu). */
+    const forcePublishStatusRef = useRef(false);
     useEffect(() => {
         setVenueOptions(venues);
     }, [venues]);
@@ -141,8 +143,11 @@ export default function AdminEventEdit({
     transform((d) => {
         const { ticket_tiers: tiers, cover_upload, listing_upload, ticket_outlets, entry_is_paid, ...rest } = d;
         const paid = Boolean(entry_is_paid);
+        const publishNow = forcePublishStatusRef.current;
+        forcePublishStatusRef.current = false;
         return {
             ...rest,
+            status: publishNow ? 'published' : rest.status,
             entry_is_paid: paid,
             description: rest.description || null,
             event_rules: rest.event_rules || null,
@@ -660,8 +665,20 @@ export default function AdminEventEdit({
                         {event.status === 'draft' && (
                             <button
                                 type="button"
-                                onClick={() => router.post(route('admin.events.approve', event.id), {}, { preserveScroll: true })}
-                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                                disabled={processing}
+                                onClick={() => {
+                                    forcePublishStatusRef.current = true;
+                                    put(route('admin.events.update', event.id), {
+                                        forceFormData: Boolean(data.cover_upload || data.listing_upload),
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            setData('cover_upload', null);
+                                            setData('listing_upload', null);
+                                            setData('status', 'published');
+                                        },
+                                    });
+                                }}
+                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
                             >
                                 Yayınla
                             </button>

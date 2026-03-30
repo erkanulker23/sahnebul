@@ -1,4 +1,4 @@
-import { coercePromoGalleryRows } from '@/Components/PublicPromoGallerySection';
+import { coercePromoGalleryRows, promoKindOf } from '@/Components/PublicPromoGallerySection';
 import { inputBaseClass } from '@/Components/ui/Input';
 import { cn } from '@/lib/cn';
 import type { PageProps } from '@/types';
@@ -49,42 +49,26 @@ function storageUrl(path: string | null): string | null {
 }
 
 function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video_path' | 'embed_url' | 'poster_path'>): 'story' | 'post' {
-    if (row.video_path) {
-        return 'story';
-    }
-    if (row.promo_kind === 'story') {
-        return 'story';
-    }
-    if (row.promo_kind === 'post') {
-        return 'post';
-    }
-    const embed = row.embed_url?.trim() ?? '';
-    if (embed.includes('instagram.com')) {
-        return 'story';
-    }
-    if (row.poster_path) {
-        return 'post';
-    }
-    return 'story';
+    return promoKindOf(row);
 }
 
 const COPY = {
     venue: {
         lead: 'Ziyaretçi sayfasında üstte tanıtım videoları, altta gönderi görselleri görünür. Aşağıda önce görselleri (1), sonra videoları (2) ekleyin — yanlış kutuya URL koymayın.',
         postHint:
-            'Satırların hepsi instagram.com ise önce tam video indirilir; olmazsa önizleme kalır. Karışık satırda yalnız kapak. Tam .mp4 için 2. bölüm.',
+            'Instagram ve diğer bağlantılarda yalnız kapak görseli + embed eklenir (gönderi galerisi). Tam video/reels indirmesi için 2. bölümü kullanın.',
         reelHint: 'MP4/WebM dosyası veya reel URL’si; uzun indirmede arka plan kuyruğunu açabilirsiniz.',
     },
     artist: {
         lead: 'Sitede üstte tanıtım videoları, altta gönderi görselleri listelenir. 1 = görsel kutusu, 2 = video kutusu.',
         postHint:
-            'Satırların hepsi instagram.com ise önce tam video indirilir; olmazsa önizleme kalır. Karışık satırda yalnız kapak.',
+            'Yalnız kapak görseli ve embed (gönderi galerisi). Tam MP4 için aşağıdaki «Tanıtım videoları» kutusunu kullanın.',
         reelHint: 'Performans videoları; sunucuda yt-dlp + ffmpeg gerekebilir.',
     },
     event: {
         lead: 'Tanıtım alanı iki parçadır: videolar (Reels) ile gönderi görselleri (Instagram / görsel). Yayında önce videolar, sonra gönderiler sıralanır.',
         postHint:
-            'Bu kutuya yalnızca instagram.com satırları yapıştırdıysanız sistem önce tam videoyu indirmeyi dener (yt-dlp / Cobalt / çerez); inmezse önizleme ve embed kalır. Tüm satırlar gönderi veya Reels (/p/, /reel/, /share/…; hikâye yoksa) ise kayıt yine «Tanıtım videoları» bölümünde tutulur (yanlış kutuya yapıştırma). Karışık veya Instagram dışı URL’lerde yalnız kapak alınır. Doğrudan .mp4 için 2. bölüm.',
+            'Kapak görseli ve embed ile gönderi galerisi; tam video indirmesi bu kutuda yapılmaz (2. bölüm: Reels / MP4). Karışık veya Instagram dışı satırlarda yine yalnız kapak alınır.',
         reelHint: 'Dosya veya reel/MP4 bağlantısı; çok URL’de arka plan sırası önerilir.',
     },
 } as const;
@@ -275,32 +259,6 @@ export default function AdminEntityPromoGalleryPanel({
 
     const submitPostUrlsImport = () => {
         if (!postUrlsText.trim()) return;
-        const lineList = postUrlsText
-            .split(/\r?\n/)
-            .map((l) => l.trim())
-            .filter((l) => l !== '');
-        const allInstagram =
-            lineList.length > 0 && lineList.every((l) => /instagram\.com/i.test(l));
-        /** Yalnız kapak: karışık satır veya Instagram dışı. Aksi halde tam MP4 denenir (başarısızsa yine önizleme düşer). */
-        const posterEmbedOnly = !allInstagram;
-        /** Sadece /p/, /reel/, /share/… (hikâye yok) ise aynı «Tanıtım videoları» slotu — yanlışlıkla pembe kutuya yapıştırılan Reels kaybolmasın. */
-        const allPostOrReelNoStories =
-            lineList.length > 0 &&
-            lineList.every((l) => {
-                if (!/instagram\.com/i.test(l)) {
-                    return false;
-                }
-                if (/\/stories\//i.test(l)) {
-                    return false;
-                }
-                return (
-                    /instagram\.com\/(p|reel|reels|tv)\//i.test(l) ||
-                    /instagram\.com\/share\/(p|reel)\//i.test(l)
-                );
-            });
-        const promoGallerySlot = allPostOrReelNoStories ? 'video' : 'post';
-        const useVideoQueue =
-            showVideoUrlBackgroundOption && allInstagram && lineList.length > 1;
         setPostUrlsImporting(true);
         router.post(
             routes.importMedia,
@@ -308,9 +266,9 @@ export default function AdminEntityPromoGalleryPanel({
                 urls_text: postUrlsText,
                 mode: 'promo_video',
                 append_promo: appendPromoToGallery,
-                promo_poster_embed_only: posterEmbedOnly,
-                promo_gallery_slot: promoGallerySlot,
-                ...(useVideoQueue ? { promo_import_background: true } : {}),
+                /** Pembe kutu: her zaman galeri (post) slota yaz; tam MP4 akışı sarı kutuda. */
+                promo_poster_embed_only: true,
+                promo_gallery_slot: 'post',
             },
             {
                 preserveScroll: true,

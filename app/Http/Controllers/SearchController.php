@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\Event;
 use App\Models\Venue;
+use App\Support\CaseInsensitiveSearch;
 use App\Support\EventPublicListingImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,19 +64,17 @@ class SearchController extends Controller
             ]);
         }
 
-        $like = '%'.$q.'%';
-
         $artists = Artist::query()
             ->approved()
             ->notIntlImport()
-            ->where('name', 'like', $like)
+            ->tap(fn ($b) => CaseInsensitiveSearch::whereColumnLikeInsensitive($b, 'name', $q))
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name', 'slug', 'avatar', 'genre', 'created_at', 'status']);
 
         $venues = Venue::query()
             ->listedPublicly()
-            ->where('name', 'like', $like)
+            ->tap(fn ($b) => CaseInsensitiveSearch::whereColumnLikeInsensitive($b, 'name', $q))
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name', 'slug', 'cover_image', 'created_at', 'status', 'is_active']);
@@ -85,7 +84,7 @@ class SearchController extends Controller
             ->whereHas('venue', fn ($v) => $v->listedPublicly())
             ->whereNotNull('start_date')
             ->whereStillVisibleOnPublicListing()
-            ->where('title', 'like', $like)
+            ->tap(fn ($b) => CaseInsensitiveSearch::whereColumnLikeInsensitive($b, 'title', $q))
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(8)

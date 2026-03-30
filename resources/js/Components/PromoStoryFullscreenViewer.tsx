@@ -5,6 +5,7 @@ import {
     promoVideoSrcLooksLikeWebm,
     type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
+import { usePromoVideoSlidePlayback } from '@/lib/usePromoVideoSlidePlayback';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -47,7 +48,9 @@ export function PromoStoryFullscreenViewer({
             return;
         }
         setIdx((i) => {
-            if (n <= 0) return 0;
+            if (n <= 0) {
+                return 0;
+            }
             return Math.min(i, n - 1);
         });
     }, [open, initialIndex, n]);
@@ -97,33 +100,9 @@ export function PromoStoryFullscreenViewer({
     const it = n > 0 ? items[safeIdx] : null;
     const videoSrc = it?.video_path ? resolveStorageSrc(it.video_path) : null;
 
-    useEffect(() => {
-        if (!open || n === 0 || !videoSrc) {
-            return;
-        }
-        const el = videoRef.current;
-        if (!el) {
-            return;
-        }
-
-        const tryPlay = () => {
-            void el.play().catch(() => {
-                /* iOS / autoplay policy — kullanıcı kontrollerinden oynatır */
-            });
-        };
-
-        el.load();
-
-        if (el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-            requestAnimationFrame(tryPlay);
-        } else {
-            el.addEventListener('loadeddata', tryPlay, { once: true });
-        }
-
-        return () => {
-            el.removeEventListener('loadeddata', tryPlay);
-        };
-    }, [open, n, safeIdx, videoSrc]);
+    const videoSlideKey =
+        open && n > 0 && videoSrc ? `${safeIdx}\x1f${videoSrc}` : null;
+    usePromoVideoSlidePlayback(videoRef, videoSlideKey, videoSrc);
 
     if (!open || n === 0 || typeof document === 'undefined' || !it) {
         return null;
@@ -247,12 +226,13 @@ export function PromoStoryFullscreenViewer({
                             </>
                         ) : igIframeSrc ? (
                             <iframe
-                                key={igIframeSrc}
+                                key={`${safeIdx}-${igIframeSrc}`}
                                 src={igIframeSrc}
                                 title="Instagram"
                                 className="h-full min-h-[50vh] w-full min-w-[16rem] border-0"
                                 allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
                                 allowFullScreen
+                                referrerPolicy="strict-origin-when-cross-origin"
                             />
                         ) : posterSrc ? (
                             <div className="relative h-full w-full">

@@ -201,14 +201,19 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             const r = el.getBoundingClientRect();
             const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
             const pad = 12;
-            const vw = globalThis.innerWidth;
+            const w = globalThis;
+            const vv = w.visualViewport;
             if (narrow) {
+                const layoutW = vv?.width ?? w.innerWidth;
+                const vLeft = vv?.offsetLeft ?? 0;
+                const width = Math.max(200, layoutW - pad * 2);
                 setPanelBox({
                     top: r.bottom + 6,
-                    left: pad,
-                    width: vw - pad * 2,
+                    left: vLeft + pad,
+                    width,
                 });
             } else {
+                const vw = w.innerWidth;
                 /** Üst bardaki arama kutusu flex yüzünden dar kalabiliyor; panel en az okunaklı genişlikte olmalı. */
                 const maxPanel = Math.min(672, vw - pad * 2);
                 const minPanel = Math.min(400, maxPanel);
@@ -238,6 +243,42 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                 vv.removeEventListener('resize', measure);
                 vv.removeEventListener('scroll', measure);
             }
+        };
+    }, [open, q, loading, data.artists.length, data.venues.length, data.events.length, trending.length, trendingLoading]);
+
+    /** Mobil klavye / viewport kaydırmasında arka planın oynayıp düzeni kaydırmasını önler */
+    useEffect(() => {
+        if (!open || typeof document === 'undefined') {
+            return;
+        }
+        const narrow = globalThis.matchMedia('(max-width: 1023px)').matches;
+        if (!narrow) {
+            return;
+        }
+        const y = window.scrollY;
+        const { style } = document.body;
+        const prev = {
+            position: style.position,
+            top: style.top,
+            left: style.left,
+            right: style.right,
+            width: style.width,
+            overflow: style.overflow,
+        };
+        style.position = 'fixed';
+        style.top = `-${y}px`;
+        style.left = '0';
+        style.right = '0';
+        style.width = '100%';
+        style.overflow = 'hidden';
+        return () => {
+            style.position = prev.position;
+            style.top = prev.top;
+            style.left = prev.left;
+            style.right = prev.right;
+            style.width = prev.width;
+            style.overflow = prev.overflow;
+            window.scrollTo(0, y);
         };
     }, [open]);
 
@@ -298,6 +339,9 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                     id="global-search"
                     type="search"
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     placeholder="Etkinlik, mekan, sanatçı ara…"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
@@ -331,9 +375,12 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                             top: panelBox.top,
                             left: panelBox.left,
                             width: panelBox.width,
+                            maxWidth: 'calc(100vw - 24px)',
+                            boxSizing: 'border-box',
                             zIndex: 130,
                             maxHeight: panelMaxHeight,
                             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                            touchAction: 'pan-y',
                         }}
                         className={cn(
                             'overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-zinc-200/90 bg-white shadow-[0_16px_48px_-12px_rgba(0,0,0,0.22)] dark:border-zinc-700 dark:bg-zinc-900',

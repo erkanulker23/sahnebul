@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Services\ITunesSearchService;
 use App\Services\SpotifyService;
 use App\Services\TurkeyProvincesSync;
+use App\Support\CaseInsensitiveSearch;
 use App\Support\CatalogEntityNew;
 use App\Support\DailyUniqueEntityView;
 use App\Support\EventPromoVenueProfileModeration;
@@ -54,7 +55,7 @@ class ArtistController extends Controller
             ]);
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            CaseInsensitiveSearch::whereColumnLikeInsensitive($query, 'name', (string) $request->string('search'));
         }
         if ($request->filled('genre')) {
             $query->whereGenreLabelMatches((string) $request->string('genre'));

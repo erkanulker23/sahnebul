@@ -6,6 +6,7 @@ use App\Models\Artist;
 use App\Models\Category;
 use App\Models\Event;
 use App\Services\TurkeyProvincesSync;
+use App\Support\CaseInsensitiveSearch;
 use App\Support\EventListingQuery;
 use App\Support\EventListingTypes;
 use App\Support\InertiaDocumentMeta;
@@ -27,7 +28,7 @@ class EventController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%'.$request->string('search').'%');
+            CaseInsensitiveSearch::whereColumnLikeInsensitive($query, 'title', (string) $request->string('search'));
         }
         if ($request->filled('category')) {
             $query->whereHas('venue.category', fn ($q) => $q->where('slug', $request->string('category')));

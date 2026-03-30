@@ -291,8 +291,8 @@ export function AppHeader() {
                 </div>
 
                 {/* Mobil: logo + aksiyonlar; arama tam genişlik */}
-                <div className="flex flex-col gap-3 py-3 lg:hidden">
-                    <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-3 py-3 lg:hidden">
+                    <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
                         <SahnebulWordmark size="lg" className="shrink-0" onClick={closeDrawer} />
                         <div className="flex items-center gap-2">
                             <button

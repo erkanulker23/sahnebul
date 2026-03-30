@@ -7,10 +7,13 @@ return [
             'url' => 'https://biletinial.com/tr-tr/muzik',
             /**
              * Aynı URL kalıbı (/tr-tr/{kategori}/slug) için birden fazla liste sayfası; linkler birleştirilir.
+             * Yalnızca müzik değil; tiyatro, spor ve genel etkinlik listeleri de taranır.
              */
             'listing_urls' => [
                 'https://biletinial.com/tr-tr/muzik',
                 'https://biletinial.com/tr-tr/etkinlik',
+                'https://biletinial.com/tr-tr/tiyatro',
+                'https://biletinial.com/tr-tr/spor',
             ],
             'city' => 'İstanbul',
         ],
@@ -40,6 +43,9 @@ return [
                 'stand-up',
                 'cocuk-aktiviteleri',
                 'workshop',
+                'spor',
+                'muzikal',
+                'sergi',
             ],
             'listing_urls' => null,
         ],
