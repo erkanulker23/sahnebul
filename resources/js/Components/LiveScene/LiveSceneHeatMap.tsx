@@ -67,53 +67,76 @@ function eventTypeShort(type: string | null): string | null {
 function venueDivIcon(spot: LiveSceneSpot, highlight: boolean, isDark: boolean): L.DivIcon {
     const tier = intensityBand(spot.intensity);
     const palette = [
-        { core: '#16a34a', soft: 'rgba(34, 197, 94, 0.35)', label: 'Sakin' },
-        { core: '#ca8a04', soft: 'rgba(234, 179, 8, 0.4)', label: 'Hareketli' },
-        { core: '#d97706', soft: 'rgba(245, 158, 11, 0.45)', label: 'Kalabalık' },
-        { core: '#dc2626', soft: 'rgba(239, 68, 68, 0.4)', label: 'Yoğun' },
+        {
+            core: '#22c55e',
+            soft: 'rgba(34, 197, 94, 0.42)',
+            label: 'Sakin',
+            ring: 'linear-gradient(145deg,#4ade80 0%,#22c55e 45%,#0d9488 100%)',
+        },
+        {
+            core: '#ca8a04',
+            soft: 'rgba(234, 179, 8, 0.45)',
+            label: 'Hareketli',
+            ring: 'linear-gradient(145deg,#fde047 0%,#eab308 50%,#d97706 100%)',
+        },
+        {
+            core: '#ee2a7b',
+            soft: 'rgba(238, 42, 123, 0.5)',
+            label: 'Kalabalık',
+            ring: 'linear-gradient(135deg,#f9ce34 0%,#ee2a7b 48%,#6228d7 100%)',
+        },
+        {
+            core: '#dc2626',
+            soft: 'rgba(239, 68, 68, 0.5)',
+            label: 'Yoğun',
+            ring: 'linear-gradient(145deg,#fb923c 0%,#ef4444 42%,#b91c1c 100%)',
+        },
     ];
     const p = palette[tier];
-    const bg = isDark ? 'rgba(24,24,27,0.94)' : 'rgba(255,255,255,0.96)';
+    const innerBg = isDark ? 'rgba(24,24,27,0.97)' : 'rgba(255,255,255,0.98)';
     const fg = isDark ? '#fafafa' : '#18181b';
-    const accentRing = highlight ? '0 0 0 3px rgba(245, 158, 11, 0.75)' : `0 0 0 2px ${p.soft}`;
-    const scale = highlight ? 1.06 : 1;
+    const scale = highlight ? 1.08 : 1;
     const n = spot.event_count;
+    const outerShadow = highlight
+        ? `0 0 0 2px rgba(255,255,255,0.92), 0 0 0 5px rgba(245,158,11,0.45), 0 12px 36px rgba(0,0,0,0.38), 0 0 40px ${p.soft}`
+        : `0 8px 28px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.12), 0 0 30px ${p.soft}`;
+    const pulseClass = highlight ? 'sls-pin--pulse' : '';
 
     const html = `
-<div class="sls-pin-wrap" style="transform:scale(${scale});transform-origin:center bottom;">
-  <div class="sls-pin ${highlight ? 'sls-pin--pulse' : ''}" style="
-    width:50px;
-    height:50px;
+<div class="sls-pin-wrap" style="transform:scale(${scale});transform-origin:center center;">
+  <div class="sls-pin sls-pin--ig ${pulseClass}" data-tier="${tier}" style="
+    width:56px;
+    height:56px;
     border-radius:9999px;
-    background:${bg};
-    color:${fg};
-    border:3px solid ${p.core};
-    box-shadow:${accentRing}, 0 8px 28px rgba(0,0,0,0.28), 0 0 32px ${p.soft};
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
+    padding:3px;
+    box-sizing:border-box;
+    background:${p.ring};
+    box-shadow:${outerShadow};
     font-family:Plus Jakarta Sans,ui-sans-serif,system-ui,sans-serif;
   ">
-    <span style="font-size:17px;font-weight:800;line-height:1;letter-spacing:-0.02em;">${n}</span>
-    <span style="font-size:6.5px;font-weight:700;color:${p.core};letter-spacing:0.14em;text-transform:uppercase;margin-top:3px;opacity:0.95;">${p.label}</span>
+    <div style="
+      width:100%;
+      height:100%;
+      border-radius:9999px;
+      background:${innerBg};
+      color:${fg};
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+    ">
+      <span style="font-size:18px;font-weight:800;line-height:1;letter-spacing:-0.03em;">${n}</span>
+      <span style="font-size:6px;font-weight:700;color:${p.core};letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;opacity:0.92;">${p.label}</span>
+    </div>
   </div>
-  <div style="
-    margin:-2px auto 0;
-    width:0;height:0;
-    border-left:9px solid transparent;
-    border-right:9px solid transparent;
-    border-top:10px solid ${p.core};
-    filter:drop-shadow(0 2px 3px rgba(0,0,0,0.2));
-  " aria-hidden="true"></div>
 </div>`.trim();
 
     return L.divIcon({
         className: 'sls-divicon',
         html,
-        iconSize: [50, 62],
-        iconAnchor: [25, 62],
-        popupAnchor: [0, -58],
+        iconSize: [56, 56],
+        iconAnchor: [28, 56],
+        popupAnchor: [0, -50],
     });
 }
 

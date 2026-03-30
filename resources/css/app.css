@@ -88,17 +88,21 @@
         0%,
         100% {
             box-shadow:
-                0 0 0 0 rgba(245, 158, 11, 0.55),
-                0 8px 28px rgba(0, 0, 0, 0.28);
+                0 0 0 0 rgba(245, 158, 11, 0.5),
+                0 0 0 2px rgba(255, 255, 255, 0.92),
+                0 0 0 5px rgba(245, 158, 11, 0.4),
+                0 12px 36px rgba(0, 0, 0, 0.38);
         }
         50% {
             box-shadow:
-                0 0 0 12px rgba(245, 158, 11, 0),
-                0 8px 28px rgba(0, 0, 0, 0.28);
+                0 0 0 14px rgba(245, 158, 11, 0),
+                0 0 0 2px rgba(255, 255, 255, 0.92),
+                0 0 0 5px rgba(245, 158, 11, 0.35),
+                0 12px 36px rgba(0, 0, 0, 0.38);
         }
     }
 
-    .sls-pin--pulse {
+    .live-scene-map .sls-pin--pulse {
         animation: sls-marker-pulse 2.2s ease-in-out infinite;
     }
 
