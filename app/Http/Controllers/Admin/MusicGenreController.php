@@ -35,7 +35,7 @@ class MusicGenreController extends Controller
         ]);
         MusicGenre::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueMusicGenreSlug(Str::slug($request->name)),
             'order' => $request->order ?? 0,
         ]);
 
@@ -50,7 +50,7 @@ class MusicGenreController extends Controller
         ]);
         $musicGenre->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueMusicGenreSlug(Str::slug($request->name), $musicGenre->id),
             'order' => $request->order ?? $musicGenre->order,
         ]);
 
@@ -65,5 +65,21 @@ class MusicGenreController extends Controller
         $musicGenre->delete();
 
         return back()->with('success', 'Müzik türü silindi.');
+    }
+
+    private function uniqueMusicGenreSlug(string $baseSlug, ?int $exceptId = null): string
+    {
+        $base = $baseSlug !== '' ? $baseSlug : 'tur';
+        $slug = $base;
+        $n = 2;
+        while (MusicGenre::query()
+            ->where('slug', $slug)
+            ->when($exceptId !== null, fn ($q) => $q->where('id', '!=', $exceptId))
+            ->exists()) {
+            $slug = $base.'-'.$n;
+            $n++;
+        }
+
+        return $slug;
     }
 }

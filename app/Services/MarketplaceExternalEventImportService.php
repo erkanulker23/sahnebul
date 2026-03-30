@@ -291,6 +291,14 @@ class MarketplaceExternalEventImportService
                 }
 
                 $winner = ExternalEvent::query()->findOrFail($winnerId);
+
+                /** Aynı (source, fingerprint) başka satırda kaldıysa (URL eşleşmesi dışındaki yarışlar) unique ihlalini önle */
+                ExternalEvent::query()
+                    ->where('source', $sourceKey)
+                    ->where('fingerprint', $fingerprint)
+                    ->where('id', '!=', $winnerId)
+                    ->delete();
+
                 $winner->update($payload);
 
                 return $winner->fresh();

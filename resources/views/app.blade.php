@@ -1,6 +1,11 @@
 @php
-    /** Yerelde `npm run dev` → public/hot; üretimde `npm run build` → public/build/manifest.json */
-    $viteReady = file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json'));
+    /**
+     * Yerelde `npm run dev` → public/hot; üretimde `npm run build` → public/build/manifest.json.
+     * Üretimde yanlışlıkla kalan `public/hot` dosyası `viteReady` true yapıp @vite'i manifest'e zorlar → 500.
+     */
+    $hasManifest = is_file(public_path('build/manifest.json'));
+    $hasHot = is_file(public_path('hot'));
+    $viteReady = $hasManifest || ($hasHot && ! app()->environment('production'));
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
