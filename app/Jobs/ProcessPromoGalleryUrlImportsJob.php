@@ -67,7 +67,7 @@ final class ProcessPromoGalleryUrlImportsJob implements ShouldQueue
                 if ($url === '') {
                     continue;
                 }
-                $importer->import($model->fresh(), $url, 'promo_video', true, $this->promoPosterEmbedOnly);
+                $importer->import($model->fresh(), $url, 'promo_video', true, $this->promoPosterEmbedOnly, null);
             }
 
             Log::info('promo URL import (legacy ProcessPromoGalleryUrlImportsJob) tamamlandı', [

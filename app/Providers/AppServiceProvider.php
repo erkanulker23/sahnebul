@@ -118,5 +118,11 @@ class AppServiceProvider extends ServiceProvider
                 (int) config('services.rate_limits.api_locations_per_minute', 90)
             )->by($request->ip());
         });
+
+        RateLimiter::for('live-scene', function (Request $request) {
+            return Limit::perMinute(
+                (int) config('services.rate_limits.live_scene_per_minute', 60)
+            )->by($request->ip());
+        });
     }
 }

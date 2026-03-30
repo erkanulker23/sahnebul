@@ -23,6 +23,16 @@ final class YtDlpBinaryResolver
         return (is_string($found) && $found !== '' && is_executable($found)) ? $found : null;
     }
 
+    /**
+     * ffmpeg vb. ikililer için PATH benzeri dizin listesi.
+     *
+     * @return list<string>
+     */
+    public static function systemExecutableDirectories(): array
+    {
+        return self::searchDirectories();
+    }
+
     /** @return list<string> */
     private static function searchDirectories(): array
     {

@@ -13,11 +13,13 @@
 /.zed
 /auth.json
 /node_modules
+/scripts/instagram-puppeteer-fetch/node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/private/instagram_ytdlp_cookies.txt
 /vendor
 Homestead.json
 Homestead.yaml

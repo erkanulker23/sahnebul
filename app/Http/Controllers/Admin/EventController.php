@@ -195,6 +195,10 @@ class EventController extends Controller
         $event->load(['venue', 'artists', 'ticketTiers']);
         $event->repairSwappedStorageFoldersIfNeeded();
         $event->refresh();
+        if ($event->mergePromoGalleryOrphanLegacyVideoIntoGallery()) {
+            $event->saveQuietly();
+            $event->refresh();
+        }
 
         $eventPayload = $event->toArray();
         $eventPayload['start_date'] = AdminDatetimeLocal::format($event->start_date);

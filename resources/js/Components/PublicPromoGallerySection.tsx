@@ -18,10 +18,38 @@ export type PublicPromoGalleryLabels = {
     linksTitle: string;
 };
 
+/** Sunucuda MP4 yoksa /p/ ve /reel/ için Instagram embed iframe (kendi oynatıcıları); hikâye bağlantılarında embed yok. */
+export function instagramPostOrReelEmbedIframeSrc(embedUrl: string): string | null {
+    const raw = embedUrl.trim();
+    if (raw === '' || !raw.includes('instagram.com')) {
+        return null;
+    }
+    try {
+        const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+        if (!u.hostname.toLowerCase().endsWith('instagram.com') && u.hostname.toLowerCase() !== 'instagram.com') {
+            return null;
+        }
+        const share = u.pathname.match(/^\/share\/(p|reel)\/([^/?#]+)\/?$/i);
+        if (share) {
+            const kind = share[1].toLowerCase();
+            return `https://www.instagram.com/${kind}/${encodeURIComponent(share[2])}/embed/captioned/`;
+        }
+        const m = u.pathname.match(/^\/(p|reel)\/([^/?#]+)\/?$/i);
+        if (!m) {
+            return null;
+        }
+        const kind = m[1].toLowerCase();
+        const code = encodeURIComponent(m[2]);
+        return `https://www.instagram.com/${kind}/${code}/embed/captioned/`;
+    } catch {
+        return null;
+    }
+}
+
 export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
-        'Dikey, sitede oynatılan videolar (yüklediğiniz dosya veya Reels’ten indirilen). Instagram «Hikâye» değil; tam video içeriği burada.',
+        'Öncelik sunucudaki MP4/WebM. Instagram gönderi veya Reels bağlantısında video diske inmediyse gömülü Instagram oynatıcısı gösterilir; hikâyelerde yalnızca kapak veya Instagram’da aç.',
     postsTitle: 'Gönderi görselleri',
     postsDescription:
         'Kare önizleme: sosyal gönderi bağlantısından veya yüklenen görselden oluşan kapaklar. Karta dokunarak büyütün.',
@@ -31,7 +59,7 @@ export const defaultEventPromoLabels: PublicPromoGalleryLabels = {
 export const venuePromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
-        'Mekânınızı tanıtan dikey videolar (dosya yüklemesi veya Reels bağlantısı). Instagram Hikâyesi ile karıştırmayın — burada tam video oynatılır.',
+        'MP4/WebM veya (indirilmediyse) gönderi/Reels için gömülü Instagram oynatıcısı; hikâyelerde kapak veya Instagram’da aç.',
     postsTitle: 'Gönderi görselleri',
     postsDescription:
         'Etkinlik ve mekân duyuruları için kare önizleme; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
@@ -41,7 +69,7 @@ export const venuePromoLabels: PublicPromoGalleryLabels = {
 export const artistPromoLabels: PublicPromoGalleryLabels = {
     storiesTitle: 'Tanıtım videoları',
     storiesDescription:
-        'Performans tanıtımı için dikey videolar (dosya veya Reels). Instagram Hikâyesi değil; oynatılabilir video içeriği.',
+        'MP4/WebM veya gönderi/Reels için gömülü oynatıcı; hikâyelerde kapak veya Instagram’da aç.',
     postsTitle: 'Gönderi görselleri',
     postsDescription:
         'Duyuru ve paylaşımların kare önizlemesi; bağlantı veya yüklenen görsel. Dokunarak büyütün.',
@@ -68,19 +96,20 @@ export function promoKindOf(it: PromoGalleryItem): 'story' | 'post' {
     if (it.video_path?.trim()) {
         return 'story';
     }
-    if (it.poster_path?.trim() || it.embed_url?.includes('instagram.com')) {
-        return 'post';
+    if (it.promo_kind === 'story') {
+        return 'story';
     }
     if (it.promo_kind === 'post') {
         return 'post';
     }
-    if (it.promo_kind === 'story') {
-        return 'story';
+    if (it.poster_path?.trim() || it.embed_url?.includes('instagram.com')) {
+        return 'post';
     }
     return 'story';
 }
 
-function coercePromoGalleryRows(raw: unknown): unknown[] {
+/** JSON / Inertia bazen `{ "0": {...} }` nesnesi döndürür; `Array.isArray` false olur. */
+export function coercePromoGalleryRows(raw: unknown): unknown[] {
     if (Array.isArray(raw)) {
         return raw;
     }
@@ -103,14 +132,30 @@ export function promoGalleryItemsFromEntity(fields: {
     promo_embed_url?: string | null;
 }): PromoGalleryItem[] {
     const rows = coercePromoGalleryRows(fields.promo_gallery);
+    const legacyVp = fields.promo_video_path?.trim() ?? '';
+    const legacyEu = fields.promo_embed_url?.trim() ?? '';
+
     if (rows.length > 0) {
-        return rows.map(normalizePromoGalleryItem);
+        const mapped = rows.map(normalizePromoGalleryItem);
+        /** Galeri satırlarında yoksa eski tek alan (promo_video_path) üstte tanıtım videosu olarak eklenir — Inertia yalnızca JSON gönderdiğinde videolar kaybolmasın. */
+        if (legacyVp !== '' && !mapped.some((it) => (it.video_path?.trim() ?? '') === legacyVp)) {
+            return [
+                normalizePromoGalleryItem({
+                    video_path: legacyVp,
+                    embed_url: legacyEu !== '' ? legacyEu : null,
+                    poster_path: null,
+                    promo_kind: 'story',
+                }),
+                ...mapped,
+            ];
+        }
+        return mapped;
     }
-    if (fields.promo_video_path?.trim() || fields.promo_embed_url?.trim()) {
+    if (legacyVp !== '' || legacyEu !== '') {
         return [
             normalizePromoGalleryItem({
-                video_path: fields.promo_video_path,
-                embed_url: fields.promo_embed_url,
+                video_path: legacyVp !== '' ? legacyVp : null,
+                embed_url: legacyEu !== '' ? legacyEu : null,
                 poster_path: null,
                 promo_kind: 'story',
             }),
@@ -274,6 +319,9 @@ export function PublicPromoGallerySection({
         const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
         const embed = it.embed_url?.trim() ?? '';
         const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
+        const igEmbed = embed.includes('instagram.com');
+        const isStoryPermalink = igEmbed && embed.includes('/stories/');
+        const igIframeSrc = !videoSrc && igEmbed && !isStoryPermalink ? instagramPostOrReelEmbedIframeSrc(embed) : null;
         return (
             <li
                 key={`story-${videoSrc ?? ''}-${posterSrc ?? ''}-${embed}-${idx}`}
@@ -297,12 +345,61 @@ export function PublicPromoGallerySection({
                             </p>
                         ) : null}
                     </>
+                ) : igIframeSrc ? (
+                    <div className="absolute inset-0 overflow-hidden bg-zinc-950">
+                        <iframe
+                            src={igIframeSrc}
+                            title="Instagram gönderisi veya Reels"
+                            className="pointer-events-auto absolute left-1/2 top-1/2 h-[118%] w-[min(104%,42rem)] max-w-none -translate-x-1/2 -translate-y-1/2 border-0"
+                            allow="clipboard-write; encrypted-media; picture-in-picture; web-share"
+                            allowFullScreen
+                            loading="lazy"
+                        />
+                    </div>
                 ) : posterSrc ? (
-                    <img
-                        src={posterSrc}
-                        alt=""
-                        className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-cover"
-                    />
+                    <>
+                        <img
+                            src={posterSrc}
+                            alt=""
+                            className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-cover"
+                        />
+                        {igEmbed ? (
+                            <a
+                                href={embed}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute inset-x-0 bottom-0 z-[1] flex flex-col justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent px-2 pb-2.5 pt-10 text-center"
+                            >
+                                <span className="text-[10px] font-semibold leading-tight text-amber-300 underline">
+                                    Videoyu Instagram’da aç
+                                </span>
+                            </a>
+                        ) : null}
+                    </>
+                ) : isStoryPermalink ? (
+                    <a
+                        href={embed}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-800 to-zinc-950 p-4 text-center text-xs font-medium text-amber-400 underline"
+                    >
+                        Hikâyeyi Instagram’da aç
+                    </a>
+                ) : igEmbed ? (
+                    <a
+                        href={embed}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#833AB4]/25 via-[#FD1D1D]/15 to-[#F77737]/20 p-3 text-center"
+                    >
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-white/90">Instagram</span>
+                        <span className="text-[11px] font-semibold leading-snug text-amber-300 underline">
+                            Videoyu Instagram’da aç
+                        </span>
+                        <span className="max-w-[12rem] text-[9px] leading-snug text-zinc-400">
+                            Gönderi sitede gömülü oynatılamıyor; tam video için Instagram’a gidin (veya MP4 yükleyin).
+                        </span>
+                    </a>
                 ) : null}
             </li>
         );

@@ -50,6 +50,7 @@ class SitemapController extends Controller
             : null;
 
         $push('/', $catalogHubLm, 'hourly', '1.0');
+        $push('/kesfet/bu-aksam', $eventsLm, 'hourly', '0.85');
         $push('/etkinlikler', $eventsLm, 'hourly', '0.95');
         $push('/sanatcilar', $artistsLm, 'hourly', '0.95');
         $push('/mekanlar', $venuesLm, 'hourly', '0.95');

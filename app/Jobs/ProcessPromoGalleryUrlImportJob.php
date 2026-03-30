@@ -33,6 +33,7 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
         public bool $posterEmbedOnly,
         public int $userId,
         public bool $promoFromAdmin = true,
+        public ?string $promoGallerySlot = null,
     ) {}
 
     public function handle(EventMediaImportFromUrlService $importer): void
@@ -92,7 +93,14 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
                     'message' => "Video indiriliyor ({$n}/{$total})…",
                 ]);
 
-                $r = $importer->import($freshModel->fresh(), $url, 'promo_video', true, false);
+                $r = $importer->import(
+                    $freshModel->fresh(),
+                    $url,
+                    'promo_video',
+                    true,
+                    $this->posterEmbedOnly,
+                    $this->promoGallerySlot,
+                );
                 if ($r['success']) {
                     $ok++;
                     PromoGalleryUrlImportStatus::put($this->statusId, [

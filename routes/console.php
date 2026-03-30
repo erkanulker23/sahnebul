@@ -8,6 +8,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Artisan::command('promo:check-import-deps {--warn-only : Eksik araç olsa da çıkış kodu 0}', function () {
+    $opts = $this->option('warn-only') ? ['--warn-only' => true] : [];
+
+    return $this->call('sahnebul:promo-import-deps', $opts);
+})->purpose('Alias: sahnebul:promo-import-deps (yt-dlp, ffmpeg, Instagram çerez dosyası)');
+
 /*
 |--------------------------------------------------------------------------
 | Zamanlanmış görevler — Forge / sunucuda: * * * * * php artisan schedule:run

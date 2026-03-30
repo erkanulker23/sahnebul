@@ -111,6 +111,7 @@ return [
         'events_nearby_per_minute' => (int) env('RATE_LIMIT_EVENTS_NEARBY', 45),
         'venues_nearby_per_minute' => (int) env('RATE_LIMIT_VENUES_NEARBY', 45),
         'api_locations_per_minute' => (int) env('RATE_LIMIT_API_LOCATIONS', 90),
+        'live_scene_per_minute' => (int) env('RATE_LIMIT_LIVE_SCENE', 60),
     ],
 
     /**
@@ -119,6 +120,20 @@ return [
      *
      * @see https://github.com/yt-dlp/yt-dlp
      */
+    /**
+     * Kendi Cobalt (imputnet/cobalt) sunucunuz — Instagram video için çoğu durumda çerez gerekmez.
+     * api.cobalt.tools gibi herkese açık uçlar bot korumalıdır; üretimde kendi örneğinizi kullanın.
+     *
+     * @see https://github.com/imputnet/cobalt
+     */
+    'cobalt' => [
+        'api_url' => env('COBALT_API_URL', ''),
+        'api_key' => env('COBALT_API_KEY', ''),
+        'timeout' => max(30, (int) env('COBALT_API_TIMEOUT', 180)),
+        /** true: önce Cobalt, sonra yt-dlp (Cobalt kurulu sunucular için) */
+        'try_before_ytdlp' => filter_var(env('INSTAGRAM_TRY_COBALT_FIRST', false), FILTER_VALIDATE_BOOL),
+    ],
+
     'ytdlp' => [
         'binary' => env('YTDLP_BINARY'),
         /** PHP-FPM PATH dar olduğunda ek dizinler (örn. Laravel Forge: /home/forge/.local/bin) — virgül veya : ile ayırın */
@@ -147,12 +162,26 @@ return [
     /**
      * instagram.com HTML istekleri (og meta, hikâye sayfası). Sunucu IP’lerinde HTTP 429 sık;
      * tarayıcıdan kopyalanan ham Cookie değeri (sessionid=…; csrftoken=…) isteği biraz “oturumlu” gösterir.
-     * Gizli tutun; yt-dlp için ayrıca YTDLP_COOKIES_FILE (Netscape) kullanılır.
+     * Boşsa YTDLP_COOKIES_FILE (Netscape) otomatik okunup aynı oturum PHP HTML isteklerine uygulanır (hikâyeler).
+     * Gizli tutun.
      */
     'instagram' => [
         'fetch_cookies' => env('INSTAGRAM_FETCH_COOKIES'),
         /** Çoklu URL içe aktarımda ardışık Instagram istekleri arası bekleme (429 azaltır). Varsayılan 0 (hızlı içe aktarma); üretimde 429 görürseniz 4–8 deneyin. */
         'batch_delay_seconds' => max(0, min(90, (int) env('INSTAGRAM_BATCH_DELAY_SECONDS', 0))),
+        /**
+         * HTML aşamasından çıkan mp4 aday URL listesi (kısa TTL). Redis önerilir (CACHE_STORE=redis).
+         */
+        'promo_candidate_cache_enabled' => filter_var(env('INSTAGRAM_PROMO_CANDIDATE_CACHE_ENABLED', true), FILTER_VALIDATE_BOOL),
+        'promo_candidate_cache_ttl' => max(0, (int) env('INSTAGRAM_PROMO_CANDIDATE_CACHE_TTL', 600)),
+        /**
+         * Headless tarayıcı fallback — yalnız HTTP ile aday çıkmazsa bir kez denenir.
+         * Kurulum: cd scripts/instagram-puppeteer-fetch && npm install
+         */
+        'puppeteer_enabled' => filter_var(env('INSTAGRAM_PUPPETEER_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'puppeteer_node_binary' => env('INSTAGRAM_PUPPETEER_NODE', 'node'),
+        'puppeteer_script_path' => env('INSTAGRAM_PUPPETEER_SCRIPT', ''),
+        'puppeteer_timeout' => max(15, (int) env('INSTAGRAM_PUPPETEER_TIMEOUT', 120)),
     ],
 
     /**

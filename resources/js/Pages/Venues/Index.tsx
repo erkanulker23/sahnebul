@@ -10,7 +10,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MapPin, Star } from 'lucide-react';
+import { Flame, MapPin, Star } from 'lucide-react';
 
 interface Artist {
     id: number;
@@ -409,6 +409,31 @@ export default function VenuesIndex({
             </section>
 
             <AdSlot slotKey="home_below_hero" />
+            {!isVenuesPage ? (
+                <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5 lg:px-8" aria-label="Bu akşam keşfi">
+                    <Link
+                        href={route('discover.tonight')}
+                        className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 p-5 text-white shadow-lg transition hover:border-amber-500/40 hover:shadow-xl dark:border-white/10 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+                    >
+                        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/25 blur-2xl transition group-hover:bg-amber-400/30" />
+                        <div className="relative flex items-start gap-4">
+                            <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-400/20 text-amber-200 ring-1 ring-amber-300/30">
+                                <Flame className="h-7 w-7" aria-hidden />
+                            </span>
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-amber-200/90">Anlık sahne</p>
+                                <h2 className="font-display mt-1 text-xl font-bold sm:text-2xl">Bu akşam ne yapsam? — Canlı etkinlik haritası</h2>
+                                <p className="mt-1 max-w-xl text-sm text-zinc-300">
+                                    Tarzını seç; şehirde bu akşam nerede hareket var gör, popüler mekânlara tek dokunuşla yol tarifi al.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="relative inline-flex shrink-0 items-center justify-center rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-zinc-950 transition group-hover:bg-amber-300">
+                            Keşfet →
+                        </span>
+                    </Link>
+                </section>
+            ) : null}
             {!isVenuesPage && contentSliders.length > 0 ? (
                 <section className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5 lg:px-8" aria-label="Öne çıkan içerikler">
                     <h2 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Öne çıkanlar</h2>
@@ -983,6 +1008,27 @@ export default function VenuesIndex({
                         events={todayEvents}
                         emptyMessage="Bugün için yayınlanmış etkinlik bulunmuyor. Yakında yeni tarihler eklenecek."
                     />
+                    <div className="mx-auto max-w-7xl px-3 py-2 sm:px-4 lg:px-8">
+                        <Link
+                            href={route('discover.tonight')}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.14] via-amber-400/[0.06] to-transparent px-4 py-3.5 shadow-sm transition hover:border-amber-500/50 hover:shadow-md dark:from-amber-500/15 dark:via-amber-600/8 dark:to-transparent"
+                        >
+                            <div className="flex min-w-0 items-start gap-3">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/25 text-amber-800 dark:text-amber-200">
+                                    <Flame className="h-5 w-5" aria-hidden />
+                                </span>
+                                <div className="min-w-0 text-left">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-900 dark:text-amber-300/95">
+                                        Bu hafta ne yapsam?
+                                    </p>
+                                    <p className="mt-0.5 text-sm leading-snug text-zinc-800 dark:text-zinc-200">
+                                        Bugün ve bu akşam şehirde nerede hareket var, tarzına göre süz — canlı haritadan karar ver.
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="shrink-0 text-sm font-bold text-amber-800 dark:text-amber-300">Canlı harita →</span>
+                        </Link>
+                    </div>
                     <EventCarousel
                         accent="violet"
                         subtitle="Önümüzdeki 7 gün"

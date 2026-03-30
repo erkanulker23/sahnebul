@@ -1,0 +1,9 @@
+{
+  "name": "sahnebul-instagram-puppeteer-fetch",
+  "private": true,
+  "description": "Optional fallback: render Instagram page and print document HTML for PHP promo import",
+  "type": "module",
+  "dependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}

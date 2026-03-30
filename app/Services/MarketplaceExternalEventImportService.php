@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ExternalEvent;
 use App\Support\CrawlerHttpResponseInspector;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -122,26 +123,7 @@ class MarketplaceExternalEventImportService
                     'fingerprint' => $fingerprint,
                 ];
 
-                if ($normUrl !== '') {
-                    $existing = ExternalEvent::query()
-                        ->where('source', $sourceKey)
-                        ->where('external_url', $normUrl)
-                        ->first();
-                    if ($existing !== null) {
-                        $existing->update($payload);
-                        $external = $existing->fresh();
-                    } else {
-                        $external = ExternalEvent::updateOrCreate(
-                            ['source' => $sourceKey, 'fingerprint' => $fingerprint],
-                            $payload
-                        );
-                    }
-                } else {
-                    $external = ExternalEvent::updateOrCreate(
-                        ['source' => $sourceKey, 'fingerprint' => $fingerprint],
-                        $payload
-                    );
-                }
+                $external = $this->upsertExternalEventFromCrawlRow($sourceKey, $normUrl, $fingerprint, $payload);
 
                 $processedBySource[$sourceKey] = ($processedBySource[$sourceKey] ?? 0) + 1;
 
@@ -275,8 +257,51 @@ class MarketplaceExternalEventImportService
     }
 
     /**
-     * @param  array<string, mixed>  $raw
+     * Aynı kaynakta aynı URL veya aynı fingerprint için birden fazla satır kaldıysa tek kayıtta birleştir;
+     * güncellemede fingerprint değişince (source, fingerprint) unique ihlali oluşmasın.
+     *
+     * @param  array<string, mixed>  $payload
      */
+    private function upsertExternalEventFromCrawlRow(string $sourceKey, string $normUrl, string $fingerprint, array $payload): ExternalEvent
+    {
+        return DB::transaction(function () use ($sourceKey, $normUrl, $fingerprint, $payload): ExternalEvent {
+            if ($normUrl !== '') {
+                $ids = ExternalEvent::query()
+                    ->where('source', $sourceKey)
+                    ->where(function ($q) use ($normUrl, $fingerprint): void {
+                        $q->where('external_url', $normUrl)
+                            ->orWhere('fingerprint', $fingerprint);
+                    })
+                    ->orderByRaw('CASE WHEN synced_event_id IS NOT NULL THEN 0 ELSE 1 END')
+                    ->orderBy('id')
+                    ->pluck('id');
+
+                if ($ids->isEmpty()) {
+                    return ExternalEvent::query()->create(array_merge(
+                        ['source' => $sourceKey],
+                        $payload
+                    ));
+                }
+
+                $winnerId = $ids->first();
+                $rest = $ids->skip(1)->all();
+                if ($rest !== []) {
+                    ExternalEvent::query()->whereIn('id', $rest)->delete();
+                }
+
+                $winner = ExternalEvent::query()->findOrFail($winnerId);
+                $winner->update($payload);
+
+                return $winner->fresh();
+            }
+
+            return ExternalEvent::query()->updateOrCreate(
+                ['source' => $sourceKey, 'fingerprint' => $fingerprint],
+                $payload
+            );
+        });
+    }
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>

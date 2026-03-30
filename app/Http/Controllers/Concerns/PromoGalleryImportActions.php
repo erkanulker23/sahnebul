@@ -37,10 +37,12 @@ trait PromoGalleryImportActions
             'append_promo' => ['sometimes', 'boolean'],
             'promo_import_background' => ['sometimes', 'boolean'],
             'promo_poster_embed_only' => ['sometimes', 'boolean'],
+            'promo_gallery_slot' => ['nullable', 'string', Rule::in(['post', 'video'])],
         ]);
 
         $appendPromo = (bool) ($validated['append_promo'] ?? true);
         $posterEmbedOnly = (bool) ($validated['promo_poster_embed_only'] ?? false);
+        $promoGallerySlot = isset($validated['promo_gallery_slot']) ? (string) $validated['promo_gallery_slot'] : null;
         $urlsText = trim((string) ($validated['urls_text'] ?? ''));
         $urlSingle = trim((string) ($validated['url'] ?? ''));
 
@@ -75,6 +77,8 @@ trait PromoGalleryImportActions
                 $appendPromo,
                 $posterEmbedOnly,
                 (int) $user->id,
+                true,
+                $promoGallerySlot,
             );
 
             $n = count($urls);
@@ -91,9 +95,9 @@ trait PromoGalleryImportActions
         }
 
         if (count($urls) > 1) {
-            $result = $importer->importMany($model->fresh(), $urls, $validated['mode'], $appendPromo, $posterEmbedOnly);
+            $result = $importer->importMany($model->fresh(), $urls, $validated['mode'], $appendPromo, $posterEmbedOnly, $promoGallerySlot);
         } else {
-            $result = $importer->import($model->fresh(), $urls[0], $validated['mode'], $appendPromo, $posterEmbedOnly);
+            $result = $importer->import($model->fresh(), $urls[0], $validated['mode'], $appendPromo, $posterEmbedOnly, $promoGallerySlot);
         }
 
         if (! $result['success']) {

@@ -321,17 +321,17 @@ class Event extends Model
         if ($vp) {
             return 'story';
         }
+        $pk = $row['promo_kind'] ?? null;
+        if ($pk === 'story') {
+            return 'story';
+        }
+        if ($pk === 'post') {
+            return 'post';
+        }
         $embed = isset($row['embed_url']) && is_string($row['embed_url']) ? $row['embed_url'] : '';
         $poster = isset($row['poster_path']) && is_string($row['poster_path']) && trim($row['poster_path']) !== '';
         if ($poster || str_contains($embed, 'instagram.com')) {
             return 'post';
-        }
-        $pk = $row['promo_kind'] ?? null;
-        if ($pk === 'post') {
-            return 'post';
-        }
-        if ($pk === 'story') {
-            return 'story';
         }
 
         return 'story';
@@ -351,6 +351,41 @@ class Event extends Model
         $embed = isset($row['embed_url']) && is_string($row['embed_url']) ? trim($row['embed_url']) : '';
 
         return $embed !== '';
+    }
+
+    /**
+     * promo_video_path galeri satırlarında yoksa (eski senk / elle müdahale), videoyu JSON galerinin başına ekler; panel ve silme indeksleri tutarlı kalsın.
+     */
+    public function mergePromoGalleryOrphanLegacyVideoIntoGallery(): bool
+    {
+        $legacyVp = is_string($this->promo_video_path) ? trim($this->promo_video_path) : '';
+        if ($legacyVp === '') {
+            return false;
+        }
+        $raw = $this->promo_gallery;
+        if (! is_array($raw) || $raw === []) {
+            return false;
+        }
+        $list = array_values($raw);
+        foreach ($list as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $vp = isset($row['video_path']) && is_string($row['video_path']) ? trim($row['video_path']) : '';
+            if ($vp === $legacyVp) {
+                return false;
+            }
+        }
+        $legacyEu = is_string($this->promo_embed_url) ? trim($this->promo_embed_url) : '';
+        array_unshift($list, [
+            'embed_url' => $legacyEu !== '' ? $legacyEu : null,
+            'video_path' => $legacyVp,
+            'poster_path' => null,
+            'promo_kind' => 'story',
+        ]);
+        $this->promo_gallery = array_values($list);
+
+        return true;
     }
 
     /**
@@ -378,6 +413,17 @@ class Event extends Model
                     'poster_path' => is_string($pp) && trim($pp) !== '' ? trim($pp) : null,
                     'promo_kind' => in_array($pk, ['post', 'story'], true) ? $pk : null,
                 ];
+            }
+
+            $legacyVp = is_string($this->promo_video_path) ? trim($this->promo_video_path) : '';
+            $legacyEu = is_string($this->promo_embed_url) ? trim($this->promo_embed_url) : '';
+            if ($legacyVp !== '' && ! collect($out)->contains(fn (array $row): bool => ($row['video_path'] ?? '') === $legacyVp)) {
+                array_unshift($out, [
+                    'embed_url' => $legacyEu !== '' ? $legacyEu : null,
+                    'video_path' => $legacyVp,
+                    'poster_path' => null,
+                    'promo_kind' => 'story',
+                ]);
             }
 
             return $out;

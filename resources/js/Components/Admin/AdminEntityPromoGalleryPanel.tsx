@@ -1,3 +1,4 @@
+import { coercePromoGalleryRows } from '@/Components/PublicPromoGallerySection';
 import { inputBaseClass } from '@/Components/ui/Input';
 import { cn } from '@/lib/cn';
 import type { PageProps } from '@/types';
@@ -51,14 +52,14 @@ function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video
     if (row.video_path) {
         return 'story';
     }
-    if (row.poster_path || row.embed_url?.includes('instagram.com')) {
-        return 'post';
+    if (row.promo_kind === 'story') {
+        return 'story';
     }
     if (row.promo_kind === 'post') {
         return 'post';
     }
-    if (row.promo_kind === 'story') {
-        return 'story';
+    if (row.poster_path || row.embed_url?.includes('instagram.com')) {
+        return 'post';
     }
     return 'story';
 }
@@ -66,17 +67,20 @@ function adminPromoRowKind(row: Pick<AdminPromoPreviewRow, 'promo_kind' | 'video
 const COPY = {
     venue: {
         lead: 'Ziyaretçi sayfasında üstte tanıtım videoları, altta gönderi görselleri görünür. Aşağıda önce görselleri (1), sonra videoları (2) ekleyin — yanlış kutuya URL koymayın.',
-        postHint: 'Instagram /p/… veya yüklenen görsel; yalnız kare önizleme. Tam reel/MP4 için 2. bölüm.',
+        postHint:
+            'Satırların hepsi instagram.com ise önce tam video indirilir; olmazsa önizleme kalır. Karışık satırda yalnız kapak. Tam .mp4 için 2. bölüm.',
         reelHint: 'MP4/WebM dosyası veya reel URL’si; uzun indirmede arka plan kuyruğunu açabilirsiniz.',
     },
     artist: {
         lead: 'Sitede üstte tanıtım videoları, altta gönderi görselleri listelenir. 1 = görsel kutusu, 2 = video kutusu.',
-        postHint: 'Duyuru kapakları ve Instagram’dan önizleme; tam video burada indirilmez.',
+        postHint:
+            'Satırların hepsi instagram.com ise önce tam video indirilir; olmazsa önizleme kalır. Karışık satırda yalnız kapak.',
         reelHint: 'Performans videoları; sunucuda yt-dlp + ffmpeg gerekebilir.',
     },
     event: {
         lead: 'Tanıtım alanı iki parçadır: videolar (Reels) ile gönderi görselleri (Instagram / görsel). Yayında önce videolar, sonra gönderiler sıralanır.',
-        postHint: 'Yalnız önizleme görseli veya embed. .mp4 ve tam reel indirmesi için 2. bölümü kullanın.',
+        postHint:
+            'Bu kutuya yalnızca instagram.com satırları yapıştırdıysanız sistem önce tam videoyu indirmeyi dener (yt-dlp / Cobalt / çerez); inmezse önizleme ve embed kalır. Tüm satırlar gönderi veya Reels (/p/, /reel/, /share/…; hikâye yoksa) ise kayıt yine «Tanıtım videoları» bölümünde tutulur (yanlış kutuya yapıştırma). Karışık veya Instagram dışı URL’lerde yalnız kapak alınır. Doğrudan .mp4 için 2. bölüm.',
         reelHint: 'Dosya veya reel/MP4 bağlantısı; çok URL’de arka plan sırası önerilir.',
     },
 } as const;
@@ -264,6 +268,32 @@ export default function AdminEntityPromoGalleryPanel({
 
     const submitPostUrlsImport = () => {
         if (!postUrlsText.trim()) return;
+        const lineList = postUrlsText
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l !== '');
+        const allInstagram =
+            lineList.length > 0 && lineList.every((l) => /instagram\.com/i.test(l));
+        /** Yalnız kapak: karışık satır veya Instagram dışı. Aksi halde tam MP4 denenir (başarısızsa yine önizleme düşer). */
+        const posterEmbedOnly = !allInstagram;
+        /** Sadece /p/, /reel/, /share/… (hikâye yok) ise aynı «Tanıtım videoları» slotu — yanlışlıkla pembe kutuya yapıştırılan Reels kaybolmasın. */
+        const allPostOrReelNoStories =
+            lineList.length > 0 &&
+            lineList.every((l) => {
+                if (!/instagram\.com/i.test(l)) {
+                    return false;
+                }
+                if (/\/stories\//i.test(l)) {
+                    return false;
+                }
+                return (
+                    /instagram\.com\/(p|reel|reels|tv)\//i.test(l) ||
+                    /instagram\.com\/share\/(p|reel)\//i.test(l)
+                );
+            });
+        const promoGallerySlot = allPostOrReelNoStories ? 'video' : 'post';
+        const useVideoQueue =
+            showVideoUrlBackgroundOption && allInstagram && lineList.length > 1;
         setPostUrlsImporting(true);
         router.post(
             routes.importMedia,
@@ -271,7 +301,9 @@ export default function AdminEntityPromoGalleryPanel({
                 urls_text: postUrlsText,
                 mode: 'promo_video',
                 append_promo: appendPromoToGallery,
-                promo_poster_embed_only: true,
+                promo_poster_embed_only: posterEmbedOnly,
+                promo_gallery_slot: promoGallerySlot,
+                ...(useVideoQueue ? { promo_import_background: true } : {}),
             },
             {
                 preserveScroll: true,
@@ -290,6 +322,7 @@ export default function AdminEntityPromoGalleryPanel({
                 urls_text: reelUrlsText,
                 mode: 'promo_video',
                 append_promo: appendPromoToGallery,
+                promo_gallery_slot: 'video',
                 ...(showVideoUrlBackgroundOption && reelUrlsInBackground ? { promo_import_background: true } : {}),
             },
             {
@@ -320,16 +353,28 @@ export default function AdminEntityPromoGalleryPanel({
     };
 
     const adminPromoGalleryRows = useMemo((): AdminPromoPreviewRow[] => {
-        const g = entity.promo_gallery;
-        if (Array.isArray(g) && g.length > 0) {
-            return g.map((row, galleryIndex) => ({
-                video_path: row.video_path?.trim() || null,
-                poster_path: row.poster_path?.trim() || null,
-                embed_url: row.embed_url?.trim() || null,
+        const coerced = coercePromoGalleryRows(entity.promo_gallery);
+
+        const mapRow = (row: unknown, galleryIndex: number): AdminPromoPreviewRow | null => {
+            if (!row || typeof row !== 'object') {
+                return null;
+            }
+            const r = row as PromoRow;
+            return {
+                video_path: r.video_path?.trim() || null,
+                poster_path: r.poster_path?.trim() || null,
+                embed_url: r.embed_url?.trim() || null,
                 promo_kind:
-                    row.promo_kind === 'post' ? ('post' as const) : row.promo_kind === 'story' ? ('story' as const) : null,
+                    r.promo_kind === 'post' ? ('post' as const) : r.promo_kind === 'story' ? ('story' as const) : null,
                 galleryIndex,
-            }));
+            };
+        };
+
+        if (coerced.length > 0) {
+            return coerced
+                .map((row, galleryIndex) => mapRow(row, galleryIndex))
+                .filter((x): x is AdminPromoPreviewRow => x !== null)
+                .map((row, i) => ({ ...row, galleryIndex: i }));
         }
         if (entity.promo_video_path?.trim() || entity.promo_embed_url?.trim()) {
             return [
@@ -441,9 +486,7 @@ export default function AdminEntityPromoGalleryPanel({
 
                 <div className="border-t border-fuchsia-500/20 pt-4">
                     <p className="text-[11px] font-medium text-zinc-400">Veya bağlantı (satır başına bir URL)</p>
-                    <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-500">
-                        Burada yalnızca önizleme görseli alınır; tam reel/video indirilmez. Reel için 2. bölümü kullanın.
-                    </p>
+                    <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-500">{copy.postHint}</p>
                     <textarea
                         id={`entity-post-urls-${entity.id}`}
                         value={postUrlsText}
@@ -475,6 +518,16 @@ export default function AdminEntityPromoGalleryPanel({
                         2 · Tanıtım videoları (Reels / MP4)
                     </h3>
                     <p className="mt-1 text-xs text-zinc-500">{copy.reelHint}</p>
+                    <p className="mt-2 rounded-md border border-amber-500/35 bg-amber-950/30 p-2.5 text-[11px] leading-snug text-amber-100/95">
+                        <strong className="text-amber-50">MP4 ne zaman iner?</strong> Instagram çoğu gönderi ve hikâyede videoyu{' '}
+                        <strong>çerezsiz istekle vermez</strong>. Çerez olmadan içe aktarma başarılı olsa bile yalnızca{' '}
+                        <strong className="text-fuchsia-200/90">«Gönderi görselleri»</strong> önizlemesi oluşur; sitede üstteki{' '}
+                        <strong className="text-amber-200/90">«Tanıtım videoları»</strong> bölümünde oynatıcı ancak gerçek MP4
+                        diske indiğinde görünür. Çözüm: <code className="rounded bg-black/30 px-1 text-amber-200/90">YTDLP_COOKIES_FILE</code>{' '}
+                        (Netscape <code className="rounded bg-black/30 px-1">cookies.txt</code>) veya{' '}
+                        <code className="rounded bg-black/30 px-1 text-amber-200/90">COBALT_API_URL</code> — kontrol:{' '}
+                        <code className="rounded bg-black/30 px-1">php artisan sahnebul:promo-import-deps</code>.
+                    </p>
                     {variant === 'event' && eventVenueProfilePromoToggles ? (
                         <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-md border border-amber-500/25 bg-zinc-950/40 p-2.5 text-[11px] text-zinc-400">
                             <input
@@ -656,8 +709,10 @@ export default function AdminEntityPromoGalleryPanel({
                                         key={`post-prev-${row.galleryIndex}`}
                                         className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
                                     >
-                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-fuchsia-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-white">
-                                            Görsel
+                                        <span className="absolute left-0.5 top-0.5 z-10 max-w-[92%] rounded bg-fuchsia-600/90 px-1 py-0.5 text-[7px] font-bold uppercase leading-tight text-white">
+                                            {row.embed_url?.includes('instagram.com') && !row.video_path
+                                                ? 'IG · MP4 yok'
+                                                : 'Görsel'}
                                         </span>
                                         <button
                                             type="button"
@@ -698,8 +753,8 @@ export default function AdminEntityPromoGalleryPanel({
                                         key={`video-prev-${row.galleryIndex}`}
                                         className="relative aspect-square overflow-hidden rounded-md border border-zinc-700 bg-zinc-950"
                                     >
-                                        <span className="absolute left-0.5 top-0.5 z-10 rounded bg-amber-600/90 px-1 py-0.5 text-[8px] font-bold uppercase text-zinc-950">
-                                            Video
+                                        <span className="absolute left-0.5 top-0.5 z-10 max-w-[92%] rounded bg-amber-600/90 px-1 py-0.5 text-[7px] font-bold uppercase leading-tight text-zinc-950">
+                                            {storageUrl(row.video_path) ? 'MP4' : 'MP4 yok'}
                                         </span>
                                         <button
                                             type="button"

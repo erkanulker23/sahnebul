@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\InstagramYtdlpCookiesPath;
 use App\Support\YtDlpBinaryResolver;
 use Illuminate\Console\Command;
 use Symfony\Component\Process\ExecutableFinder;
@@ -50,11 +51,21 @@ class CheckPromoImportDepsCommand extends Command
             $this->line('  → .env FFMPEG_BINARY veya PATH (apt install ffmpeg, brew install ffmpeg)');
         }
 
-        $cookies = config('services.ytdlp.cookies_file');
-        if (is_string($cookies) && $cookies !== '') {
-            $this->line('YTDLP_COOKIES_FILE: '.(is_readable($cookies) ? "<fg=green>okunuyor</> ({$cookies})" : "<fg=yellow>okunamıyor</> ({$cookies})"));
+        $resolved = InstagramYtdlpCookiesPath::resolve();
+        if ($resolved !== null) {
+            $label = InstagramYtdlpCookiesPath::hasUploadedFile() && $resolved === InstagramYtdlpCookiesPath::uploadedAbsolutePath()
+                ? 'panel yüklemesi'
+                : '.env YTDLP_COOKIES_FILE';
+            $this->line('Aktif cookies dosyası (<fg=green>okunuyor</>): <fg=cyan>'.$label.'</> → '.$resolved);
         } else {
-            $this->line('YTDLP_COOKIES_FILE: <fg=gray>tanımlı değil (Instagram engelinde isteğe bağlı)</>');
+            $env = config('services.ytdlp.cookies_file');
+            if (is_string($env) && trim($env) !== '') {
+                $this->line('YTDLP_COOKIES_FILE: <fg=yellow>tanımlı ama okunamıyor</> — panelden yükleyin veya yolu düzeltin.');
+            } elseif (InstagramYtdlpCookiesPath::hasUploadedFile()) {
+                $this->line('Panel çerez dosyası: <fg=yellow>var ama okunamıyor</> (izinler).');
+            } else {
+                $this->line('Çerez dosyası: <fg=gray>yok</> — admin menü: «Instagram çerez (video)» veya .env YTDLP_COOKIES_FILE');
+            }
         }
 
         $extraArgs = config('services.ytdlp.extra_args_json');

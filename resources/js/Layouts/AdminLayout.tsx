@@ -13,6 +13,7 @@ import {
     Calendar,
     ChevronDown,
     ClipboardList,
+    Cookie,
     CreditCard,
     FileText,
     Folder,
@@ -81,6 +82,12 @@ const navItems: AdminNavItem[] = [
     { navKey: 'admin.cities.index', href: 'admin.cities.index', label: 'Şehirler', icon: MapPin },
     { navKey: 'admin.ad-slots.index', href: 'admin.ad-slots.index', label: 'Reklam alanları', icon: Megaphone },
     { navKey: 'admin.smtp.index', href: 'admin.smtp.index', label: 'SMTP / E-posta', icon: Mail },
+    {
+        navKey: 'admin.instagram-promo-cookies.index',
+        href: 'admin.instagram-promo-cookies.index',
+        label: 'Instagram çerez (video)',
+        icon: Cookie,
+    },
     { navKey: 'admin.settings.index', href: 'admin.settings.index', label: 'Ayarlar', icon: Settings },
     {
         navKey: 'admin.google-sign-in.index',
@@ -184,6 +191,9 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             return true;
         }
         if (item.href === 'admin.external-events.index' && currentUrl.startsWith('/admin/dis-kaynak-etkinlikler')) {
+            return true;
+        }
+        if (item.href === 'admin.instagram-promo-cookies.index' && currentUrl.startsWith('/admin/tanitim-video-instagram-cerezleri')) {
             return true;
         }
         if (item.href === 'admin.google-sign-in.index' && currentUrl.startsWith('/admin/google-ile-kullanici-girisi')) {

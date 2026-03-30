@@ -125,7 +125,7 @@ export function AppHeader() {
 
     const navActiveState = {
         venues: navActive(['venues.index']),
-        events: navActive(['events.index', 'events.show', 'events.nearby']),
+        events: navActive(['events.index', 'events.show', 'events.nearby', 'discover.tonight']),
         artists: navActive(['artists.index', 'artists.show']),
     };
 
@@ -177,9 +177,20 @@ export function AppHeader() {
                                 </>
                             )}
                         </NavFlyout>
-                        <Link href={route('events.index')} className={navLinkClass(navActiveState.events)}>
-                            Etkinlikler
-                        </Link>
+                        <NavFlyout label="Etkinlikler" active={navActiveState.events}>
+                            {(close) => (
+                                <>
+                                    <Link href={route('events.index')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                        <Calendar className="h-4 w-4 opacity-70" aria-hidden />
+                                        Tüm etkinlikler
+                                    </Link>
+                                    <Link href={route('discover.tonight')} className={flyoutItemClass} onClick={close} role="menuitem">
+                                        <MapPin className="h-4 w-4 opacity-70" aria-hidden />
+                                        Bu akşam ne yapsam? · Canlı harita
+                                    </Link>
+                                </>
+                            )}
+                        </NavFlyout>
                         <NavFlyout label="Sanatçılar" active={navActiveState.artists}>
                             {(close) => (
                                 <>
@@ -376,14 +387,24 @@ export function AppHeader() {
                                     </Link>
                                 </div>
                             ) : null}
-                            <Link
-                                href={route('events.index')}
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
-                                onClick={closeDrawer}
-                            >
-                                <Calendar className={iconClass.md} />
-                                Etkinlikler
-                            </Link>
+                            <div className="flex flex-col rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                                <Link
+                                    href={route('events.index')}
+                                    className="flex items-center gap-3 px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
+                                    onClick={closeDrawer}
+                                >
+                                    <Calendar className={iconClass.md} />
+                                    Tüm etkinlikler
+                                </Link>
+                                <Link
+                                    href={route('discover.tonight')}
+                                    className="flex items-center gap-3 border-t border-zinc-200 px-3 py-3 text-base font-medium text-zinc-900 dark:border-zinc-700 dark:text-white"
+                                    onClick={closeDrawer}
+                                >
+                                    <MapPin className={iconClass.md} />
+                                    Bu akşam · Canlı harita
+                                </Link>
+                            </div>
                             <Link
                                 href={route('artists.index')}
                                 className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\EventArtistReportController as AdminEventArtistRe
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\ExternalEventController as AdminExternalEventController;
 use App\Http\Controllers\Admin\GoogleSignInSettingsController as AdminGoogleSignInSettingsController;
+use App\Http\Controllers\Admin\InstagramPromoCookiesController as AdminInstagramPromoCookiesController;
 use App\Http\Controllers\Admin\ManagedSubscriptionController as AdminManagedSubscriptionController;
 use App\Http\Controllers\Admin\MusicGenreController as AdminMusicGenreController;
 use App\Http\Controllers\Admin\PageSeoController as AdminPageSeoController;
@@ -50,6 +51,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventPublicController;
 use App\Http\Controllers\EventReviewController;
+use App\Http\Controllers\LiveSceneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaytrCallbackController;
@@ -109,6 +111,10 @@ Route::get('/sahneler/{venue:slug}', function (Venue $venue) {
 Route::get('/etkinlikler', [EventController::class, 'index'])->name('events.index');
 Route::middleware(['throttle:events-nearby', 'json.same-site'])->group(function () {
     Route::get('/etkinlikler/yakinindakiler', [EventController::class, 'nearby'])->name('events.nearby');
+});
+Route::get('/kesfet/bu-aksam', [LiveSceneController::class, 'index'])->name('discover.tonight');
+Route::middleware(['throttle:live-scene', 'json.same-site'])->group(function () {
+    Route::get('/api/live-scene', [LiveSceneController::class, 'mapData'])->name('api.live-scene');
 });
 Route::get('/etkinlikler/{event}', [EventPublicController::class, 'show'])
     ->where('event', '^([0-9]+|[a-z0-9-]+-\\d+|dis\\d+)$')
@@ -456,6 +462,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/reklam-alanlari', [AdminAdPlacementController::class, 'index'])->name('ad-slots.index');
     Route::post('/reklam-alanlari', [AdminAdPlacementController::class, 'update'])->name('ad-slots.update');
+
+    Route::get('/tanitim-video-instagram-cerezleri', [AdminInstagramPromoCookiesController::class, 'index'])
+        ->name('instagram-promo-cookies.index');
+    Route::post('/tanitim-video-instagram-cerezleri', [AdminInstagramPromoCookiesController::class, 'store'])
+        ->name('instagram-promo-cookies.store');
+    Route::post('/tanitim-video-instagram-cerezleri/kaldir', [AdminInstagramPromoCookiesController::class, 'destroy'])
+        ->name('instagram-promo-cookies.destroy');
 
     Route::middleware('super_admin')->group(function () {
         Route::get('/smtp', [AdminSmtpSettingsController::class, 'index'])->name('smtp.index');
