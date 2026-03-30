@@ -627,23 +627,21 @@ export default function ArtistShow({
                                         scrollTargetId="sayfa-tanitim-videolari"
                                         onActivate={() => setPromoStoryViewerOpen(true)}
                                     >
-                                        <div className="rounded-2xl bg-zinc-50/10 p-1 ring-2 ring-white/30 backdrop-blur-[2px]">
-                                            <div className="relative h-28 w-28 overflow-hidden rounded-[0.85rem] bg-zinc-800 sm:h-36 sm:w-36 md:h-40 md:w-40">
-                                                {profilePhoto ? (
-                                                    <img src={profilePhoto} alt={artist.name} className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                                                        <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
-                                                            🎤
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {artist.is_new_on_platform ? (
-                                                    <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-2">
-                                                        <CatalogNewBadge className="shadow-lg ring-2 ring-black/25 dark:ring-white/30" />
-                                                    </div>
-                                                ) : null}
-                                            </div>
+                                        <div className="relative h-28 w-28 overflow-hidden rounded-[0.72rem] bg-zinc-900 sm:h-36 sm:w-36 sm:rounded-[0.82rem] md:h-40 md:w-40 md:rounded-[0.88rem]">
+                                            {profilePhoto ? (
+                                                <img src={profilePhoto} alt={artist.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                    <span className="text-5xl opacity-40 sm:text-6xl" aria-hidden>
+                                                        🎤
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {artist.is_new_on_platform ? (
+                                                <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center px-2">
+                                                    <CatalogNewBadge className="shadow-lg ring-2 ring-black/25 dark:ring-white/30" />
+                                                </div>
+                                            ) : null}
                                         </div>
                                     </ProfilePromoStoryAvatarWrap>
                                 </div>

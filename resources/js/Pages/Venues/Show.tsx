@@ -492,20 +492,18 @@ export default function VenueShow({
                                     scrollTargetId="sayfa-tanitim-videolari"
                                     onActivate={() => setPromoStoryViewerOpen(true)}
                                 >
-                                    <div className="rounded-2xl bg-zinc-50/10 p-1 ring-2 ring-white/30 backdrop-blur-[2px]">
-                                        <div className="relative h-28 w-28 overflow-hidden rounded-[0.85rem] bg-zinc-800 ring-1 ring-white/15 sm:h-32 sm:w-32 md:h-36 md:w-36">
-                                            {heroBackdrop ? (
-                                                <img src={heroBackdrop} alt={venue.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-                                                    <Building2
-                                                        className="h-10 w-10 text-amber-400/35 dark:text-amber-400/40"
-                                                        strokeWidth={1}
-                                                        aria-hidden
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="relative h-28 w-28 overflow-hidden rounded-[0.72rem] bg-zinc-900 sm:h-32 sm:w-32 sm:rounded-[0.78rem] md:h-36 md:w-36 md:rounded-[0.88rem]">
+                                        {heroBackdrop ? (
+                                            <img src={heroBackdrop} alt={venue.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                                <Building2
+                                                    className="h-10 w-10 text-amber-400/35 dark:text-amber-400/40"
+                                                    strokeWidth={1}
+                                                    aria-hidden
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </ProfilePromoStoryAvatarWrap>
                             </div>

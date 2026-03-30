@@ -30,6 +30,11 @@ export type ProfilePromoStoryAvatarWrapProps = {
     /** Verilirse tıklanınca önce bu çağrılır (tam ekran story); kaydırma yapılmaz. */
     onActivate?: () => void;
     className?: string;
+    /**
+     * Dış çerçeve köşesi — hikâye halkası bu forma oturmalı (kare profil: rounded-2xl).
+     * Yuvarlak avatar için `rounded-full` kullanılabilir.
+     */
+    frameClassName?: string;
     children: ReactNode;
 };
 
@@ -43,6 +48,7 @@ export function ProfilePromoStoryAvatarWrap({
     scrollTargetId,
     onActivate,
     className,
+    frameClassName = 'rounded-2xl',
     children,
 }: Readonly<ProfilePromoStoryAvatarWrapProps>) {
     const contentSig = useMemo(() => signatureFromItems(storyPromoItems), [storyPromoItems]);
@@ -83,14 +89,30 @@ export function ProfilePromoStoryAvatarWrap({
         });
     }, [contentSig, entityId, entityKind, hasStories, onActivate, scrollTargetId]);
 
+    /** Instagram benzeri okunmamış hikâye: belirgin çok renkli halka (gradient dışarıda, foto içte). */
     const ringClass = !hasStories
-        ? 'rounded-full bg-zinc-200 p-[3px] shadow-sm dark:bg-zinc-700'
+        ? cn(
+              frameClassName,
+              'bg-white/12 p-[3px] shadow-md ring-1 ring-white/35 backdrop-blur-[1px] dark:bg-white/8 dark:ring-white/25',
+          )
         : isUnread
-          ? 'rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 p-[3px] shadow-[0_10px_40px_-10px_rgba(238,42,123,0.45)] dark:shadow-[0_12px_42px_-12px_rgba(98,40,215,0.5)]'
-          : 'rounded-full bg-zinc-300/95 p-[3px] ring-1 ring-zinc-400/60 dark:bg-zinc-600 dark:ring-zinc-500/50';
+          ? cn(
+                frameClassName,
+                'relative isolate p-[3.5px] sm:p-1',
+                'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]',
+                'shadow-[0_10px_36px_-8px_rgba(238,42,123,0.55),0_4px_14px_-6px_rgba(98,40,215,0.45)]',
+                'dark:shadow-[0_12px_40px_-8px_rgba(238,42,123,0.5),0_4px_16px_-6px_rgba(98,40,215,0.5)]',
+            )
+          : cn(
+                frameClassName,
+                'bg-zinc-500/50 p-[3px] ring-[2.5px] ring-zinc-300/90 dark:bg-zinc-600/70 dark:ring-zinc-500/70',
+            );
 
     const ringShell = (
-        <div className={cn('inline-flex shrink-0', ringClass)} title={hasStories ? 'Tanıtım videolarını göster' : undefined}>
+        <div
+            className={cn('inline-flex shrink-0', ringClass)}
+            title={hasStories ? 'Tanıtım videolarını göster' : undefined}
+        >
             {children}
         </div>
     );
