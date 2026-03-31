@@ -38,6 +38,7 @@ export function PromoStoryFullscreenViewer({
     const sessionOpenRef = useRef(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [slideProgress, setSlideProgress] = useState(0);
+    const [muted, setMuted] = useState(true);
 
     useEffect(() => {
         if (!open) {
@@ -112,32 +113,28 @@ export function PromoStoryFullscreenViewer({
     const safeIdx = n > 0 ? Math.min(Math.max(0, idx), n - 1) : 0;
     const it = n > 0 ? items[safeIdx] : null;
     const videoSrc = it?.video_path ? resolveStorageSrc(it.video_path) : null;
-
-    const videoSlideKey =
-        open && n > 0 && videoSrc ? `${safeIdx}\x1f${videoSrc}` : null;
-    usePromoVideoSlidePlayback(videoRef, videoSlideKey, videoSrc);
-
-    if (!open || n === 0 || typeof document === 'undefined' || !it) {
-        return null;
-    }
-
-    const posterSrc = it.poster_path ? resolveStorageSrc(it.poster_path) : null;
-    const embed = it.embed_url?.trim() ?? '';
+    const slideKey = it ? slideDomKey(it, safeIdx) : null;
+    const posterSrc = it?.poster_path ? resolveStorageSrc(it.poster_path) : null;
+    const embed = it?.embed_url?.trim() ?? '';
     const igEmbed = embed.includes('instagram.com');
     const isStoryPermalink = igEmbed && embed.includes('/stories/');
     const igIframeSrc = !videoSrc && igEmbed && !isStoryPermalink ? instagramPostOrReelEmbedIframeSrc(embed) : null;
     const timedAdvanceMs = videoSrc ? null : igIframeSrc ? STORY_IFRAME_ADVANCE_MS : STORY_IMAGE_ADVANCE_MS;
     const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
 
+    const videoSlideKey =
+        open && n > 0 && videoSrc ? `${safeIdx}\x1f${videoSrc}` : null;
+    usePromoVideoSlidePlayback(videoRef, videoSlideKey, videoSrc);
+
     useEffect(() => {
-        if (!open || !it) {
+        if (!open || !slideKey) {
             return;
         }
         setSlideProgress(0);
-    }, [open, safeIdx, it]);
+    }, [open, slideKey]);
 
     useEffect(() => {
-        if (!open || !it || timedAdvanceMs === null) {
+        if (!open || !slideKey || timedAdvanceMs === null) {
             return;
         }
         const startedAt = Date.now();
@@ -153,7 +150,18 @@ export function PromoStoryFullscreenViewer({
             window.clearInterval(int);
             window.clearTimeout(t);
         };
-    }, [open, it, timedAdvanceMs, goNext]);
+    }, [open, slideKey, timedAdvanceMs, goNext]);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+        setMuted(true);
+    }, [open, slideKey]);
+
+    if (!open || n === 0 || typeof document === 'undefined' || !it) {
+        return null;
+    }
 
     return createPortal(
         <div
@@ -163,9 +171,20 @@ export function PromoStoryFullscreenViewer({
             aria-label="Tanıtım videosu — tam ekran"
         >
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-                <p className="text-sm font-medium text-white">
-                    {safeIdx + 1} / {n}
-                </p>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-white">
+                        {safeIdx + 1} / {n}
+                    </p>
+                    {videoSrc ? (
+                        <button
+                            type="button"
+                            onClick={() => setMuted((m) => !m)}
+                            className="rounded-full border border-white/25 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
+                        >
+                            {muted ? 'Sesi Aç' : 'Sesi Kapat'}
+                        </button>
+                    ) : null}
+                </div>
                 <button
                     type="button"
                     onClick={onClose}
@@ -258,13 +277,15 @@ export function PromoStoryFullscreenViewer({
                                     controls
                                     playsInline
                                     autoPlay
-                                    muted
+                                    muted={muted}
                                     preload="auto"
                                     className="absolute inset-0 h-full w-full object-contain"
                                     poster={posterSrc ?? undefined}
                                     onCanPlay={(e) => {
                                         void e.currentTarget.play().catch(() => {
-                                            /* autoplay policy */
+                                            if (!muted) {
+                                                setMuted(true);
+                                            }
                                         });
                                     }}
                                     onTimeUpdate={(e) => {

@@ -53,6 +53,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
     const segment = ring?.segments[openSegment];
     const videoRef = useRef<HTMLVideoElement>(null);
     const [videoProgress, setVideoProgress] = useState(0);
+    const [muted, setMuted] = useState(true);
 
     const advance = useCallback(() => {
         if (!ring) {
@@ -108,6 +109,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
 
     useEffect(() => {
         setVideoProgress(0);
+        setMuted(true);
     }, [openRing, openSegment]);
 
     const videoSrc = segment ? storageUrl(segment.video_path) : null;
@@ -202,14 +204,25 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             {segment.event_title}
                         </Link>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-                        aria-label="Kapat"
-                    >
-                        <X className="h-5 w-5" aria-hidden />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {videoSrc ? (
+                            <button
+                                type="button"
+                                onClick={() => setMuted((m) => !m)}
+                                className="rounded-full border border-white/25 px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-white/10"
+                            >
+                                {muted ? 'Sesi Aç' : 'Sesi Kapat'}
+                            </button>
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                            aria-label="Kapat"
+                        >
+                            <X className="h-5 w-5" aria-hidden />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -234,7 +247,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             key={`${segment.event_id}-${openSegment}-${videoSrc}`}
                             playsInline
                             autoPlay
-                            muted
+                            muted={muted}
                             preload="auto"
                             className="max-h-full max-w-full object-contain"
                             poster={posterSrc ?? undefined}
@@ -246,7 +259,9 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             }}
                             onCanPlay={(e) => {
                                 void e.currentTarget.play().catch(() => {
-                                    /* autoplay policy */
+                                    if (!muted) {
+                                        setMuted(true);
+                                    }
                                 });
                             }}
                             onEnded={advance}
