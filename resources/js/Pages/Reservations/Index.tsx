@@ -1,3 +1,4 @@
+import AccountQuickNav from '@/Components/AccountQuickNav';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import AppLayout from '@/Layouts/AppLayout';
@@ -30,6 +31,7 @@ export default function ReservationsIndex({ reservations }: Props) {
             <SeoHead title="Rezervasyonlarım - Sahnebul" description="Masa ve etkinlik rezervasyonlarınızın durumu." noindex />
 
             <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+                <AccountQuickNav className="mb-6" />
                 <Link href={route('home')} className="mb-6 inline-block text-sm text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
                     ← Mekanlar
                 </Link>

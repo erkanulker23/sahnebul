@@ -76,12 +76,12 @@ export default function RegisterKullanici() {
     return (
         <GuestLayout>
             <SeoHead
-                title="Kullanıcı kaydı - Sahnebul"
+                title="Kayıt ol - Sahnebul"
                 description="Standart kullanıcı hesabı oluşturun; favoriler ve etkinlik hatırlatmaları."
                 noindex
             />
 
-            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Kullanıcı kaydı</h2>
+            <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Kayıt ol</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">Favoriler ve hatırlatmalar için ücretsiz hesap oluşturun.</p>
 
             <GoogleSignInButton />
@@ -189,7 +189,7 @@ export default function RegisterKullanici() {
             <p className="mt-4 text-center text-sm text-zinc-500">
                 Zaten hesabınız var mı?{' '}
                 <a href={route('login')} className="font-medium text-amber-400 hover:text-amber-300">
-                    Kullanıcı girişi
+                    Giriş
                 </a>
             </p>
         </GuestLayout>

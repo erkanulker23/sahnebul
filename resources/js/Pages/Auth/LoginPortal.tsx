@@ -16,9 +16,9 @@ const portalMeta: Record<
     { title: string; description: string; headline: string; sub: string }
 > = {
     kullanici: {
-        title: 'Kullanıcı girişi - Sahnebul',
+        title: 'Giriş - Sahnebul',
         description: 'Favoriler, etkinlik hatırlatmaları ve rezervasyonlar.',
-        headline: 'Kullanıcı girişi',
+        headline: 'Giriş',
         sub: 'Standart hesabınızla giriş yapın',
     },
     sanatci: {
@@ -247,7 +247,7 @@ export default function LoginPortal({
                         href={registerHref}
                         className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                     >
-                        Kullanıcı kaydı
+                        Kayıt ol
                     </a>
                 </p>
             )}

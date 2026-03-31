@@ -207,7 +207,7 @@ export function PromoStoryFullscreenViewer({
                                 setIdx(i);
                             }}
                             className={`h-1 min-h-[4px] min-w-0 flex-1 rounded-full transition-colors ${
-                                i === safeIdx ? 'bg-white' : 'bg-white/25 hover:bg-white/40'
+                                i === safeIdx ? 'bg-amber-400' : 'bg-amber-300/25 hover:bg-amber-300/40'
                             }`}
                             aria-label={`Slayt ${i + 1}`}
                             style={
@@ -215,7 +215,9 @@ export function PromoStoryFullscreenViewer({
                                     ? { opacity: 1 }
                                     : i > safeIdx
                                       ? { opacity: 0.35 }
-                                      : { background: `linear-gradient(90deg, #fff ${Math.round(slideProgress * 100)}%, rgba(255,255,255,0.25) ${Math.round(slideProgress * 100)}%)` }
+                                      : {
+                                            background: `linear-gradient(90deg, rgb(251 191 36) ${Math.round(slideProgress * 100)}%, rgba(252,211,77,0.28) ${Math.round(slideProgress * 100)}%)`,
+                                        }
                             }
                         />
                     ))}

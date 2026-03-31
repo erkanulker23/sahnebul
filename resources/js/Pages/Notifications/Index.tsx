@@ -1,3 +1,4 @@
+import AccountQuickNav from '@/Components/AccountQuickNav';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -22,7 +23,8 @@ export default function NotificationsIndex({ notifications }: Props) {
             <SeoHead title="Bildirimler - Sahnebul" description="Hesap bildirimleriniz." noindex />
 
             <div className="py-8">
-                <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <AccountQuickNav className="mb-6" />
                     {notifications.data.length === 0 ? (
                         <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none">
                             <p className="text-5xl opacity-40">🔔</p>

@@ -67,7 +67,7 @@ export default function StageLoginChooser({
                     href={safeRoute('login')}
                     className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                 >
-                    Kullanıcı girişi
+                    Giriş
                 </Link>
                 {canResetPassword ? (
                     <>

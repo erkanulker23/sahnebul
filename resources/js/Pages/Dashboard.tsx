@@ -1,3 +1,4 @@
+import AccountQuickNav from '@/Components/AccountQuickNav';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import SeoHead from '@/Components/SeoHead';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -101,6 +102,8 @@ export default function Dashboard({
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <AccountQuickNav className="mb-6" />
+
                     <div className="mb-8 grid gap-4 sm:grid-cols-2">
                         <div className="relative overflow-hidden rounded-2xl border border-rose-200/90 bg-gradient-to-br from-rose-50 via-white to-white p-6 shadow-sm dark:border-rose-500/25 dark:from-rose-500/[0.12] dark:via-zinc-900/40 dark:to-zinc-900/50 dark:shadow-none">
                             <div

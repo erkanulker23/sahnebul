@@ -277,13 +277,13 @@ export function AppHeader() {
                         ) : (
                             <>
                                 <Link href={safeRoute('login')} className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                    Kullanıcı girişi
+                                    Giriş
                                 </Link>
                                 <Link
                                     href={safeRoute('register.kullanici')}
                                     className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
                                 >
-                                    Kullanıcı kaydı
+                                    Kayıt ol
                                 </Link>
                             </>
                         )}
@@ -480,14 +480,14 @@ export function AppHeader() {
                             ) : (
                                 <div className="flex flex-col gap-2">
                                     <Link href={safeRoute('login')} className="rounded-lg px-3 py-2.5" onClick={closeDrawer}>
-                                        Kullanıcı girişi
+                                        Giriş
                                     </Link>
                                     <Link
                                         href={safeRoute('register.kullanici')}
                                         className="rounded-lg bg-amber-500 px-3 py-2.5 text-center font-semibold text-zinc-950"
                                         onClick={closeDrawer}
                                     >
-                                        Kullanıcı kaydı
+                                        Kayıt ol
                                     </Link>
                                 </div>
                             )}

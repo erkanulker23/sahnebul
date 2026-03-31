@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\City;
+use App\Models\Reservation;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,10 +28,64 @@ class ProfileController extends Controller
 
         $cities = City::query()->turkiyeProvinces()->get(['id', 'name', 'slug']);
 
+        $activeTicketCount = Reservation::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'confirmed', 'completed'])
+            ->whereDate('reservation_date', '>=', now()->toDateString())
+            ->count();
+
+        $pastEventCount = Reservation::query()
+            ->where('user_id', $user->id)
+            ->whereDate('reservation_date', '<', now()->toDateString())
+            ->count();
+
+        $reservations = Reservation::query()
+            ->with([
+                'venue:id,name,slug',
+                'event:id,title',
+            ])
+            ->where('user_id', $user->id)
+            ->latest('reservation_date')
+            ->latest('id')
+            ->limit(6)
+            ->get([
+                'id',
+                'venue_id',
+                'event_id',
+                'reservation_date',
+                'reservation_time',
+                'status',
+            ]);
+
+        $favoriteArtists = $user->favoriteArtists()
+            ->select('artists.id', 'artists.name', 'artists.slug')
+            ->latest('user_favorite_artists.created_at')
+            ->limit(6)
+            ->get();
+
+        $reminderEvents = $user->remindedEvents()
+            ->published()
+            ->whereHas('venue', fn ($q) => $q->listedPublicly())
+            ->whereNotNull('events.start_date')
+            ->whereStillVisibleOnPublicListing()
+            ->with(['venue:id,name,slug'])
+            ->orderBy('start_date')
+            ->limit(10)
+            ->get(['events.id', 'events.slug', 'events.title', 'events.start_date', 'events.end_date', 'events.venue_id']);
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
             'cities' => $cities,
+            'panelSummary' => [
+                'activeTicketCount' => $activeTicketCount,
+                'favoriteCount' => $user->favoriteArtists()->count() + $user->followedVenues()->count(),
+                'pastEventCount' => $pastEventCount,
+                'reviewCount' => $user->reviews()->count(),
+            ],
+            'reservations' => $reservations,
+            'favoriteArtists' => $favoriteArtists,
+            'reminderEvents' => $reminderEvents,
         ]);
     }
 

@@ -167,11 +167,11 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                     {ring.segments.map((_, i) => (
                         <div
                             key={`prog-${ring.artist.id}-${i}`}
-                            className="h-0.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/25"
+                            className="h-0.5 min-w-0 flex-1 overflow-hidden rounded-full bg-amber-300/25"
                         >
                             <div
                                 className={cn(
-                                    'h-full rounded-full bg-white',
+                                    'h-full rounded-full bg-amber-400',
                                     i === openSegment && videoSrc && 'transition-[width] duration-150',
                                 )}
                                 style={
