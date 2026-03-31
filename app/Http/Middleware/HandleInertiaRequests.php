@@ -8,6 +8,7 @@ use App\Services\AppSettingsService;
 use App\Services\PanelNotificationService;
 use App\Support\AuthPortalUrls;
 use App\Support\EventListingTypes;
+use App\Support\UserBackgroundJobPointers;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -34,6 +35,14 @@ class HandleInertiaRequests extends Middleware
         }
 
         $appSettings = app(AppSettingsService::class);
+        $sessionPromoToken = $request->session()->get('promo_import_status_id');
+        $sessionExternalToken = $request->session()->get('external_crawl_job_id');
+        $promoImportStatusId = is_string($sessionPromoToken) && trim($sessionPromoToken) !== ''
+            ? $sessionPromoToken
+            : ($user ? UserBackgroundJobPointers::getPromoImportToken((int) $user->id) : null);
+        $externalCrawlJobId = is_string($sessionExternalToken) && trim($sessionExternalToken) !== ''
+            ? $sessionExternalToken
+            : ($user ? UserBackgroundJobPointers::getExternalCrawlToken((int) $user->id) : null);
 
         $appUrl = rtrim((string) config('app.url'), '/');
 
@@ -165,8 +174,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
-                'promo_import_status_id' => $request->session()->get('promo_import_status_id'),
-                'external_crawl_job_id' => $request->session()->get('external_crawl_job_id'),
+                'promo_import_status_id' => $promoImportStatusId,
+                'external_crawl_job_id' => $externalCrawlJobId,
             ],
             'settings' => [
                 'footer' => fn () => $appSettings->getFooterSettingsForPublic(),

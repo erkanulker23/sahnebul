@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Services\EventMediaImportFromUrlService;
 use App\Support\EventPromoVenueProfileModeration;
 use App\Support\PromoGalleryUrlImportStatus;
+use App\Support\UserBackgroundJobPointers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,7 @@ trait PromoGalleryImportActions
 
             $statusId = (string) Str::uuid();
             PromoGalleryUrlImportStatus::boot($statusId, (int) $user->id, count($urls));
+            UserBackgroundJobPointers::setPromoImportToken((int) $user->id, $statusId);
 
             ProcessPromoGalleryUrlImportJob::dispatch(
                 $statusId,

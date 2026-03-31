@@ -13,6 +13,7 @@ use App\Services\MarketplaceExternalEventImportService;
 use App\Support\AdminDatetimeLocal;
 use App\Support\ExternalEventFingerprint;
 use App\Support\ExternalMarketplaceCrawlJobStatus;
+use App\Support\UserBackgroundJobPointers;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -493,6 +494,7 @@ class ExternalEventController extends Controller
         $statusToken = (string) Str::uuid();
         $userId = (int) $request->user()->id;
         ExternalMarketplaceCrawlJobStatus::boot($statusToken, $userId, (string) $validated['source']);
+        UserBackgroundJobPointers::setExternalCrawlToken($userId, $statusToken);
 
         ImportExternalMarketplaceEventsJob::dispatch(
             $validated['source'],
