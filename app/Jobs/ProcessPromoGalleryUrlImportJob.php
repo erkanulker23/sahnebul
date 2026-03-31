@@ -38,15 +38,6 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
 
     public function handle(EventMediaImportFromUrlService $importer): void
     {
-        if ($this->posterEmbedOnly) {
-            PromoGalleryUrlImportStatus::put($this->statusId, [
-                'state' => 'failed',
-                'message' => 'Arka plan işlemi yalnızca tam video içe aktarımı için kullanılabilir.',
-            ]);
-
-            return;
-        }
-
         if (! class_exists($this->modelClass) || ! is_a($this->modelClass, Model::class, true)) {
             PromoGalleryUrlImportStatus::put($this->statusId, [
                 'state' => 'failed',
@@ -90,7 +81,9 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
                     'current' => $n,
                     'total' => $total,
                     'active_url' => Str::limit($url, 96),
-                    'message' => "Video indiriliyor ({$n}/{$total})…",
+                    'message' => $this->posterEmbedOnly
+                        ? "Gönderi görseli işleniyor ({$n}/{$total})…"
+                        : "Video indiriliyor ({$n}/{$total})…",
                 ]);
 
                 $r = $importer->import(
@@ -105,7 +98,9 @@ final class ProcessPromoGalleryUrlImportJob implements ShouldQueue
                     $ok++;
                     PromoGalleryUrlImportStatus::put($this->statusId, [
                         'ok' => $ok,
-                        'message' => $total > 1 ? "Tamamlandı: {$n}/{$total} satır işlendi (başarılı: {$ok})." : 'Video işlendi.',
+                        'message' => $total > 1
+                            ? "Tamamlandı: {$n}/{$total} satır işlendi (başarılı: {$ok})."
+                            : ($this->posterEmbedOnly ? 'Gönderi işlendi.' : 'Video işlendi.'),
                     ]);
                 } else {
                     $failures[] = Str::limit($url, 96).' — '.$r['message'];

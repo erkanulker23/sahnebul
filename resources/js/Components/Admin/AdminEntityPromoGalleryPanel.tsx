@@ -133,6 +133,13 @@ export default function AdminEntityPromoGalleryPanel({
         if (!token) {
             return;
         }
+        const terminalTokenStorageKey = 'admin.promoImport.lastTerminalToken';
+        const alreadyTerminal =
+            typeof window !== 'undefined' && window.sessionStorage.getItem(terminalTokenStorageKey) === token;
+        if (alreadyTerminal) {
+            setPromoUrlImportProgress(null);
+            return;
+        }
 
         let cancelled = false;
         let interval: ReturnType<typeof setInterval> | undefined;
@@ -183,6 +190,9 @@ export default function AdminEntityPromoGalleryPanel({
                 if (j.state === 'completed' || j.state === 'failed') {
                     if (interval) {
                         clearInterval(interval);
+                    }
+                    if (typeof window !== 'undefined') {
+                        window.sessionStorage.setItem(terminalTokenStorageKey, token);
                     }
                     router.reload();
                 }
@@ -269,6 +279,7 @@ export default function AdminEntityPromoGalleryPanel({
                 /** Pembe kutu: her zaman galeri (post) slota yaz; tam MP4 akışı sarı kutuda. */
                 promo_poster_embed_only: true,
                 promo_gallery_slot: 'post',
+                promo_import_background: true,
             },
             {
                 preserveScroll: true,

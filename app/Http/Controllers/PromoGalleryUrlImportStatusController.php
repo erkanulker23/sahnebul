@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\PromoGalleryUrlImportStatus;
+use App\Support\UserBackgroundJobPointers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,8 +19,13 @@ class PromoGalleryUrlImportStatusController extends Controller
             abort(403);
         }
 
+        $state = (string) ($data['state'] ?? 'unknown');
+        if ($state === 'completed' || $state === 'failed') {
+            UserBackgroundJobPointers::clearPromoImportToken((int) $request->user()->id);
+        }
+
         return response()->json([
-            'state' => (string) ($data['state'] ?? 'unknown'),
+            'state' => $state,
             'current' => (int) ($data['current'] ?? 0),
             'total' => (int) ($data['total'] ?? 1),
             'ok' => (int) ($data['ok'] ?? 0),

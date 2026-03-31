@@ -57,7 +57,6 @@ trait PromoGalleryImportActions
         }
 
         $useQueue = $validated['mode'] === 'promo_video'
-            && ! $posterEmbedOnly
             && $request->has('promo_import_background')
             && $request->boolean('promo_import_background');
 

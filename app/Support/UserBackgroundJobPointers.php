@@ -41,5 +41,10 @@ final class UserBackgroundJobPointers
 
         return is_string($v) && trim($v) !== '' ? $v : null;
     }
+
+    public static function clearPromoImportToken(int $userId): void
+    {
+        Cache::forget(self::key($userId, 'promo_import'));
+    }
 }
 
