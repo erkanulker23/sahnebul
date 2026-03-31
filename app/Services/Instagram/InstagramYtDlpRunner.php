@@ -96,6 +96,7 @@ final class InstagramYtDlpRunner
     private function storySourceUrls(string $normalized, ?string $canonical): array
     {
         $urls = [];
+        $storyMediaId = $this->extractStoryMediaId($canonical) ?? $this->extractStoryMediaId($normalized);
         foreach (array_filter([trim($normalized), is_string($canonical) ? trim($canonical) : '']) as $u) {
             if ($u === '' || ! $this->isInstagramHost($u)) {
                 continue;
@@ -103,10 +104,25 @@ final class InstagramYtDlpRunner
             $urls[] = $u;
             $urls[] = rtrim($u, '/');
             $urls[] = rtrim($u, '/').'/';
+            if (is_string($storyMediaId) && $storyMediaId !== '') {
+                $scoped = $this->withStoryMediaIdQuery($u, $storyMediaId);
+                if ($scoped !== null) {
+                    $urls[] = $scoped;
+                    $urls[] = rtrim($scoped, '/');
+                    $urls[] = rtrim($scoped, '/').'/';
+                }
+            }
             $www = $this->withWwwInstagramHost($u);
             if ($www !== null) {
                 $urls[] = $www;
                 $urls[] = rtrim($www, '/').'/';
+                if (is_string($storyMediaId) && $storyMediaId !== '') {
+                    $scopedWww = $this->withStoryMediaIdQuery($www, $storyMediaId);
+                    if ($scopedWww !== null) {
+                        $urls[] = $scopedWww;
+                        $urls[] = rtrim($scopedWww, '/').'/';
+                    }
+                }
             }
         }
 
@@ -155,6 +171,40 @@ final class InstagramYtDlpRunner
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
         return str_contains($host, 'instagram.com');
+    }
+
+    private function extractStoryMediaId(?string $url): ?string
+    {
+        if (! is_string($url) || trim($url) === '') {
+            return null;
+        }
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if (preg_match('#/stories/[^/]+/(\d+)/?$#', $path, $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    private function withStoryMediaIdQuery(string $url, string $storyMediaId): ?string
+    {
+        $parts = parse_url($url);
+        if (! is_array($parts)) {
+            return null;
+        }
+        $scheme = isset($parts['scheme']) ? (string) $parts['scheme'] : 'https';
+        $host = isset($parts['host']) ? (string) $parts['host'] : '';
+        $path = isset($parts['path']) ? (string) $parts['path'] : '/';
+        if ($host === '') {
+            return null;
+        }
+        $queryRaw = isset($parts['query']) ? (string) $parts['query'] : '';
+        parse_str($queryRaw, $query);
+        $query['story_media_id'] = $storyMediaId;
+        $queryString = http_build_query($query);
+        $fragment = isset($parts['fragment']) ? '#'.$parts['fragment'] : '';
+
+        return $scheme.'://'.$host.$path.($queryString !== '' ? '?'.$queryString : '').$fragment;
     }
 
     private function runYtDlpOnceAllFormats(
@@ -345,19 +395,6 @@ final class InstagramYtDlpRunner
         }
 
         return $dest;
-    }
-
-    private function extractStoryMediaId(?string $storyCanonicalUrl): ?string
-    {
-        if (! is_string($storyCanonicalUrl) || trim($storyCanonicalUrl) === '') {
-            return null;
-        }
-        $path = (string) parse_url($storyCanonicalUrl, PHP_URL_PATH);
-        if (preg_match('#/stories/[^/]+/(\d+)/?$#', $path, $m) === 1) {
-            return $m[1];
-        }
-
-        return null;
     }
 
     /**

@@ -79,7 +79,7 @@ export default function SeoHead({
     const published = articlePublishedTime?.trim() ?? '';
 
     return (
-        <Head title={title}>
+        <Head title={fullTitle}>
             {faviconHref ? (
                 <link
                     head-key="favicon"

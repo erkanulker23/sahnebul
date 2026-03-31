@@ -29,9 +29,11 @@ final class InstagramPromoVideoPipeline
         $messages = [];
 
         $storyMediaId = $this->extractStoryMediaId($storyCanonicalUrl);
+        $storyScopedUrlForCobalt = $this->withStoryMediaIdQuery($storyCanonicalUrl, $storyMediaId);
+        $cobaltUrl = $this->nonEmptyUrl($storyScopedUrlForCobalt) ? $storyScopedUrlForCobalt : $pageUrlForCobalt;
 
-        if ($cobaltFirst && $this->nonEmptyUrl($pageUrlForCobalt)) {
-            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt, $storyMediaId);
+        if ($cobaltFirst && $this->nonEmptyUrl($cobaltUrl)) {
+            $path = $this->cobalt->tryDownloadToPublicStorage($cobaltUrl, $storyMediaId);
             if ($path !== null) {
                 Log::info('InstagramPromoVideo: Cobalt ile kaydedildi');
 
@@ -52,8 +54,8 @@ final class InstagramPromoVideoPipeline
             );
         }
 
-        if (! $cobaltFirst && $this->nonEmptyUrl($pageUrlForCobalt)) {
-            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt, $storyMediaId);
+        if (! $cobaltFirst && $this->nonEmptyUrl($cobaltUrl)) {
+            $path = $this->cobalt->tryDownloadToPublicStorage($cobaltUrl, $storyMediaId);
             if ($path !== null) {
                 Log::info('InstagramPromoVideo: Cobalt (yt-dlp sonrası) ile kaydedildi');
 
@@ -84,5 +86,29 @@ final class InstagramPromoVideoPipeline
         }
 
         return null;
+    }
+
+    private function withStoryMediaIdQuery(?string $url, ?string $storyMediaId): ?string
+    {
+        if (! is_string($url) || trim($url) === '' || ! is_string($storyMediaId) || trim($storyMediaId) === '') {
+            return null;
+        }
+        $parts = parse_url($url);
+        if (! is_array($parts)) {
+            return null;
+        }
+        $scheme = isset($parts['scheme']) ? (string) $parts['scheme'] : 'https';
+        $host = isset($parts['host']) ? (string) $parts['host'] : '';
+        $path = isset($parts['path']) ? (string) $parts['path'] : '/';
+        if ($host === '') {
+            return null;
+        }
+        $queryRaw = isset($parts['query']) ? (string) $parts['query'] : '';
+        parse_str($queryRaw, $query);
+        $query['story_media_id'] = trim($storyMediaId);
+        $queryString = http_build_query($query);
+        $fragment = isset($parts['fragment']) ? '#'.$parts['fragment'] : '';
+
+        return $scheme.'://'.$host.$path.($queryString !== '' ? '?'.$queryString : '').$fragment;
     }
 }

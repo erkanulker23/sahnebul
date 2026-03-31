@@ -64,7 +64,7 @@ final class InertiaDocumentMeta
             'Blog/Index' => self::blogIndex($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Contact' => self::contact($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Pages/Show' => self::legalPage($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
-            'SehirSec' => self::sehirSec($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'SehirSec' => self::sehirSec($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'SehirSec/CityEvents' => self::sehirSecCity($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'SehirSec/ExternalEventShow' => self::externalEventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             default => null,
@@ -289,9 +289,18 @@ final class InertiaDocumentMeta
     {
         $paginator = is_array($props['events'] ?? null) ? $props['events'] : [];
         $data = is_array($paginator['data'] ?? null) ? $paginator['data'] : [];
+        return self::eventItemListFromRows($data, $appUrl, 'Etkinlikler');
+    }
+
+    /**
+     * @param  list<mixed>  $rows
+     * @return array<string, mixed>|null
+     */
+    private static function eventItemListFromRows(array $rows, string $appUrl, string $listName = 'Etkinlikler'): ?array
+    {
         $elements = [];
         $pos = 1;
-        foreach ($data as $row) {
+        foreach ($rows as $row) {
             if (! is_array($row)) {
                 continue;
             }
@@ -362,7 +371,7 @@ final class InertiaDocumentMeta
         return [
             '@context' => 'https://schema.org',
             '@type' => 'ItemList',
-            'name' => 'Etkinlikler',
+            'name' => $listName,
             'numberOfItems' => count($elements),
             'itemListElement' => $elements,
         ];
@@ -971,6 +980,7 @@ final class InertiaDocumentMeta
      * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
      */
     private static function sehirSec(
+        array $props,
         string $pathUrl,
         string $siteName,
         string $appUrl,
@@ -989,10 +999,32 @@ final class InertiaDocumentMeta
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
-        return [
+        $out = [
             'title' => $fullTitle,
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
         ];
+        $citySections = is_array($props['citySections'] ?? null) ? $props['citySections'] : [];
+        $rows = [];
+        foreach ($citySections as $section) {
+            if (! is_array($section)) {
+                continue;
+            }
+            $events = is_array($section['events'] ?? null) ? $section['events'] : [];
+            foreach ($events as $eventRow) {
+                if (is_array($eventRow)) {
+                    $rows[] = $eventRow;
+                }
+            }
+            if (count($rows) >= 24) {
+                break;
+            }
+        }
+        $itemList = self::eventItemListFromRows($rows, $appUrl, 'Türkiye şehir etkinlikleri');
+        if ($itemList !== null) {
+            $out['jsonLd'] = $itemList;
+        }
+
+        return $out;
     }
 
     /**
@@ -1022,10 +1054,18 @@ final class InertiaDocumentMeta
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
 
-        return [
+        $out = [
             'title' => $fullTitle,
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
         ];
+        $p = is_array($props['events'] ?? null) ? $props['events'] : [];
+        $rows = is_array($p['data'] ?? null) ? $p['data'] : [];
+        $itemList = self::eventItemListFromRows($rows, $appUrl, $cityName.' etkinlikleri');
+        if ($itemList !== null) {
+            $out['jsonLd'] = $itemList;
+        }
+
+        return $out;
     }
 
     /**
@@ -1068,10 +1108,45 @@ final class InertiaDocumentMeta
             $ogImage = $defaultOgAbs;
         }
 
-        return [
+        $out = [
             'title' => $fullTitle,
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'article'),
         ];
+        $eventJsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Event',
+            'name' => $title,
+            'url' => $canonical,
+            'description' => $desc,
+            'inLanguage' => 'tr-TR',
+            'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+            'eventStatus' => 'https://schema.org/EventScheduled',
+        ];
+        $eventStart = self::isoFromEventProp($event['start_date'] ?? null);
+        $eventEnd = self::isoFromEventProp($event['end_date'] ?? null);
+        if ($eventStart !== '') {
+            $eventJsonLd['startDate'] = $eventStart;
+        }
+        if ($eventEnd !== '') {
+            $eventJsonLd['endDate'] = $eventEnd;
+        }
+        if ($ogImage !== null) {
+            $eventJsonLd['image'] = [$ogImage];
+        }
+        if ($venueName !== '' || $cityName !== '') {
+            $eventJsonLd['location'] = [
+                '@type' => 'Place',
+                'name' => $venueName !== '' ? $venueName : $title,
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'addressLocality' => $cityName,
+                    'addressCountry' => 'TR',
+                ],
+            ];
+        }
+        $out['jsonLd'] = $eventJsonLd;
+
+        return $out;
     }
 
     /**
