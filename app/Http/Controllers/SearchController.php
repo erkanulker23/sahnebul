@@ -35,13 +35,14 @@ class SearchController extends Controller
 
         $events = $query
             ->limit($limit)
-            ->get(['id', 'slug', 'title', 'start_date', 'end_date', 'listing_image', 'cover_image', 'venue_id', 'view_count']);
+            ->get(['id', 'slug', 'title', 'event_type', 'start_date', 'end_date', 'listing_image', 'cover_image', 'venue_id', 'view_count']);
 
         return response()->json([
             'events' => $events->map(fn (Event $e) => [
                 'id' => $e->id,
                 'slug' => $e->slug,
                 'title' => $e->title,
+                'event_type' => $e->event_type,
                 'start_date' => $e->start_date?->toIso8601String(),
                 'end_date' => $e->end_date?->toIso8601String(),
                 'venue_name' => $e->venue?->name,
@@ -88,7 +89,7 @@ class SearchController extends Controller
             ->with(['venue:id,name,slug'])
             ->orderBy('start_date')
             ->limit(8)
-            ->get(['id', 'slug', 'title', 'start_date', 'end_date', 'venue_id', 'listing_image', 'cover_image']);
+            ->get(['id', 'slug', 'title', 'event_type', 'start_date', 'end_date', 'venue_id', 'listing_image', 'cover_image']);
 
         return response()->json([
             'artists' => $artists,
@@ -97,6 +98,7 @@ class SearchController extends Controller
                 'id' => $e->id,
                 'slug' => $e->slug,
                 'title' => $e->title,
+                'event_type' => $e->event_type,
                 'start_date' => $e->start_date,
                 'end_date' => $e->end_date?->toIso8601String(),
                 'venue_name' => $e->venue?->name,

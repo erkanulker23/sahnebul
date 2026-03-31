@@ -43,6 +43,7 @@ type TrendingEvent = {
     id: number;
     slug: string;
     title: string;
+    event_type?: string | null;
     start_date: string | null;
     end_date: string | null;
     venue_name?: string | null;
@@ -449,6 +450,7 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                                 <EventListingHeroPlaceholder
                                                                     eventId={ev.id}
                                                                     slug={ev.slug}
+                                                                    eventType={ev.event_type}
                                                                     iconClassName="!h-8 !w-8 sm:!h-9 sm:!w-9"
                                                                 />
                                                             )}

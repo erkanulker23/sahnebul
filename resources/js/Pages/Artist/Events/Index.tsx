@@ -20,6 +20,7 @@ interface Event {
     title: string;
     start_date: string | null;
     end_date?: string | null;
+    event_type?: string | null;
     status: string;
     cover_image?: string | null;
     listing_image?: string | null;
@@ -250,6 +251,7 @@ export default function ArtistEventsIndex({
                                         <EventListingHeroPlaceholder
                                             eventId={ev.id}
                                             slug={ev.public_url_segment?.trim() ? ev.public_url_segment : `id-${ev.id}`}
+                                            eventType={ev.event_type}
                                         />
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />

@@ -44,7 +44,7 @@ class SearchTrendingTest extends TestCase
         $response = $this->getJson('/search/trending?limit=5');
 
         $response->assertOk();
-        $response->assertJsonStructure(['events' => [['id', 'slug', 'title', 'start_date', 'venue_name']]]);
+        $response->assertJsonStructure(['events' => [['id', 'slug', 'title', 'event_type', 'start_date', 'venue_name']]]);
         $this->assertNotEmpty($response->json('events'));
         $this->assertSame('Trend Konser', $response->json('events.0.title'));
     }

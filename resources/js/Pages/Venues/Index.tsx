@@ -28,6 +28,7 @@ interface HomeEvent {
     id: number;
     slug: string;
     title: string;
+    event_type?: string | null;
     start_date: string;
     cover_image?: string | null;
     listing_image?: string | null;

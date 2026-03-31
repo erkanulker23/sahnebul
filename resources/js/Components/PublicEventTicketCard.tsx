@@ -15,6 +15,7 @@ export type PublicEventTicketCardEvent = {
     title: string;
     start_date: string;
     end_date?: string | null;
+    event_type?: string | null;
     cover_image?: string | null;
     listing_image?: string | null;
     status?: string | null;
@@ -38,10 +39,26 @@ function EventCardImage({
     className,
     eventId,
     slug,
-}: Readonly<{ src: string; alt: string; className?: string; eventId: number; slug: string }>) {
+    eventType = null,
+}: Readonly<{
+    src: string;
+    alt: string;
+    className?: string;
+    eventId: number;
+    slug: string;
+    eventType?: string | null;
+}>) {
     const [failed, setFailed] = useState(false);
     if (failed) {
-        return <EventListingImageErrorFallback eventId={eventId} slug={slug} title={alt} className={className} />;
+        return (
+            <EventListingImageErrorFallback
+                eventId={eventId}
+                slug={slug}
+                eventType={eventType}
+                title={alt}
+                className={className}
+            />
+        );
     }
     return (
         <img
@@ -106,10 +123,15 @@ export default function PublicEventTicketCard({
                             alt={displayName}
                             eventId={event.id}
                             slug={event.slug}
+                            eventType={event.event_type}
                             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                         />
                     ) : (
-                        <EventListingHeroPlaceholder eventId={event.id} slug={event.slug} />
+                        <EventListingHeroPlaceholder
+                            eventId={event.id}
+                            slug={event.slug}
+                            eventType={event.event_type}
+                        />
                     )}
                     {/** Hafif üstten gölge — afiş yüzü açık kalsın; meta bilgi altta şeritte */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10 opacity-90 transition group-hover:opacity-100" />

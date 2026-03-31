@@ -26,6 +26,7 @@ interface EventItem {
     title: string;
     start_date: string;
     end_date?: string | null;
+    event_type?: string | null;
     description: string | null;
     cover_image?: string | null;
     listing_image?: string | null;

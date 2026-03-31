@@ -11,6 +11,7 @@ export interface CarouselEvent {
     id: number;
     slug: string;
     title: string;
+    event_type?: string | null;
     start_date: string;
     end_date?: string | null;
     venue: {
@@ -53,10 +54,26 @@ function CarouselCardImage({
     className,
     eventId,
     slug,
-}: Readonly<{ src: string; alt: string; className?: string; eventId: number; slug: string }>) {
+    eventType = null,
+}: Readonly<{
+    src: string;
+    alt: string;
+    className?: string;
+    eventId: number;
+    slug: string;
+    eventType?: string | null;
+}>) {
     const [failed, setFailed] = useState(false);
     if (failed) {
-        return <EventListingImageErrorFallback eventId={eventId} slug={slug} title={alt} className={className} />;
+        return (
+            <EventListingImageErrorFallback
+                eventId={eventId}
+                slug={slug}
+                eventType={eventType}
+                title={alt}
+                className={className}
+            />
+        );
     }
     return (
         <img
@@ -167,10 +184,15 @@ export default function EventCarousel({
                                             alt={displayName}
                                             eventId={event.id}
                                             slug={event.slug}
+                                            eventType={event.event_type}
                                             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                                         />
                                     ) : (
-                                        <EventListingHeroPlaceholder eventId={event.id} slug={event.slug} />
+                                        <EventListingHeroPlaceholder
+                                            eventId={event.id}
+                                            slug={event.slug}
+                                            eventType={event.event_type}
+                                        />
                                     )}
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent opacity-90" />
                                 </div>
