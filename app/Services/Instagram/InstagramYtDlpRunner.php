@@ -50,8 +50,9 @@ final class InstagramYtDlpRunner
             return ['path' => null, 'error' => $lastErr];
         }
 
+        $expectedStoryMediaId = $this->extractStoryMediaId($storyCanonicalUrl);
         foreach ($this->storySourceUrls($normalizedUrl, $storyCanonicalUrl) as $sourceUrl) {
-            $dest = $this->runYtDlpOnceAllFormats($binary, $sourceUrl, $lastErr);
+            $dest = $this->runYtDlpOnceAllFormats($binary, $sourceUrl, $lastErr, $expectedStoryMediaId);
             if ($dest !== null) {
                 Log::info('InstagramPromoVideo: yt-dlp hikâye kaydedildi', [
                     'source' => Str::limit($sourceUrl, 120),
@@ -156,11 +157,16 @@ final class InstagramYtDlpRunner
         return str_contains($host, 'instagram.com');
     }
 
-    private function runYtDlpOnceAllFormats(string $binary, string $httpsInstagramUrl, ?string &$lastCombinedErr): ?string
+    private function runYtDlpOnceAllFormats(
+        string $binary,
+        string $httpsInstagramUrl,
+        ?string &$lastCombinedErr,
+        ?string $expectedMediaId = null,
+    ): ?string
     {
         foreach ($this->formatFallbackList() as $format) {
             $attemptErr = null;
-            $dest = $this->executeYtDlpAttempt($binary, $httpsInstagramUrl, $format, $attemptErr);
+            $dest = $this->executeYtDlpAttempt($binary, $httpsInstagramUrl, $format, $attemptErr, $expectedMediaId);
             if ($attemptErr !== null) {
                 $lastCombinedErr = $attemptErr;
             }
@@ -223,6 +229,7 @@ final class InstagramYtDlpRunner
         string $httpsInstagramUrl,
         string $format,
         ?string &$combinedErr,
+        ?string $expectedMediaId = null,
     ): ?string {
         $combinedErr = null;
         $timeout = (float) config('services.ytdlp.timeout', 300);
@@ -249,6 +256,7 @@ final class InstagramYtDlpRunner
             '--no-progress',
             '-f', $format,
             '--merge-output-format', 'mp4',
+            '--print', '%(id)s',
             $httpsInstagramUrl,
         ]);
         try {
@@ -271,6 +279,16 @@ final class InstagramYtDlpRunner
 
             return null;
         }
+        $expectedId = is_string($expectedMediaId) ? trim($expectedMediaId) : '';
+        if ($expectedId !== '') {
+            $printed = trim((string) $process->getOutput());
+            if ($printed === '' || ! preg_match('/(^|\D)'.preg_quote($expectedId, '/').'(\D|$)/', $printed)) {
+                $combinedErr = 'Story kimliği eşleşmedi: beklenen '.$expectedId.', yt-dlp çıktısı: '.Str::limit($printed, 160);
+
+                return null;
+            }
+        }
+
         $rawMatches = glob($dir.DIRECTORY_SEPARATOR.$base.'*', GLOB_NOSORT);
         if ($rawMatches === false || $rawMatches === []) {
             $combinedErr = $outChunk !== '' ? $outChunk : 'yt-dlp başarılı göründü ancak geçici dosya yok.';
@@ -327,6 +345,19 @@ final class InstagramYtDlpRunner
         }
 
         return $dest;
+    }
+
+    private function extractStoryMediaId(?string $storyCanonicalUrl): ?string
+    {
+        if (! is_string($storyCanonicalUrl) || trim($storyCanonicalUrl) === '') {
+            return null;
+        }
+        $path = (string) parse_url($storyCanonicalUrl, PHP_URL_PATH);
+        if (preg_match('#/stories/[^/]+/(\d+)/?$#', $path, $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
     }
 
     /**
