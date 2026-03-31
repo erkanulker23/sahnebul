@@ -1,3 +1,4 @@
+import { EventListingHeroPlaceholder, EventListingImageErrorFallback } from '@/Components/EventListingHeroPlaceholder';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { resolveEventListingThumbUrl } from '@/lib/eventPublicImage';
 import { formatVenueLocationLine } from '@/lib/formatVenueLocationLine';
@@ -50,21 +51,12 @@ function CarouselCardImage({
     src,
     alt,
     className,
-}: Readonly<{ src: string; alt: string; className?: string }>) {
+    eventId,
+    slug,
+}: Readonly<{ src: string; alt: string; className?: string; eventId: number; slug: string }>) {
     const [failed, setFailed] = useState(false);
     if (failed) {
-        return (
-            <div
-                className={`absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900 px-3 text-center ${className ?? ''}`}
-            >
-                <span aria-hidden className="text-3xl opacity-90">
-                    🎤
-                </span>
-                <span className="line-clamp-3 max-w-[95%] text-center font-display text-xs font-bold leading-tight text-white">
-                    {alt}
-                </span>
-            </div>
-        );
+        return <EventListingImageErrorFallback eventId={eventId} slug={slug} title={alt} className={className} />;
     }
     return (
         <img
@@ -173,14 +165,12 @@ export default function EventCarousel({
                                         <CarouselCardImage
                                             src={bg}
                                             alt={displayName}
+                                            eventId={event.id}
+                                            slug={event.slug}
                                             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                                         />
                                     ) : (
-                                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-200 via-zinc-100 to-amber-100/40 text-5xl dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-950">
-                                            <span aria-hidden className="select-none opacity-70">
-                                                🎤
-                                            </span>
-                                        </div>
+                                        <EventListingHeroPlaceholder eventId={event.id} slug={event.slug} />
                                     )}
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent opacity-90" />
                                 </div>

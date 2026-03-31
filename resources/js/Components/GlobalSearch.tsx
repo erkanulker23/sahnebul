@@ -1,4 +1,5 @@
 import { CatalogNewBadge } from '@/Components/CatalogNewBadge';
+import { EventListingHeroPlaceholder } from '@/Components/EventListingHeroPlaceholder';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import { cn } from '@/lib/cn';
 import { eventRelativeDayKind } from '@/lib/eventRelativeDay';
@@ -445,9 +446,11 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                                                     className="h-full w-full object-cover transition group-hover:scale-[1.02]"
                                                                 />
                                                             ) : (
-                                                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-200 to-zinc-300 text-2xl dark:from-zinc-700 dark:to-zinc-800">
-                                                                    🎫
-                                                                </div>
+                                                                <EventListingHeroPlaceholder
+                                                                    eventId={ev.id}
+                                                                    slug={ev.slug}
+                                                                    iconClassName="!h-8 !w-8 sm:!h-9 sm:!w-9"
+                                                                />
                                                             )}
                                                         </div>
                                                         <p className="mt-2 line-clamp-2 text-[11px] font-semibold leading-snug text-zinc-900 dark:text-white sm:text-xs">

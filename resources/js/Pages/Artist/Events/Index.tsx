@@ -1,3 +1,4 @@
+import { EventListingHeroPlaceholder } from '@/Components/EventListingHeroPlaceholder';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import ArtistLayout from '@/Layouts/ArtistLayout';
 import SeoHead from '@/Components/SeoHead';
@@ -246,9 +247,10 @@ export default function ArtistEventsIndex({
                                             className={`h-full w-full ${coverFit} transition duration-300 group-hover:scale-[1.02]`}
                                         />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-                                            <Ticket className="h-14 w-14 text-zinc-700" strokeWidth={1} aria-hidden />
-                                        </div>
+                                        <EventListingHeroPlaceholder
+                                            eventId={ev.id}
+                                            slug={ev.public_url_segment?.trim() ? ev.public_url_segment : `id-${ev.id}`}
+                                        />
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
                                     <div className="absolute bottom-0 left-0 right-0 p-4">
