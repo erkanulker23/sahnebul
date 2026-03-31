@@ -98,10 +98,6 @@ export default function SuggestEditModal({
     const [social, setSocial] = useState<Record<SocialKey, string>>(() =>
         Object.fromEntries(SOCIAL_KEYS.map((k) => [k, ''])) as Record<SocialKey, string>,
     );
-    const [managerName, setManagerName] = useState('');
-    const [managerCompany, setManagerCompany] = useState('');
-    const [managerPhone, setManagerPhone] = useState('');
-    const [managerEmail, setManagerEmail] = useState('');
     const [pubEmail, setPubEmail] = useState('');
     const [pubPhone, setPubPhone] = useState('');
     const [pubNote, setPubNote] = useState('');
@@ -120,10 +116,6 @@ export default function SuggestEditModal({
         setWebsite('');
         setBio('');
         setSocial(Object.fromEntries(SOCIAL_KEYS.map((k) => [k, ''])) as Record<SocialKey, string>);
-        setManagerName('');
-        setManagerCompany('');
-        setManagerPhone('');
-        setManagerEmail('');
         setPubEmail('');
         setPubPhone('');
         setPubNote('');
@@ -134,19 +126,11 @@ export default function SuggestEditModal({
         if (!isArtist) return false;
         if (website.trim() !== '' || bio.trim() !== '') return true;
         if (Object.values(social).some((v) => v.trim() !== '')) return true;
-        if (
-            managerName.trim() !== '' ||
-            managerCompany.trim() !== '' ||
-            managerPhone.trim() !== '' ||
-            managerEmail.trim() !== ''
-        ) {
-            return true;
-        }
         if (pubEmail.trim() !== '' || pubPhone.trim() !== '' || pubNote.trim() !== '') {
             return true;
         }
         return false;
-    }, [isArtist, website, bio, social, managerName, managerCompany, managerPhone, managerEmail, pubEmail, pubPhone, pubNote]);
+    }, [isArtist, website, bio, social, pubEmail, pubPhone, pubNote]);
 
     const canSubmitVenue = !isArtist && message.trim().length >= 20;
     const canSubmitArtist = isArtist && (hasStructuredArtistInput || message.trim().length >= 20);
@@ -172,12 +156,6 @@ export default function SuggestEditModal({
                 social_links.x = tw;
             }
 
-            const manager_info = trimRecord({
-                name: managerName,
-                company: managerCompany,
-                phone: managerPhone,
-                email: managerEmail,
-            });
             const public_contact = trimRecord({
                 email: pubEmail,
                 phone: pubPhone,
@@ -187,7 +165,6 @@ export default function SuggestEditModal({
             if (website.trim() !== '') base.website = website.trim();
             if (bio.trim() !== '') base.bio = bio.trim();
             if (Object.keys(social_links).length > 0) base.social_links = social_links;
-            if (Object.keys(manager_info).length > 0) base.manager_info = manager_info;
             if (Object.keys(public_contact).length > 0) base.public_contact = public_contact;
         } else {
             base.message = message;
@@ -371,75 +348,6 @@ export default function SuggestEditModal({
                                                     </div>
                                                 );
                                             })}
-                                        </div>
-                                    </div>
-
-                                    <div className="border-t border-zinc-200 pt-4 dark:border-white/10">
-                                        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Menajer / temsilci (profildeki blok)</p>
-                                        <div className="mt-2 grid items-start gap-x-3 gap-y-4 sm:grid-cols-2">
-                                            <div className="sm:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Ad soyad</label>
-                                                <GridCurrentHint>
-                                                    {gridHintBody(
-                                                        !!snap?.manager_info?.name?.trim(),
-                                                        currentHint(snap?.manager_info?.name),
-                                                    )}
-                                                </GridCurrentHint>
-                                                <input
-                                                    value={managerName}
-                                                    onChange={(e) => setManagerName(e.target.value)}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-                                            <div className="sm:col-span-2">
-                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Şirket / ajans</label>
-                                                <GridCurrentHint>
-                                                    {gridHintBody(
-                                                        !!snap?.manager_info?.company?.trim(),
-                                                        currentHint(snap?.manager_info?.company),
-                                                    )}
-                                                </GridCurrentHint>
-                                                <input
-                                                    value={managerCompany}
-                                                    onChange={(e) => setManagerCompany(e.target.value)}
-                                                    className={inputClass}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">Telefon</label>
-                                                <GridCurrentHint>
-                                                    {gridHintBody(
-                                                        !!snap?.manager_info?.phone?.trim(),
-                                                        currentHint(snap?.manager_info?.phone),
-                                                    )}
-                                                </GridCurrentHint>
-                                                <input
-                                                    value={managerPhone}
-                                                    onChange={(e) => setManagerPhone(e.target.value)}
-                                                    className={inputClass}
-                                                />
-                                                {errors['manager_info.phone'] && (
-                                                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors['manager_info.phone']}</p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">E-posta</label>
-                                                <GridCurrentHint>
-                                                    {gridHintBody(
-                                                        !!snap?.manager_info?.email?.trim(),
-                                                        currentHint(snap?.manager_info?.email),
-                                                    )}
-                                                </GridCurrentHint>
-                                                <input
-                                                    type="email"
-                                                    value={managerEmail}
-                                                    onChange={(e) => setManagerEmail(sanitizeEmailInput(e.target.value))}
-                                                    className={inputClass}
-                                                />
-                                                {errors['manager_info.email'] && (
-                                                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors['manager_info.email']}</p>
-                                                )}
-                                            </div>
                                         </div>
                                     </div>
 

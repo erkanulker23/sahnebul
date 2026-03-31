@@ -1,14 +1,17 @@
 {
+    "id": "/",
     "name": "Sahnebul — Konser, etkinlik ve mekan",
     "short_name": "Sahnebul",
     "description": "Türkiye'de konser, etkinlik ve mekan keşfi; hatırlatmalar ve rezervasyon.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "orientation": "any",
     "background_color": "#18181b",
     "theme_color": "#ea580c",
     "lang": "tr",
     "dir": "ltr",
+    "categories": ["entertainment", "music", "lifestyle"],
     "icons": [
         {
             "src": "/icons/pwa-192.png",
@@ -21,6 +24,20 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/icons/pwa-screenshot-narrow.png",
+            "sizes": "540x960",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "/icons/pwa-screenshot-wide.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide"
         }
     ]
 }
