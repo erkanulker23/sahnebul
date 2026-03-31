@@ -68,6 +68,8 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                     'message' => $msg,
                     'current' => 0,
                     'total' => 1,
+                    'processed_total' => 0,
+                    'rows' => [],
                 ]);
             }
 
@@ -116,7 +118,9 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                 'phase' => 'save',
                 'current' => 1,
                 'total' => 1,
-                'message' => 'Çekim tamamlandı. Özet üstte güncellendi; listeyi yenileyebilirsiniz.',
+                'message' => (string) ($outcome['report']['summary'] ?? $outcome['message']),
+                'processed_total' => (int) ($outcome['report']['total_processed'] ?? 0),
+                'rows' => is_array($outcome['report']['rows'] ?? null) ? $outcome['report']['rows'] : [],
             ]);
         }
     }
@@ -137,6 +141,8 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                 'message' => $msg,
                 'current' => 0,
                 'total' => 1,
+                'processed_total' => 0,
+                'rows' => [],
             ]);
         }
     }

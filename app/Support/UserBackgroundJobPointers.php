@@ -25,6 +25,11 @@ final class UserBackgroundJobPointers
         return is_string($v) && trim($v) !== '' ? $v : null;
     }
 
+    public static function clearExternalCrawlToken(int $userId): void
+    {
+        Cache::forget(self::key($userId, 'external_crawl'));
+    }
+
     public static function setPromoImportToken(int $userId, string $token, int $ttlSeconds = 3600): void
     {
         Cache::put(self::key($userId, 'promo_import'), $token, $ttlSeconds);

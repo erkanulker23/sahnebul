@@ -125,6 +125,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             pending_event_artist_reports: number;
             pending_artist_event_proposals?: number;
             pending_artist_media?: number;
+            pending_contact_messages?: number;
         } | null;
     };
     const isSuperAdmin = pageProps.auth?.is_super_admin === true;
@@ -169,6 +170,7 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             pending_event_artist_reports: n?.pending_event_artist_reports ?? 0,
             pending_artist_event_proposals: n?.pending_artist_event_proposals ?? 0,
             pending_artist_media: n?.pending_artist_media ?? 0,
+            pending_contact_messages: n?.pending_contact_messages ?? 0,
         };
     }, [pageProps.adminNotifications]);
 
@@ -180,7 +182,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
             notificationCounts.pending_reviews +
             notificationCounts.pending_event_artist_reports +
             notificationCounts.pending_artist_event_proposals +
-            notificationCounts.pending_artist_media,
+            notificationCounts.pending_artist_media +
+            notificationCounts.pending_contact_messages,
         [notificationCounts],
     );
 
@@ -462,6 +465,15 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                                     <span>Sanatçı galeri onayı</span>
                                     <span className={notifBadgeClass(notificationCounts.pending_artist_media)}>
                                         {notificationCounts.pending_artist_media}
+                                    </span>
+                                </Dropdown.Link>
+                                <Dropdown.Link
+                                    href={route('admin.contact-messages.index')}
+                                    className={notifLinkClass}
+                                >
+                                    <span>İletişim mesajları</span>
+                                    <span className={notifBadgeClass(notificationCounts.pending_contact_messages)}>
+                                        {notificationCounts.pending_contact_messages}
                                     </span>
                                 </Dropdown.Link>
                                 <div className="mt-1 border-t border-zinc-100 pt-1 dark:border-zinc-800">

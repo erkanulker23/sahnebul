@@ -67,6 +67,7 @@ final class InertiaDocumentMeta
             'SehirSec' => self::sehirSec($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'SehirSec/CityEvents' => self::sehirSecCity($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'SehirSec/ExternalEventShow' => self::externalEventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'LiveScene/Index' => self::liveSceneIndex($pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             default => null,
         };
 
@@ -1147,6 +1148,49 @@ final class InertiaDocumentMeta
         $out['jsonLd'] = $eventJsonLd;
 
         return $out;
+    }
+
+    /**
+     * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
+     */
+    private static function liveSceneIndex(
+        string $pathUrl,
+        string $siteName,
+        string $appUrl,
+        string $defaultDesc,
+        string $locale,
+        ?string $defaultOgAbs,
+    ): array {
+        $pageTitle = 'Bu akşam nerede ne var? — Canlı etkinlik haritası';
+        $desc = 'Kesfet / Bu Akşam: yakınınızdaki konser ve etkinlikleri canlı haritada görün, tarza göre süzün, 7 günlük yoğunluğu tek ekranda keşfedin.';
+        [$pageTitle, $desc] = PageSeoResolver::apply(
+            'discover_tonight',
+            self::pageSeoBaseVars($siteName, $defaultDesc),
+            $pageTitle,
+            $desc,
+        );
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
+
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'CollectionPage',
+            'name' => $pageTitle,
+            'url' => $canonical,
+            'description' => SeoFormatting::truncateMetaDescription($desc),
+            'inLanguage' => 'tr-TR',
+            'isPartOf' => [
+                '@type' => 'WebSite',
+                'url' => rtrim($appUrl, '/').'/',
+                'name' => $siteName,
+            ],
+        ];
+
+        return [
+            'title' => $fullTitle,
+            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
+            'jsonLd' => $jsonLd,
+        ];
     }
 
     /**

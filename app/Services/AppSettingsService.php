@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Artist;
 use App\Models\ArtistEventProposal;
 use App\Models\ArtistMedia;
+use App\Models\ContactMessage;
 use App\Models\Event;
 use App\Models\EventArtistReport;
 use App\Models\Review;
@@ -394,7 +395,7 @@ class AppSettingsService
     /**
      * Admin badge sayıları — tek cache anahtarı, TTL kısa.
      *
-     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int, pending_event_artist_reports: int, pending_artist_event_proposals: int, pending_artist_media: int}
+     * @return array{pending_venues: int, pending_artists: int, draft_events: int, pending_reviews: int, pending_event_artist_reports: int, pending_artist_event_proposals: int, pending_artist_media: int, pending_contact_messages: int}
      */
     public function getAdminNotificationCounts(): array
     {
@@ -412,6 +413,9 @@ class AppSettingsService
                     : 0,
                 'pending_artist_media' => Schema::hasColumn('artist_media', 'moderation_status')
                     ? ArtistMedia::query()->where('moderation_status', ArtistMedia::MODERATION_PENDING)->count()
+                    : 0,
+                'pending_contact_messages' => Schema::hasTable('contact_messages')
+                    ? ContactMessage::query()->where('is_spam', false)->count()
                     : 0,
             ];
         });

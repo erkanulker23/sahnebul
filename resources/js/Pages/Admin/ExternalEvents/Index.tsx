@@ -142,6 +142,8 @@ type CrawlJobPollState = {
     total: number;
     message: string;
     active_source: string | null;
+    processed_total?: number;
+    rows?: { source: string; processed: number; error: string | null }[];
 };
 
 function lastCrawlPanelClass(status: LastCrawlReport['status']): string {
@@ -291,6 +293,15 @@ export default function AdminExternalEventsIndex({
             return;
         }
 
+        const terminalTokenStorageKey = 'admin.externalEvents.lastTerminalCrawlToken';
+        const alreadyTerminal =
+            typeof window !== 'undefined' && window.sessionStorage.getItem(terminalTokenStorageKey) === token;
+        if (alreadyTerminal) {
+            setCrawlJobProgress(null);
+
+            return;
+        }
+
         let cancelled = false;
         let interval: ReturnType<typeof setInterval> | undefined;
 
@@ -312,6 +323,8 @@ export default function AdminExternalEventsIndex({
                         total: 1,
                         message: 'İlerleme bilgisi bulunamadı veya süresi doldu.',
                         active_source: null,
+                        processed_total: 0,
+                        rows: [],
                     });
                     if (interval) {
                         clearInterval(interval);
@@ -331,10 +344,15 @@ export default function AdminExternalEventsIndex({
                     total: Math.max(1, j.total),
                     message: j.message,
                     active_source: j.active_source,
+                    processed_total: typeof j.processed_total === 'number' ? j.processed_total : 0,
+                    rows: Array.isArray(j.rows) ? j.rows : [],
                 });
                 if (j.state === 'completed' || j.state === 'failed') {
                     if (interval) {
                         clearInterval(interval);
+                    }
+                    if (typeof window !== 'undefined') {
+                        window.sessionStorage.setItem(terminalTokenStorageKey, token);
                     }
                     router.reload();
                 }
@@ -586,7 +604,7 @@ export default function AdminExternalEventsIndex({
                         yaptığınızda Bubilet için bu, doğrudan{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">bubilet.com.tr/{'{şehir}'}/etiket/…</code> adresindeki şehir segmentidir (ör. Ankara seçilirse{' '}
                         <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">/ankara/etiket/</code>). Hiç şehir seçmezseniz{' '}
-                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">BUBILET_DEFAULT_CITY_SLUG</code> / yapılandırmadaki varsayılan şehir kullanılır. Diğer kaynaklar
+                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">tüm şehirler varsayılan seçili</strong> kabul edilir. Diğer kaynaklar
                         için şehir, çekilen satırların şehir alanına göre süzülür. Önce önizleyip kontrol edin; «Verileri çek» isteği hemen biter (504 ağ geçidi zaman aşımı oluşmaz), asıl tarama ise
                         sunucuda bir süre daha sürer;{' '}
                         <strong className="font-medium text-zinc-800 dark:text-zinc-200">özet üstteki «Son veri çekme» kutusunda</strong> bittikten sonra kalır — birkaç dakika sonra sayfayı yenileyin.{' '}
@@ -639,6 +657,26 @@ export default function AdminExternalEventsIndex({
                                       : 'Harici veri içe aktarılıyor'}
                             </div>
                             <p className="text-xs leading-relaxed text-zinc-200">{crawlJobProgress.message}</p>
+                            {crawlJobProgress.state === 'completed' ? (
+                                <div className="space-y-1 text-[11px] text-zinc-200">
+                                    <p>
+                                        Toplam işlenen:{' '}
+                                        <strong className="tabular-nums">
+                                            {(crawlJobProgress.processed_total ?? 0).toLocaleString('tr-TR')}
+                                        </strong>
+                                    </p>
+                                    {Array.isArray(crawlJobProgress.rows) && crawlJobProgress.rows.length > 0 ? (
+                                        <div className="max-h-28 space-y-0.5 overflow-auto rounded border border-amber-400/30 bg-black/20 px-2 py-1.5">
+                                            {crawlJobProgress.rows.map((r) => (
+                                                <p key={`${r.source}-${r.processed}-${r.error ?? ''}`}>
+                                                    <strong className="uppercase">{r.source}</strong>: {r.processed.toLocaleString('tr-TR')}
+                                                    {r.error ? ` · Hata: ${r.error}` : ''}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
                             {crawlJobProgress.active_source ? (
                                 <p className="font-mono text-[10px] text-zinc-500">
                                     Kaynak: {crawlJobProgress.active_source}

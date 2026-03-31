@@ -230,7 +230,7 @@ class MarketplaceCrawlerService
         if ($listingUrl === '') {
             return null;
         }
-        if (preg_match('#/etiket/([^/?#]+)#iu', $listingUrl, $m)) {
+        if (preg_match('~\/etiket\/([^\/?#]+)~iu', $listingUrl, $m)) {
             return $this->categoryNameFromBubiletListingTag(rawurldecode($m[1]));
         }
 

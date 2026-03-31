@@ -184,8 +184,8 @@ export default function AdminEventVenueField({
 
     return (
         <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-zinc-400">Mekan *</label>
-            <p className="mt-0.5 text-xs text-zinc-500">İsimle arayın; listede yoksa alttan yeni mekan ekleyin.</p>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Mekan *</label>
+            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">İsimle arayın; listede yoksa alttan yeni mekan ekleyin.</p>
             <Combobox
                 value={selected}
                 onChange={(v) => {
@@ -202,7 +202,7 @@ export default function AdminEventVenueField({
                     />
                     <ComboboxButton
                         type="button"
-                        className="absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400 hover:text-zinc-200"
+                        className="absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                     >
                         <span className="sr-only">Mekan listesini aç</span>
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
@@ -212,25 +212,25 @@ export default function AdminEventVenueField({
                     <ComboboxOptions
                         anchor="bottom start"
                         transition
-                        className="z-50 mt-1 max-h-60 w-[var(--input-width)] overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 py-1 shadow-xl [--anchor-gap:4px] focus:outline-none"
+                        className="z-50 mt-1 max-h-60 w-[var(--input-width)] overflow-auto rounded-lg border border-zinc-300 bg-white py-1 shadow-xl [--anchor-gap:4px] focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                     >
                         {filtered.length === 0 ? (
-                            <div className="px-3 py-2 text-xs text-zinc-500">Eşleşen mekan yok.</div>
+                            <div className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-500">Eşleşen mekan yok.</div>
                         ) : (
                             filtered.map((v) => (
                                 <ComboboxOption
                                     key={v.id}
                                     value={v}
-                                    className="cursor-pointer px-3 py-2 text-sm text-zinc-100 data-[focus]:bg-zinc-800 data-[selected]:bg-amber-500/15 data-[selected]:text-amber-200"
+                                    className="cursor-pointer px-3 py-2 text-sm text-zinc-800 data-[focus]:bg-zinc-100 data-[selected]:bg-amber-500/15 data-[selected]:text-amber-800 dark:text-zinc-100 dark:data-[focus]:bg-zinc-800 dark:data-[selected]:text-amber-200"
                                 >
                                     {v.name}
                                 </ComboboxOption>
                             ))
                         )}
-                        <div className="sticky bottom-0 border-t border-zinc-700 bg-zinc-900 p-2">
+                        <div className="sticky bottom-0 border-t border-zinc-300 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
                             <button
                                 type="button"
-                                className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-500/20"
+                                className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-500/20 dark:text-amber-300"
                                 onClick={() => setModalOpen(true)}
                             >
                                 + Mekan yoksa ekle
@@ -248,15 +248,15 @@ export default function AdminEventVenueField({
                 }}
                 className="relative z-[60]"
             >
-                <DialogBackdrop className="fixed inset-0 bg-black/70" transition />
+                <DialogBackdrop className="fixed inset-0 bg-black/55 dark:bg-black/70" transition />
                 <div className="fixed inset-0 flex items-center justify-center p-4">
                     <DialogPanel
                         transition
-                        className="max-h-[min(90vh,52rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl"
+                        className="max-h-[min(90vh,52rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-300 bg-white p-5 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
                     >
                         <DialogTitle className="text-lg font-semibold text-zinc-900 dark:text-white">Yeni mekan ekle</DialogTitle>
-                        <p className="mt-1 text-xs text-zinc-500">
-                            Mekan, etkinlik formunda kullanılmak üzere <strong className="text-zinc-400">onaylı</strong> olarak kaydedilir. Tam düzenleme için
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-500">
+                            Mekan, etkinlik formunda kullanılmak üzere <strong className="text-zinc-800 dark:text-zinc-400">onaylı</strong> olarak kaydedilir. Tam düzenleme için
                             daha sonra Mekanlar sayfasını kullanabilirsiniz.
                         </p>
                         <form onSubmit={submitModal} className="mt-4 space-y-4">
@@ -422,12 +422,12 @@ export default function AdminEventVenueField({
                                     />
                                 </div>
                             </div>
-                            <div className="flex flex-wrap gap-2 border-t border-zinc-800 pt-4">
+                            <div className="flex flex-wrap gap-2 border-t border-zinc-300 pt-4 dark:border-zinc-800">
                                 <button
                                     type="button"
                                     disabled={saving}
                                     onClick={() => setModalOpen(false)}
-                                    className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                                    className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 >
                                     Vazgeç
                                 </button>

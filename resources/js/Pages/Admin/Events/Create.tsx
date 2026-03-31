@@ -107,8 +107,8 @@ export default function AdminEventCreate({
                 <Link href={route('admin.events.index')} className="text-sm text-amber-600 hover:text-amber-500 dark:text-amber-400">
                     ← Etkinlik listesi
                 </Link>
-                <h1 className="mb-6 text-2xl font-bold dark:text-white">Yeni Etkinlik Ekle</h1>
-                <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
+                <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">Yeni Etkinlik Ekle</h1>
+                <form onSubmit={submit} className="max-w-3xl space-y-6 rounded-xl border border-zinc-300 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
                     {validationSummary.length > 0 && (
                         <div
                             className="rounded-lg border border-red-500/50 bg-red-950/50 px-4 py-3 text-sm text-red-100"
@@ -139,23 +139,23 @@ export default function AdminEventCreate({
                             error={errors.venue_id}
                         />
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-400">Başlık *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Başlık *</label>
                             <input
                                 value={data.title}
                                 onChange={(e) => setData('title', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             />
                             {errors.title && <p className="mt-1 text-sm text-red-400">{errors.title}</p>}
                         </div>
                         <div className="sm:col-span-2">
-                            <label htmlFor="admin-event-type" className="block text-sm font-medium text-zinc-400">
+                            <label htmlFor="admin-event-type" className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">
                                 Etkinlik türü (isteğe bağlı)
                             </label>
                             <select
                                 id="admin-event-type"
                                 value={data.event_type}
                                 onChange={(e) => setData('event_type', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             >
                                 <option value="">Seçin</option>
                                 {eventTypeOptions.map((o) => (
@@ -167,22 +167,22 @@ export default function AdminEventCreate({
                             {errors.event_type && <p className="mt-1 text-sm text-red-400">{errors.event_type}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Başlangıç (isteğe bağlı)</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Başlangıç (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.start_date}
                                 onChange={(e) => setData('start_date', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             />
                             {errors.start_date && <p className="mt-1 text-sm text-red-400">{errors.start_date}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Bitiş (isteğe bağlı)</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Bitiş (isteğe bağlı)</label>
                             <input
                                 type="datetime-local"
                                 value={data.end_date}
                                 onChange={(e) => setData('end_date', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             />
                             {errors.end_date && <p className="mt-1 text-sm text-red-400">{errors.end_date}</p>}
                         </div>
@@ -201,30 +201,30 @@ export default function AdminEventCreate({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Genel bilet fiyatı (₺)</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Genel bilet fiyatı (₺)</label>
                             <input
                                 value={data.ticket_price}
                                 onChange={(e) => setData('ticket_price', e.target.value)}
                                 disabled={!data.entry_is_paid}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Kapasite</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapasite</label>
                             <input
                                 type="number"
                                 min={1}
                                 value={data.capacity}
                                 onChange={(e) => setData('capacity', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-400">Durum *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Durum *</label>
                             <select
                                 value={data.status}
                                 onChange={(e) => setData('status', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                             >
                                 <option value="draft">Taslak</option>
                                 <option value="published">Yayında</option>
@@ -244,7 +244,7 @@ export default function AdminEventCreate({
                         )}
                     </div>
                     <div>
-                        <span className="block text-sm font-medium text-zinc-400">Açıklama</span>
+                        <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Açıklama</span>
                         <RichTextEditor
                             value={data.description}
                             onChange={(html) => setData('description', html)}
@@ -253,8 +253,8 @@ export default function AdminEventCreate({
                         />
                     </div>
                     <div>
-                        <span className="block text-sm font-medium text-zinc-400">Etkinlik kuralları</span>
-                        <p className="mt-0.5 text-xs text-zinc-500">Düz metinde her satır ayrı madde olarak da gösterilebilir; HTML ile liste de kullanabilirsiniz.</p>
+                        <span className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Etkinlik kuralları</span>
+                        <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">Düz metinde her satır ayrı madde olarak da gösterilebilir; HTML ile liste de kullanabilirsiniz.</p>
                         <RichTextEditor
                             value={data.event_rules}
                             onChange={(html) => setData('event_rules', html)}
@@ -281,44 +281,44 @@ export default function AdminEventCreate({
                         errors={errors as Partial<Record<string, string>>}
                     />
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak — etkinlik detay sayfası (URL)</label>
-                        <p className="mt-0.5 text-xs text-zinc-500">Sayfa üstü büyük görsel.</p>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak — etkinlik detay sayfası (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">Sayfa üstü büyük görsel.</p>
                         <input
                             value={data.cover_image}
                             onChange={(e) => setData('cover_image', e.target.value)}
-                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Kapak — detay (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Kapak — detay (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('cover_upload', e.target.files?.[0] ?? null)}
-                            className="mt-1 w-full text-sm text-zinc-300"
+                            className="mt-1 w-full text-sm text-zinc-700 dark:text-zinc-300"
                         />
                         {progress && (
                             <p className="mt-1 text-xs text-amber-400">Yükleniyor… {Math.round(progress.percentage ?? 0)}%</p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (URL)</label>
-                        <p className="mt-0.5 text-xs text-zinc-500">
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Liste / kart görseli (URL)</label>
+                        <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">
                             Kartlarda ve listelerde kullanılır. Boş bırakılırsa kapak görseli kullanılır.
                         </p>
                         <input
                             value={data.listing_image}
                             onChange={(e) => setData('listing_image', e.target.value)}
-                            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white"
+                            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400">Liste / kart görseli (dosya)</label>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Liste / kart görseli (dosya)</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setData('listing_upload', e.target.files?.[0] ?? null)}
-                            className="mt-1 w-full text-sm text-zinc-300"
+                            className="mt-1 w-full text-sm text-zinc-700 dark:text-zinc-300"
                         />
                     </div>
                     <button

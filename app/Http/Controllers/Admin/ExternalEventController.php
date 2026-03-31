@@ -372,7 +372,7 @@ class ExternalEventController extends Controller
     private function resolveCityAndCategoryNames(array $validated): array
     {
         $cityNames = $validated['city_ids'] === []
-            ? []
+            ? City::query()->orderBy('name')->pluck('name')->all()
             : City::query()->whereIn('id', $validated['city_ids'])->orderBy('name')->pluck('name')->all();
 
         $categoryNames = $validated['category_ids'] === []
@@ -524,13 +524,20 @@ class ExternalEventController extends Controller
             abort(403);
         }
 
+        $state = (string) ($data['state'] ?? 'unknown');
+        if ($state === 'completed' || $state === 'failed') {
+            UserBackgroundJobPointers::clearExternalCrawlToken((int) $request->user()->id);
+        }
+
         return response()->json([
-            'state' => (string) ($data['state'] ?? 'unknown'),
+            'state' => $state,
             'phase' => (string) ($data['phase'] ?? 'crawl'),
             'current' => (int) ($data['current'] ?? 0),
             'total' => (int) ($data['total'] ?? 1),
             'message' => (string) ($data['message'] ?? ''),
             'active_source' => isset($data['active_source']) && is_string($data['active_source']) ? $data['active_source'] : null,
+            'processed_total' => (int) ($data['processed_total'] ?? 0),
+            'rows' => is_array($data['rows'] ?? null) ? $data['rows'] : [],
         ]);
     }
 

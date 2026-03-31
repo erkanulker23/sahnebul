@@ -640,8 +640,8 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
             onClick={() => setActiveTab(id)}
             className={`rounded-lg border px-3 py-2 text-xs font-medium transition sm:text-sm ${
                 activeTab === id
-                    ? 'border-amber-500/50 bg-amber-500/15 text-amber-200'
-                    : 'border-white/10 bg-zinc-800/50 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                    ? 'border-amber-500/50 bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                    : 'border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 hover:text-zinc-900 dark:border-white/10 dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-zinc-200'
             }`}
         >
             {label}
@@ -649,10 +649,10 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
     );
 
     return (
-        <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <div className="space-y-4 rounded-xl border border-amber-500/25 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
             <div>
-                <p className="text-sm font-medium text-amber-200/90">Konum — Google Haritalar</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200/90">Konum — Google Haritalar</p>
+                <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">
                     Listeden seçince adres, il/ilçe (eşleşirse), koordinatlar, varsa en fazla <strong className="text-zinc-400">5</strong> Google fotoğrafı galeriye, ilki kapak olarak; işletme özeti ve çalışma saatleri açıklamaya; telefon, web ve sosyal bağlantılar forma aktarılır.
                 </p>
             </div>
@@ -667,12 +667,12 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
                     {!googleMapsBrowserKey ? (
                         <p className="text-xs text-zinc-500">
                             Arama için Google Maps API anahtarı gerekir: Admin → Ayarlar → Site kimliği bölümünde (süper yönetici) veya sunucuda{' '}
-                            <code className="rounded bg-zinc-800 px-1 text-zinc-300">GOOGLE_MAPS_API_KEY</code> (Maps JavaScript API + Places).
+                            <code className="rounded bg-zinc-200 px-1 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">GOOGLE_MAPS_API_KEY</code> (Maps JavaScript API + Places).
                         </p>
                     ) : (
                         <>
                             <div>
-                                <label htmlFor="venue-google-place-query" className="block text-xs font-medium text-zinc-400">
+                                <label htmlFor="venue-google-place-query" className="block text-xs font-medium text-zinc-700 dark:text-zinc-400">
                                     İşletme veya adres ara
                                 </label>
                                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
@@ -689,24 +689,24 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
                                             }
                                         }}
                                         placeholder="Örn: Jolly Joker Vadistanbul, Kadıköy pub…"
-                                        className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-white placeholder:text-zinc-600"
+                                        className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900 placeholder:text-zinc-500 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-600"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => void runSearch()}
                                         disabled={searchStatus === 'loading' || !mapsReady}
-                                        className="shrink-0 rounded-xl border border-amber-500/40 bg-amber-500/20 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="shrink-0 rounded-xl border border-amber-500/40 bg-amber-500/20 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-500/30 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-200"
                                     >
                                         {searchStatus === 'loading' ? 'Aranıyor…' : 'Konumları ara'}
                                     </button>
                                 </div>
-                                <p className="mt-1.5 text-xs text-zinc-500">
+                                <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-500">
                                     İpucu: “Mekan adı + semt” veya tam adres deneyin.
                                 </p>
                             </div>
 
                             {mapsLoadError && <p className="text-xs text-red-400">{mapsLoadError}</p>}
-                            {!mapsReady && !mapsLoadError && <p className="text-xs text-zinc-500">Haritalar yükleniyor…</p>}
+                            {!mapsReady && !mapsLoadError && <p className="text-xs text-zinc-600 dark:text-zinc-500">Haritalar yükleniyor…</p>}
                             {searchMessage && (
                                 <p className="text-xs text-amber-800 dark:text-amber-200/80">{searchMessage}</p>
                             )}
@@ -751,7 +751,7 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
 
             {activeTab === 'link' && (
                 <div>
-                    <label htmlFor="venue-google-map-link" className="block text-xs font-medium text-zinc-400">
+                    <label htmlFor="venue-google-map-link" className="block text-xs font-medium text-zinc-700 dark:text-zinc-400">
                         Google Maps bağlantısı
                     </label>
                     <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
@@ -761,12 +761,12 @@ export default function VenueGoogleLocationField({ googleMapsBrowserKey, onApply
                             value={linkDraft}
                             onChange={(e) => setLinkDraft(e.target.value)}
                             placeholder="https://maps.google.com/... veya goo.gl / maps.app.goo.gl ..."
-                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-800 px-4 py-3 text-sm text-white placeholder:text-zinc-600"
+                            className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-600"
                         />
                         <button
                             type="button"
                             onClick={applyLink}
-                            className="shrink-0 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-300 transition hover:bg-amber-500/25"
+                            className="shrink-0 rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-500/25 dark:text-amber-300"
                         >
                             Koordinatları al
                         </button>

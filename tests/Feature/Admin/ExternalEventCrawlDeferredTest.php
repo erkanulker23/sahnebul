@@ -4,8 +4,11 @@ namespace Tests\Feature\Admin;
 
 use App\Jobs\ImportExternalMarketplaceEventsJob;
 use App\Models\User;
+use App\Support\ExternalMarketplaceCrawlJobStatus;
+use App\Support\UserBackgroundJobPointers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ExternalEventCrawlDeferredTest extends TestCase
@@ -63,5 +66,28 @@ class ExternalEventCrawlDeferredTest extends TestCase
         $this->actingAs($admin)->getJson(route('admin.external-events.crawl-status', ['token' => $token], absolute: false))
             ->assertOk()
             ->assertJsonPath('state', 'queued');
+    }
+
+    public function test_terminal_crawl_status_clears_user_background_job_pointer(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $token = (string) Str::uuid();
+
+        UserBackgroundJobPointers::setExternalCrawlToken((int) $admin->id, $token);
+        ExternalMarketplaceCrawlJobStatus::boot($token, (int) $admin->id, 'biletinial');
+        ExternalMarketplaceCrawlJobStatus::put($token, [
+            'state' => 'completed',
+            'phase' => 'save',
+            'current' => 1,
+            'total' => 1,
+            'message' => 'Bitti',
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.external-events.crawl-status', ['token' => $token], absolute: false))
+            ->assertOk()
+            ->assertJsonPath('state', 'completed');
+
+        $this->assertNull(UserBackgroundJobPointers::getExternalCrawlToken((int) $admin->id));
     }
 }
