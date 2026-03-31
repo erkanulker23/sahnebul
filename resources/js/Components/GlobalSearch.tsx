@@ -200,16 +200,21 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             return;
         }
         const y = window.scrollY;
+        const x = window.scrollX;
         const html = document.documentElement;
         const body = document.body;
         const prevHtmlOverflow = html.style.overflow;
+        const scrollbarW = window.innerWidth - html.clientWidth;
         const prev = {
             position: body.style.position,
             top: body.style.top,
             left: body.style.left,
             right: body.style.right,
             width: body.style.width,
+            maxWidth: body.style.maxWidth,
             overflow: body.style.overflow,
+            paddingRight: body.style.paddingRight,
+            touchAction: body.style.touchAction,
         };
         html.style.overflow = 'hidden';
         body.style.position = 'fixed';
@@ -217,7 +222,17 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
         body.style.left = '0';
         body.style.right = '0';
         body.style.width = '100%';
+        body.style.maxWidth = '100%';
         body.style.overflow = 'hidden';
+        body.style.touchAction = 'manipulation';
+        if (scrollbarW > 0) {
+            body.style.paddingRight = `${scrollbarW}px`;
+        }
+        const restoreScroll = () => {
+            window.scrollTo(x, y);
+            document.documentElement.scrollLeft = 0;
+            document.body.scrollLeft = 0;
+        };
         return () => {
             html.style.overflow = prevHtmlOverflow;
             body.style.position = prev.position;
@@ -225,8 +240,12 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             body.style.left = prev.left;
             body.style.right = prev.right;
             body.style.width = prev.width;
+            body.style.maxWidth = prev.maxWidth;
             body.style.overflow = prev.overflow;
-            window.scrollTo(0, y);
+            body.style.paddingRight = prev.paddingRight;
+            body.style.touchAction = prev.touchAction;
+            restoreScroll();
+            requestAnimationFrame(restoreScroll);
         };
     }, [open]);
 
@@ -388,7 +407,6 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                 top: panelBox.top,
                                 left: panelBox.left,
                                 width: panelBox.width,
-                                maxWidth: 'calc(100vw - 24px)',
                                 boxSizing: 'border-box',
                                 zIndex: 130,
                                 maxHeight: panelMaxHeight,

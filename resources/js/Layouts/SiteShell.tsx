@@ -5,6 +5,7 @@ import FlashMessage from '@/Components/FlashMessage';
 import GoogleOneTapPrompt from '@/Components/GoogleOneTapPrompt';
 import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
+import { MobileQuickNav } from '@/Components/layout/MobileQuickNav';
 import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
@@ -100,11 +101,11 @@ export default function SiteShell({ children }: Readonly<PropsWithChildren>) {
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
-            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-4 lg:px-8 lg:pb-8">
+            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-4 max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:px-8 lg:pb-8">
                 {children}
             </main>
 
-            <div className="mt-auto flex w-full flex-col">
+            <div className="mt-auto flex w-full flex-col max-lg:pb-[calc(4rem+env(safe-area-inset-bottom,0px))]">
                 <AdSlot
                     slotKey="footer_above"
                     variant="full"
@@ -193,6 +194,8 @@ export default function SiteShell({ children }: Readonly<PropsWithChildren>) {
                     </div>
                 </footer>
             </div>
+
+            <MobileQuickNav />
         </div>
     );
 }

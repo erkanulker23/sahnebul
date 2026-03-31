@@ -1,6 +1,7 @@
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import UserPanelLayout from '@/Layouts/UserPanelLayout';
+import { Link } from '@inertiajs/react';
 
 interface Notification {
     id: string;
@@ -31,21 +32,37 @@ export default function NotificationsIndex({ notifications }: Props) {
                         </div>
                     ) : (
                         <div className="mt-8 space-y-4">
-                            {notifications.data.map((n) => (
-                                <div
-                                    key={n.id}
-                                    className={`rounded-2xl border p-6 ${
-                                        n.read_at
-                                            ? 'border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900/40'
-                                            : 'border-amber-300/80 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-500/10'
-                                    }`}
-                                >
-                                    <p className="text-zinc-800 dark:text-zinc-300">
-                                        {(n.data as { message?: string })?.message || 'Bildirim'}
-                                    </p>
-                                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">{formatTurkishDateTime(n.created_at)}</p>
-                                </div>
-                            ))}
+                            {notifications.data.map((n) => {
+                                const row = n.data as { title?: string; message?: string; url?: string };
+                                const safeUrl =
+                                    typeof row.url === 'string' && row.url.startsWith('/') && !row.url.startsWith('//')
+                                        ? row.url
+                                        : null;
+                                return (
+                                    <div
+                                        key={n.id}
+                                        className={`rounded-2xl border p-6 ${
+                                            n.read_at
+                                                ? 'border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900/40'
+                                                : 'border-amber-300/80 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-500/10'
+                                        }`}
+                                    >
+                                        {row.title ? (
+                                            <p className="font-semibold text-zinc-900 dark:text-white">{row.title}</p>
+                                        ) : null}
+                                        <p className="text-zinc-800 dark:text-zinc-300">{row.message || 'Bildirim'}</p>
+                                        {safeUrl ? (
+                                            <Link
+                                                href={safeUrl}
+                                                className="mt-3 inline-block text-sm font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                                            >
+                                                Bağlantıya git →
+                                            </Link>
+                                        ) : null}
+                                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">{formatTurkishDateTime(n.created_at)}</p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ArtistController as AdminArtistController;
 use App\Http\Controllers\Admin\ArtistEventProposalController as AdminArtistEventProposalController;
 use App\Http\Controllers\Admin\ArtistGalleryModerationController as AdminArtistGalleryModerationController;
 use App\Http\Controllers\Admin\BlogPostController as AdminBlogPostController;
+use App\Http\Controllers\Admin\BroadcastNotificationController as AdminBroadcastNotificationController;
 use App\Http\Controllers\Admin\BubiletCrawlCookiesController as AdminBubiletCrawlCookiesController;
 use App\Http\Controllers\Admin\CatalogExcelController as AdminCatalogExcelController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
@@ -317,6 +318,10 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/bildirim-gonder', [AdminBroadcastNotificationController::class, 'create'])->name('notifications.broadcast');
+    Route::post('/bildirim-gonder', [AdminBroadcastNotificationController::class, 'store'])
+        ->middleware('throttle:25,60')
+        ->name('notifications.broadcast.store');
     Route::get('/profil', [AdminProfileController::class, 'edit'])->name('profile');
 
     Route::get('/kullanicilar', [AdminUserController::class, 'index'])->name('users.index');

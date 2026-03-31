@@ -2,7 +2,7 @@ import '../css/app.css';
 import './bootstrap';
 
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { buildDocumentTitle } from './utils/seo';
@@ -28,6 +28,18 @@ createInertiaApp({
     progress: {
         color: '#4B5563',
     },
+});
+
+/** Modal / viewport kilidi sonrası biriken yatay kaydırmayı sayfa geçişlerinde sıfırla (özellikle mobil Safari / PWA). */
+router.on('finish', () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+    if (window.scrollX !== 0) {
+        window.scrollTo(0, window.scrollY);
+    }
 });
 
 /** PWA: Ana ekrana ekle / kurulum — üretimde service worker kaydı (önbellek yok, sadece fetch iletir). */

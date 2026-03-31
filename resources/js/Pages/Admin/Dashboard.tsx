@@ -1,6 +1,7 @@
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link } from '@inertiajs/react';
 
 interface Venue {
@@ -91,6 +92,12 @@ export default function AdminDashboard({
                                 className="rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-800 transition hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:bg-zinc-800"
                             >
                                 Yorum moderasyonu ({stats.reviews_pending ?? 0})
+                            </Link>
+                            <Link
+                                href={safeRoute('admin.notifications.broadcast')}
+                                className="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-900 transition hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/50"
+                            >
+                                Üye bildirimi gönder
                             </Link>
                         </div>
                     </SectionCard>

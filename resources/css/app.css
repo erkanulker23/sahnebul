@@ -36,6 +36,9 @@
         -webkit-tap-highlight-color: transparent;
         /* Kaydırma çubuğu göster/gizle (overflow: hidden vb.) ile yatay kaymayı azaltır */
         scrollbar-gutter: stable;
+        /* Mobil / PWA: belge düzeyinde yatay kaydırmayı engeller (100vw taşmaları, modal kilidi) */
+        overflow-x: clip;
+        overscroll-behavior-x: none;
     }
 
     /**
@@ -48,9 +51,21 @@
     /**
      * AppLayout <main> içindeki hero’ları viewport kenarına kadar genişletir
      * (max-width + yatay padding kırılması). Üst boşluk yok: <main> pt-0.
+     * 100vw + 50vw klasik taşma: dikey scrollbar varken vw > %; svw daha stabil.
      */
     .hero-full-bleed {
-        @apply relative ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-hidden;
+        position: relative;
+        overflow-x: hidden;
+        width: 100vw;
+        max-width: 100vw;
+        margin-left: calc(50% - 50vw);
+    }
+    @supports (width: 1svw) {
+        .hero-full-bleed {
+            width: 100svw;
+            max-width: 100svw;
+            margin-left: calc(50% - 50svw);
+        }
     }
 }
 

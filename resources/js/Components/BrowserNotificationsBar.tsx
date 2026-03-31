@@ -98,14 +98,18 @@ export default function BrowserNotificationsBar() {
             }
             const data = (await res.json()) as {
                 unread_count?: number;
-                latest?: { id?: string; message?: string } | null;
+                latest?: { id?: string; title?: string | null; message?: string } | null;
             };
             const count = typeof data.unread_count === 'number' ? data.unread_count : 0;
             const prev = prevUnread.current;
             prevUnread.current = count;
             if (prev !== null && count > prev && data.latest?.message) {
                 try {
-                    new Notification('Sahnebul', {
+                    const nTitle =
+                        typeof data.latest.title === 'string' && data.latest.title.trim() !== ''
+                            ? data.latest.title.trim()
+                            : 'Sahnebul';
+                    new Notification(nTitle, {
                         body: data.latest.message,
                         tag: data.latest.id ?? 'sahnebul-notif',
                     });
@@ -126,7 +130,7 @@ export default function BrowserNotificationsBar() {
             return;
         }
         void pollUnread();
-        const id = window.setInterval(() => void pollUnread(), 75_000);
+        const id = window.setInterval(() => void pollUnread(), 40_000);
         return () => window.clearInterval(id);
     }, [mounted, user?.browser_notifications_enabled, pollUnread]);
 

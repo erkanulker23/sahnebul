@@ -8,6 +8,7 @@ import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Bell,
     Briefcase,
     Building2,
     Calendar,
@@ -54,6 +55,12 @@ type AdminNavItem = {
 
 const navItems: AdminNavItem[] = [
     { navKey: 'admin.dashboard', href: 'admin.dashboard', label: 'Yönetim paneli', icon: LayoutDashboard },
+    {
+        navKey: 'admin.notifications.broadcast',
+        href: 'admin.notifications.broadcast',
+        label: 'Üye bildirimi',
+        icon: Bell,
+    },
     { navKey: 'admin.profile', href: 'admin.profile', label: 'Hesabım', icon: User },
     { navKey: 'admin.users.index', href: 'admin.users.index', label: 'Kullanıcılar', icon: Users },
     {
@@ -197,6 +204,9 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
         );
 
     const navItemIsActive = (item: AdminNavItem) => {
+        if (item.href === 'admin.notifications.broadcast' && currentUrl.startsWith('/admin/bildirim-gonder')) {
+            return true;
+        }
         if (item.href === 'admin.content-sliders.index' && currentUrl.startsWith('/admin/slider')) {
             return true;
         }
@@ -287,7 +297,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                     item.href === 'admin.external-events.bubilet-cookies.index' ||
                     item.href === 'admin.google-sign-in.index' ||
                     item.href === 'admin.verification-scripts.index' ||
-                    item.href === 'admin.instagram-promo-cookies.index'
+                    item.href === 'admin.instagram-promo-cookies.index' ||
+                    item.href === 'admin.notifications.broadcast'
                         ? safeRoute(item.href, item.query ?? {})
                         : route(item.href, item.query ?? {});
 

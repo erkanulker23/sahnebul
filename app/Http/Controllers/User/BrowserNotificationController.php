@@ -14,12 +14,17 @@ class BrowserNotificationController extends Controller
         $user = $request->user();
         $latest = $user->unreadNotifications()->latest()->first();
 
+        $data = is_array($latest?->data) ? $latest->data : [];
+
         return response()->json([
             'unread_count' => $user->unreadNotifications()->count(),
             'latest' => $latest === null ? null : [
                 'id' => $latest->id,
-                'message' => is_array($latest->data) && isset($latest->data['message']) && is_string($latest->data['message'])
-                    ? $latest->data['message']
+                'title' => isset($data['title']) && is_string($data['title']) && trim($data['title']) !== ''
+                    ? $data['title']
+                    : null,
+                'message' => isset($data['message']) && is_string($data['message'])
+                    ? $data['message']
                     : 'Yeni bildirim',
             ],
         ]);
