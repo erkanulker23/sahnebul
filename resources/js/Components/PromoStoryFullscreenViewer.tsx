@@ -10,6 +10,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const SWIPE_MIN_PX = 48;
+const STORY_IMAGE_ADVANCE_MS = 9000;
+const STORY_IFRAME_ADVANCE_MS = 18000;
 
 function slideDomKey(it: PromoGalleryItem, i: number): string {
     return `${i}\x1f${it.video_path?.trim() ?? ''}\x1f${it.embed_url?.trim() ?? ''}\x1f${it.poster_path?.trim() ?? ''}`;
@@ -35,6 +37,7 @@ export function PromoStoryFullscreenViewer({
     const touchStartX = useRef<number | null>(null);
     const sessionOpenRef = useRef(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [slideProgress, setSlideProgress] = useState(0);
 
     useEffect(() => {
         if (!open) {
@@ -55,16 +58,26 @@ export function PromoStoryFullscreenViewer({
         });
     }, [open, initialIndex, n]);
 
-    const go = useCallback(
-        (d: number) => {
-            if (n <= 0) return;
-            setIdx((i) => {
-                const cur = Math.min(Math.max(0, i), n - 1);
-                return (cur + d + n) % n;
-            });
-        },
-        [n],
-    );
+    const goNext = useCallback(() => {
+        if (n <= 0) {
+            return;
+        }
+        setIdx((i) => {
+            const cur = Math.min(Math.max(0, i), n - 1);
+            if (cur >= n - 1) {
+                onClose();
+                return cur;
+            }
+            return cur + 1;
+        });
+    }, [n, onClose]);
+
+    const goPrev = useCallback(() => {
+        if (n <= 0) {
+            return;
+        }
+        setIdx((i) => Math.max(0, i - 1));
+    }, [n]);
 
     useEffect(() => {
         if (!open || n === 0) return;
@@ -75,17 +88,17 @@ export function PromoStoryFullscreenViewer({
             }
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                go(-1);
+                goPrev();
                 return;
             }
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                go(1);
+                goNext();
             }
         };
         globalThis.addEventListener('keydown', onKey, true);
         return () => globalThis.removeEventListener('keydown', onKey, true);
-    }, [open, n, go, onClose]);
+    }, [open, n, goPrev, goNext, onClose]);
 
     useEffect(() => {
         if (!open) return;
@@ -113,7 +126,34 @@ export function PromoStoryFullscreenViewer({
     const igEmbed = embed.includes('instagram.com');
     const isStoryPermalink = igEmbed && embed.includes('/stories/');
     const igIframeSrc = !videoSrc && igEmbed && !isStoryPermalink ? instagramPostOrReelEmbedIframeSrc(embed) : null;
+    const timedAdvanceMs = videoSrc ? null : igIframeSrc ? STORY_IFRAME_ADVANCE_MS : STORY_IMAGE_ADVANCE_MS;
     const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
+
+    useEffect(() => {
+        if (!open || !it) {
+            return;
+        }
+        setSlideProgress(0);
+    }, [open, safeIdx, it]);
+
+    useEffect(() => {
+        if (!open || !it || timedAdvanceMs === null) {
+            return;
+        }
+        const startedAt = Date.now();
+        const int = window.setInterval(() => {
+            const elapsed = Date.now() - startedAt;
+            setSlideProgress(Math.min(1, elapsed / timedAdvanceMs));
+        }, 90);
+        const t = window.setTimeout(() => {
+            setSlideProgress(1);
+            goNext();
+        }, timedAdvanceMs);
+        return () => {
+            window.clearInterval(int);
+            window.clearTimeout(t);
+        };
+    }, [open, it, timedAdvanceMs, goNext]);
 
     return createPortal(
         <div
@@ -151,6 +191,13 @@ export function PromoStoryFullscreenViewer({
                                 i === safeIdx ? 'bg-white' : 'bg-white/25 hover:bg-white/40'
                             }`}
                             aria-label={`Slayt ${i + 1}`}
+                            style={
+                                i < safeIdx
+                                    ? { opacity: 1 }
+                                    : i > safeIdx
+                                      ? { opacity: 0.35 }
+                                      : { background: `linear-gradient(90deg, #fff ${Math.round(slideProgress * 100)}%, rgba(255,255,255,0.25) ${Math.round(slideProgress * 100)}%)` }
+                            }
                         />
                     ))}
                 </div>
@@ -166,7 +213,7 @@ export function PromoStoryFullscreenViewer({
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
-                            go(-1);
+                            goPrev();
                         }}
                         className="absolute left-1 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:left-4"
                         aria-label="Önceki"
@@ -192,9 +239,9 @@ export function PromoStoryFullscreenViewer({
                         if (end == null) return;
                         const dx = end - start;
                         if (dx > SWIPE_MIN_PX) {
-                            go(-1);
+                            goPrev();
                         } else if (dx < -SWIPE_MIN_PX) {
-                            go(1);
+                            goNext();
                         }
                     }}
                     role="presentation"
@@ -211,9 +258,23 @@ export function PromoStoryFullscreenViewer({
                                     controls
                                     playsInline
                                     autoPlay
+                                    muted
                                     preload="auto"
                                     className="absolute inset-0 h-full w-full object-contain"
                                     poster={posterSrc ?? undefined}
+                                    onCanPlay={(e) => {
+                                        void e.currentTarget.play().catch(() => {
+                                            /* autoplay policy */
+                                        });
+                                    }}
+                                    onTimeUpdate={(e) => {
+                                        const el = e.currentTarget;
+                                        if (el.duration && Number.isFinite(el.duration)) {
+                                            setSlideProgress(Math.min(1, el.currentTime / el.duration));
+                                        }
+                                    }}
+                                    onEnded={goNext}
+                                    onError={goNext}
                                 >
                                     <source src={videoSrc} type={promoVideoSrcLooksLikeWebm(videoSrc) ? 'video/webm' : 'video/mp4'} />
                                     Tarayıcınız bu videoyu oynatamıyor.
@@ -279,7 +340,7 @@ export function PromoStoryFullscreenViewer({
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
-                            go(1);
+                            goNext();
                         }}
                         className="absolute right-1 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:right-4"
                         aria-label="Sonraki"

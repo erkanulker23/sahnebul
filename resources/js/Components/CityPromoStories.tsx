@@ -232,8 +232,10 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                         <video
                             ref={videoRef}
                             key={`${segment.event_id}-${openSegment}-${videoSrc}`}
-                            controls
                             playsInline
+                            autoPlay
+                            muted
+                            preload="auto"
                             className="max-h-full max-w-full object-contain"
                             poster={posterSrc ?? undefined}
                             onTimeUpdate={(e) => {
@@ -242,7 +244,13 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                                     setVideoProgress(el.currentTime / el.duration);
                                 }
                             }}
+                            onCanPlay={(e) => {
+                                void e.currentTarget.play().catch(() => {
+                                    /* autoplay policy */
+                                });
+                            }}
                             onEnded={advance}
+                            onError={advance}
                         >
                             <source src={videoSrc} type={promoVideoSrcLooksLikeWebm(videoSrc) ? 'video/webm' : 'video/mp4'} />
                         </video>
@@ -316,7 +324,7 @@ export function CityPromoStories({ rings }: Readonly<{ rings: CityPromoStoryRing
     const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
     const [viewer, setViewer] = useState<{ ring: number; seg: number } | null>(null);
 
-    const list = useMemo(() => rings.filter((r) => r.segments.length > 0), []);
+    const list = useMemo(() => rings.filter((r) => r.segments.length > 0), [rings]);
 
     const checkScroll = useCallback(() => {
         const el = scrollRef.current;

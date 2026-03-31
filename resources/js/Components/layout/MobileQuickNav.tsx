@@ -92,7 +92,8 @@ export function MobileQuickNav() {
 
     return (
         <nav
-            className="fixed inset-x-0 bottom-0 z-[60] border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] pt-1 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/95 dark:shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.2)] lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-[60] border-t border-zinc-200 bg-white/95 pt-1 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/95 dark:shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.2)] lg:hidden"
+            style={{ paddingBottom: 'max(0.2rem, env(safe-area-inset-bottom))' }}
             aria-label="Hızlı erişim"
         >
             <div className="mx-auto flex max-w-[1600px] items-stretch justify-around gap-0.5 px-1">
