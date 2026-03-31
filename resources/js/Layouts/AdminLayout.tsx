@@ -298,7 +298,8 @@ export default function AdminLayout({ children }: Readonly<PropsWithChildren>) {
                     item.href === 'admin.google-sign-in.index' ||
                     item.href === 'admin.verification-scripts.index' ||
                     item.href === 'admin.instagram-promo-cookies.index' ||
-                    item.href === 'admin.notifications.broadcast'
+                    item.href === 'admin.notifications.broadcast' ||
+                    item.href === 'admin.reviews.index'
                         ? safeRoute(item.href, item.query ?? {})
                         : route(item.href, item.query ?? {});
 

@@ -57,6 +57,7 @@ use App\Http\Controllers\LiveSceneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaytrCallbackController;
+use App\Http\Controllers\PaytrEventCheckoutController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PromoGalleryUrlImportStatusController;
 use App\Http\Controllers\PublicEditSuggestionController;
@@ -79,6 +80,7 @@ use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 
@@ -135,6 +137,26 @@ Route::post('/iletisim', [ContactController::class, 'store'])
     ->name('contact.store');
 
 Route::post('/odeme/paytr/bildirim', PaytrCallbackController::class)->name('paytr.callback');
+Route::get('/odeme/paytr/probe/ok', function () {
+    return response(
+        '<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>Ödeme tamamlandı</title></head><body><p>PayTR yönlendirmesi (test). Kesin sonuç bildirim URL ile gelir.</p></body></html>',
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8'],
+    );
+})->name('paytr.probe.ok');
+Route::get('/odeme/paytr/probe/fail', function () {
+    return response(
+        '<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>Ödeme başarısız</title></head><body><p>PayTR hata yönlendirmesi (test).</p></body></html>',
+        200,
+        ['Content-Type' => 'text/html; charset=UTF-8'],
+    );
+})->name('paytr.probe.fail');
+Route::get('/odeme/paytr/sonuc/basarili', function () {
+    return Inertia::render('Paytr/CheckoutResult', ['ok' => true]);
+})->name('paytr.checkout.ok');
+Route::get('/odeme/paytr/sonuc/basarisiz', function () {
+    return Inertia::render('Paytr/CheckoutResult', ['ok' => false]);
+})->name('paytr.checkout.fail');
 
 require __DIR__.'/auth.php';
 
@@ -167,6 +189,9 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('reservations.create', $venue->slug, 301);
     });
     Route::post('/rezervasyon', [ReservationController::class, 'store'])->name('reservations.store');
+    Route::get('/odeme/paytr/etkinlik/{segment}', [PaytrEventCheckoutController::class, 'show'])
+        ->middleware('throttle:30,1')
+        ->name('paytr.event-checkout.show');
 
     Route::post('/mekanlar/{venue:slug}/yorum', [ReviewController::class, 'store'])->name('reviews.store');
     Route::post('/sahneler/{venue:slug}/yorum', [ReviewController::class, 'store']);
@@ -540,6 +565,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/paytr', [AdminPaytrSettingsController::class, 'index'])->name('paytr.index');
         Route::post('/paytr', [AdminPaytrSettingsController::class, 'update'])->name('paytr.update');
         Route::post('/paytr/dogrula', [AdminPaytrSettingsController::class, 'validateLocal'])->name('paytr.validate-local');
+        Route::post('/paytr/ortamdan-yukle', [AdminPaytrSettingsController::class, 'importFromEnv'])
+            ->middleware('throttle:6,1')
+            ->name('paytr.import-env');
+        Route::post('/paytr/ayaga-baglan', [AdminPaytrSettingsController::class, 'probe'])
+            ->middleware('throttle:8,1')
+            ->name('paytr.probe');
     });
 
     Route::get('/ayarlar', [AdminSettingsController::class, 'index'])->name('settings.index');

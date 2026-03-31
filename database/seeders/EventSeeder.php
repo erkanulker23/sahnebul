@@ -337,7 +337,7 @@ class EventSeeder extends Seeder
                 'hour' => 21,
                 'minute' => 0,
                 'cover_image' => 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=800&auto=format&fit=crop',
-                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL,
+                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL_RESERVATION,
                 'sahnebul_reservation_enabled' => true,
             ],
             [
@@ -375,7 +375,7 @@ class EventSeeder extends Seeder
                 'hour' => 21,
                 'minute' => 0,
                 'is_full' => true,
-                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL,
+                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL_RESERVATION,
                 'sahnebul_reservation_enabled' => true,
             ],
             [
@@ -439,7 +439,7 @@ class EventSeeder extends Seeder
                 'days_from_now' => 8,
                 'hour' => 18,
                 'minute' => 0,
-                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL,
+                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL_RESERVATION,
                 'sahnebul_reservation_enabled' => true,
             ],
             [
@@ -461,7 +461,7 @@ class EventSeeder extends Seeder
                 'days_from_now' => 62,
                 'hour' => 20,
                 'minute' => 30,
-                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL,
+                'ticket_acquisition_mode' => Event::TICKET_MODE_SAHNEBUL_RESERVATION,
                 'sahnebul_reservation_enabled' => true,
             ],
         ];
@@ -474,10 +474,13 @@ class EventSeeder extends Seeder
 
             $base = rand(150, 380);
 
-            $mode = $e['ticket_acquisition_mode'] ?? Event::TICKET_MODE_SAHNEBUL;
+            $mode = $e['ticket_acquisition_mode'] ?? Event::TICKET_MODE_SAHNEBUL_RESERVATION;
             $sahnebulOn = array_key_exists('sahnebul_reservation_enabled', $e)
                 ? (bool) $e['sahnebul_reservation_enabled']
-                : ($mode === Event::TICKET_MODE_SAHNEBUL);
+                : in_array($mode, [Event::TICKET_MODE_SAHNEBUL, Event::TICKET_MODE_SAHNEBUL_RESERVATION], true);
+            $paytrOn = array_key_exists('paytr_checkout_enabled', $e)
+                ? (bool) $e['paytr_checkout_enabled']
+                : $mode === Event::TICKET_MODE_SAHNEBUL_CARD;
             $outlets = $e['ticket_outlets'] ?? [];
 
             $event = Event::updateOrCreate(
@@ -498,6 +501,7 @@ class EventSeeder extends Seeder
                     'cover_image' => $e['cover_image'] ?? null,
                     'ticket_acquisition_mode' => $mode,
                     'sahnebul_reservation_enabled' => $sahnebulOn,
+                    'paytr_checkout_enabled' => $paytrOn,
                     'is_full' => (bool) ($e['is_full'] ?? false),
                     'ticket_outlets' => is_array($outlets) ? $outlets : [],
                 ]

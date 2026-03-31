@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\City;
+use App\Support\TurkishPhone;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,12 @@ class ProfileController extends Controller
             $user->avatar = $request->file('avatar')->store('avatars', 'public');
         }
 
-        $user->fill($request->safe()->except('avatar'));
+        $attributes = $request->safe()->except('avatar');
+        if (array_key_exists('phone', $attributes)) {
+            $raw = trim((string) $attributes['phone']);
+            $attributes['phone'] = $raw === '' ? null : TurkishPhone::normalize($raw);
+        }
+        $user->fill($attributes);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;

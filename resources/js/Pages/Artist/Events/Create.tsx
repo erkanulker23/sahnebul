@@ -131,7 +131,9 @@ export default function ArtistEventCreate({
         entry_is_paid: true,
         capacity: '',
         ticket_tiers: [] as TierRow[],
-        ticket_acquisition_mode: 'sahnebul' as TicketAcquisitionMode,
+        ticket_acquisition_mode: 'sahnebul_reservation' as TicketAcquisitionMode,
+        sahnebul_reservation_enabled: true,
+        paytr_checkout_enabled: false,
         ticket_outlets: [emptyTicketOutletRow()],
         ticket_purchase_note: '',
         proposed_venue: emptyProposedVenue(),
@@ -539,6 +541,11 @@ export default function ArtistEventCreate({
                         if (!paid) {
                             setData('ticket_price', '');
                             setData('ticket_tiers', []);
+                            if (data.ticket_acquisition_mode === 'sahnebul_card') {
+                                setData('ticket_acquisition_mode', 'sahnebul_reservation');
+                                setData('sahnebul_reservation_enabled', true);
+                                setData('paytr_checkout_enabled', false);
+                            }
                         }
                     }}
                 />
@@ -578,17 +585,27 @@ export default function ArtistEventCreate({
                 ) : null}
                 <TicketSalesEditor
                     acquisitionMode={data.ticket_acquisition_mode}
-                    onAcquisitionModeChange={(ticket_acquisition_mode) => {
-                        setData('ticket_acquisition_mode', ticket_acquisition_mode);
-                        if (ticket_acquisition_mode === 'phone_only') {
+                    onAcquisitionModeChange={(mode) => {
+                        setData('ticket_acquisition_mode', mode);
+                        if (mode === 'phone_only') {
                             setData('ticket_outlets', [emptyTicketOutletRow()]);
+                        }
+                        if (mode === 'sahnebul_reservation') {
+                            setData('sahnebul_reservation_enabled', true);
+                            setData('paytr_checkout_enabled', false);
+                        }
+                        if (mode === 'sahnebul_card') {
+                            setData('sahnebul_reservation_enabled', false);
+                            setData('paytr_checkout_enabled', true);
                         }
                     }}
                     outlets={data.ticket_outlets}
                     onOutletsChange={(ticket_outlets) => setData('ticket_outlets', ticket_outlets)}
                     purchaseNote={data.ticket_purchase_note}
                     onPurchaseNoteChange={(ticket_purchase_note) => setData('ticket_purchase_note', ticket_purchase_note)}
+                    entryIsPaid={data.entry_is_paid}
                     variant="artist"
+                    errors={errors as Partial<Record<string, string>>}
                 />
                 <div>
                     <span className="block text-sm font-medium text-zinc-400">Açıklama</span>

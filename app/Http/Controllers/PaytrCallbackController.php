@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PaytrPaymentOrder;
 use App\Services\PaytrDirectApiService;
+use App\Services\PaytrOrderFulfillmentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -40,6 +41,8 @@ class PaytrCallbackController extends Controller
         }
 
         if ($order->status === 'success') {
+            app(PaytrOrderFulfillmentService::class)->fulfillIfEventTicket($order);
+
             return response('OK', 200);
         }
 
@@ -47,6 +50,10 @@ class PaytrCallbackController extends Controller
             'status' => $status === 'success' ? 'success' : 'failed',
             'last_callback_raw' => json_encode($request->all(), JSON_UNESCAPED_UNICODE),
         ])->save();
+
+        if ($order->status === 'success') {
+            app(PaytrOrderFulfillmentService::class)->fulfillIfEventTicket($order->fresh());
+        }
 
         return response('OK', 200);
     }

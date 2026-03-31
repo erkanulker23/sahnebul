@@ -263,6 +263,24 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
         case 'admin.notifications.broadcast':
         case 'admin.notifications.broadcast.store':
             return '/admin/bildirim-gonder';
+        case 'admin.reviews.index':
+            return `/admin/yorumlar${queryString(params ?? {})}`;
+        case 'admin.reviews.approve': {
+            const id = params?.review ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/yorumlar/${id}/onayla`;
+            }
+
+            return '/admin/yorumlar';
+        }
+        case 'admin.reviews.destroy': {
+            const id = params?.review ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/yorumlar/${id}`;
+            }
+
+            return '/admin/yorumlar';
+        }
         default:
             return '/';
     }

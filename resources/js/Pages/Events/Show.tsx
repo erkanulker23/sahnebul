@@ -4,7 +4,11 @@ import {
     promoGalleryItemsFromEntity,
 } from '@/Components/PublicPromoGallerySection';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
-import { inferTicketAcquisitionMode, type TicketAcquisitionMode } from '@/Components/TicketSalesEditor';
+import {
+    inferTicketAcquisitionMode,
+    isSahnebulTicketFamily,
+    type TicketAcquisitionMode,
+} from '@/Components/TicketSalesEditor';
 import DetailEventList, { type DetailEventListItem } from '@/Components/DetailEventList';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import { AdSlot } from '@/Components/AdSlot';
@@ -80,6 +84,7 @@ interface Event {
     artists: Artist[];
     ticket_tiers?: TicketTier[];
     sahnebul_reservation_enabled?: boolean;
+    paytr_checkout_enabled?: boolean;
     ticket_acquisition_mode?: TicketAcquisitionMode | string | null;
     ticket_outlets?: { label: string; url: string }[];
     ticket_purchase_note?: string | null;
@@ -116,6 +121,8 @@ interface Props {
     };
     /** Onaylı / tamamlanmış etkinlik rezervasyonu olan ziyaretçi değerlendirme gönderebilir */
     eventReviewEligibility?: { canSubmit: boolean };
+    /** Sunucu: PayTR açık + Sahnebul satış + ücretli bilet */
+    paytrCheckoutAvailable?: boolean;
 }
 
 function formatTry(n: number): string {
@@ -279,6 +286,7 @@ export default function EventShow({
         needsEmailVerificationForFollow: false,
     },
     eventReviewEligibility = { canSubmit: false },
+    paytrCheckoutAvailable = false,
 }: Readonly<Props>) {
     const page = usePage();
     const eventTypeSlug = event.event_type?.trim() ?? '';
@@ -305,25 +313,65 @@ export default function EventShow({
         coverRaw !== '' && !isRemoteSocialOgJunkUrl(coverRaw) ? imageSrc(coverRaw) : null;
     const tiers = event.ticket_tiers ?? [];
     const hasTiers = tiers.length > 0;
+    const [checkoutTierId, setCheckoutTierId] = useState(() => tiers[0]?.id ?? 0);
     const entryFree = event.entry_is_paid === false;
-    const acquisitionMode = inferTicketAcquisitionMode(event);
-    const reservationEnabled = acquisitionMode === 'sahnebul';
+    const acquisitionMode = inferTicketAcquisitionMode({
+        ...event,
+        paytr_checkout_enabled: event.paytr_checkout_enabled !== false,
+    });
+    const reservationEnabled =
+        acquisitionMode === 'sahnebul_reservation' ||
+        (acquisitionMode === 'sahnebul' && event.sahnebul_reservation_enabled !== false);
     const ticketOutlets = acquisitionMode === 'phone_only' ? [] : (event.ticket_outlets ?? []);
     const purchaseNote = event.ticket_purchase_note?.trim() ?? '';
     const hasTicketChannels =
         acquisitionMode === 'phone_only' ||
-        acquisitionMode === 'sahnebul' ||
-        ticketOutlets.length > 0 ||
-        purchaseNote.length > 0;
+        (isSahnebulTicketFamily(acquisitionMode) &&
+            (reservationEnabled || paytrCheckoutAvailable || ticketOutlets.length > 0 || purchaseNote.length > 0)) ||
+        (acquisitionMode === 'external_platforms' && (ticketOutlets.length > 0 || purchaseNote.length > 0));
     const eventHasFinished = event.has_finished === true;
     const ticketUiActive = hasTicketChannels && !eventHasFinished;
     const ticketSectionIntro =
         acquisitionMode === 'external_platforms'
-            ? 'Bilet veya rezervasyon aşağıdaki platform bağlantıları üzerinden yapılır; Sahnebul rezervasyon formu bu etkinlik için kullanılmaz.'
-            : acquisitionMode === 'sahnebul'
-              ? 'Önce Sahnebul üzerinden rezervasyon / bilet talebi oluşturabilirsiniz. Ek olarak harici bağlantılar varsa onlar da listelenir.'
+            ? 'Bilet veya rezervasyon aşağıdaki platform bağlantıları üzerinden yapılır; bu etkinlik için Sahnebul rezervasyon formu kullanılmaz.'
+            : isSahnebulTicketFamily(acquisitionMode)
+              ? (() => {
+                    const card = paytrCheckoutAvailable;
+                    const res = reservationEnabled;
+                    if (entryFree) {
+                        return 'Bu etkinlik ücretsiz girişlidir. Aşağıda varsa harici bağlantılar veya not yer alır.';
+                    }
+                    if (card && res) {
+                        return 'Ücretli bilet için kredi kartı ile ödeme (PayTR) veya aşağıdaki rezervasyon formu ile ön talep oluşturabilirsiniz.';
+                    }
+                    if (card) {
+                        return 'Ücretli bilet için aşağıdan kredi kartı ile güvenli ödeme (PayTR) yapabilirsiniz.';
+                    }
+                    if (res) {
+                        return 'Sahnebul üzerinden rezervasyon / bilet talebi için aşağıdaki formu kullanın. Harici bağlantılar varsa listelenir.';
+                    }
+                    return 'Bilet ve rezervasyon kanalları aşağıdadır.';
+                })()
               : 'Bu etkinlikte çevrimiçi bilet satışı yoktur. Rezervasyon için soldaki notu ve yan sütundaki mekân kutusundaki telefon veya WhatsApp satırlarını kullanın.';
     const reservationHref = `${route('reservations.create', event.venue.slug)}?event=${event.id}`;
+    const paytrCardHref = useMemo(() => {
+        if (!paytrCheckoutAvailable || entryFree || eventHasFinished) {
+            return null;
+        }
+        const params = new URLSearchParams();
+        params.set('quantity', '1');
+        if (hasTiers && checkoutTierId > 0) {
+            params.set('tier', String(checkoutTierId));
+        }
+        return `${route('paytr.event-checkout.show', { segment: eventShowParam(event) })}?${params.toString()}`;
+    }, [
+        paytrCheckoutAvailable,
+        entryFree,
+        eventHasFinished,
+        hasTiers,
+        checkoutTierId,
+        event,
+    ]);
     const venueMapInput = {
         google_maps_url: event.venue.google_maps_url,
         latitude: event.venue.latitude,
@@ -612,6 +660,22 @@ export default function EventShow({
                             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{ticketSectionIntro}</p>
                             {hasTicketChannels ? (
                                 <div className="mt-5 space-y-4">
+                                    {paytrCardHref ? (
+                                        <Link
+                                            href={paytrCardHref}
+                                            className="flex items-center gap-3 rounded-xl border-2 border-emerald-500/60 bg-emerald-500/10 p-4 transition hover:border-emerald-400 hover:bg-emerald-500/15 dark:border-emerald-500/40 dark:bg-emerald-500/10"
+                                        >
+                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                                                <Ticket className="h-5 w-5" aria-hidden />
+                                            </span>
+                                            <span className="min-w-0 text-left">
+                                                <span className="block font-semibold text-zinc-900 dark:text-white">Kredi kartı ile satın al</span>
+                                                <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
+                                                    Güvenli ödeme PayTR üzerinden; işlem onayından sonra bilet rezervasyonunuz onaylanır. Yan sütunda kategori seçtiyseniz aynı fiyat kullanılır.
+                                                </span>
+                                            </span>
+                                        </Link>
+                                    ) : null}
                                     {reservationEnabled && (
                                         <Link
                                             href={reservationHref}
@@ -621,9 +685,9 @@ export default function EventShow({
                                                 <Ticket className="h-5 w-5" aria-hidden />
                                             </span>
                                             <span className="min-w-0 text-left">
-                                                <span className="block font-semibold text-zinc-900 dark:text-white">Sahnebul üzerinden rezervasyon</span>
+                                                <span className="block font-semibold text-zinc-900 dark:text-white">Sahnebul üzerinden rezervasyon formu</span>
                                                 <span className="mt-0.5 block text-xs text-zinc-600 dark:text-zinc-400">
-                                                    Giriş yaparak bilet / masa talebi oluşturabilirsiniz; etkinlik bu formda önceden seçilir.
+                                                    Giriş yaparak bilet / masa talebi oluşturabilirsiniz (kart ile anında ödeme değil; onay süreci).
                                                 </span>
                                             </span>
                                         </Link>
@@ -1074,12 +1138,20 @@ export default function EventShow({
                                         </a>
                                     ) : (
                                         <>
+                                            {paytrCardHref ? (
+                                                <Link
+                                                    href={paytrCardHref}
+                                                    className="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-emerald-500"
+                                                >
+                                                    Kart ile satın al
+                                                </Link>
+                                            ) : null}
                                             {reservationEnabled && (
                                                 <Link
                                                     href={reservationHref}
                                                     className="block w-full rounded-xl bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-zinc-950 hover:bg-amber-400"
                                                 >
-                                                    Sahnebul’da rezervasyon
+                                                    Rezervasyon formu
                                                 </Link>
                                             )}
                                             {ticketOutlets.slice(0, 4).map((o) => (
@@ -1129,7 +1201,8 @@ export default function EventShow({
                                 <select
                                     id="tier-select"
                                     className="mt-2 w-full rounded-xl border border-zinc-300 bg-white px-3 py-3 text-sm font-medium text-zinc-900 dark:border-white/10 dark:bg-zinc-800 dark:text-white"
-                                    defaultValue={tiers[0]?.id}
+                                    value={checkoutTierId || tiers[0]?.id || 0}
+                                    onChange={(e) => setCheckoutTierId(Number(e.target.value))}
                                 >
                                     {tiers.map((t) => (
                                         <option key={t.id} value={t.id}>

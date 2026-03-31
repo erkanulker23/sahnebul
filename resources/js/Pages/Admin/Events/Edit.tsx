@@ -43,6 +43,7 @@ interface EventModel {
     artists: { id: number; name: string; avatar?: string | null }[];
     ticket_tiers: Tier[];
     sahnebul_reservation_enabled?: boolean;
+    paytr_checkout_enabled?: boolean;
     ticket_acquisition_mode?: string | null;
     ticket_outlets?: { label: string; url: string }[];
     ticket_purchase_note?: string | null;
@@ -69,6 +70,8 @@ interface Props {
     venuePickerCategories: { id: number; name: string }[];
     googleMapsBrowserKey?: string | null;
     eventTypeOptions: { slug: string; label: string }[];
+    /** PayTR panelde ödeme açık ve bilgiler tam mı? */
+    paytrOnlineOperational?: boolean;
 }
 
 function storageUrl(path: string | null | undefined): string | null {
@@ -100,6 +103,7 @@ export default function AdminEventEdit({
     venuePickerCategories,
     googleMapsBrowserKey = null,
     eventTypeOptions,
+    paytrOnlineOperational = false,
 }: Readonly<Props>) {
     const page = usePage();
     const flash = (page.props as { flash?: FlashProps }).flash;
@@ -132,7 +136,12 @@ export default function AdminEventEdit({
         cover_upload: null as File | null,
         listing_image: event.listing_image ?? '',
         listing_upload: null as File | null,
-        ticket_acquisition_mode: inferTicketAcquisitionMode(event),
+        ticket_acquisition_mode: inferTicketAcquisitionMode({
+            ...event,
+            paytr_checkout_enabled: event.paytr_checkout_enabled !== false,
+        }),
+        sahnebul_reservation_enabled: event.sahnebul_reservation_enabled !== false,
+        paytr_checkout_enabled: event.paytr_checkout_enabled !== false,
         ticket_outlets: outletsFromServer(event.ticket_outlets),
         ticket_purchase_note: event.ticket_purchase_note ?? '',
         promo_show_on_venue_profile_posts: Boolean(event.promo_show_on_venue_profile_posts),
@@ -396,6 +405,11 @@ export default function AdminEventEdit({
                                     if (!paid) {
                                         setData('ticket_price', '');
                                         setData('ticket_tiers', []);
+                                        if (data.ticket_acquisition_mode === 'sahnebul_card') {
+                                            setData('ticket_acquisition_mode', 'sahnebul_reservation');
+                                            setData('sahnebul_reservation_enabled', true);
+                                            setData('paytr_checkout_enabled', false);
+                                        }
                                     }
                                 }}
                             />
@@ -468,18 +482,64 @@ export default function AdminEventEdit({
                         <TicketTiersEditor value={data.ticket_tiers} onChange={(ticket_tiers) => setData('ticket_tiers', ticket_tiers)} />
                     ) : null}
 
+                    {data.entry_is_paid ? (
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-zinc-300">
+                            <h3 className="font-semibold text-emerald-200">Sitede bilet: dört «nasıl alınır?» seçeneklerinden biri</h3>
+                            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+                                «Sahnebul üzerinden kredi kartı ödemesi» seçildiğinde etkinlik sayfasında yeşil «Kart ile satın al» görünür; «Sahnebul üzerinden rezervasyon / bilet talebi»
+                                seçildiğinde turuncu rezervasyon formu linki görünür (ikisi ayrı radyo seçimidir).
+                            </p>
+                            <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs text-zinc-400">
+                                <li>
+                                    <span className="font-medium text-emerald-300/90">PayTR</span> — panelde ödeme açık olmalı.
+                                    {!paytrOnlineOperational ? (
+                                        <span className="block pt-1 text-amber-300/90">
+                                            Şu an kapalı: süper yönetici «PayTR ödeme» menüsünden mağazayı etkinleştirmeli.
+                                        </span>
+                                    ) : (
+                                        <span className="block pt-1 text-emerald-400/90">PayTR yapılandırması tamam görünüyor.</span>
+                                    )}
+                                </li>
+                                <li>
+                                    <span className="font-medium text-amber-300/90">Harici bilet siteleri</span> için satış yerini «Harici platformlar» seçin.
+                                </li>
+                            </ul>
+                            {data.status === 'published' ? (
+                                <p className="mt-3">
+                                    <Link
+                                        href={route('events.show', { event: eventShowParam(event) })}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs font-medium text-amber-400 hover:text-amber-300"
+                                    >
+                                        Canlı etkinlik sayfasını yeni sekmede aç →
+                                    </Link>
+                                </p>
+                            ) : null}
+                        </div>
+                    ) : null}
+
                     <TicketSalesEditor
                         acquisitionMode={data.ticket_acquisition_mode}
-                        onAcquisitionModeChange={(ticket_acquisition_mode) => {
-                            setData('ticket_acquisition_mode', ticket_acquisition_mode);
-                            if (ticket_acquisition_mode === 'phone_only') {
+                        onAcquisitionModeChange={(mode) => {
+                            setData('ticket_acquisition_mode', mode);
+                            if (mode === 'phone_only') {
                                 setData('ticket_outlets', [emptyTicketOutletRow()]);
+                            }
+                            if (mode === 'sahnebul_reservation') {
+                                setData('sahnebul_reservation_enabled', true);
+                                setData('paytr_checkout_enabled', false);
+                            }
+                            if (mode === 'sahnebul_card') {
+                                setData('sahnebul_reservation_enabled', false);
+                                setData('paytr_checkout_enabled', true);
                             }
                         }}
                         outlets={data.ticket_outlets}
                         onOutletsChange={(ticket_outlets) => setData('ticket_outlets', ticket_outlets)}
                         purchaseNote={data.ticket_purchase_note}
                         onPurchaseNoteChange={(ticket_purchase_note) => setData('ticket_purchase_note', ticket_purchase_note)}
+                        entryIsPaid={data.entry_is_paid}
                         variant="admin"
                         errors={errors as Partial<Record<string, string>>}
                     />

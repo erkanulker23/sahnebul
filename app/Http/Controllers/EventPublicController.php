@@ -6,8 +6,10 @@ use App\Models\Artist;
 use App\Models\Event;
 use App\Models\EventReview;
 use App\Services\EventMediaImportFromUrlService;
+use App\Services\PaytrDirectApiService;
 use App\Support\DailyUniqueEntityView;
 use App\Support\PublicStructuredData;
+use App\Support\TicketAcquisition;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -176,12 +178,21 @@ class EventPublicController extends Controller
         $event->setAttribute('is_ongoing', $event->isOngoingNow());
         $event->setAttribute('has_finished', $hasFinished);
 
+        $paytrOperational = app(PaytrDirectApiService::class)->isOperational();
+        $eventAllowsPaytrCard = ! Schema::hasColumn('events', 'paytr_checkout_enabled')
+            || ($event->paytr_checkout_enabled ?? true);
+        $paytrCheckoutAvailable = ! $hasFinished
+            && $paytrOperational
+            && TicketAcquisition::allowsPaytrCheckout($event)
+            && $eventAllowsPaytrCard;
+
         return Inertia::render('Events/Show', [
             'event' => $event,
             'documentStructuredData' => PublicStructuredData::eventShowGraph($event),
             'venueUpcomingEvents' => $venueUpcomingEvents,
             'artistUpcomingEvents' => $artistUpcomingEvents,
             'eventReviews' => $eventReviews,
+            'paytrCheckoutAvailable' => $paytrCheckoutAvailable,
             'eventCustomerActions' => [
                 'followUiVisible' => $futureStart,
                 'canToggle' => $u !== null && $u->canUsePublicEngagementFeatures()

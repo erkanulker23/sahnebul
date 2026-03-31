@@ -1,4 +1,5 @@
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
+import PhoneInput from '@/Components/PhoneInput';
 import SeoHead from '@/Components/SeoHead';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime, formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
@@ -266,25 +267,21 @@ export default function Dashboard({
                                         </select>
                                     </div>
                                 </div>
-                                {reminderForm.data.event_reminder_sms_enabled ? (
-                                    <div>
-                                        <label htmlFor="reminder-phone" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                            Cep telefonu (SMS)
-                                        </label>
-                                        <input
-                                            id="reminder-phone"
-                                            type="tel"
-                                            autoComplete="tel"
-                                            placeholder="+90 5xx xxx xx xx"
-                                            value={reminderForm.data.phone}
-                                            onChange={(ev) => reminderForm.setData('phone', ev.target.value)}
-                                            className="mt-1 w-full max-w-md rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-white/15 dark:bg-zinc-900 dark:text-white"
-                                        />
-                                        <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-500">
-                                            SMS altyapısı yönetici tarafından açıldığında gönderilir; tercih şimdiden kaydedilir.
-                                        </p>
-                                    </div>
-                                ) : null}
+                                <div className="max-w-md">
+                                    <label htmlFor="reminder-phone" className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                        Türkiye telefonu
+                                    </label>
+                                    <PhoneInput
+                                        id="reminder-phone"
+                                        name="reminder-phone"
+                                        value={reminderForm.data.phone}
+                                        onChange={(v) => reminderForm.setData('phone', v)}
+                                        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-white/15 dark:bg-zinc-900 dark:text-white"
+                                    />
+                                    <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+                                        PayTR ile kart ödemesi ve SMS hatırlatması için. SMS kapalıyken de numarayı kaydedebilirsiniz.
+                                    </p>
+                                </div>
                                 {reminderForm.errors.phone ? (
                                     <p className="text-sm text-red-600 dark:text-red-400">{reminderForm.errors.phone}</p>
                                 ) : null}

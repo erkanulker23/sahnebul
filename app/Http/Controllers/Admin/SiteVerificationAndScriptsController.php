@@ -36,9 +36,9 @@ class SiteVerificationAndScriptsController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'seo_google_site_verification' => 'nullable|string|max:128',
-            'seo_yandex_verification' => 'nullable|string|max:128',
-            'seo_bing_verification' => 'nullable|string|max:128',
+            'seo_google_site_verification' => 'nullable|string|max:512',
+            'seo_yandex_verification' => 'nullable|string|max:512',
+            'seo_bing_verification' => 'nullable|string|max:512',
             'custom_head_html' => 'nullable|string|max:100000',
             'custom_body_html' => 'nullable|string|max:100000',
         ]);
@@ -52,9 +52,9 @@ class SiteVerificationAndScriptsController extends Controller
         $currentSeo = is_array($fromDb['seo'] ?? null) ? $fromDb['seo'] : [];
 
         $fromDb['seo'] = array_merge($currentSeo, [
-            'google_site_verification' => $this->nullableTrim($validated['seo_google_site_verification'] ?? null),
-            'yandex_verification' => $this->nullableTrim($validated['seo_yandex_verification'] ?? null),
-            'bing_verification' => $this->nullableTrim($validated['seo_bing_verification'] ?? null),
+            'google_site_verification' => $this->normalizeVerificationMetaContent($validated['seo_google_site_verification'] ?? null),
+            'yandex_verification' => $this->normalizeVerificationMetaContent($validated['seo_yandex_verification'] ?? null),
+            'bing_verification' => $this->normalizeVerificationMetaContent($validated['seo_bing_verification'] ?? null),
             'custom_head_html' => $this->nullableTrim($validated['custom_head_html'] ?? null),
             'custom_body_html' => $this->nullableTrim($validated['custom_body_html'] ?? null),
         ]);
@@ -77,5 +77,32 @@ class SiteVerificationAndScriptsController extends Controller
         $t = trim($value);
 
         return $t === '' ? null : $t;
+    }
+
+    /**
+     * Konsollardan kopyalanan tam &lt;meta name="…-verification" content="…" /&gt; satırı;
+     * saklamadan önce yalnızca content değerine indirgenir (Yandex "meta tag not found" önlenir).
+     */
+    private function normalizeVerificationMetaContent(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $s = trim($value);
+        if ($s === '') {
+            return null;
+        }
+        if (stripos($s, '<meta') !== false) {
+            if (preg_match('/content\s*=\s*["\']([^"\'<>]+)["\']/iu', $s, $m)) {
+                $s = trim($m[1]);
+            }
+        } else {
+            $s = trim($s, " \t\n\r\0\x0B\"'");
+        }
+        if ($s === '') {
+            return null;
+        }
+
+        return mb_substr($s, 0, 128);
     }
 }

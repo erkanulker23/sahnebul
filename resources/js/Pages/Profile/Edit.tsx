@@ -195,13 +195,16 @@ function CustomerPanel({
 
                     <section className={cardClass}>
                         <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Profil bilgileri</h2>
-                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Ad, e-posta, fotoğraf ve şehir</p>
+                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            Ad, e-posta, cep telefonu (PayTR / hatırlatmalar), fotoğraf, şehir ve ilgi alanları
+                        </p>
                         <div className="mt-6">
                             <UpdateProfileInformationForm
                                 mustVerifyEmail={mustVerifyEmail}
                                 status={status}
                                 cities={cities}
                                 className="max-w-none"
+                                omitSectionHeader
                             />
                         </div>
                     </section>
@@ -248,18 +251,20 @@ function CustomerPanel({
                                     ))}
                                 </select>
                             </div>
-                            {reminderForm.data.event_reminder_sms_enabled ? (
-                                <div>
-                                    <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">SMS telefonu</label>
-                                    <PhoneInput
-                                        id="account-reminder-phone"
-                                        name="account-reminder-phone"
-                                        value={reminderForm.data.phone}
-                                        onChange={(v) => reminderForm.setData('phone', v)}
-                                        className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm dark:border-white/10 dark:bg-zinc-900/70"
-                                    />
-                                </div>
-                            ) : null}
+                            <div>
+                                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Türkiye telefonu</label>
+                                <PhoneInput
+                                    id="account-reminder-phone"
+                                    name="account-reminder-phone"
+                                    value={reminderForm.data.phone}
+                                    onChange={(v) => reminderForm.setData('phone', v)}
+                                    className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm dark:border-white/10 dark:bg-zinc-900/70"
+                                />
+                                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                                    Kart ile bilet ödemesi (PayTR) ve isteğe bağlı SMS hatırlatması için geçerli bir numara gerekir. SMS&apos;i kapalı
+                                    tutsanız bile numarayı buradan kaydedebilirsiniz.
+                                </p>
+                            </div>
                             <button
                                 type="submit"
                                 disabled={reminderForm.processing}

@@ -1,5 +1,6 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import PhoneInput from '@/Components/PhoneInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
@@ -70,6 +71,7 @@ export default function UpdateProfileInformation({
         useForm({
             name: initialName,
             email: user.email,
+            phone: user.phone ?? '',
             city: user.city ?? '',
             interests: (user.interests as string[]) ?? [],
             avatar: null as File | null,
@@ -162,6 +164,21 @@ export default function UpdateProfileInformation({
                         autoComplete="username"
                     />
                     <InputError className="mt-2" message={errors.email} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="phone" value="Cep telefonu" />
+                    <PhoneInput
+                        id="phone"
+                        name="phone"
+                        value={data.phone}
+                        onChange={(v) => setData('phone', v)}
+                        className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/25 dark:border-white/10 dark:bg-zinc-800/50 dark:text-white dark:focus:border-amber-500 dark:focus:ring-amber-500/20"
+                    />
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                        Kart ile bilet ödemesi (PayTR) ve isteğe bağlı SMS hatırlatması için geçerli bir Türkiye numarası kullanın. Boş bırakabilirsiniz.
+                    </p>
+                    <InputError className="mt-2" message={errors.phone} />
                 </div>
 
                 {isManagerOrganization && (

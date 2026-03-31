@@ -43,7 +43,7 @@ class Event extends Model
     protected $fillable = [
         'venue_id', 'title', 'slug', 'event_type', 'description', 'start_date', 'end_date',
         'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'promo_gallery', 'status',
-        'sahnebul_reservation_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
+        'sahnebul_reservation_enabled', 'paytr_checkout_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
         'promo_show_on_venue_profile_posts', 'promo_show_on_venue_profile_videos', 'promo_venue_profile_moderation',
         'promo_show_on_artist_profile_posts', 'promo_show_on_artist_profile_videos', 'promo_artist_profile_moderation',
     ];
@@ -56,6 +56,7 @@ class Event extends Model
         'is_full' => 'boolean',
         'view_count' => 'integer',
         'sahnebul_reservation_enabled' => 'boolean',
+        'paytr_checkout_enabled' => 'boolean',
         'ticket_outlets' => 'array',
         'promo_gallery' => 'array',
         'promo_show_on_venue_profile_posts' => 'boolean',
@@ -646,9 +647,17 @@ class Event extends Model
 
     public const TICKET_MODE_EXTERNAL = 'external_platforms';
 
+    /** @deprecated Eski kayıtlar ve Excel; yeni formlar {@see TICKET_MODE_SAHNEBUL_RESERVATION} / {@see TICKET_MODE_SAHNEBUL_CARD} kullanır */
     public const TICKET_MODE_SAHNEBUL = 'sahnebul';
 
+    public const TICKET_MODE_SAHNEBUL_RESERVATION = 'sahnebul_reservation';
+
+    public const TICKET_MODE_SAHNEBUL_CARD = 'sahnebul_card';
+
     public const TICKET_MODE_PHONE = 'phone_only';
+
+    /** İstek doğrulama: formlar + eski `sahnebul` API/Excel uyumu */
+    public const TICKET_ACQUISITION_MODE_RULE = 'required|string|in:external_platforms,sahnebul,sahnebul_reservation,sahnebul_card,phone_only';
 
     /**
      * @param  array<string, mixed>  $validated
@@ -656,9 +665,16 @@ class Event extends Model
      */
     public static function applyTicketAcquisitionToValidatedArray(array $validated): array
     {
-        $mode = $validated['ticket_acquisition_mode'] ?? self::TICKET_MODE_SAHNEBUL;
-        if (! in_array($mode, [self::TICKET_MODE_EXTERNAL, self::TICKET_MODE_SAHNEBUL, self::TICKET_MODE_PHONE], true)) {
-            $mode = self::TICKET_MODE_SAHNEBUL;
+        $mode = $validated['ticket_acquisition_mode'] ?? self::TICKET_MODE_SAHNEBUL_RESERVATION;
+        $allowed = [
+            self::TICKET_MODE_EXTERNAL,
+            self::TICKET_MODE_SAHNEBUL,
+            self::TICKET_MODE_SAHNEBUL_RESERVATION,
+            self::TICKET_MODE_SAHNEBUL_CARD,
+            self::TICKET_MODE_PHONE,
+        ];
+        if (! in_array($mode, $allowed, true)) {
+            $mode = self::TICKET_MODE_SAHNEBUL_RESERVATION;
         }
         $validated['ticket_acquisition_mode'] = $mode;
 
@@ -676,12 +692,42 @@ class Event extends Model
         if ($mode === self::TICKET_MODE_EXTERNAL) {
             $validated['ticket_outlets'] = $outlets;
             $validated['sahnebul_reservation_enabled'] = false;
-        } elseif ($mode === self::TICKET_MODE_SAHNEBUL) {
+            $validated['paytr_checkout_enabled'] = false;
+        } elseif ($mode === self::TICKET_MODE_SAHNEBUL_RESERVATION) {
             $validated['ticket_outlets'] = $outlets;
             $validated['sahnebul_reservation_enabled'] = true;
+            $validated['paytr_checkout_enabled'] = false;
+        } elseif ($mode === self::TICKET_MODE_SAHNEBUL_CARD) {
+            $entryPaid = (bool) ($validated['entry_is_paid'] ?? true);
+            if (! $entryPaid) {
+                throw ValidationException::withMessages([
+                    'ticket_acquisition_mode' => 'Ücretsiz etkinlikte «Sahnebul üzerinden kredi kartı ödemesi» seçilemez.',
+                ]);
+            }
+            $validated['ticket_outlets'] = $outlets;
+            $validated['sahnebul_reservation_enabled'] = false;
+            $validated['paytr_checkout_enabled'] = true;
+        } elseif ($mode === self::TICKET_MODE_SAHNEBUL) {
+            $validated['ticket_outlets'] = $outlets;
+            $resOn = array_key_exists('sahnebul_reservation_enabled', $validated)
+                ? (bool) $validated['sahnebul_reservation_enabled']
+                : true;
+            $paytrOn = array_key_exists('paytr_checkout_enabled', $validated)
+                ? (bool) $validated['paytr_checkout_enabled']
+                : true;
+            $validated['sahnebul_reservation_enabled'] = $resOn;
+            $validated['paytr_checkout_enabled'] = $paytrOn;
+
+            $entryPaid = (bool) ($validated['entry_is_paid'] ?? true);
+            if ($entryPaid && ! $resOn && ! $paytrOn) {
+                throw ValidationException::withMessages([
+                    'paytr_checkout_enabled' => 'Ücretli etkinlikte «Sahnebul» satış yerinde en az biri açık olmalı: online kredi kartı (PayTR) veya rezervasyon formu.',
+                ]);
+            }
         } else {
             $validated['ticket_outlets'] = [];
             $validated['sahnebul_reservation_enabled'] = false;
+            $validated['paytr_checkout_enabled'] = false;
         }
 
         return $validated;
@@ -731,6 +777,22 @@ class Event extends Model
         $end = $this->effectiveEndAt();
 
         return $end !== null && $at->greaterThan($end);
+    }
+
+    /**
+     * Kamu etkinlik URL’si segment’i (/etkinlikler/{segment}) — yayında ve mekân listeleniyorsa.
+     */
+    public static function fromPublicUrlSegmentOrFail(string $segment): self
+    {
+        $base = self::query()->published()->whereHas('venue', fn ($q) => $q->listedPublicly());
+        if (ctype_digit($segment)) {
+            return (clone $base)->whereKey((int) $segment)->firstOrFail();
+        }
+        if (preg_match('/^(.+)-(\d+)$/u', $segment, $m)) {
+            return (clone $base)->whereKey((int) $m[2])->firstOrFail();
+        }
+
+        abort(404);
     }
 
     /**

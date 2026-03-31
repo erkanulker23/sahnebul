@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\Venue;
 use App\Services\AppSettingsService;
 use App\Services\EventMediaImportFromUrlService;
+use App\Services\PaytrDirectApiService;
 use App\Services\SahnebulMail;
 use App\Support\AdminDatetimeLocal;
 use App\Support\EventListingTypes;
@@ -100,6 +101,8 @@ class EventController extends Controller
             'cover_image' => $request->input('cover_image') ?: null,
             'listing_image' => $request->input('listing_image') ?: null,
             'event_type' => $request->input('event_type') ?: null,
+            'sahnebul_reservation_enabled' => $request->boolean('sahnebul_reservation_enabled', true),
+            'paytr_checkout_enabled' => $request->boolean('paytr_checkout_enabled', true),
         ]);
 
         $validated = $request->validate([
@@ -144,11 +147,13 @@ class EventController extends Controller
             'cover_upload' => 'nullable|image|max:10240',
             'listing_image' => 'nullable|string|max:2048',
             'listing_upload' => 'nullable|image|max:10240',
-            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_acquisition_mode' => Event::TICKET_ACQUISITION_MODE_RULE,
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
+            'sahnebul_reservation_enabled' => 'boolean',
+            'paytr_checkout_enabled' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -212,6 +217,7 @@ class EventController extends Controller
             'venuePickerCategories' => Category::orderBy('order')->get(['id', 'name']),
             'googleMapsBrowserKey' => app(AppSettingsService::class)->getGoogleMapsBrowserKey(),
             'eventTypeOptions' => EventListingTypes::options(),
+            'paytrOnlineOperational' => app(PaytrDirectApiService::class)->isOperational(),
         ]);
     }
 
@@ -234,6 +240,8 @@ class EventController extends Controller
             'promo_show_on_venue_profile_videos' => $request->boolean('promo_show_on_venue_profile_videos'),
             'promo_show_on_artist_profile_posts' => $request->boolean('promo_show_on_artist_profile_posts'),
             'promo_show_on_artist_profile_videos' => $request->boolean('promo_show_on_artist_profile_videos'),
+            'sahnebul_reservation_enabled' => $request->boolean('sahnebul_reservation_enabled', true),
+            'paytr_checkout_enabled' => $request->boolean('paytr_checkout_enabled', true),
         ]);
 
         $validated = $request->validate([
@@ -278,7 +286,7 @@ class EventController extends Controller
             'cover_upload' => 'nullable|image|max:10240',
             'listing_image' => 'nullable|string|max:2048',
             'listing_upload' => 'nullable|image|max:10240',
-            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_acquisition_mode' => Event::TICKET_ACQUISITION_MODE_RULE,
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
@@ -287,6 +295,8 @@ class EventController extends Controller
             'promo_show_on_venue_profile_videos' => 'boolean',
             'promo_show_on_artist_profile_posts' => 'boolean',
             'promo_show_on_artist_profile_videos' => 'boolean',
+            'sahnebul_reservation_enabled' => 'boolean',
+            'paytr_checkout_enabled' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -474,7 +484,7 @@ class EventController extends Controller
         }
         if ($event->ticket_acquisition_mode === Event::TICKET_MODE_EXTERNAL
             && count(Event::normalizeTicketOutletsInput($event->ticket_outlets)) === 0) {
-            return 'Harici platform modunda yayınlamak için en az bir geçerli bilet bağlantısı (https) ekleyin veya bilet satış modunu “Sahnebul” / “Telefon” olarak değiştirin.';
+            return 'Harici platform modunda yayınlamak için en az bir geçerli bilet bağlantısı (https) ekleyin veya «Nasıl alınır?» alanında Sahnebul / telefon seçeneklerinden birini seçin.';
         }
 
         return null;

@@ -269,6 +269,8 @@ class EventController extends Controller
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
             'event_type' => $request->input('event_type') ?: null,
+            'sahnebul_reservation_enabled' => $request->boolean('sahnebul_reservation_enabled', true),
+            'paytr_checkout_enabled' => $request->boolean('paytr_checkout_enabled', true),
         ]);
 
         $validated = $request->validate([
@@ -327,11 +329,13 @@ class EventController extends Controller
             'ticket_tiers.*.description' => 'nullable|string|max:500',
             'ticket_tiers.*.price' => 'required|numeric|min:0',
             'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
-            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_acquisition_mode' => Event::TICKET_ACQUISITION_MODE_RULE,
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
+            'sahnebul_reservation_enabled' => 'boolean',
+            'paytr_checkout_enabled' => 'boolean',
         ]);
 
         $validated['proposed_venue'] = TurkishPhone::mergeNormalizedInto($validated['proposed_venue'], ['phone']);
@@ -396,6 +400,8 @@ class EventController extends Controller
             'end_date' => $request->input('end_date') ?: null,
             'entry_is_paid' => $request->boolean('entry_is_paid', true),
             'event_type' => $request->input('event_type') ?: null,
+            'sahnebul_reservation_enabled' => $request->boolean('sahnebul_reservation_enabled', true),
+            'paytr_checkout_enabled' => $request->boolean('paytr_checkout_enabled', true),
         ]);
 
         $validated = $request->validate([
@@ -465,11 +471,13 @@ class EventController extends Controller
             'ticket_tiers.*.description' => 'nullable|string|max:500',
             'ticket_tiers.*.price' => 'required|numeric|min:0',
             'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
-            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_acquisition_mode' => Event::TICKET_ACQUISITION_MODE_RULE,
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
+            'sahnebul_reservation_enabled' => 'boolean',
+            'paytr_checkout_enabled' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];
@@ -628,6 +636,8 @@ class EventController extends Controller
             'event_type' => $request->input('event_type') ?: null,
             'promo_show_on_venue_profile_posts' => $request->boolean('promo_show_on_venue_profile_posts'),
             'promo_show_on_venue_profile_videos' => $request->boolean('promo_show_on_venue_profile_videos'),
+            'sahnebul_reservation_enabled' => $request->boolean('sahnebul_reservation_enabled', true),
+            'paytr_checkout_enabled' => $request->boolean('paytr_checkout_enabled', true),
         ]);
 
         $validated = $request->validate([
@@ -687,13 +697,15 @@ class EventController extends Controller
             'ticket_tiers.*.description' => 'nullable|string|max:500',
             'ticket_tiers.*.price' => 'required|numeric|min:0',
             'ticket_tiers.*.sort_order' => 'nullable|integer|min:0',
-            'ticket_acquisition_mode' => 'required|string|in:external_platforms,sahnebul,phone_only',
+            'ticket_acquisition_mode' => Event::TICKET_ACQUISITION_MODE_RULE,
             'ticket_outlets' => 'nullable|array|max:15',
             'ticket_outlets.*.label' => 'nullable|string|max:120',
             'ticket_outlets.*.url' => 'nullable|string|max:2048',
             'ticket_purchase_note' => 'nullable|string|max:5000',
             'promo_show_on_venue_profile_posts' => 'boolean',
             'promo_show_on_venue_profile_videos' => 'boolean',
+            'sahnebul_reservation_enabled' => 'boolean',
+            'paytr_checkout_enabled' => 'boolean',
         ]);
 
         $ticketTiers = $validated['ticket_tiers'] ?? [];

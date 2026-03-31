@@ -101,7 +101,10 @@ export default function AdminVerificationAndScripts({
                         <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Site sahipliği doğrulama</h2>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">
                             Konsollarda verilen meta <strong className="font-medium text-zinc-800 dark:text-zinc-200">content</strong> değerini girin
-                            (tırnak içindeki metin; HTML etiketi değil).
+                            — yalnız tırnak içindeki kod, örn. Yandex için{' '}
+                            <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-800">8a9797528a6428f7</code>. Tüm{' '}
+                            <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-800">&lt;meta … /&gt;</code> satırını yapıştırsanız bile kayıt
+                            sırasında otomatik ayıklanır.
                         </p>
 
                         <div>
@@ -128,7 +131,7 @@ export default function AdminVerificationAndScripts({
                                 value={form.data.seo_yandex_verification}
                                 onChange={(e) => form.setData('seo_yandex_verification', e.target.value)}
                                 className={inputClass}
-                                placeholder="yandex-verification content"
+                                placeholder="Örn. 8a9797528a6428f7 (veya konsoldaki meta satırının tamamı)"
                                 autoComplete="off"
                             />
                             <InputError message={errors.seo_yandex_verification} className="mt-1" />

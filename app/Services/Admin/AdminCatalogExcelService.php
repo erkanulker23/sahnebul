@@ -40,7 +40,7 @@ final class AdminCatalogExcelService
     private const EVENT_HEADERS = [
         'id', 'venue_id', 'title', 'slug', 'description', 'event_rules', 'start_date', 'end_date',
         'ticket_price', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'status',
-        'sahnebul_reservation_enabled', 'ticket_acquisition_mode', 'ticket_outlets', 'ticket_purchase_note',
+        'sahnebul_reservation_enabled', 'paytr_checkout_enabled', 'ticket_acquisition_mode', 'ticket_outlets', 'ticket_purchase_note',
         'artist_ids', 'ticket_tiers', 'created_at', 'updated_at',
     ];
 
@@ -342,6 +342,7 @@ final class AdminCatalogExcelService
                 self::scalar($e->listing_image),
                 $e->status,
                 $e->sahnebul_reservation_enabled ? '1' : '0',
+                ($e->paytr_checkout_enabled ?? true) ? '1' : '0',
                 $e->ticket_acquisition_mode,
                 self::jsonCell($e->ticket_outlets),
                 self::scalar($e->ticket_purchase_note),
@@ -426,7 +427,10 @@ final class AdminCatalogExcelService
                     'listing_image' => $row['listing_image'] ?? null,
                     'status' => $row['status'] ?? 'draft',
                     'sahnebul_reservation_enabled' => self::boolish($row['sahnebul_reservation_enabled'] ?? null),
-                    'ticket_acquisition_mode' => $row['ticket_acquisition_mode'] ?? Event::TICKET_MODE_SAHNEBUL,
+                    'paytr_checkout_enabled' => (($c = $row['paytr_checkout_enabled'] ?? null) === null || trim((string) $c) === '')
+                        ? true
+                        : self::boolish((string) $c),
+                    'ticket_acquisition_mode' => $row['ticket_acquisition_mode'] ?? Event::TICKET_MODE_SAHNEBUL_RESERVATION,
                     'ticket_outlets' => $outlets,
                     'ticket_purchase_note' => $row['ticket_purchase_note'] ?? null,
                 ];
@@ -449,7 +453,8 @@ final class AdminCatalogExcelService
                     'listing_image' => ['nullable', 'string', 'max:2048'],
                     'status' => ['required', 'in:draft,published,cancelled'],
                     'sahnebul_reservation_enabled' => ['boolean'],
-                    'ticket_acquisition_mode' => ['required', 'string', 'in:external_platforms,sahnebul,phone_only'],
+                    'paytr_checkout_enabled' => ['boolean'],
+                    'ticket_acquisition_mode' => ['required', 'string', 'in:external_platforms,sahnebul,sahnebul_reservation,sahnebul_card,phone_only'],
                     'ticket_outlets' => ['nullable', 'array', 'max:15'],
                     'ticket_outlets.*.label' => ['nullable', 'string', 'max:120'],
                     'ticket_outlets.*.url' => ['nullable', 'string', 'max:2048'],

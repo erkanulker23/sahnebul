@@ -46,7 +46,9 @@ export default function AdminEventCreate({
         cover_upload: null as File | null,
         listing_image: '',
         listing_upload: null as File | null,
-        ticket_acquisition_mode: 'sahnebul' as TicketAcquisitionMode,
+        ticket_acquisition_mode: 'sahnebul_reservation' as TicketAcquisitionMode,
+        sahnebul_reservation_enabled: true,
+        paytr_checkout_enabled: false,
         ticket_outlets: [emptyTicketOutletRow()],
         ticket_purchase_note: '',
     });
@@ -196,6 +198,11 @@ export default function AdminEventCreate({
                                     if (!paid) {
                                         setData('ticket_price', '');
                                         setData('ticket_tiers', []);
+                                        if (data.ticket_acquisition_mode === 'sahnebul_card') {
+                                            setData('ticket_acquisition_mode', 'sahnebul_reservation');
+                                            setData('sahnebul_reservation_enabled', true);
+                                            setData('paytr_checkout_enabled', false);
+                                        }
                                     }
                                 }}
                             />
@@ -267,16 +274,25 @@ export default function AdminEventCreate({
                     ) : null}
                     <TicketSalesEditor
                         acquisitionMode={data.ticket_acquisition_mode}
-                        onAcquisitionModeChange={(ticket_acquisition_mode) => {
-                            setData('ticket_acquisition_mode', ticket_acquisition_mode);
-                            if (ticket_acquisition_mode === 'phone_only') {
+                        onAcquisitionModeChange={(mode) => {
+                            setData('ticket_acquisition_mode', mode);
+                            if (mode === 'phone_only') {
                                 setData('ticket_outlets', [emptyTicketOutletRow()]);
+                            }
+                            if (mode === 'sahnebul_reservation') {
+                                setData('sahnebul_reservation_enabled', true);
+                                setData('paytr_checkout_enabled', false);
+                            }
+                            if (mode === 'sahnebul_card') {
+                                setData('sahnebul_reservation_enabled', false);
+                                setData('paytr_checkout_enabled', true);
                             }
                         }}
                         outlets={data.ticket_outlets}
                         onOutletsChange={(ticket_outlets) => setData('ticket_outlets', ticket_outlets)}
                         purchaseNote={data.ticket_purchase_note}
                         onPurchaseNoteChange={(ticket_purchase_note) => setData('ticket_purchase_note', ticket_purchase_note)}
+                        entryIsPaid={data.entry_is_paid}
                         variant="admin"
                         errors={errors as Partial<Record<string, string>>}
                     />

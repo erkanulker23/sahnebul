@@ -57,6 +57,40 @@ class ProfileTest extends TestCase
         $this->assertSame('Admin User', $user->fresh()->name);
     }
 
+    public function test_profile_phone_can_be_updated(): void
+    {
+        $user = User::factory()->create(['phone' => null]);
+
+        $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => '0532 123 45 67',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertSame('0532 123 45 67', $user->fresh()->phone);
+    }
+
+    public function test_profile_phone_validation_rejects_invalid_number(): void
+    {
+        $user = User::factory()->create();
+
+        $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => '123',
+            ])
+            ->assertSessionHasErrors('phone');
+
+        $this->assertNotSame('123', $user->fresh()->phone);
+    }
+
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();

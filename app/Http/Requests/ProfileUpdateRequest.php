@@ -23,6 +23,7 @@ class ProfileUpdateRequest extends FormRequest
                 UserContactValidation::emailRequired(),
                 [Rule::unique(User::class)->ignore($this->user()->id)],
             ),
+            'phone' => UserContactValidation::phoneNullable(),
             'city' => ['nullable', 'string', 'max:100'],
             'interests' => ['nullable', 'array'],
             'interests.*' => ['string', 'max:50'],
