@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
 use App\Support\CrawlerHttpResponseInspector;
+use App\Support\ExternalMarketplaceCrawlJobStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,6 +33,7 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
         public ?string $dateTo,
         public array $cityNames,
         public array $categoryNames,
+        public ?string $statusToken = null,
     ) {
         $this->timeout = max(180, (int) config('crawler.max_execution_seconds', 300));
     }
@@ -51,6 +53,7 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                 $this->dateTo,
                 $this->cityNames,
                 $this->categoryNames,
+                $this->statusToken,
             );
         } catch (\Throwable $e) {
             report($e);
@@ -58,6 +61,15 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
             $report = ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []);
             Cache::forever('external_events_last_crawl_snapshot', $report);
             Log::warning('External marketplace crawl işi hata', ['message' => $msg]);
+            if ($this->statusToken !== null) {
+                ExternalMarketplaceCrawlJobStatus::put($this->statusToken, [
+                    'state' => 'failed',
+                    'phase' => 'save',
+                    'message' => $msg,
+                    'current' => 0,
+                    'total' => 1,
+                ]);
+            }
 
             return;
         }
@@ -69,6 +81,15 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
                 'external_events_last_crawl_snapshot',
                 ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []),
             );
+            if ($this->statusToken !== null) {
+                ExternalMarketplaceCrawlJobStatus::put($this->statusToken, [
+                    'state' => 'failed',
+                    'phase' => 'crawl',
+                    'message' => $msg,
+                    'current' => 0,
+                    'total' => 1,
+                ]);
+            }
 
             return;
         }
@@ -89,6 +110,15 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
 
         $outcome = ExternalMarketplaceCrawlReportBuilder::outcomeFromImportResults($results);
         Cache::forever('external_events_last_crawl_snapshot', $outcome['report']);
+        if ($this->statusToken !== null) {
+            ExternalMarketplaceCrawlJobStatus::put($this->statusToken, [
+                'state' => 'completed',
+                'phase' => 'save',
+                'current' => 1,
+                'total' => 1,
+                'message' => 'Çekim tamamlandı. Özet üstte güncellendi; listeyi yenileyebilirsiniz.',
+            ]);
+        }
     }
 
     public function failed(?\Throwable $e): void
@@ -100,5 +130,14 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
             'external_events_last_crawl_snapshot',
             ExternalMarketplaceCrawlReportBuilder::minimalReport('error', $msg, 0, []),
         );
+        if ($this->statusToken !== null) {
+            ExternalMarketplaceCrawlJobStatus::put($this->statusToken, [
+                'state' => 'failed',
+                'phase' => 'save',
+                'message' => $msg,
+                'current' => 0,
+                'total' => 1,
+            ]);
+        }
     }
 }

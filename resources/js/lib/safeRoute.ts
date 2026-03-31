@@ -194,6 +194,14 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/admin/dis-kaynak-etkinlikler/veri-cek';
         case 'admin.external-events.crawl-preview':
             return '/admin/dis-kaynak-etkinlikler/onizle';
+        case 'admin.external-events.crawl-status': {
+            const tok = params?.token;
+            if (typeof tok === 'string' && tok !== '') {
+                return `/admin/dis-kaynak-etkinlikler/cekim-durum/${encodeURIComponent(tok)}`;
+            }
+
+            return '/admin/dis-kaynak-etkinlikler';
+        }
         case 'admin.external-events.dismiss-last-crawl':
             return '/admin/dis-kaynak-etkinlikler/son-cekme-temizle';
         case 'admin.external-events.bulk':
@@ -210,6 +218,22 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             const id = params?.externalEvent ?? params?.external_event ?? params?.id;
             if (typeof id === 'string' || typeof id === 'number') {
                 return `/admin/dis-kaynak-etkinlikler/${id}/reddet`;
+            }
+
+            return '/admin/dis-kaynak-etkinlikler';
+        }
+        case 'admin.external-events.edit': {
+            const id = params?.externalEvent ?? params?.external_event ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/dis-kaynak-etkinlikler/${id}/duzenle`;
+            }
+
+            return '/admin/dis-kaynak-etkinlikler';
+        }
+        case 'admin.external-events.update': {
+            const id = params?.externalEvent ?? params?.external_event ?? params?.id;
+            if (typeof id === 'string' || typeof id === 'number') {
+                return `/admin/dis-kaynak-etkinlikler/${id}`;
             }
 
             return '/admin/dis-kaynak-etkinlikler';
@@ -241,15 +265,42 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
     }
 }
 
-export function safeRoute(name: string, params?: Record<string, string | number | undefined>): string {
+function ziggyUrlOrNull(name: string, params?: Record<string, string | number | undefined>): string | null {
     try {
-        const r = globalThis.route;
-        if (params !== undefined && Object.keys(params).length > 0) {
-            return r(name as never, params as never) as unknown as string;
+        const r = globalThis.route as unknown;
+        if (typeof r !== 'function') {
+            return null;
+        }
+        const url =
+            params !== undefined && Object.keys(params).length > 0
+                ? (r as (n: string, p: Record<string, string | number | undefined>) => string)(name, params)
+                : (r as (n: string) => string)(name);
+        if (typeof url !== 'string' || url === '') {
+            return null;
+        }
+        // Ziggy bazen rota/param uyumsuzluğunda fırlatmadan yer tutucu bırakır
+        if (/\{[a-z_][a-z0-9_.]*\}/i.test(url)) {
+            return null;
         }
 
-        return r(name as never) as unknown as string;
+        return url;
     } catch {
-        return pathFallback(name, params as Record<string, unknown> | undefined);
+        return null;
     }
+}
+
+export function safeRoute(name: string, params?: Record<string, string | number | undefined>): string {
+    const fromZiggy = ziggyUrlOrNull(name, params);
+    if (fromZiggy !== null) {
+        return fromZiggy;
+    }
+
+    return pathFallback(name, params as Record<string, unknown> | undefined);
+}
+
+/** Ziggy'den bağımsız; dış kaynak adayı düzenle URL'si. */
+export function adminExternalEventEditPath(id: string | number): string {
+    const encoded = encodeURIComponent(String(id));
+
+    return `/admin/dis-kaynak-etkinlikler/${encoded}/duzenle`;
 }

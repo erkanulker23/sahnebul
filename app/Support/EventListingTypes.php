@@ -16,6 +16,7 @@ final class EventListingTypes
     {
         return [
             ['slug' => 'konser', 'label' => 'Konser'],
+            ['slug' => 'sahne', 'label' => 'Sahne'],
             ['slug' => 'tiyatro', 'label' => 'Tiyatro'],
             ['slug' => 'festival', 'label' => 'Festival'],
             ['slug' => 'stand-up', 'label' => 'Stand-up'],

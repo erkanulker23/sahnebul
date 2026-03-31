@@ -12,6 +12,7 @@ use App\Services\ExternalMarketplaceCrawlReportBuilder;
 use App\Services\MarketplaceExternalEventImportService;
 use App\Support\AdminDatetimeLocal;
 use App\Support\ExternalEventFingerprint;
+use App\Support\ExternalMarketplaceCrawlJobStatus;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -62,23 +64,27 @@ class ExternalEventController extends Controller
             ]);
         }
 
+        $select = [
+            'id',
+            'source',
+            'title',
+            'external_url',
+            'image_url',
+            'venue_name',
+            'city_name',
+            'category_name',
+            'start_date',
+            'meta',
+            'synced_event_id',
+            'created_at',
+            'updated_at',
+        ];
+        if (Schema::hasColumn('external_events', 'last_crawled_at')) {
+            $select[] = 'last_crawled_at';
+        }
+
         $query = ExternalEvent::query()
-            ->select([
-                'id',
-                'source',
-                'title',
-                'external_url',
-                'image_url',
-                'venue_name',
-                'city_name',
-                'category_name',
-                'start_date',
-                'meta',
-                'synced_event_id',
-                'created_at',
-                'updated_at',
-                'last_crawled_at',
-            ])
+            ->select($select)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
@@ -141,8 +147,9 @@ class ExternalEventController extends Controller
                     'meta' => ['rejected' => data_get($e->meta, 'rejected') === true],
                     'description' => null,
                     'created_at' => $e->created_at?->toIso8601String(),
-                    'last_crawled_at' => $e->last_crawled_at?->toIso8601String()
-                        ?? $e->updated_at?->toIso8601String(),
+                    'last_crawled_at' => Schema::hasColumn('external_events', 'last_crawled_at')
+                        ? ($e->last_crawled_at?->toIso8601String() ?? $e->updated_at?->toIso8601String())
+                        : $e->updated_at?->toIso8601String(),
                 ];
             })
         );
@@ -483,6 +490,10 @@ class ExternalEventController extends Controller
             return back()->with('error', $msg);
         }
 
+        $statusToken = (string) Str::uuid();
+        $userId = (int) $request->user()->id;
+        ExternalMarketplaceCrawlJobStatus::boot($statusToken, $userId, (string) $validated['source']);
+
         ImportExternalMarketplaceEventsJob::dispatch(
             $validated['source'],
             $validated['limit'],
@@ -490,12 +501,35 @@ class ExternalEventController extends Controller
             $validated['date_to'],
             $cityNames,
             $categoryNames,
+            $statusToken,
         )->afterResponse();
 
-        return back()->with(
-            'success',
-            'Veri çekme başladı; sayfa hemen yanıtlanır (504 ağ geçidi zaman aşımı oluşmaz). Çekim birkaç dakika sürebilir — bittikten sonra sayfayı yenileyip üstteki «Son veri çekme» özetine bakın.',
-        );
+        return back()
+            ->with(
+                'success',
+                'Veri çekme başladı; sayfa hemen yanıtlanır (504 ağ geçidi zaman aşımı oluşmaz). Aşağıdaki çubuktan ilerlemeyi izleyebilirsiniz; bittiğinde özet üstte güncellenir.',
+            )
+            ->with('external_crawl_job_id', $statusToken);
+    }
+
+    public function crawlJobStatus(Request $request, string $token): JsonResponse
+    {
+        $data = ExternalMarketplaceCrawlJobStatus::get($token);
+        if ($data === null) {
+            return response()->json(['error' => 'bulunamadı'], 404);
+        }
+        if ((int) ($data['user_id'] ?? 0) !== (int) $request->user()->id) {
+            abort(403);
+        }
+
+        return response()->json([
+            'state' => (string) ($data['state'] ?? 'unknown'),
+            'phase' => (string) ($data['phase'] ?? 'crawl'),
+            'current' => (int) ($data['current'] ?? 0),
+            'total' => (int) ($data['total'] ?? 1),
+            'message' => (string) ($data['message'] ?? ''),
+            'active_source' => isset($data['active_source']) && is_string($data['active_source']) ? $data['active_source'] : null,
+        ]);
     }
 
     /**

@@ -54,6 +54,7 @@ function eventTypeShort(type: string | null): string | null {
     }
     const map: Record<string, string> = {
         konser: 'Konser',
+        sahne: 'Sahne',
         tiyatro: 'Tiyatro',
         festival: 'Festival',
         'stand-up': 'Stand-up',

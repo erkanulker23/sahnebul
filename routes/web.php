@@ -398,6 +398,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/dis-kaynak-etkinlikler/veri-cek', [AdminExternalEventController::class, 'crawl'])
         ->middleware('throttle:6,1')
         ->name('external-events.crawl');
+    Route::get('/dis-kaynak-etkinlikler/cekim-durum/{token}', [AdminExternalEventController::class, 'crawlJobStatus'])
+        ->middleware('throttle:120,1')
+        ->name('external-events.crawl-status');
     Route::post('/dis-kaynak-etkinlikler/onizle', [AdminExternalEventController::class, 'crawlPreview'])
         ->middleware('throttle:10,1')
         ->name('external-events.crawl-preview');

@@ -53,7 +53,15 @@ class ExternalEventCrawlDeferredTest extends TestCase
                 && $job->dateFrom === '2026-01-01'
                 && $job->dateTo === '2026-03-31'
                 && $job->cityNames === []
-                && $job->categoryNames === [];
+                && $job->categoryNames === []
+                && is_string($job->statusToken)
+                && $job->statusToken !== '';
         });
+
+        $response->assertSessionHas('external_crawl_job_id');
+        $token = (string) session('external_crawl_job_id');
+        $this->actingAs($admin)->getJson(route('admin.external-events.crawl-status', ['token' => $token], absolute: false))
+            ->assertOk()
+            ->assertJsonPath('state', 'queued');
     }
 }

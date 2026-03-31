@@ -25,7 +25,7 @@ class CrawlMarketplacesCommand extends Command
             $this->line("Crawl başladı (kaynak: {$sourceOption}, limit: {$limit}).");
         }
 
-        foreach ($import->import($sourceOption, $limit, $sync, null, null, [], []) as $result) {
+        foreach ($import->import($sourceOption, $limit, $sync, null, null, [], [], null) as $result) {
             $source = $result['source'];
 
             if (! empty($result['error'])) {

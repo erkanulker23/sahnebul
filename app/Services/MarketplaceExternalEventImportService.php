@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\City;
 use App\Models\ExternalEvent;
 use App\Support\CrawlerHttpResponseInspector;
+use App\Support\ExternalMarketplaceCrawlJobStatus;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +23,7 @@ class MarketplaceExternalEventImportService
     /**
      * @param  list<string>  $cityNames
      * @param  list<string>  $categoryNames
+     * @param  ?string  $progressToken  Admin «Verileri çek» anket kutusu (cache anahtarı)
      * @return list<array{source: string, processed: int, synced: int, error?: string}>
      */
     public function import(
@@ -32,17 +34,35 @@ class MarketplaceExternalEventImportService
         ?string $dateTo = null,
         array $cityNames = [],
         array $categoryNames = [],
+        ?string $progressToken = null,
     ): array {
         $configured = config('crawler.sources', []);
         $sources = $sourceOption === 'all' || $sourceOption === ''
             ? array_keys($configured)
             : [$sourceOption];
 
+        $sourceCount = max(1, count($sources));
+        $sourcePass = 0;
+
         /** @var array<string, array{error: ?string, rows: list<array<string, mixed>>}> $bySource */
         $bySource = [];
         foreach ($sources as $source) {
+            if ($progressToken !== null) {
+                ExternalMarketplaceCrawlJobStatus::put($progressToken, [
+                    'state' => 'running',
+                    'phase' => 'crawl',
+                    'current' => $sourcePass,
+                    'total' => $sourceCount,
+                    'message' => isset($configured[$source])
+                        ? "Kaynak taranıyor: {$source}"
+                        : "Kaynak atlanıyor (yapılandırılmamış): {$source}",
+                    'active_source' => $source,
+                ]);
+            }
+
             if (! isset($configured[$source])) {
                 $bySource[$source] = ['error' => 'Kaynak yapılandırılmamış.', 'rows' => []];
+                $sourcePass++;
 
                 continue;
             }
@@ -54,11 +74,24 @@ class MarketplaceExternalEventImportService
                     'error' => CrawlerHttpResponseInspector::compactCrawlerErrorForAdmin($e->getMessage()),
                     'rows' => [],
                 ];
+                $sourcePass++;
 
                 continue;
             }
 
             $bySource[$source] = ['error' => null, 'rows' => $rows];
+            $sourcePass++;
+        }
+
+        if ($progressToken !== null) {
+            ExternalMarketplaceCrawlJobStatus::put($progressToken, [
+                'state' => 'running',
+                'phase' => 'crawl',
+                'current' => $sourceCount,
+                'total' => $sourceCount,
+                'message' => 'Tarama tamam; kayıtlar birleştiriliyor…',
+                'active_source' => null,
+            ]);
         }
 
         $merged = [];
@@ -79,8 +112,38 @@ class MarketplaceExternalEventImportService
             $filtered = $this->rowFilter->filter($merged, $dateFrom, $dateTo, $cityNames, $categoryNames);
             $filtered = $this->excludeCrawlRowsAlreadySyncedToDomain($filtered);
             $filtered = array_slice($filtered, 0, $limit);
+            $saveTotal = count($filtered);
 
+            if ($progressToken !== null) {
+                ExternalMarketplaceCrawlJobStatus::put($progressToken, [
+                    'state' => 'running',
+                    'phase' => 'save',
+                    'current' => 0,
+                    'total' => max(1, $saveTotal),
+                    'message' => $saveTotal === 0
+                        ? 'Filtre sonrası işlenecek satır kalmadı.'
+                        : "Kayıtlar veritabanına yazılıyor (0/{$saveTotal})…",
+                    'active_source' => null,
+                ]);
+            }
+
+            $rowOrd = 0;
             foreach ($filtered as $row) {
+                $rowOrd++;
+                if ($progressToken !== null && $saveTotal > 0) {
+                    $step = max(1, (int) floor($saveTotal / 40));
+                    if ($rowOrd === 1 || $rowOrd === $saveTotal || $rowOrd % $step === 0) {
+                        ExternalMarketplaceCrawlJobStatus::put($progressToken, [
+                            'state' => 'running',
+                            'phase' => 'save',
+                            'current' => $rowOrd,
+                            'total' => $saveTotal,
+                            'message' => "Kayıtlar kaydediliyor ({$rowOrd}/{$saveTotal})…",
+                            'active_source' => null,
+                        ]);
+                    }
+                }
+
                 $sourceKey = (string) ($row['_import_source'] ?? '');
                 unset($row['_import_source']);
 
@@ -136,6 +199,15 @@ class MarketplaceExternalEventImportService
                     }
                 }
             }
+        } elseif ($progressToken !== null) {
+            ExternalMarketplaceCrawlJobStatus::put($progressToken, [
+                'state' => 'running',
+                'phase' => 'save',
+                'current' => 0,
+                'total' => 1,
+                'message' => 'Taranan kaynaklardan birleştirilecek satır bulunamadı.',
+                'active_source' => null,
+            ]);
         }
 
         $out = [];

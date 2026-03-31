@@ -4,8 +4,9 @@ import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
-import { safeRoute } from '@/lib/safeRoute';
-import { FormEvent, useCallback, useMemo, useState } from 'react';
+import { adminExternalEventEditPath, safeRoute } from '@/lib/safeRoute';
+import type { PageProps } from '@/types';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Eye, Loader2, Pencil, X } from 'lucide-react';
 
 interface ExternalEventItem {
@@ -23,7 +24,7 @@ interface ExternalEventItem {
     meta?: { rejected?: boolean } | null;
     /** İlk kez veri tabanına yazıldığı an */
     created_at?: string | null;
-    /** Son başarılı çekimde güncellendiği an (veya eski kayıtlarda yedek olarak `updated_at`) */
+    /** «Verileri çek» bu satırı en son işlediğinde (yedek: updated_at) — etkinlik günü değil */
     last_crawled_at?: string | null;
 }
 
@@ -133,6 +134,16 @@ function persistedCrawlStatusLabel(status: string): string {
     }
 }
 
+type CrawlJobPollState = {
+    token: string;
+    state: string;
+    phase: string;
+    current: number;
+    total: number;
+    message: string;
+    active_source: string | null;
+};
+
 function lastCrawlPanelClass(status: LastCrawlReport['status']): string {
     switch (status) {
         case 'error':
@@ -155,8 +166,13 @@ export default function AdminExternalEventsIndex({
     persistedLastCrawl = null,
     appTimezone = 'Europe/Istanbul',
 }: Readonly<Props>) {
-    const page = usePage();
-    const pageErrors = (page.props as { errors?: Record<string, string | string[]> }).errors ?? {};
+    const page = usePage<
+        PageProps<{
+            flash?: { external_crawl_job_id?: string | null };
+            errors?: Record<string, string | string[]>;
+        }>
+    >();
+    const pageErrors = page.props.errors ?? {};
     const crawlValidationMessages = useMemo(() => {
         const crawlKeys = new Set(['source', 'limit', 'date_from', 'date_to', 'city_ids', 'category_ids']);
         const out: string[] = [];
@@ -186,6 +202,7 @@ export default function AdminExternalEventsIndex({
     const [previewData, setPreviewData] = useState<PreviewPayload | null>(null);
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [detailItem, setDetailItem] = useState<ExternalEventItem | null>(null);
+    const [crawlJobProgress, setCrawlJobProgress] = useState<CrawlJobPollState | null>(null);
 
     const queryForm = useForm({
         source: filters.source ?? '',
@@ -265,6 +282,78 @@ export default function AdminExternalEventsIndex({
         });
     };
 
+    useEffect(() => {
+        const raw = page.props.flash?.external_crawl_job_id;
+        const token = typeof raw === 'string' && raw.length > 0 ? raw : null;
+        if (!token) {
+            setCrawlJobProgress(null);
+
+            return;
+        }
+
+        let cancelled = false;
+        let interval: ReturnType<typeof setInterval> | undefined;
+
+        const poll = async (): Promise<void> => {
+            try {
+                const res = await fetch(safeRoute('admin.external-events.crawl-status', { token }), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (cancelled) {
+                    return;
+                }
+                if (res.status === 404) {
+                    setCrawlJobProgress({
+                        token,
+                        state: 'failed',
+                        phase: 'crawl',
+                        current: 0,
+                        total: 1,
+                        message: 'İlerleme bilgisi bulunamadı veya süresi doldu.',
+                        active_source: null,
+                    });
+                    if (interval) {
+                        clearInterval(interval);
+                    }
+
+                    return;
+                }
+                if (!res.ok) {
+                    return;
+                }
+                const j = (await res.json()) as Omit<CrawlJobPollState, 'token'>;
+                setCrawlJobProgress({
+                    token,
+                    state: j.state,
+                    phase: j.phase,
+                    current: j.current,
+                    total: Math.max(1, j.total),
+                    message: j.message,
+                    active_source: j.active_source,
+                });
+                if (j.state === 'completed' || j.state === 'failed') {
+                    if (interval) {
+                        clearInterval(interval);
+                    }
+                    router.reload();
+                }
+            } catch {
+                /* sonraki turda tekrar dene */
+            }
+        };
+
+        void poll();
+        interval = setInterval(() => void poll(), 1600);
+
+        return () => {
+            cancelled = true;
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
+    }, [page.props.flash?.external_crawl_job_id]);
+
     const runPreview = async () => {
         setPreviewLoading(true);
         setPreviewError(null);
@@ -312,13 +401,13 @@ export default function AdminExternalEventsIndex({
     const rowActions = (item: ExternalEventItem) => {
         const isRejected = item.meta?.rejected === true;
         return (
-            <div className="flex flex-nowrap items-center justify-end gap-1.5">
+            <div className="flex max-w-[22rem] flex-wrap items-center justify-end gap-1.5 sm:max-w-none">
                 <button type="button" className={rowActionClass.preview} onClick={() => setDetailItem(item)}>
                     <Eye className="h-3.5 w-3.5" aria-hidden />
                     Önizle
                 </button>
                 <Link
-                    href={safeRoute('admin.external-events.edit', { externalEvent: item.id })}
+                    href={adminExternalEventEditPath(item.id)}
                     className={rowActionClass.edit}
                     preserveScroll
                 >
@@ -523,7 +612,65 @@ export default function AdminExternalEventsIndex({
                             aria-live="polite"
                         >
                             <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-                            Veri çekimi sunucuda çalışıyor… Lütfen bekleyin; bitince bu sayfada özet güncellenir.
+                            İstek gönderiliyor…
+                        </div>
+                    ) : null}
+                    {crawlJobProgress ? (
+                        <div
+                            className="mt-3 space-y-2 rounded-lg border border-amber-400/40 bg-amber-950/30 p-3 text-[11px] text-amber-100/95 dark:border-amber-600/35"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <div className="flex flex-wrap items-center gap-2 font-semibold text-amber-200">
+                                {crawlJobProgress.state === 'queued' || crawlJobProgress.state === 'running' ? (
+                                    <span
+                                        className="inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-300"
+                                        aria-hidden
+                                    />
+                                ) : crawlJobProgress.state === 'failed' ? (
+                                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-300" aria-hidden />
+                                ) : (
+                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" aria-hidden />
+                                )}
+                                {crawlJobProgress.state === 'failed'
+                                    ? 'Veri çekme hatası'
+                                    : crawlJobProgress.state === 'completed'
+                                      ? 'Veri çekme tamamlandı'
+                                      : 'Harici veri içe aktarılıyor'}
+                            </div>
+                            <p className="text-xs leading-relaxed text-zinc-200">{crawlJobProgress.message}</p>
+                            {crawlJobProgress.active_source ? (
+                                <p className="font-mono text-[10px] text-zinc-500">
+                                    Kaynak: {crawlJobProgress.active_source}
+                                </p>
+                            ) : null}
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-[10px] text-zinc-400">
+                                    <span>
+                                        {crawlJobProgress.phase === 'crawl' ? 'Tarama' : 'Kayıt yazma'} ·{' '}
+                                        {crawlJobProgress.current.toLocaleString('tr-TR')} /{' '}
+                                        {crawlJobProgress.total.toLocaleString('tr-TR')}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                                    <div
+                                        className={`h-full rounded-full transition-[width] duration-300 ${
+                                            crawlJobProgress.state === 'failed' ? 'bg-rose-500' : 'bg-amber-500'
+                                        }`}
+                                        style={{
+                                            width: `${(() => {
+                                                if (crawlJobProgress.state === 'queued') {
+                                                    return 4;
+                                                }
+                                                return Math.min(
+                                                    100,
+                                                    (crawlJobProgress.current / crawlJobProgress.total) * 100,
+                                                );
+                                            })()}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     ) : null}
                     {crawlTransportError ? (
@@ -974,9 +1121,14 @@ export default function AdminExternalEventsIndex({
                                     <th className="px-4 py-3">Kaynak</th>
                                     <th className="px-4 py-3">Mekan / şehir</th>
                                     <th className="px-4 py-3">Tarih</th>
-                                    <th className="px-4 py-3">Çekilme</th>
+                                    <th className="min-w-[11rem] px-4 py-3">
+                                        Sistem kaydı
+                                        <span className="mt-0.5 block text-[10px] font-normal normal-case tracking-normal text-zinc-500 dark:text-zinc-500">
+                                            çekim zamanı (etkinlik tarihi değil)
+                                        </span>
+                                    </th>
                                     <th className="px-4 py-3">Durum</th>
-                                    <th className="whitespace-nowrap px-4 py-3 text-right">İşlemler</th>
+                                    <th className="min-w-[14rem] whitespace-normal px-4 py-3 text-right">İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-900/30">
@@ -1013,17 +1165,22 @@ export default function AdminExternalEventsIndex({
                                                 {formatTurkishDateTime(item.start_date)}
                                             </td>
                                             <td className="min-w-[10rem] px-4 py-3 text-xs leading-snug text-zinc-600 dark:text-zinc-400">
-                                                <span className="block opacity-90">
-                                                    Son: {formatAdminInstant(item.last_crawled_at, appTimezone)}
+                                                <span className="block" title="Sunucuda «Verileri çek» bu satırı en son ne zaman işledi">
+                                                    <span className="font-medium text-zinc-700 dark:text-zinc-200">Son çekim:</span>{' '}
+                                                    {formatAdminInstant(item.last_crawled_at, appTimezone)}
                                                 </span>
-                                                <span className="mt-0.5 block text-[11px] text-zinc-500 dark:text-zinc-500">
-                                                    İlk: {formatAdminInstant(item.created_at, appTimezone)}
+                                                <span
+                                                    className="mt-1 block text-[11px] text-zinc-500 dark:text-zinc-500"
+                                                    title="Bu aday kaydı ilk kez oluşturulduğunda"
+                                                >
+                                                    <span className="font-medium text-zinc-600 dark:text-zinc-400">İlk kayıt:</span>{' '}
+                                                    {formatAdminInstant(item.created_at, appTimezone)}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${st.className}`}>{st.label}</span>
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-right align-middle">
+                                            <td className="px-4 py-3 text-right align-top">
                                                 {rowActions(item)}
                                             </td>
                                         </tr>
@@ -1057,10 +1214,12 @@ export default function AdminExternalEventsIndex({
                                             {item.venue_name ?? 'Çeşitli mekanlar'} · {item.city_name ?? '—'}
                                         </p>
                                         <p className="mt-1 text-xs text-zinc-500">{formatTurkishDateTime(item.start_date)}</p>
-                                        <p className="mt-1 text-[11px] text-zinc-500">
-                                            Son çekim: {formatAdminInstant(item.last_crawled_at, appTimezone)}
-                                            <span className="mx-1 opacity-40">·</span>
-                                            İlk: {formatAdminInstant(item.created_at, appTimezone)}
+                                        <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                                            <span title="«Verileri çek» bu satırı en son ne zaman güncelledi">
+                                                Son çekim: {formatAdminInstant(item.last_crawled_at, appTimezone)}
+                                            </span>
+                                            <br />
+                                            <span title="Kayıt ilk kez oluşturulduğunda">İlk kayıt: {formatAdminInstant(item.created_at, appTimezone)}</span>
                                         </p>
                                         {item.external_url && (
                                             <a

@@ -166,6 +166,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'promo_import_status_id' => $request->session()->get('promo_import_status_id'),
+                'external_crawl_job_id' => $request->session()->get('external_crawl_job_id'),
             ],
             'settings' => [
                 'footer' => fn () => $appSettings->getFooterSettingsForPublic(),

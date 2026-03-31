@@ -74,7 +74,8 @@ class ExternalEventDuplicateMergeTest extends TestCase
             null,
             null,
             [],
-            []
+            [],
+            null,
         );
 
         $this->assertSame(1, ExternalEvent::query()->where('source', 'biletinial')->count());
