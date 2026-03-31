@@ -20,7 +20,10 @@ final class CobaltApiInstagramDownloader
     /**
      * @return null|non-falsy-string public disk path (event-promo/….mp4)
      */
-    public function tryDownloadToPublicStorage(string $instagramPageUrl): ?string
+    public function tryDownloadToPublicStorage(
+        string $instagramPageUrl,
+        ?string $preferredStoryMediaId = null,
+    ): ?string
     {
         $base = rtrim((string) config('services.cobalt.api_url', ''), '/');
         if ($base === '' || ! preg_match('#^https?://#i', $base)) {
@@ -75,17 +78,9 @@ final class CobaltApiInstagramDownloader
         }
 
         if ($status === 'picker' && isset($json['picker']) && is_array($json['picker'])) {
-            foreach ($json['picker'] as $item) {
-                if (! is_array($item)) {
-                    continue;
-                }
-                $type = (string) ($item['type'] ?? '');
-                $u = isset($item['url']) ? trim((string) $item['url']) : '';
-                if ($type === 'video' && $u !== '' && $this->isAllowedMediaUrl($u, $base)) {
-                    $path = $this->streamMediaToPublicStorage($u, $timeout);
-
-                    return $path;
-                }
+            $pick = $this->pickVideoUrlFromPicker($json['picker'], $base, $preferredStoryMediaId);
+            if ($pick !== null) {
+                return $this->streamMediaToPublicStorage($pick, $timeout);
             }
 
             return null;
@@ -128,6 +123,41 @@ final class CobaltApiInstagramDownloader
         }
 
         return false;
+    }
+
+    /**
+     * @param  list<mixed>  $picker
+     */
+    private function pickVideoUrlFromPicker(array $picker, string $cobaltBaseUrl, ?string $preferredStoryMediaId): ?string
+    {
+        $videoRows = [];
+        foreach ($picker as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $type = (string) ($item['type'] ?? '');
+            $u = isset($item['url']) ? trim((string) $item['url']) : '';
+            if ($type !== 'video' || $u === '' || ! $this->isAllowedMediaUrl($u, $cobaltBaseUrl)) {
+                continue;
+            }
+            $videoRows[] = ['url' => $u, 'raw' => $item];
+        }
+        if ($videoRows === []) {
+            return null;
+        }
+
+        $preferredId = is_string($preferredStoryMediaId) ? trim($preferredStoryMediaId) : '';
+        if ($preferredId !== '') {
+            foreach ($videoRows as $row) {
+                /** @var string $haystack */
+                $haystack = json_encode($row['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
+                if ($haystack !== '' && str_contains($haystack, $preferredId)) {
+                    return $row['url'];
+                }
+            }
+        }
+
+        return $videoRows[0]['url'];
     }
 
     private function streamMediaToPublicStorage(string $url, int $timeout): ?string

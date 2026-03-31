@@ -28,8 +28,10 @@ final class InstagramPromoVideoPipeline
         $cobaltFirst = (bool) config('services.cobalt.try_before_ytdlp', false);
         $messages = [];
 
+        $storyMediaId = $this->extractStoryMediaId($storyCanonicalUrl);
+
         if ($cobaltFirst && $this->nonEmptyUrl($pageUrlForCobalt)) {
-            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt);
+            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt, $storyMediaId);
             if ($path !== null) {
                 Log::info('InstagramPromoVideo: Cobalt ile kaydedildi');
 
@@ -51,7 +53,7 @@ final class InstagramPromoVideoPipeline
         }
 
         if (! $cobaltFirst && $this->nonEmptyUrl($pageUrlForCobalt)) {
-            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt);
+            $path = $this->cobalt->tryDownloadToPublicStorage($pageUrlForCobalt, $storyMediaId);
             if ($path !== null) {
                 Log::info('InstagramPromoVideo: Cobalt (yt-dlp sonrası) ile kaydedildi');
 
@@ -69,5 +71,18 @@ final class InstagramPromoVideoPipeline
     private function nonEmptyUrl(?string $u): bool
     {
         return is_string($u) && trim($u) !== '';
+    }
+
+    private function extractStoryMediaId(?string $storyCanonicalUrl): ?string
+    {
+        if (! is_string($storyCanonicalUrl) || trim($storyCanonicalUrl) === '') {
+            return null;
+        }
+        $path = (string) parse_url($storyCanonicalUrl, PHP_URL_PATH);
+        if (preg_match('#/stories/[^/]+/(\d+)/?$#', $path, $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
     }
 }

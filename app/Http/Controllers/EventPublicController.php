@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\Event;
 use App\Models\EventReview;
+use App\Services\EventMediaImportFromUrlService;
 use App\Support\DailyUniqueEntityView;
 use App\Support\PublicStructuredData;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -147,8 +148,25 @@ class EventPublicController extends Controller
             && $u->canUsePublicEngagementFeatures()
             && $u->canSubmitEventReviewForEvent((int) $event->id);
 
-        $futureStart = $event->start_date !== null && $event->start_date->isFuture();
         $hasFinished = $event->hasFinishedAt();
+        if ($hasFinished && $event->shouldPurgePromoMediaBySchedule()) {
+            app(EventMediaImportFromUrlService::class)->purgePromoGallery($event->fresh());
+            $event->refresh();
+            if (Schema::hasColumn('events', 'promo_show_on_venue_profile_posts')) {
+                $event->forceFill([
+                    'promo_show_on_venue_profile_posts' => false,
+                    'promo_show_on_venue_profile_videos' => false,
+                ])->saveQuietly();
+            }
+            if (Schema::hasColumn('events', 'promo_show_on_artist_profile_posts')) {
+                $event->forceFill([
+                    'promo_show_on_artist_profile_posts' => false,
+                    'promo_show_on_artist_profile_videos' => false,
+                ])->saveQuietly();
+            }
+            $event->refresh();
+        }
+        $futureStart = $event->start_date !== null && $event->start_date->isFuture();
 
         if ($event->promo_gallery !== null && ! is_array($event->promo_gallery)) {
             $decoded = json_decode(json_encode($event->promo_gallery), true);
