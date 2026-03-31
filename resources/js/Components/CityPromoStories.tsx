@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { PROMO_STORY_IFRAME_ADVANCE_MS, PROMO_STORY_IMAGE_ADVANCE_MS } from '@/lib/promoStoryTiming';
 import { usePromoVideoSlidePlayback } from '@/lib/usePromoVideoSlidePlayback';
 import {
     instagramPostOrReelEmbedIframeSrc,
@@ -31,9 +32,6 @@ export type CityPromoStoryRing = {
     segments: CityPromoStorySegment[];
 };
 
-const IFRAME_ADVANCE_MS = 18_000;
-const IMAGE_ADVANCE_MS = 9_000;
-
 function storageUrl(path: string | null | undefined): string | null {
     if (!path || path.trim() === '') return null;
     const p = path.trim();
@@ -55,9 +53,14 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
     const [videoProgress, setVideoProgress] = useState(0);
     const [muted, setMuted] = useState(true);
 
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+    const advanceRef = useRef<() => void>(() => {});
+    const goBackRef = useRef<() => void>(() => {});
+
     const advance = useCallback(() => {
         if (!ring) {
-            onClose();
+            onCloseRef.current();
             return;
         }
         if (openSegment < ring.segments.length - 1) {
@@ -68,12 +71,12 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             onIndexChange(openRing + 1, 0);
             return;
         }
-        onClose();
-    }, [ring, openRing, openSegment, rings.length, onClose, onIndexChange]);
+        onCloseRef.current();
+    }, [ring, openRing, openSegment, rings.length, onIndexChange]);
 
     const goBack = useCallback(() => {
         if (!ring) {
-            onClose();
+            onCloseRef.current();
             return;
         }
         if (openSegment > 0) {
@@ -85,18 +88,21 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             onIndexChange(openRing - 1, Math.max(0, prev.segments.length - 1));
             return;
         }
-    }, [ring, openRing, openSegment, rings, onClose, onIndexChange]);
+    }, [ring, openRing, openSegment, rings, onIndexChange]);
+
+    advanceRef.current = advance;
+    goBackRef.current = goBack;
 
     useEffect(() => {
         const onKey = (e: globalThis.KeyboardEvent) => {
             if (e.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
             }
             if (e.key === 'ArrowRight') {
-                advance();
+                advanceRef.current();
             }
             if (e.key === 'ArrowLeft') {
-                goBack();
+                goBackRef.current();
             }
         };
         document.addEventListener('keydown', onKey);
@@ -105,7 +111,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             document.removeEventListener('keydown', onKey);
             document.body.style.overflow = '';
         };
-    }, [advance, goBack, onClose]);
+    }, []);
 
     useEffect(() => {
         setVideoProgress(0);
@@ -124,6 +130,11 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
         segment && videoSrc ? `${segment.event_id}-${openRing}-${openSegment}-${videoSrc}` : null;
     usePromoVideoSlidePlayback(videoRef, videoSlideKey, videoSrc);
 
+    const slideTickKey =
+        segment != null
+            ? `${openRing}\x1f${openSegment}\x1f${segment.event_id}\x1f${videoSrc ?? ''}\x1f${igIframeSrc ?? ''}\x1f${posterSrc ?? ''}\x1f${embed}`
+            : '';
+
     useEffect(() => {
         if (!segment) {
             return;
@@ -132,21 +143,21 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             return;
         }
         if (igIframeSrc) {
-            const t = window.setTimeout(advance, IFRAME_ADVANCE_MS);
-            return () => window.clearTimeout(t);
+            const t = globalThis.setTimeout(() => advanceRef.current(), PROMO_STORY_IFRAME_ADVANCE_MS);
+            return () => globalThis.clearTimeout(t);
         }
         if (posterSrc || embed.includes('instagram.com')) {
-            const t = window.setTimeout(advance, IMAGE_ADVANCE_MS);
-            return () => window.clearTimeout(t);
+            const t = globalThis.setTimeout(() => advanceRef.current(), PROMO_STORY_IMAGE_ADVANCE_MS);
+            return () => globalThis.clearTimeout(t);
         }
-        const t = window.setTimeout(advance, IMAGE_ADVANCE_MS);
-        return () => window.clearTimeout(t);
-    }, [segment, videoSrc, igIframeSrc, posterSrc, embed, advance]);
+        const t = globalThis.setTimeout(() => advanceRef.current(), PROMO_STORY_IMAGE_ADVANCE_MS);
+        return () => globalThis.clearTimeout(t);
+    }, [slideTickKey]);
 
     const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
     const isStoryPermalink = embed.includes('instagram.com') && embed.includes('/stories/');
     const timedBarMs =
-        segment && !videoSrc ? (igIframeSrc ? IFRAME_ADVANCE_MS : IMAGE_ADVANCE_MS) : null;
+        segment && !videoSrc ? (igIframeSrc ? PROMO_STORY_IFRAME_ADVANCE_MS : PROMO_STORY_IMAGE_ADVANCE_MS) : null;
 
     if (!ring || !segment) {
         return null;
@@ -339,6 +350,11 @@ export function CityPromoStories({ rings }: Readonly<{ rings: CityPromoStoryRing
     const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
     const [viewer, setViewer] = useState<{ ring: number; seg: number } | null>(null);
 
+    const closeViewer = useCallback(() => setViewer(null), []);
+    const changeViewerIndex = useCallback((ring: number, seg: number) => {
+        setViewer({ ring, seg });
+    }, []);
+
     const list = useMemo(() => rings.filter((r) => r.segments.length > 0), [rings]);
 
     const checkScroll = useCallback(() => {
@@ -460,8 +476,8 @@ export function CityPromoStories({ rings }: Readonly<{ rings: CityPromoStoryRing
                     rings={list}
                     openRing={viewer.ring}
                     openSegment={viewer.seg}
-                    onClose={() => setViewer(null)}
-                    onIndexChange={(ring, seg) => setViewer({ ring, seg })}
+                    onClose={closeViewer}
+                    onIndexChange={changeViewerIndex}
                 />
             ) : null}
         </section>

@@ -33,7 +33,7 @@ import {
     venueMapAddressDisplay,
 } from '@/lib/googleMapsOpenUrl';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Review {
     id: number;
@@ -259,6 +259,13 @@ export default function VenueShow({
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [suggestEditOpen, setSuggestEditOpen] = useState(false);
     const [promoStoryViewerOpen, setPromoStoryViewerOpen] = useState(false);
+    const closePromoStoryViewer = useCallback(() => setPromoStoryViewerOpen(false), []);
+    const resolveVenuePromoStorageSrc = useCallback((path: string | null) => {
+        if (!path) {
+            return null;
+        }
+        return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+    }, []);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -1004,12 +1011,9 @@ export default function VenueShow({
 
             <PromoStoryFullscreenViewer
                 open={promoStoryViewerOpen}
-                onClose={() => setPromoStoryViewerOpen(false)}
+                onClose={closePromoStoryViewer}
                 items={venuePageStoryPromoItems}
-                resolveStorageSrc={(path) => {
-                    if (!path) return null;
-                    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
-                }}
+                resolveStorageSrc={resolveVenuePromoStorageSrc}
             />
         </AppLayout>
     );

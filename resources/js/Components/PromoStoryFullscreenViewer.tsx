@@ -5,13 +5,13 @@ import {
     promoVideoSrcLooksLikeWebm,
     type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
+import { PROMO_STORY_IFRAME_ADVANCE_MS, PROMO_STORY_IMAGE_ADVANCE_MS } from '@/lib/promoStoryTiming';
 import { usePromoVideoSlidePlayback } from '@/lib/usePromoVideoSlidePlayback';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const SWIPE_MIN_PX = 48;
-const STORY_IMAGE_ADVANCE_MS = 9000;
-const STORY_IFRAME_ADVANCE_MS = 18000;
+const SWIPE_MIN_PX = 56;
+const SWIPE_MAX_DURATION_MS = 750;
 
 function slideDomKey(it: PromoGalleryItem, i: number): string {
     return `${i}\x1f${it.video_path?.trim() ?? ''}\x1f${it.embed_url?.trim() ?? ''}\x1f${it.poster_path?.trim() ?? ''}`;
@@ -35,6 +35,10 @@ export function PromoStoryFullscreenViewer({
     const [idx, setIdx] = useState(0);
     const n = items.length;
     const touchStartX = useRef<number | null>(null);
+    const touchStartTime = useRef<number | null>(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+    const goNextRef = useRef<() => void>(() => {});
     const sessionOpenRef = useRef(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [slideProgress, setSlideProgress] = useState(0);
@@ -66,12 +70,13 @@ export function PromoStoryFullscreenViewer({
         setIdx((i) => {
             const cur = Math.min(Math.max(0, i), n - 1);
             if (cur >= n - 1) {
-                onClose();
+                onCloseRef.current();
                 return cur;
             }
             return cur + 1;
         });
-    }, [n, onClose]);
+    }, [n]);
+    goNextRef.current = goNext;
 
     const goPrev = useCallback(() => {
         if (n <= 0) {
@@ -84,7 +89,7 @@ export function PromoStoryFullscreenViewer({
         if (!open || n === 0) return;
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
                 return;
             }
             if (e.key === 'ArrowLeft') {
@@ -99,7 +104,7 @@ export function PromoStoryFullscreenViewer({
         };
         globalThis.addEventListener('keydown', onKey, true);
         return () => globalThis.removeEventListener('keydown', onKey, true);
-    }, [open, n, goPrev, goNext, onClose]);
+    }, [open, n, goPrev, goNext]);
 
     useEffect(() => {
         if (!open) return;
@@ -119,7 +124,7 @@ export function PromoStoryFullscreenViewer({
     const igEmbed = embed.includes('instagram.com');
     const isStoryPermalink = igEmbed && embed.includes('/stories/');
     const igIframeSrc = !videoSrc && igEmbed && !isStoryPermalink ? instagramPostOrReelEmbedIframeSrc(embed) : null;
-    const timedAdvanceMs = videoSrc ? null : igIframeSrc ? STORY_IFRAME_ADVANCE_MS : STORY_IMAGE_ADVANCE_MS;
+    const timedAdvanceMs = videoSrc ? null : igIframeSrc ? PROMO_STORY_IFRAME_ADVANCE_MS : PROMO_STORY_IMAGE_ADVANCE_MS;
     const webmOnIos = Boolean(videoSrc && promoVideoSrcLooksLikeWebm(videoSrc) && iosLikeUserAgent());
 
     const videoSlideKey =
@@ -144,13 +149,13 @@ export function PromoStoryFullscreenViewer({
         }, 90);
         const t = window.setTimeout(() => {
             setSlideProgress(1);
-            goNext();
+            goNextRef.current();
         }, timedAdvanceMs);
         return () => {
             window.clearInterval(int);
             window.clearTimeout(t);
         };
-    }, [open, slideKey, timedAdvanceMs, goNext]);
+    }, [open, slideKey, timedAdvanceMs]);
 
     useEffect(() => {
         if (!open) {
@@ -249,19 +254,35 @@ export function PromoStoryFullscreenViewer({
                     className="relative z-10 flex h-full max-h-[min(calc(100dvh-8rem),calc(100vh-8rem))] w-full max-w-lg flex-col items-center justify-center sm:max-w-xl"
                     onClick={(e) => e.stopPropagation()}
                     onTouchStart={(e) => {
-                        const x = e.changedTouches[0]?.clientX;
-                        touchStartX.current = x ?? null;
+                        const tch = e.changedTouches[0];
+                        if (tch) {
+                            touchStartX.current = tch.clientX;
+                            touchStartTime.current = Date.now();
+                        }
                     }}
                     onTouchEnd={(e) => {
                         const start = touchStartX.current;
+                        const t0 = touchStartTime.current;
                         touchStartX.current = null;
-                        if (start == null || n <= 1) return;
+                        touchStartTime.current = null;
+                        if (start == null || t0 == null || n <= 1) {
+                            return;
+                        }
                         const end = e.changedTouches[0]?.clientX;
-                        if (end == null) return;
+                        if (end == null) {
+                            return;
+                        }
+                        const duration = Date.now() - t0;
+                        if (duration > SWIPE_MAX_DURATION_MS) {
+                            return;
+                        }
                         const dx = end - start;
-                        if (dx > SWIPE_MIN_PX) {
+                        if (Math.abs(dx) < SWIPE_MIN_PX) {
+                            return;
+                        }
+                        if (dx > 0) {
                             goPrev();
-                        } else if (dx < -SWIPE_MIN_PX) {
+                        } else {
                             goNext();
                         }
                     }}

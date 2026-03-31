@@ -29,7 +29,7 @@ import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop'
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Calendar, Music2, Pause, PenLine, Play, Plus, Users } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
     name: string;
@@ -359,6 +359,13 @@ export default function ArtistShow({
     const [resolvedShareUrl, setResolvedShareUrl] = useState(() => canonicalUrl ?? '');
     const [suggestEditOpen, setSuggestEditOpen] = useState(false);
     const [promoStoryViewerOpen, setPromoStoryViewerOpen] = useState(false);
+    const closePromoStoryViewer = useCallback(() => setPromoStoryViewerOpen(false), []);
+    const resolveArtistPromoStorageSrc = useCallback((path: string | null) => {
+        if (!path) {
+            return null;
+        }
+        return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
+    }, []);
     const [claimMessage, setClaimMessage] = useState('');
     const [claimFirstName, setClaimFirstName] = useState('');
     const [claimLastName, setClaimLastName] = useState('');
@@ -1329,12 +1336,9 @@ export default function ArtistShow({
 
             <PromoStoryFullscreenViewer
                 open={promoStoryViewerOpen}
-                onClose={() => setPromoStoryViewerOpen(false)}
+                onClose={closePromoStoryViewer}
                 items={artistPageStoryPromoItems}
-                resolveStorageSrc={(path) => {
-                    if (!path) return null;
-                    return path.startsWith('http://') || path.startsWith('https://') ? path : `/storage/${path}`;
-                }}
+                resolveStorageSrc={resolveArtistPromoStorageSrc}
             />
         </AppLayout>
     );
