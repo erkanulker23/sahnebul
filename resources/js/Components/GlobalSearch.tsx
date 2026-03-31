@@ -297,6 +297,15 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
             vv.addEventListener('resize', measure);
             vv.addEventListener('scroll', measure);
         }
+        const el = rootRef.current;
+        let ro: ResizeObserver | null = null;
+        if (el && typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(() => {
+                measure();
+            });
+            ro.observe(el);
+        }
+        /* q / sonuç sayısı bağımlılığı yok: her tuşta measure mobilde panel zıplamasına yol açıyordu. */
         return () => {
             w.removeEventListener('resize', measure);
             w.removeEventListener('scroll', measure, true);
@@ -304,20 +313,28 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                 vv.removeEventListener('resize', measure);
                 vv.removeEventListener('scroll', measure);
             }
+            ro?.disconnect();
         };
-    }, [open, q, loading, data.artists.length, data.venues.length, data.events.length, trending.length, trendingLoading]);
+    }, [open]);
 
     useEffect(() => {
-        const onDoc = (e: MouseEvent) => {
-            const t = e.target as Node;
-            if (rootRef.current?.contains(t) || panelSurfaceRef.current?.contains(t)) {
+        if (!open) {
+            return;
+        }
+        const closeIfOutside = (e: Event) => {
+            const t = e.target as Node | null;
+            if (!t || rootRef.current?.contains(t) || panelSurfaceRef.current?.contains(t)) {
                 return;
             }
             setOpen(false);
         };
-        document.addEventListener('mousedown', onDoc);
-        return () => document.removeEventListener('mousedown', onDoc);
-    }, []);
+        document.addEventListener('mousedown', closeIfOutside);
+        document.addEventListener('touchstart', closeIfOutside, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', closeIfOutside);
+            document.removeEventListener('touchstart', closeIfOutside);
+        };
+    }, [open]);
 
     useEffect(() => {
         if (!open) {
@@ -371,7 +388,7 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     onFocus={() => setOpen(true)}
-                    className="min-h-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-sm text-zinc-900 shadow-none placeholder:text-zinc-500 ring-0 focus:outline-none focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
+                    className="min-h-0 min-w-0 flex-1 appearance-none border-0 bg-transparent text-base text-zinc-900 shadow-none placeholder:text-zinc-500 ring-0 focus:outline-none focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500 lg:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
                 />
                 {q && (
                     <button

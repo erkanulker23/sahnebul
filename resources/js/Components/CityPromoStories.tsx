@@ -411,7 +411,7 @@ export function CityPromoStories({ rings }: Readonly<{ rings: CityPromoStoryRing
                                 key={r.artist.id}
                                 type="button"
                                 onClick={() => setViewer({ ring: ringIdx, seg: 0 })}
-                                className="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
+                                className="flex w-[4.75rem] shrink-0 touch-manipulation flex-col items-center gap-1.5 rounded-xl border-0 bg-transparent p-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
                             >
                                 <div className="rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 p-[2.5px] shadow-sm">
                                     <div className="rounded-full bg-white p-[2px] dark:bg-zinc-950">

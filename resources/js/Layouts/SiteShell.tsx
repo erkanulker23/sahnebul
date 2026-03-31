@@ -7,14 +7,20 @@ import { MicrophoneMark } from '@/Components/brand/MicrophoneMark';
 import { AppHeader } from '@/Components/layout/AppHeader';
 import { MobileQuickNav } from '@/Components/layout/MobileQuickNav';
 import { safeRoute } from '@/lib/safeRoute';
+import { cn } from '@/lib/cn';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
+
+type SiteShellProps = PropsWithChildren<{
+    /** Giriş / kayıt / şifre gibi sayfalarda sabit alt «hızlı erişim» şeridini gösterme. */
+    hideMobileQuickNav?: boolean;
+}>;
 
 /**
  * Ortak site iskeleti: üst menü, banner’lar, ana içerik alanı, footer.
  * AppLayout ve UserPanelLayout bu bileşeni kullanır.
  */
-export default function SiteShell({ children }: Readonly<PropsWithChildren>) {
+export default function SiteShell({ children, hideMobileQuickNav = false }: Readonly<SiteShellProps>) {
     const pageProps = usePage().props as {
         auth: {
             user: { name: string; email: string; role?: string } | null;
@@ -101,11 +107,23 @@ export default function SiteShell({ children }: Readonly<PropsWithChildren>) {
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
-            <main className="mx-auto w-full max-w-[1600px] flex-1 px-2.5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-4 max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:px-8 lg:pb-8">
+            <main
+                className={cn(
+                    'mx-auto w-full max-w-[1600px] flex-1 px-2.5 pt-0 sm:px-4 lg:px-8',
+                    hideMobileQuickNav
+                        ? 'pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:pb-8'
+                        : 'pb-[max(1.5rem,env(safe-area-inset-bottom))] max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8',
+                )}
+            >
                 {children}
             </main>
 
-            <div className="mt-auto flex w-full flex-col max-lg:pb-[calc(4rem+env(safe-area-inset-bottom,0px))]">
+            <div
+                className={cn(
+                    'mt-auto flex w-full flex-col',
+                    !hideMobileQuickNav && 'max-lg:pb-[calc(4rem+env(safe-area-inset-bottom,0px))]',
+                )}
+            >
                 <AdSlot
                     slotKey="footer_above"
                     variant="full"
@@ -195,7 +213,7 @@ export default function SiteShell({ children }: Readonly<PropsWithChildren>) {
                 </footer>
             </div>
 
-            <MobileQuickNav />
+            {!hideMobileQuickNav ? <MobileQuickNav /> : null}
         </div>
     );
 }

@@ -126,7 +126,7 @@ export function ProfilePromoStoryAvatarWrap({
             type="button"
             onClick={markSeenAndScroll}
             className={cn(
-                'inline-flex shrink-0 border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 dark:focus-visible:ring-offset-zinc-900',
+                'inline-flex shrink-0 touch-manipulation border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 dark:focus-visible:ring-offset-zinc-900',
                 className,
             )}
             aria-label="Tanıtım videolarına git"
