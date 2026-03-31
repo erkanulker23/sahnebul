@@ -1,6 +1,7 @@
 import PhoneInput from '@/Components/PhoneInput';
 import SeoHead from '@/Components/SeoHead';
 import AppLayout from '@/Layouts/AppLayout';
+import UserPanelLayout from '@/Layouts/UserPanelLayout';
 import { cn } from '@/lib/cn';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, useForm, usePage } from '@inertiajs/react';
@@ -59,15 +60,15 @@ export default function Contact() {
         });
     };
 
-    return (
-        <AppLayout>
+    const inner = (
+        <>
             <SeoHead
                 title="İletişim - Sahnebul"
                 description="Sahnebul ile iletişime geçin; soru, öneri ve iş birliği taleplerinizi iletin."
                 type="website"
             />
 
-            <div className="mx-auto max-w-5xl px-0 py-8 sm:px-4 sm:py-10 lg:px-8 lg:py-14">
+            <div className="mx-auto max-w-5xl px-0 py-6 sm:px-4 sm:py-8 lg:px-0 lg:py-4">
                 <div className="max-w-2xl">
                     <h1 className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">İletişim</h1>
                     <p className="mt-3 text-base text-zinc-600 dark:text-zinc-400">
@@ -290,6 +291,8 @@ export default function Contact() {
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </>
     );
+
+    return user ? <UserPanelLayout>{inner}</UserPanelLayout> : <AppLayout>{inner}</AppLayout>;
 }

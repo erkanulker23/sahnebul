@@ -6,7 +6,7 @@ import { iconClass } from '@/lib/icons';
 import { cn } from '@/lib/cn';
 import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
-import { Calendar, ChevronDown, LogIn, MapPin, Menu, Mic2, Moon, Sun, User, UserPlus, X } from 'lucide-react';
+import { Calendar, ChevronDown, Home, LogIn, MapPin, Menu, Mic2, Moon, Sun, User, UserPlus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -243,22 +243,6 @@ export function AppHeader() {
                         ) : null}
                         {user ? (
                             <>
-                                {!sahneCompactNav && !hideCustomerReservations && (
-                                    <>
-                                        <Link
-                                            href={route('reservations.index')}
-                                            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 xl:inline dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                        >
-                                            Rezervasyonlar
-                                        </Link>
-                                        <Link
-                                            href={route('dashboard')}
-                                            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 xl:inline dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                        >
-                                            Panel
-                                        </Link>
-                                    </>
-                                )}
                                 <Link
                                     href={sahneCompactNav ? mekanSahibiPanelHref : profileHref}
                                     className="hidden max-w-[10rem] truncate rounded-full border border-amber-600/35 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-950 sm:inline-block dark:border-amber-500/40 dark:bg-amber-500/15 dark:font-medium dark:text-amber-300"
@@ -347,6 +331,14 @@ export function AppHeader() {
                             </button>
                         </div>
                         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Mobil menü">
+                            <Link
+                                href={route('home')}
+                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
+                                onClick={closeDrawer}
+                            >
+                                <Home className={iconClass.md} />
+                                Ana sayfa
+                            </Link>
                             <Link
                                 href={route('venues.index')}
                                 className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
@@ -449,16 +441,6 @@ export function AppHeader() {
                         <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
                             {user ? (
                                 <div className="flex flex-col gap-2">
-                                    {!sahneCompactNav && !hideCustomerReservations && (
-                                        <>
-                                            <Link href={route('reservations.index')} className="rounded-lg px-3 py-2.5 text-zinc-800 dark:text-zinc-200" onClick={closeDrawer}>
-                                                Rezervasyonlarım
-                                            </Link>
-                                            <Link href={route('dashboard')} className="rounded-lg px-3 py-2.5 text-zinc-800 dark:text-zinc-200" onClick={closeDrawer}>
-                                                Panelim
-                                            </Link>
-                                        </>
-                                    )}
                                     <Link
                                         href={sahneCompactNav ? mekanSahibiPanelHref : profileHref}
                                         className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-amber-800 dark:text-amber-400"

@@ -1,7 +1,6 @@
-import AccountQuickNav from '@/Components/AccountQuickNav';
 import SeoHead from '@/Components/SeoHead';
 import { formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
-import AppLayout from '@/Layouts/AppLayout';
+import UserPanelLayout from '@/Layouts/UserPanelLayout';
 import { Link } from '@inertiajs/react';
 
 interface Reservation {
@@ -27,19 +26,16 @@ export default function ReservationsIndex({ reservations }: Props) {
     };
 
     return (
-        <AppLayout>
+        <UserPanelLayout>
             <SeoHead title="Rezervasyonlarım - Sahnebul" description="Masa ve etkinlik rezervasyonlarınızın durumu." noindex />
 
-            <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-                <AccountQuickNav className="mb-6" />
-                <Link href={route('home')} className="mb-6 inline-block text-sm text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
-                    ← Mekanlar
-                </Link>
-                <h1 className="font-display mb-8 text-3xl font-bold text-zinc-900 dark:text-white">Rezervasyonlarım</h1>
+            <div className="mx-auto max-w-3xl pb-8">
+                <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white lg:text-3xl">Rezervasyonlarım</h1>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Masa ve etkinlik rezervasyonlarınız</p>
 
-                <div>
+                <div className="mt-8">
                     {reservations.data.length === 0 ? (
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none">
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-sm dark:border-white/10 dark:bg-zinc-900/40 dark:shadow-none">
                             <p className="text-5xl opacity-40">📋</p>
                             <p className="mt-4 text-zinc-600 dark:text-zinc-400">Henüz rezervasyonunuz yok</p>
                             <Link href={route('home')} className="mt-4 inline-block text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">
@@ -49,7 +45,7 @@ export default function ReservationsIndex({ reservations }: Props) {
                     ) : (
                         <div className="space-y-4">
                             {reservations.data.map((r) => (
-                                <div key={r.id} className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none">
+                                <div key={r.id} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-zinc-900/40 dark:shadow-none">
                                     <div className="flex flex-wrap items-start justify-between gap-4">
                                         <div>
                                             <Link
@@ -88,6 +84,6 @@ export default function ReservationsIndex({ reservations }: Props) {
                     )}
                 </div>
             </div>
-        </AppLayout>
+        </UserPanelLayout>
     );
 }

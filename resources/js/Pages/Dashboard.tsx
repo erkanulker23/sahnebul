@@ -1,13 +1,12 @@
-import AccountQuickNav from '@/Components/AccountQuickNav';
 import EventRelativeDayPill from '@/Components/EventRelativeDayPill';
 import SeoHead from '@/Components/SeoHead';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { formatTurkishDateTime, formatTurkishDateTimeFromParts } from '@/lib/formatTurkishDateTime';
 import { reservationStatusTr } from '@/lib/statusLabels';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import UserPanelLayout from '@/Layouts/UserPanelLayout';
 import { type PageProps, type User } from '@/types';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { BellRing, Heart, Mail, MessageSquare, Sparkles } from 'lucide-react';
+import { Bell, BellRing, CalendarDays, CircleUser, Heart, Mail, MessageSquare, Sparkles, Ticket } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface Reservation {
@@ -91,18 +90,56 @@ export default function Dashboard({
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="font-display text-xl font-semibold leading-tight text-zinc-900 dark:text-white">
-                    {panelTitle}
-                </h2>
-            }
-        >
+        <UserPanelLayout>
             <SeoHead title="Kullanıcı paneli - Sahnebul" description="Favori sanatçılar, etkinlik hatırlatmaları ve rezervasyonlar." noindex />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <AccountQuickNav className="mb-6" />
+            <div className="pb-8 lg:pb-10">
+                <div className="mx-auto max-w-4xl">
+                    <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900 dark:text-white lg:text-3xl">{panelTitle}</h1>
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Özet, favoriler ve hatırlatmalar</p>
+
+                    <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <Link
+                            href={route('reservations.index')}
+                            className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-emerald-400/40 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-emerald-500/30"
+                        >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                <Ticket className="h-5 w-5" aria-hidden />
+                            </span>
+                            <span className="mt-3 font-display font-semibold text-zinc-900 dark:text-white">Rezervasyonlar</span>
+                            <span className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Bilet ve masa rezervasyonlarınız</span>
+                        </Link>
+                        <Link
+                            href={route('notifications.index')}
+                            className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-emerald-400/40 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-emerald-500/30"
+                        >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                                <Bell className="h-5 w-5" aria-hidden />
+                            </span>
+                            <span className="mt-3 font-display font-semibold text-zinc-900 dark:text-white">Bildirimler</span>
+                            <span className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Hesap bildirimleri</span>
+                        </Link>
+                        <Link
+                            href={route('profile.edit')}
+                            className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-emerald-400/40 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-emerald-500/30"
+                        >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-200/80 text-zinc-800 dark:bg-white/10 dark:text-zinc-200">
+                                <CircleUser className="h-5 w-5" aria-hidden />
+                            </span>
+                            <span className="mt-3 font-display font-semibold text-zinc-900 dark:text-white">Hesabım</span>
+                            <span className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Profil ve güvenlik</span>
+                        </Link>
+                        <Link
+                            href={route('events.index')}
+                            className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-emerald-400/40 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/50 dark:hover:border-emerald-500/30"
+                        >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/15 text-rose-700 dark:text-rose-400">
+                                <CalendarDays className="h-5 w-5" aria-hidden />
+                            </span>
+                            <span className="mt-3 font-display font-semibold text-zinc-900 dark:text-white">Etkinlikler</span>
+                            <span className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Keşfet ve takip et</span>
+                        </Link>
+                    </div>
 
                     <div className="mb-8 grid gap-4 sm:grid-cols-2">
                         <div className="relative overflow-hidden rounded-2xl border border-rose-200/90 bg-gradient-to-br from-rose-50 via-white to-white p-6 shadow-sm dark:border-rose-500/25 dark:from-rose-500/[0.12] dark:via-zinc-900/40 dark:to-zinc-900/50 dark:shadow-none">
@@ -311,17 +348,6 @@ export default function Dashboard({
                     </div>
 
                     <div className="mb-8">
-                        <Link
-                            href={route('reservations.index')}
-                            className="block rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition hover:border-amber-400/50 dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none dark:hover:border-amber-500/20"
-                        >
-                            <p className="text-sm text-zinc-600 dark:text-zinc-500">Rezervasyonlarım</p>
-                            <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{recentReservations.length}</p>
-                            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Son rezervasyonlarınızı görüntüleyin</p>
-                        </Link>
-                    </div>
-
-                    <div className="mb-8">
                         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-white/5 dark:bg-zinc-900/50 dark:shadow-none">
                             <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-white/5">
                                 <h3 className="font-display text-lg font-bold text-zinc-900 dark:text-white">Bu Hafta Etkinlikler</h3>
@@ -434,6 +460,6 @@ export default function Dashboard({
                     </div>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </UserPanelLayout>
     );
 }
