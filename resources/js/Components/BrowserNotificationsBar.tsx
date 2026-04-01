@@ -181,6 +181,7 @@ export default function BrowserNotificationsBar() {
     return (
         <div
             className={cn(
+                'box-border w-full min-w-0 shrink-0 self-stretch',
                 'flex flex-wrap items-start gap-3 border-b px-4 py-3 text-sm',
                 'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-500/30 dark:bg-violet-950/35 dark:text-violet-100',
             )}

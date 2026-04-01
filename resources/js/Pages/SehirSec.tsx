@@ -116,8 +116,7 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                             >
                                 <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                     <h2 className="text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl md:text-3xl">
-                                        {section.name}
-                                        &apos;daki popüler etkinlikler
+                                        {section.name}’daki popüler etkinlikler
                                     </h2>
                                     {section.events.length > 0 ? (
                                         <Link

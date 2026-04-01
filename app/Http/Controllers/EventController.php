@@ -103,7 +103,7 @@ class EventController extends Controller
             ->map(fn (Event $e) => [
                 'id' => $e->id,
                 'slug' => $e->slug,
-                'label' => $e->title.' · '.$e->start_date->translatedFormat('d MMMM Y'),
+                'label' => $e->title.' · '.$e->start_date->locale(app()->getLocale())->translatedFormat('j F Y'),
             ])
             ->values()
             ->all();
