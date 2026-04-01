@@ -34,3 +34,33 @@ export function reservationStatusTr(status: string): string {
 export function claimRequestStatusTr(status: string): string {
     return VENUE_ARTIST[status] ?? status;
 }
+
+/** Sahne panelinde etkinlik/sanatçı oluşturan kullanıcı (API yanıtı — snake_case). */
+export type StageUserRef = {
+    id: number;
+    name: string;
+    role: string;
+    organization_display_name?: string | null;
+};
+
+export function stageEventCreatorLabel(user: StageUserRef | null | undefined): string | null {
+    if (!user) {
+        return null;
+    }
+    if (user.role === 'manager_organization') {
+        const org = user.organization_display_name?.trim();
+        return org ? `Organizasyon: ${org}` : `Organizasyon: ${user.name}`;
+    }
+    if (user.role === 'venue_owner') {
+        return `Mekân sahibi: ${user.name}`;
+    }
+    return user.name;
+}
+
+export function stageOrganizationArtistLabel(user: StageUserRef | null | undefined): string | null {
+    if (!user) {
+        return null;
+    }
+    const org = user.organization_display_name?.trim();
+    return org ? `Organizasyon kadrosu (${org})` : `Organizasyon kadrosu (${user.name})`;
+}

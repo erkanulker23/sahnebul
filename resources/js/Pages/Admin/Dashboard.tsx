@@ -2,6 +2,13 @@ import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { safeRoute } from '@/lib/safeRoute';
+import {
+    eventStatusTr,
+    stageEventCreatorLabel,
+    stageOrganizationArtistLabel,
+    type StageUserRef,
+    venueArtistStatusTr,
+} from '@/lib/statusLabels';
 import { Link } from '@inertiajs/react';
 
 interface Venue {
@@ -22,9 +29,31 @@ interface Reservation {
     venue: { name: string };
 }
 
+interface RecentArtistRow {
+    id: number;
+    name: string;
+    slug: string;
+    genre: string | null;
+    status: string;
+    created_at: string;
+    managed_by?: StageUserRef | null;
+}
+
+interface RecentEventAddedRow {
+    id: number;
+    title: string;
+    start_date: string;
+    status: string;
+    created_at: string;
+    venue: { name: string; slug: string };
+    created_by?: StageUserRef | null;
+}
+
 interface Props {
     stats: Record<string, number>;
     recentVenues: Venue[];
+    recentArtists: RecentArtistRow[];
+    recentEventsAdded: RecentEventAddedRow[];
     recentReservations: Reservation[];
     popularVenues: { id: number; name: string; slug: string; review_count: number; rating_avg: number }[];
     usersChart: { date: string; count: number }[];
@@ -37,6 +66,8 @@ interface Props {
 export default function AdminDashboard({
     stats,
     recentVenues,
+    recentArtists,
+    recentEventsAdded,
     recentReservations,
     popularVenues,
     usersChart,
@@ -64,6 +95,104 @@ export default function AdminDashboard({
                     <StatCard label="Yaklaşan Etkinlik" value={stats.events_upcoming ?? 0} />
                     <StatCard label="Toplam Gelir (₺)" value={Number(stats.total_revenue ?? 0).toLocaleString('tr-TR')} />
                     <StatCard label="Bu Hafta Yeni Üye" value={stats.new_users_week ?? 0} />
+                </div>
+
+                <div className="space-y-3">
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Genel bakış — son eklenenler</h2>
+                    <div className="grid gap-6 lg:grid-cols-3">
+                        <SectionCard title="Son eklenen sanatçılar" link={route('admin.artists.index')} linkLabel="Tümü">
+                            {recentArtists.length === 0 ? (
+                                <p className="p-4 text-zinc-500">Henüz sanatçı yok.</p>
+                            ) : (
+                                <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {recentArtists.map((a) => {
+                                        const orgLabel = stageOrganizationArtistLabel(a.managed_by ?? null);
+                                        return (
+                                            <Link
+                                                key={a.id}
+                                                href={route('admin.artists.edit', a.id)}
+                                                className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                                            >
+                                                <p className="font-medium text-zinc-900 dark:text-white">{a.name}</p>
+                                                <p className="text-sm text-zinc-500">
+                                                    {a.genre ?? 'Sanatçı'} • {formatTurkishDateTime(a.created_at)}
+                                                </p>
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                    <span className="rounded-full bg-zinc-500/15 px-2 py-0.5 text-xs text-zinc-700 dark:text-zinc-300">
+                                                        {venueArtistStatusTr(a.status)}
+                                                    </span>
+                                                    {orgLabel ? (
+                                                        <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-xs text-violet-800 dark:text-violet-300">
+                                                            {orgLabel}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </SectionCard>
+
+                        <SectionCard title="Son eklenen mekanlar" link={route('admin.venues.index')} linkLabel="Tümü">
+                            {recentVenues.length === 0 ? (
+                                <p className="p-4 text-zinc-500">Henüz mekan yok.</p>
+                            ) : (
+                                <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {recentVenues.map((v) => (
+                                        <Link
+                                            key={v.id}
+                                            href={route('admin.venues.edit', v.id)}
+                                            className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                                        >
+                                            <div>
+                                                <p className="font-medium text-zinc-900 dark:text-white">{v.name}</p>
+                                                <p className="text-sm text-zinc-500">
+                                                    {v.city.name} • {v.category.name}
+                                                </p>
+                                            </div>
+                                            <StatusBadge status={v.status} />
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </SectionCard>
+
+                        <SectionCard title="Son eklenen etkinlikler" link={route('admin.events.index')} linkLabel="Tümü">
+                            {recentEventsAdded.length === 0 ? (
+                                <p className="p-4 text-zinc-500">Henüz etkinlik yok.</p>
+                            ) : (
+                                <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {recentEventsAdded.map((e) => {
+                                        const creator = stageEventCreatorLabel(e.created_by ?? null);
+                                        return (
+                                            <Link
+                                                key={e.id}
+                                                href={route('admin.events.edit', e.id)}
+                                                className="block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                                            >
+                                                <p className="font-medium text-zinc-900 dark:text-white">{e.title}</p>
+                                                <p className="text-sm text-zinc-500">{e.venue.name}</p>
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                    <span className="text-xs text-zinc-500">
+                                                        {formatTurkishDateTime(e.created_at)}
+                                                    </span>
+                                                    <span className="rounded-full bg-zinc-500/15 px-2 py-0.5 text-xs text-zinc-700 dark:text-zinc-300">
+                                                        {eventStatusTr(e.status)}
+                                                    </span>
+                                                    {creator ? (
+                                                        <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs text-sky-800 dark:text-sky-300">
+                                                            {creator}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </SectionCard>
+                    </div>
                 </div>
 
                 <div className="grid gap-8 lg:grid-cols-2">
@@ -100,29 +229,6 @@ export default function AdminDashboard({
                                 Üye bildirimi gönder
                             </Link>
                         </div>
-                    </SectionCard>
-
-                    {/* Son Mekanlar */}
-                    <SectionCard title="Son Eklenen Mekanlar" link={route('admin.venues.index')} linkLabel="Tümü">
-                        {recentVenues.length === 0 ? (
-                            <p className="p-4 text-zinc-500">Henüz mekan yok.</p>
-                        ) : (
-                            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                                {recentVenues.map((v) => (
-                                    <Link
-                                        key={v.id}
-                                        href={route('admin.venues.index', { status: v.status })}
-                                        className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                                    >
-                                        <div>
-                                            <p className="font-medium text-zinc-900 dark:text-white">{v.name}</p>
-                                            <p className="text-sm text-zinc-500">{v.city.name} • {v.category.name}</p>
-                                        </div>
-                                        <StatusBadge status={v.status} />
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
                     </SectionCard>
 
                     <SectionCard title="Onay Bekleyen Sanatçılar" link={route('admin.artists.index', { status: 'pending' })} linkLabel="Tümü">

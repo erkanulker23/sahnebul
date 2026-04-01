@@ -528,8 +528,9 @@ class EventController extends Controller
             $artistIds = array_values(array_unique(array_filter($artistIds, fn (int $id) => $id > 0)));
         }
 
-        $event = DB::transaction(function () use ($validated, $ticketTiers, $artistIds): Event {
-            $event = Event::create($validated);
+        $creatorId = (int) $request->user()->id;
+        $event = DB::transaction(function () use ($validated, $ticketTiers, $artistIds, $creatorId): Event {
+            $event = Event::create([...$validated, 'created_by_user_id' => $creatorId]);
             $event->syncTicketTiers($ticketTiers);
             $event->syncArtistsByIds($artistIds);
 

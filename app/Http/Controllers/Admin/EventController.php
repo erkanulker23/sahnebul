@@ -50,7 +50,7 @@ class EventController extends Controller
 
         $searchTerm = isset($validated['search']) ? trim((string) $validated['search']) : '';
 
-        $events = Event::with(['venue', 'artists', 'ticketTiers'])
+        $events = Event::with(['venue', 'artists', 'ticketTiers', 'createdBy:id,name,role,organization_display_name'])
             ->when($validated['status'] ?? null, fn ($q, string $s) => $q->where('status', $s))
             ->when($validated['venue_id'] ?? null, fn ($q, int $v) => $q->where('venue_id', $v))
             ->when($searchTerm !== '', function ($q) use ($searchTerm): void {
@@ -205,6 +205,8 @@ class EventController extends Controller
             $event->saveQuietly();
             $event->refresh();
         }
+
+        $event->load(['venue', 'artists', 'ticketTiers', 'createdBy:id,name,role,organization_display_name']);
 
         $eventPayload = $event->toArray();
         $eventPayload['start_date'] = AdminDatetimeLocal::format($event->start_date);

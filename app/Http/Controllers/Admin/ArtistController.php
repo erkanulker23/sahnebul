@@ -71,6 +71,7 @@ class ArtistController extends Controller
     {
         $artists = Artist::query()
             ->withCount('events')
+            ->with(['managedBy:id,name,organization_display_name'])
             ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%"))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->orderBy('name')

@@ -38,6 +38,27 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
     }
 
+    public function test_trusted_manager_creates_approved_artist_without_pending(): void
+    {
+        $org = User::factory()->create([
+            'role' => 'manager_organization',
+            'stage_trusted_publisher' => true,
+        ]);
+
+        $this->actingAs($org)
+            ->post('/sahne/organizasyon/sanatcilar', [
+                'name' => 'Güven Orkestra',
+                'bio' => null,
+            ])
+            ->assertRedirect('/sahne/organizasyon/sanatcilar');
+
+        $this->assertDatabaseHas('artists', [
+            'name' => 'Güven Orkestra',
+            'status' => 'approved',
+            'managed_by_user_id' => $org->id,
+        ]);
+    }
+
     public function test_manager_can_attach_unassigned_approved_artist(): void
     {
         $org = User::factory()->create(['role' => 'manager_organization']);

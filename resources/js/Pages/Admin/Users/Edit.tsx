@@ -1,6 +1,8 @@
 import { AdminButton, AdminPageHeader } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { venueArtistStatusTr, eventStatusTr } from '@/lib/statusLabels';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -11,11 +13,43 @@ interface UserRow {
     email: string;
     role: string;
     is_active: boolean;
+    stage_trusted_publisher?: boolean;
 }
+
+interface StageActivityOrganization {
+    kind: 'organization';
+    counts: { managed_artists: number; events_created: number };
+    managed_artists: { id: number; name: string; slug: string; status: string; created_at: string }[];
+    events_created: {
+        id: number;
+        title: string;
+        status: string;
+        start_date: string | null;
+        created_at: string;
+        venue: { name: string; slug: string };
+    }[];
+}
+
+interface StageActivityVenueOwner {
+    kind: 'venue_owner';
+    counts: { venues: number; events_created: number };
+    venues: { id: number; name: string; slug: string; status: string; created_at: string }[];
+    events_created: {
+        id: number;
+        title: string;
+        status: string;
+        start_date: string | null;
+        created_at: string;
+        venue: { name: string; slug: string };
+    }[];
+}
+
+type StageActivity = StageActivityOrganization | StageActivityVenueOwner | null;
 
 interface Props {
     user: UserRow;
     canAssignElevatedRoles?: boolean;
+    stage_activity?: StageActivity;
 }
 
 function roleLabelTr(role: string): string {
@@ -33,7 +67,7 @@ function roleLabelTr(role: string): string {
 const inputClass =
     'w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white dark:placeholder-zinc-500';
 
-export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }: Readonly<Props>) {
+export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, stage_activity = null }: Readonly<Props>) {
     const currentUserId = (usePage().props.auth as { user?: { id: number } })?.user?.id;
     const [resetBusy, setResetBusy] = useState(false);
 
@@ -43,6 +77,7 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }:
         password: '',
         role: user.role,
         is_active: user.is_active,
+        stage_trusted_publisher: user.stage_trusted_publisher === true,
     });
 
     const submit = (e: React.FormEvent) => {
@@ -122,7 +157,13 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }:
                         <select
                             id="u-role"
                             value={form.data.role}
-                            onChange={(e) => form.setData('role', e.target.value)}
+                            onChange={(e) => {
+                                const next = e.target.value;
+                                form.setData('role', next);
+                                if (next !== 'manager_organization' && next !== 'venue_owner') {
+                                    form.setData('stage_trusted_publisher', false);
+                                }
+                            }}
                             className={inputClass}
                         >
                             <option value="customer">Müşteri</option>
@@ -138,6 +179,23 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }:
                         </select>
                         {form.errors.role && <p className="mt-1 text-sm text-red-600">{form.errors.role}</p>}
                     </div>
+                    {(form.data.role === 'manager_organization' || form.data.role === 'venue_owner') ? (
+                        <label className="flex items-start gap-3 rounded-lg border border-violet-200/70 bg-violet-50/60 p-4 text-sm text-zinc-800 dark:border-violet-500/30 dark:bg-violet-950/25 dark:text-zinc-200">
+                            <input
+                                type="checkbox"
+                                checked={form.data.stage_trusted_publisher}
+                                onChange={(e) => form.setData('stage_trusted_publisher', e.target.checked)}
+                                className="mt-0.5 rounded border-zinc-400 text-violet-600 focus:ring-violet-500"
+                            />
+                            <span>
+                                <span className="font-medium text-zinc-900 dark:text-white">Güvenilir sahne yayıncısı</span>
+                                <span className="mt-1 block text-zinc-600 dark:text-zinc-400">
+                                    Açıkken bu hesabın oluşturduğu yeni mekân ve organizasyon kadrosu sanatçısı kayıtları admin onayı
+                                    beklemeden doğrudan onaylı yayına alınır.
+                                </span>
+                            </span>
+                        </label>
+                    ) : null}
                     <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                         <input
                             type="checkbox"
@@ -158,6 +216,126 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false }:
                         </Link>
                     </div>
                 </form>
+
+                {stage_activity?.kind === 'organization' ? (
+                    <div className="max-w-3xl space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+                        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Organizasyon özeti</h2>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            Kadrodaki sanatçı:{' '}
+                            <span className="font-medium text-zinc-900 dark:text-white">{stage_activity.counts.managed_artists}</span>
+                            {' · '}
+                            Sahne panelinden oluşturduğu etkinlik:{' '}
+                            <span className="font-medium text-zinc-900 dark:text-white">{stage_activity.counts.events_created}</span>
+                        </p>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Son kadro sanatçıları</h3>
+                                <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {stage_activity.managed_artists.length === 0 ? (
+                                        <li className="py-2 text-sm text-zinc-500">Kayıt yok.</li>
+                                    ) : (
+                                        stage_activity.managed_artists.map((a) => (
+                                            <li key={a.id} className="py-2">
+                                                <Link
+                                                    href={route('admin.artists.edit', a.id)}
+                                                    className="font-medium text-amber-700 hover:underline dark:text-amber-400"
+                                                >
+                                                    {a.name}
+                                                </Link>
+                                                <p className="text-xs text-zinc-500 sm:text-sm">
+                                                    {venueArtistStatusTr(a.status)} · {formatTurkishDateTime(a.created_at)}
+                                                </p>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Oluşturduğu etkinlikler</h3>
+                                <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {stage_activity.events_created.length === 0 ? (
+                                        <li className="py-2 text-sm text-zinc-500">Henüz yok.</li>
+                                    ) : (
+                                        stage_activity.events_created.map((ev) => (
+                                            <li key={ev.id} className="py-2">
+                                                <Link
+                                                    href={route('admin.events.edit', ev.id)}
+                                                    className="font-medium text-amber-700 hover:underline dark:text-amber-400"
+                                                >
+                                                    {ev.title}
+                                                </Link>
+                                                <p className="text-xs text-zinc-500 sm:text-sm">
+                                                    {ev.venue.name} · {eventStatusTr(ev.status)} ·{' '}
+                                                    {formatTurkishDateTime(ev.created_at)}
+                                                </p>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+
+                {stage_activity?.kind === 'venue_owner' ? (
+                    <div className="max-w-3xl space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+                        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Mekân sahibi özeti</h2>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            Mekân kaydı:{' '}
+                            <span className="font-medium text-zinc-900 dark:text-white">{stage_activity.counts.venues}</span>
+                            {' · '}
+                            Sahne panelinden oluşturduğu etkinlik:{' '}
+                            <span className="font-medium text-zinc-900 dark:text-white">{stage_activity.counts.events_created}</span>
+                        </p>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mekânları</h3>
+                                <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {stage_activity.venues.length === 0 ? (
+                                        <li className="py-2 text-sm text-zinc-500">Kayıt yok.</li>
+                                    ) : (
+                                        stage_activity.venues.map((v) => (
+                                            <li key={v.id} className="py-2">
+                                                <Link
+                                                    href={route('admin.venues.edit', v.id)}
+                                                    className="font-medium text-amber-700 hover:underline dark:text-amber-400"
+                                                >
+                                                    {v.name}
+                                                </Link>
+                                                <p className="text-xs text-zinc-500 sm:text-sm">
+                                                    {venueArtistStatusTr(v.status)} · {formatTurkishDateTime(v.created_at)}
+                                                </p>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Oluşturduğu etkinlikler</h3>
+                                <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    {stage_activity.events_created.length === 0 ? (
+                                        <li className="py-2 text-sm text-zinc-500">Henüz yok.</li>
+                                    ) : (
+                                        stage_activity.events_created.map((ev) => (
+                                            <li key={ev.id} className="py-2">
+                                                <Link
+                                                    href={route('admin.events.edit', ev.id)}
+                                                    className="font-medium text-amber-700 hover:underline dark:text-amber-400"
+                                                >
+                                                    {ev.title}
+                                                </Link>
+                                                <p className="text-xs text-zinc-500 sm:text-sm">
+                                                    {ev.venue.name} · {eventStatusTr(ev.status)} ·{' '}
+                                                    {formatTurkishDateTime(ev.created_at)}
+                                                </p>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="max-w-xl rounded-xl border border-amber-200/80 bg-amber-50/80 p-6 dark:border-amber-500/25 dark:bg-amber-500/10">
                     <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Şifre sıfırlama</h2>

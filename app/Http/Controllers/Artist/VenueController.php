@@ -130,7 +130,8 @@ class VenueController extends Controller
         $validated['user_id'] = $request->user()->id;
         $base = VenuePublicUsername::fromDisplayName($validated['name']);
         $validated['slug'] = VenuePublicUsername::makeUnique($base, null);
-        $validated['status'] = 'pending';
+        $trusted = $request->user()->hasStageSelfPublishTrust();
+        $validated['status'] = $trusted ? 'approved' : 'pending';
 
         $venue = Venue::create($validated);
 
@@ -138,7 +139,10 @@ class VenueController extends Controller
             app(VenueRemoteCoverImporter::class)->importGoogleGalleryToVenue($venue, $galleryUrls, updateVenueCoverFromFirst: true);
         }
 
-        return redirect()->route('artist.venues.index')->with('success', 'Mekan eklendi. Admin onayı bekleniyor.');
+        return redirect()->route('artist.venues.index')->with(
+            'success',
+            $trusted ? 'Mekan eklendi ve onay beklenmeden yayına alındı (yönetici güveni).' : 'Mekan eklendi. Admin onayı bekleniyor.'
+        );
     }
 
     public function edit(Request $request, Venue $venue)

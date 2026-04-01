@@ -7,7 +7,7 @@ import {
     type AdminPaginatorPayload,
 } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { venueArtistStatusTr } from '@/lib/statusLabels';
+import { stageOrganizationArtistLabel, venueArtistStatusTr, type StageUserRef } from '@/lib/statusLabels';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -21,6 +21,7 @@ interface Artist {
     status: string;
     view_count?: number;
     events_count?: number;
+    managed_by?: StageUserRef | null;
 }
 
 function artistListAvatarUrl(path: string | null | undefined): string | null {
@@ -79,6 +80,19 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                             ) : null}
                             <span className="min-w-0 truncate font-medium text-zinc-900 dark:text-white">{a.name}</span>
                         </div>
+                    );
+                },
+            },
+            {
+                key: 'org',
+                header: 'Organizasyon',
+                mobileLabel: 'Org.',
+                cell: (a) => {
+                    const label = stageOrganizationArtistLabel(a.managed_by ?? null);
+                    return label ? (
+                        <span className="text-sm text-violet-700 dark:text-violet-300">{label}</span>
+                    ) : (
+                        <span className="text-zinc-400 dark:text-zinc-500">—</span>
                     );
                 },
             },

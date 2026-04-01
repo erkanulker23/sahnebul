@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Artist;
+use App\Models\Event;
 use App\Models\User;
+use App\Models\Venue;
 use App\Support\AdminAssignableUserRoles;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
@@ -56,9 +58,68 @@ class UserController extends Controller
         $this->authorizeAdminUserEdit($request->user(), $user);
 
         return Inertia::render('Admin/Users/Edit', [
-            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active', 'stage_trusted_publisher']),
             'canAssignElevatedRoles' => $request->user()->isSuperAdmin(),
+            'stage_activity' => self::stageActivityPayload($user),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function stageActivityPayload(User $user): ?array
+    {
+        if ($user->isManagerOrganization()) {
+            $managed = Artist::query()
+                ->where('managed_by_user_id', $user->id)
+                ->latest()
+                ->limit(10)
+                ->get(['id', 'name', 'slug', 'status', 'created_at']);
+
+            $events = Event::query()
+                ->where('created_by_user_id', $user->id)
+                ->with(['venue:id,name,slug'])
+                ->latest()
+                ->limit(10)
+                ->get(['id', 'venue_id', 'title', 'status', 'start_date', 'created_at']);
+
+            return [
+                'kind' => 'organization',
+                'counts' => [
+                    'managed_artists' => Artist::query()->where('managed_by_user_id', $user->id)->count(),
+                    'events_created' => Event::query()->where('created_by_user_id', $user->id)->count(),
+                ],
+                'managed_artists' => $managed,
+                'events_created' => $events,
+            ];
+        }
+
+        if ($user->isVenueOwner()) {
+            $venues = Venue::query()
+                ->where('user_id', $user->id)
+                ->latest()
+                ->limit(10)
+                ->get(['id', 'name', 'slug', 'status', 'created_at']);
+
+            $events = Event::query()
+                ->where('created_by_user_id', $user->id)
+                ->with(['venue:id,name,slug'])
+                ->latest()
+                ->limit(10)
+                ->get(['id', 'venue_id', 'title', 'status', 'start_date', 'created_at']);
+
+            return [
+                'kind' => 'venue_owner',
+                'counts' => [
+                    'venues' => Venue::query()->where('user_id', $user->id)->count(),
+                    'events_created' => Event::query()->where('created_by_user_id', $user->id)->count(),
+                ],
+                'venues' => $venues,
+                'events_created' => $events,
+            ];
+        }
+
+        return null;
     }
 
     public function toggleActive(Request $request, User $user)
@@ -136,13 +197,18 @@ class UserController extends Controller
             'password' => ['nullable', 'string', 'min:6'],
             'role' => ['required', Rule::in($assignable)],
             'is_active' => ['nullable', 'boolean'],
+            'stage_trusted_publisher' => ['nullable', 'boolean'],
         ]);
+
+        $trustedApplicable = in_array($validated['role'], ['manager_organization', 'venue_owner'], true);
+        $stageTrusted = $trustedApplicable && $request->boolean('stage_trusted_publisher');
 
         $payload = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
             'is_active' => (bool) ($validated['is_active'] ?? true),
+            'stage_trusted_publisher' => $stageTrusted,
         ];
 
         if (! empty($validated['password'])) {

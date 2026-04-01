@@ -10,7 +10,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
-import { eventStatusTr } from '@/lib/statusLabels';
+import { eventStatusTr, stageEventCreatorLabel, type StageUserRef } from '@/lib/statusLabels';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 interface Event {
@@ -25,6 +25,7 @@ interface Event {
     venue: { name: string; status?: string };
     visible_on_site?: boolean;
     public_event_url?: string | null;
+    created_by?: StageUserRef | null;
 }
 
 interface Props {
@@ -142,6 +143,19 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                 header: 'Mekan',
                 mobileLabel: 'Mekan',
                 cell: (e) => <span className="text-zinc-600 dark:text-zinc-400">{e.venue.name}</span>,
+            },
+            {
+                key: 'creator',
+                header: 'Kaynak',
+                mobileLabel: 'Kaynak',
+                cell: (e) => {
+                    const label = stageEventCreatorLabel(e.created_by ?? null);
+                    return label ? (
+                        <span className="text-sm text-violet-700 dark:text-violet-300">{label}</span>
+                    ) : (
+                        <span className="text-zinc-400 dark:text-zinc-500">—</span>
+                    );
+                },
             },
             {
                 key: 'start',

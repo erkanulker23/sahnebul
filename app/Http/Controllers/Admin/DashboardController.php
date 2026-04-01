@@ -32,8 +32,20 @@ class DashboardController extends Controller
 
         $recentVenues = Venue::with('city', 'category')
             ->latest()
-            ->limit(8)
+            ->limit(10)
             ->get();
+
+        $recentArtists = Artist::query()
+            ->with(['managedBy:id,name,organization_display_name'])
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'name', 'slug', 'genre', 'status', 'created_at', 'managed_by_user_id']);
+
+        $recentEventsAdded = Event::query()
+            ->with(['venue:id,name,slug', 'createdBy:id,name,role,organization_display_name'])
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'venue_id', 'created_by_user_id', 'title', 'start_date', 'status', 'created_at']);
 
         $pendingArtists = Artist::query()
             ->where('status', 'pending')
@@ -80,6 +92,8 @@ class DashboardController extends Controller
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'recentVenues' => $recentVenues,
+            'recentArtists' => $recentArtists,
+            'recentEventsAdded' => $recentEventsAdded,
             'recentReservations' => $recentReservations,
             'popularVenues' => $popularVenues,
             'topViewedArtists' => $topViewedArtists,

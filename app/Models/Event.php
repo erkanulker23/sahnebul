@@ -41,7 +41,7 @@ class Event extends Model
     }
 
     protected $fillable = [
-        'venue_id', 'title', 'slug', 'event_type', 'description', 'start_date', 'end_date',
+        'venue_id', 'created_by_user_id', 'title', 'slug', 'event_type', 'description', 'start_date', 'end_date',
         'event_rules', 'ticket_price', 'entry_is_paid', 'capacity', 'sold_count', 'view_count', 'is_full', 'cover_image', 'listing_image', 'promo_video_path', 'promo_embed_url', 'promo_gallery', 'status',
         'sahnebul_reservation_enabled', 'paytr_checkout_enabled', 'ticket_outlets', 'ticket_purchase_note', 'ticket_acquisition_mode',
         'promo_show_on_venue_profile_posts', 'promo_show_on_venue_profile_videos', 'promo_venue_profile_moderation',
@@ -68,6 +68,12 @@ class Event extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /** Sahne panelinden etkinliği oluşturan kullanıcı (organizasyon veya mekân sahibi). */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function artists(): BelongsToMany

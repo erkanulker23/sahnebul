@@ -66,6 +66,7 @@ class OrganizationArtistController extends Controller
             ]);
         }
 
+        $trusted = $request->user()->hasStageSelfPublishTrust();
         Artist::query()->create([
             'user_id' => null,
             'managed_by_user_id' => $request->user()->id,
@@ -74,13 +75,18 @@ class OrganizationArtistController extends Controller
             'bio' => isset($validated['bio']) && is_string($validated['bio']) && trim($validated['bio']) !== ''
                 ? trim($validated['bio'])
                 : null,
-            'status' => 'pending',
+            'status' => $trusted ? 'approved' : 'pending',
             'country_code' => 'TR',
         ]);
 
         return redirect()
             ->route('artist.organization.artists.index')
-            ->with('success', 'Sanatçı kaydı oluşturuldu. Site yönetimi onayından sonra yayında görünür ve kadronuzda kalır.');
+            ->with(
+                'success',
+                $trusted
+                    ? 'Sanatçı kaydı oluşturuldu ve onay beklenmeden yayına alındı (yönetici güveni).'
+                    : 'Sanatçı kaydı oluşturuldu. Site yönetimi onayından sonra yayında görünür ve kadronuzda kalır.'
+            );
     }
 
     public function attach(Request $request, Artist $artist): RedirectResponse

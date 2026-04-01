@@ -12,6 +12,7 @@ import SeoHead from '@/Components/SeoHead';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { adminEventPromoGalleryRoutes } from '@/lib/adminEntityPromoUrls';
 import { cn } from '@/lib/cn';
+import { stageEventCreatorLabel, type StageUserRef } from '@/lib/statusLabels';
 import { ImageOff, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -61,6 +62,7 @@ interface EventModel {
     promo_show_on_artist_profile_posts?: boolean;
     promo_show_on_artist_profile_videos?: boolean;
     promo_artist_profile_moderation?: string | null;
+    created_by?: StageUserRef | null;
 }
 
 interface Props {
@@ -274,6 +276,8 @@ export default function AdminEventEdit({
         return [...new Set(msgs)];
     }, [errors]);
 
+    const eventCreatorLine = stageEventCreatorLabel(event.created_by ?? null);
+
     return (
         <AdminLayout>
             <SeoHead title={`${event.title} — Düzenle`} description="Etkinliği düzenleyin." noindex />
@@ -284,6 +288,11 @@ export default function AdminEventEdit({
                             ← Etkinlik listesi
                         </Link>
                         <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">Etkinlik düzenle</h1>
+                        {eventCreatorLine ? (
+                            <p className="mt-2 max-w-xl text-sm text-violet-200/90 dark:text-violet-200/90">
+                                Sahne panelinden ekleyen: <span className="font-medium text-white">{eventCreatorLine}</span>
+                            </p>
+                        ) : null}
                     </div>
                     <div className="flex gap-2">
                         <Link
