@@ -16,6 +16,7 @@ use App\Services\SahnebulMail;
 use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use App\Support\TurkishPhone;
+use App\Support\UpcomingSevenDayEventWindow;
 use App\Support\UserContactValidation;
 use App\Support\VenuePublicUsername;
 use Illuminate\Http\JsonResponse;
@@ -80,7 +81,12 @@ class VenueController extends Controller
         $search = trim((string) $request->input('search', ''));
 
         $venues = Venue::with(['city', 'category', 'user:id,name,email'])
-            ->withCount('events')
+            ->withCount([
+                'events',
+                'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(
+                    $q->whereNotNull('start_date')
+                ),
+            ])
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($search !== '', function ($q) use ($search) {
                 $escaped = addcslashes($search, '%_\\');

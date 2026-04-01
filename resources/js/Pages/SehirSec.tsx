@@ -1,8 +1,8 @@
 import SeoHead from '@/Components/SeoHead';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import AppLayout from '@/Layouts/AppLayout';
-import { Link } from '@inertiajs/react';
-import { Ticket } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { MapPin, Ticket } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CitySection {
@@ -14,22 +14,81 @@ interface CitySection {
 interface Props {
     citySections: CitySection[];
     initialSlug: string | null;
+    nearLat?: number | null;
+    nearLng?: number | null;
 }
 
-export default function SehirSec({ citySections, initialSlug }: Readonly<Props>) {
+export default function SehirSec({ citySections, initialSlug, nearLat = null, nearLng = null }: Readonly<Props>) {
     const [activeSlug, setActiveSlug] = useState<string>(initialSlug ?? citySections[0]?.slug ?? '');
     const didScrollRef = useRef(false);
+    const [geoHint, setGeoHint] = useState<string | null>(null);
+    const [geoDenied, setGeoDenied] = useState(false);
 
-    const scrollToCity = useCallback((slug: string) => {
-        const el = document.getElementById(`sehir-${slug}`);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const hasNear =
+        nearLat != null && nearLng != null && Number.isFinite(nearLat) && Number.isFinite(nearLng);
+
+    const scrollToCity = useCallback(
+        (slug: string) => {
+            const el = document.getElementById(`sehir-${slug}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            setActiveSlug(slug);
+            const url = new URL(globalThis.location.href);
+            url.searchParams.set('sehir', slug);
+            if (hasNear) {
+                url.searchParams.set('near_lat', String(nearLat));
+                url.searchParams.set('near_lng', String(nearLng));
+            }
+            globalThis.history.replaceState({}, '', url.toString());
+        },
+        [hasNear, nearLat, nearLng],
+    );
+
+    const requestLocationHub = useCallback(() => {
+        if (typeof globalThis.navigator === 'undefined' || !globalThis.navigator.geolocation) {
+            setGeoDenied(true);
+            return;
         }
-        setActiveSlug(slug);
-        const url = new URL(globalThis.location.href);
-        url.searchParams.set('sehir', slug);
-        globalThis.history.replaceState({}, '', url.toString());
+        setGeoDenied(false);
+        setGeoHint('Konumunuz alınıyor…');
+        globalThis.navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setGeoHint(null);
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const u = new URL(globalThis.location.href);
+                u.searchParams.set('near_lat', String(lat));
+                u.searchParams.set('near_lng', String(lng));
+                router.visit(`${u.pathname}${u.search}`, {
+                    preserveScroll: false,
+                    replace: true,
+                });
+            },
+            () => {
+                setGeoHint(null);
+                setGeoDenied(true);
+            },
+            { enableHighAccuracy: false, timeout: 15_000, maximumAge: 0 },
+        );
     }, []);
+
+    const clearLocationHub = useCallback(() => {
+        const u = new URL(globalThis.location.href);
+        u.searchParams.delete('near_lat');
+        u.searchParams.delete('near_lng');
+        router.visit(`${u.pathname}${u.search}`, { replace: true });
+    }, []);
+
+    useEffect(() => {
+        if (initialSlug) {
+            setActiveSlug(initialSlug);
+        }
+    }, [initialSlug]);
+
+    useEffect(() => {
+        didScrollRef.current = false;
+    }, [initialSlug, nearLat, nearLng]);
 
     useEffect(() => {
         if (didScrollRef.current || !initialSlug) {
@@ -41,7 +100,7 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
             document.getElementById(id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
         }, 100);
         return () => globalThis.clearTimeout(t);
-    }, [initialSlug]);
+    }, [initialSlug, nearLat, nearLng]);
 
     return (
         <AppLayout>
@@ -71,6 +130,35 @@ export default function SehirSec({ citySections, initialSlug }: Readonly<Props>)
                         <p className="mt-5 max-w-lg text-sm text-white/90 md:text-base">
                             Şehrindeki etkinlikleri görmek için bulunduğun şehre tıkla veya aşağı kaydır
                         </p>
+
+                        <div className="mt-6 flex max-w-xl flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                            <button
+                                type="button"
+                                onClick={requestLocationHub}
+                                disabled={geoHint !== null}
+                                className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-600/85 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                {geoHint ?? (hasNear ? 'Konumu yenile' : 'Konumuma göre (şehir + sıra)')}
+                            </button>
+                            {hasNear ? (
+                                <button
+                                    type="button"
+                                    onClick={clearLocationHub}
+                                    className="text-sm font-medium text-white/80 underline-offset-4 hover:underline"
+                                >
+                                    Konum sırasını kaldır
+                                </button>
+                            ) : null}
+                            {geoDenied ? (
+                                <p className="text-center text-xs text-red-200 sm:ml-2">Konum alınamadı.</p>
+                            ) : null}
+                        </div>
+                        {hasNear ? (
+                            <p className="mt-3 max-w-lg text-center text-xs text-emerald-100/90">
+                                Şehir sekmeleri size yakınlığa göre sıralandı; her şehirdeki kartlar önce tarihe, sonra mesafeye göre dizilir.
+                            </p>
+                        ) : null}
 
                         <div className="mt-10 flex max-w-4xl flex-wrap justify-center gap-2">
                             {citySections.map((c) => (

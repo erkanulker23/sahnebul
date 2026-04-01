@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\City;
+use App\Support\ArtistProfileInputs;
 use App\Support\TurkishPhone;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -46,12 +47,26 @@ class ProfileController extends Controller
             $user->avatar = $request->file('avatar')->store('avatars', 'public');
         }
 
-        $attributes = $request->safe()->except('avatar');
+        if ($request->hasFile('organization_cover') && $user->isManagerOrganization()) {
+            if (is_string($user->organization_cover_image) && $user->organization_cover_image !== '') {
+                Storage::disk('public')->delete($user->organization_cover_image);
+            }
+            $user->organization_cover_image = $request->file('organization_cover')->store('organization-covers', 'public');
+        }
+
+        $attributes = $request->safe()->except(['avatar', 'organization_cover']);
         if (array_key_exists('phone', $attributes)) {
             $raw = trim((string) $attributes['phone']);
             $attributes['phone'] = $raw === '' ? null : TurkishPhone::normalize($raw);
         }
         $user->fill($attributes);
+
+        if ($user->isManagerOrganization()) {
+            $social = ArtistProfileInputs::normalizeSocialLinks($request->input('organization_social_links'));
+            $user->organization_social_links = $social;
+            $slug = trim((string) $user->organization_public_slug);
+            $user->organization_public_slug = $slug !== '' ? $slug : null;
+        }
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;

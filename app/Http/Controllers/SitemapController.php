@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Artist;
 use App\Models\BlogPost;
 use App\Models\Event;
+use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -54,6 +55,9 @@ class SitemapController extends Controller
         $push('/etkinlikler', $eventsLm, 'hourly', '0.95');
         $push('/sanatcilar', $artistsLm, 'hourly', '0.95');
         $push('/mekanlar', $venuesLm, 'hourly', '0.95');
+        $orgsMaxAt = User::query()->publicOrganizationDirectory()->max('updated_at');
+        $orgsLm = $toCarbon($orgsMaxAt);
+        $push('/organizasyonlar', $orgsLm, 'weekly', '0.85');
         $push('/blog', $blogLm, 'hourly', '0.7');
         $push('/iletisim', null, 'monthly', '0.4');
         $push('/sehir-sec', $eventsLm, 'hourly', '0.6');
@@ -96,6 +100,21 @@ class SitemapController extends Controller
             ->chunkById(500, function ($artists) use (&$push): void {
                 foreach ($artists as $a) {
                     $push('/sanatcilar/'.$a->slug, $a->updated_at, 'daily', '0.82');
+                }
+            });
+
+        User::query()
+            ->publicOrganizationDirectory()
+            ->select(['id', 'organization_public_slug', 'updated_at'])
+            ->orderBy('id')
+            ->chunkById(500, function ($users) use (&$push): void {
+                foreach ($users as $u) {
+                    /** @var User $u */
+                    $slug = trim((string) ($u->organization_public_slug ?? ''));
+                    if ($slug === '') {
+                        continue;
+                    }
+                    $push('/organizasyonlar/'.$slug, $u->updated_at, 'weekly', '0.78');
                 }
             });
 

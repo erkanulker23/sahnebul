@@ -9,6 +9,28 @@ import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useMemo, useState } from 'react';
 
+function buildOrgSocialForProfile(d: {
+    org_social_instagram: string;
+    org_social_twitter: string;
+    org_social_youtube: string;
+    org_social_facebook: string;
+    org_social_tiktok: string;
+    org_social_spotify: string;
+}): Record<string, string> {
+    const links: Record<string, string> = {};
+    const add = (key: string, v: string) => {
+        const t = v.trim();
+        if (t !== '') links[key] = t;
+    };
+    add('instagram', d.org_social_instagram);
+    add('twitter', d.org_social_twitter);
+    add('youtube', d.org_social_youtube);
+    add('facebook', d.org_social_facebook);
+    add('tiktok', d.org_social_tiktok);
+    add('spotify', d.org_social_spotify);
+    return links;
+}
+
 function resolveStorageOrAbsoluteUrl(path: string | null | undefined): string | null {
     if (!path || typeof path !== 'string') {
         return null;
@@ -54,6 +76,7 @@ export default function UpdateProfileInformation({
     const user = auth.user!;
     const linkedArtist = auth.linkedArtist;
     const isManagerOrganization = auth.is_manager_organization === true;
+    const orgPublic = auth.organization_public_profile ?? null;
     const [interestInput, setInterestInput] = useState('');
 
     const initialName = useMemo(() => {
@@ -67,7 +90,9 @@ export default function UpdateProfileInformation({
     const artistPhotoUrl = useMemo(() => resolveStorageOrAbsoluteUrl(linkedArtist?.avatar), [linkedArtist?.avatar]);
     const userPhotoUrl = useMemo(() => resolveStorageOrAbsoluteUrl(user.avatar), [user.avatar]);
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } =
+    const sl = (user.organization_social_links ?? {}) as Record<string, string>;
+
+    const { data, setData, patch, errors, processing, recentlySuccessful, transform } =
         useForm({
             name: initialName,
             email: user.email,
@@ -78,14 +103,53 @@ export default function UpdateProfileInformation({
             organization_display_name: user.organization_display_name ?? '',
             organization_tax_office: user.organization_tax_office ?? '',
             organization_tax_number: user.organization_tax_number ?? '',
+            organization_public_slug: user.organization_public_slug ?? '',
+            organization_about: user.organization_about ?? '',
+            organization_website: user.organization_website ?? '',
+            organization_cover: null as File | null,
+            org_social_instagram: sl.instagram ?? '',
+            org_social_twitter: sl.twitter ?? sl.x ?? '',
+            org_social_youtube: sl.youtube ?? '',
+            org_social_facebook: sl.facebook ?? '',
+            org_social_tiktok: sl.tiktok ?? '',
+            org_social_spotify: sl.spotify ?? '',
         });
 
     const storedOrArtistPhotoUrl = userPhotoUrl ?? artistPhotoUrl ?? null;
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        transform((raw) => {
+            const d = raw as typeof data;
+            const {
+                org_social_instagram,
+                org_social_twitter,
+                org_social_youtube,
+                org_social_facebook,
+                org_social_tiktok,
+                org_social_spotify,
+                organization_cover: coverFile,
+                ...rest
+            } = d;
+            const organization_social_links = buildOrgSocialForProfile({
+                org_social_instagram,
+                org_social_twitter,
+                org_social_youtube,
+                org_social_facebook,
+                org_social_tiktok,
+                org_social_spotify,
+            });
+            return {
+                ...rest,
+                organization_social_links,
+                organization_cover: coverFile instanceof File ? coverFile : undefined,
+            };
+        });
         patch(route('profile.update'), {
             forceFormData: true,
+            onFinish: () => {
+                transform((d) => d);
+            },
         });
     };
 
@@ -219,6 +283,97 @@ export default function UpdateProfileInformation({
                                 autoComplete="off"
                             />
                             <InputError className="mt-2" message={errors.organization_tax_number} />
+                        </div>
+                        <div className="mt-4 space-y-4 border-t border-amber-200/60 pt-4 dark:border-amber-500/15">
+                            <p className="text-sm font-medium text-amber-950 dark:text-amber-200">Herkese açık firma sayfası</p>
+                            {orgPublic?.published && orgPublic.url ? (
+                                <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                                    <a
+                                        href={orgPublic.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-medium text-amber-700 underline hover:text-amber-600 dark:text-amber-400"
+                                    >
+                                        Kamu profilini sitede aç
+                                    </a>
+                                </p>
+                            ) : (
+                                <p className="text-xs text-zinc-600 dark:text-zinc-500">
+                                    İçeriği burada düzenlersiniz; sayfanın herkese açılması site yönetiminde «Organizasyon sayfası yayında» ile yapılır.
+                                </p>
+                            )}
+                            <div>
+                                <InputLabel htmlFor="organization_public_slug" value="Profil adresi (yalnızca küçük harf, rakam, tire)" />
+                                <TextInput
+                                    id="organization_public_slug"
+                                    className="mt-1 block w-full font-mono text-sm"
+                                    value={data.organization_public_slug}
+                                    onChange={(e) =>
+                                        setData(
+                                            'organization_public_slug',
+                                            e.target.value.toLowerCase().replaceAll(/[^a-z0-9-]/g, ''),
+                                        )
+                                    }
+                                    autoComplete="off"
+                                    placeholder="ornek-ajans"
+                                />
+                                <InputError className="mt-2" message={errors.organization_public_slug} />
+                            </div>
+                            <div>
+                                <InputLabel htmlFor="organization_about" value="Hakkında (isteğe bağlı, düz metin veya HTML)" />
+                                <textarea
+                                    id="organization_about"
+                                    value={data.organization_about}
+                                    onChange={(e) => setData('organization_about', e.target.value)}
+                                    rows={5}
+                                    className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/25 dark:border-white/10 dark:bg-zinc-800/50 dark:text-white"
+                                />
+                                <InputError className="mt-2" message={errors.organization_about} />
+                            </div>
+                            <div>
+                                <InputLabel htmlFor="organization_website" value="Web sitesi" />
+                                <TextInput
+                                    id="organization_website"
+                                    className="mt-1 block w-full"
+                                    value={data.organization_website}
+                                    onChange={(e) => setData('organization_website', e.target.value)}
+                                    autoComplete="url"
+                                />
+                                <InputError className="mt-2" message={errors.organization_website} />
+                            </div>
+                            <div>
+                                <InputLabel htmlFor="organization_cover" value="Kapak görseli (kart ve sayfa üstü)" />
+                                <input
+                                    id="organization_cover"
+                                    type="file"
+                                    accept="image/*"
+                                    className="mt-2 block w-full text-sm text-zinc-600 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-100 file:px-4 file:py-2 file:text-amber-900 file:hover:bg-amber-200 dark:text-zinc-400 dark:file:bg-amber-500/20 dark:file:text-amber-400 dark:file:hover:bg-amber-500/30"
+                                    onChange={(e) => setData('organization_cover', e.target.files?.[0] ?? null)}
+                                />
+                                <InputError className="mt-2" message={errors.organization_cover} />
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {(
+                                    [
+                                        ['org_social_instagram', 'Instagram'],
+                                        ['org_social_twitter', 'X / Twitter'],
+                                        ['org_social_youtube', 'YouTube'],
+                                        ['org_social_facebook', 'Facebook'],
+                                        ['org_social_tiktok', 'TikTok'],
+                                        ['org_social_spotify', 'Spotify'],
+                                    ] as const
+                                ).map(([field, label]) => (
+                                    <div key={field}>
+                                        <InputLabel htmlFor={field} value={label} />
+                                        <TextInput
+                                            id={field}
+                                            className="mt-1 block w-full text-sm"
+                                            value={data[field]}
+                                            onChange={(e) => setData(field, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}

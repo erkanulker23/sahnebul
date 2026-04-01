@@ -6,6 +6,7 @@ use App\Models\Artist;
 use App\Models\Category;
 use App\Models\Event;
 use App\Support\EventListingQuery;
+use App\Support\RequestGeoQuery;
 use App\Support\SehirSecCityDistricts;
 use App\Support\SehirSecCityPromoStories;
 use App\Support\SehirSecPlatformEvents;
@@ -101,18 +102,9 @@ class SehirSecCityController extends Controller
             $ilce = null;
         }
 
-        $nearLatRaw = $request->query('near_lat');
-        $nearLngRaw = $request->query('near_lng');
-        $nearLat = null;
-        $nearLng = null;
-        if (is_numeric($nearLatRaw) && is_numeric($nearLngRaw)) {
-            $la = (float) $nearLatRaw;
-            $ln = (float) $nearLngRaw;
-            if ($la >= -90 && $la <= 90 && $ln >= -180 && $ln <= 180) {
-                $nearLat = $la;
-                $nearLng = $ln;
-            }
-        }
+        $near = RequestGeoQuery::optionalNearLatLng($request);
+        $nearLat = $near['lat'] ?? null;
+        $nearLng = $near['lng'] ?? null;
 
         $sanatTuru = $request->query('sanat_turu');
         $sanatTuru = is_string($sanatTuru) && $sanatTuru !== '' ? $sanatTuru : null;
@@ -188,7 +180,7 @@ class SehirSecCityController extends Controller
         ]);
 
         if ($nearLatQueryOk) {
-            EventListingQuery::applyProximityOrderFirst($listQuery, $nearLat, $nearLng);
+            EventListingQuery::applyDateThenProximityOrder($listQuery, $nearLat, $nearLng);
         } else {
             EventListingQuery::applyDefaultOrder($listQuery);
         }

@@ -4,7 +4,9 @@ namespace App\Support;
 
 use App\Models\Artist;
 use App\Models\Event;
+use App\Models\User;
 use App\Services\AppSettingsService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Google yapılandırılmış veri (JSON-LD) — etkinlik, sanatçı ve site organizasyonu.
@@ -85,6 +87,53 @@ final class PublicStructuredData
         return [
             '@context' => 'https://schema.org',
             '@graph' => [$org, $website],
+        ];
+    }
+
+    /**
+     * @param  LengthAwarePaginator<User>  $paginator
+     * @return array<string, mixed>|null
+     */
+    public static function organizationsIndexItemList(LengthAwarePaginator $paginator, string $appUrl): ?array
+    {
+        $appUrl = rtrim($appUrl, '/');
+        $elements = [];
+        $pos = 1;
+        foreach ($paginator->items() as $row) {
+            if (! $row instanceof User) {
+                continue;
+            }
+            $slug = trim((string) ($row->organization_public_slug ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+            $name = trim((string) ($row->organization_display_name ?? ''));
+            if ($name === '') {
+                $name = trim((string) $row->name);
+            }
+            $url = SeoFormatting::normalizeCanonical($appUrl, '/organizasyonlar/'.$slug);
+            $elements[] = [
+                '@type' => 'ListItem',
+                'position' => $pos,
+                'item' => $url,
+                'name' => $name !== '' ? $name : $slug,
+            ];
+            $pos++;
+            if ($pos > 24) {
+                break;
+            }
+        }
+
+        if ($elements === []) {
+            return null;
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'ItemList',
+            'name' => 'Organizasyon firmaları',
+            'numberOfItems' => count($elements),
+            'itemListElement' => $elements,
         ];
     }
 

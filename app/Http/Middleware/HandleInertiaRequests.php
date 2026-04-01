@@ -157,6 +157,17 @@ class HandleInertiaRequests extends Middleware
                 'is_platform_admin' => $user !== null && $user->isAdmin(),
                 'is_super_admin' => $user !== null && $user->isSuperAdmin(),
                 'is_manager_organization' => $user !== null && $user->isManagerOrganization(),
+                'organization_public_profile' => $user !== null && $user->isManagerOrganization()
+                    ? [
+                        'published' => (bool) ($user->organization_profile_published ?? false),
+                        'slug' => is_string($user->organization_public_slug) ? $user->organization_public_slug : null,
+                        'url' => ((bool) ($user->organization_profile_published ?? false)
+                            && is_string($user->organization_public_slug)
+                            && trim($user->organization_public_slug) !== '')
+                            ? url('/organizasyonlar/'.trim($user->organization_public_slug))
+                            : null,
+                    ]
+                    : null,
                 /**
                  * Saf sanatçı (rol artist, mekân yok, bekleyen mekân kaydı yok): panelde Mekanlarım / Rezervasyonlar gizlenir.
                  */

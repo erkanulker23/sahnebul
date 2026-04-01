@@ -8,11 +8,14 @@ use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\AdminAssignableUserRoles;
+use App\Support\ArtistProfileInputs;
+use App\Support\OrganizationPublicProfile;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -58,7 +61,17 @@ class UserController extends Controller
         $this->authorizeAdminUserEdit($request->user(), $user);
 
         return Inertia::render('Admin/Users/Edit', [
-            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active', 'stage_trusted_publisher']),
+            'user' => $user->only([
+                'id', 'name', 'email', 'role', 'is_active', 'stage_trusted_publisher',
+                'organization_display_name',
+                'organization_public_slug',
+                'organization_about',
+                'organization_cover_image',
+                'organization_website',
+                'organization_social_links',
+                'organization_meta_description',
+                'organization_profile_published',
+            ]),
             'canAssignElevatedRoles' => $request->user()->isSuperAdmin(),
             'stage_activity' => self::stageActivityPayload($user),
         ]);
@@ -191,14 +204,28 @@ class UserController extends Controller
         $actor = $request->user();
         $assignable = AdminAssignableUserRoles::forActor($actor);
 
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => array_merge(UserContactValidation::emailRequired(), ['unique:users,email,'.$user->id]),
             'password' => ['nullable', 'string', 'min:6'],
             'role' => ['required', Rule::in($assignable)],
             'is_active' => ['nullable', 'boolean'],
             'stage_trusted_publisher' => ['nullable', 'boolean'],
-        ]);
+        ];
+
+        if ($request->input('role') === 'manager_organization') {
+            $rules['organization_display_name'] = ['nullable', 'string', 'max:255'];
+            $rules['organization_public_slug'] = OrganizationPublicProfile::slugValidationRules($user->id);
+            $rules['organization_about'] = ['nullable', 'string', 'max:200000'];
+            $rules['organization_cover_image'] = ['nullable', 'string', 'max:2048'];
+            $rules['organization_website'] = ['nullable', 'string', 'max:2048'];
+            $rules['organization_meta_description'] = ['nullable', 'string', 'max:512'];
+            $rules['organization_profile_published'] = ['nullable', 'boolean'];
+            $rules['organization_social_links'] = ['nullable', 'array'];
+            $rules['organization_social_links.*'] = ['nullable', 'string', 'max:2048'];
+        }
+
+        $validated = $request->validate($rules);
 
         $trustedApplicable = in_array($validated['role'], ['manager_organization', 'venue_owner'], true);
         $stageTrusted = $trustedApplicable && $request->boolean('stage_trusted_publisher');
@@ -213,6 +240,39 @@ class UserController extends Controller
 
         if (! empty($validated['password'])) {
             $payload['password'] = Hash::make($validated['password']);
+        }
+
+        if ($validated['role'] === 'manager_organization') {
+            $slug = trim((string) ($validated['organization_public_slug'] ?? ''));
+            $published = $request->boolean('organization_profile_published');
+            if ($published && $slug === '') {
+                throw ValidationException::withMessages([
+                    'organization_public_slug' => 'Kamu profili yayımlanırken profil adresi (slug) zorunludur.',
+                ]);
+            }
+            $social = ArtistProfileInputs::normalizeSocialLinks($request->input('organization_social_links'));
+            $about = trim((string) ($validated['organization_about'] ?? ''));
+            $website = trim((string) ($validated['organization_website'] ?? ''));
+            $cover = trim((string) ($validated['organization_cover_image'] ?? ''));
+            $meta = trim((string) ($validated['organization_meta_description'] ?? ''));
+            $displayName = trim((string) ($validated['organization_display_name'] ?? ''));
+
+            $payload['organization_display_name'] = $displayName !== '' ? $displayName : null;
+            $payload['organization_public_slug'] = $slug !== '' ? $slug : null;
+            $payload['organization_about'] = $about !== '' ? $about : null;
+            $payload['organization_cover_image'] = $cover !== '' ? $cover : null;
+            $payload['organization_website'] = $website !== '' ? $website : null;
+            $payload['organization_social_links'] = $social;
+            $payload['organization_meta_description'] = $meta !== '' ? $meta : null;
+            $payload['organization_profile_published'] = $published && $slug !== '';
+        } else {
+            $payload['organization_public_slug'] = null;
+            $payload['organization_about'] = null;
+            $payload['organization_cover_image'] = null;
+            $payload['organization_website'] = null;
+            $payload['organization_social_links'] = null;
+            $payload['organization_meta_description'] = null;
+            $payload['organization_profile_published'] = false;
         }
 
         $user->update($payload);

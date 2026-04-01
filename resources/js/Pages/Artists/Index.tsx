@@ -7,7 +7,8 @@ import { stripHtmlToText } from '@/utils/seo';
 import VerifiedArtistProfileBadge from '@/Components/VerifiedArtistProfileBadge';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router } from '@inertiajs/react';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { MapPin } from 'lucide-react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -36,7 +37,7 @@ interface Props {
     letters: string[];
     /** Türkçe A–Z (Ç, Ğ, İ, Ö, Ş, Ü dahil) — tüm harfler filtrede */
     alphabetLetters: string[];
-    filters: { search?: string; genre?: string; letter?: string };
+    filters: { search?: string; genre?: string; letter?: string; near_lat?: string; near_lng?: string };
     artistsThisWeek?: Array<{
         id: number;
         name: string;
@@ -65,7 +66,18 @@ export default function ArtistsIndex({
     const [search, setSearch] = useState(filters.search ?? '');
     const [genre, setGenre] = useState(filters.genre ?? '');
     const [letter, setLetter] = useState(filters.letter ?? '');
+    const [geoHint, setGeoHint] = useState<string | null>(null);
+    const [geoDenied, setGeoDenied] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const nearLatSaved = filters.near_lat != null && String(filters.near_lat) !== '' ? String(filters.near_lat) : '';
+    const nearLngSaved = filters.near_lng != null && String(filters.near_lng) !== '' ? String(filters.near_lng) : '';
+    const hasNearSort = nearLatSaved !== '' && nearLngSaved !== '';
+
+    const geoQuery = useMemo(
+        () => (hasNearSort ? { near_lat: nearLatSaved, near_lng: nearLngSaved } : {}),
+        [hasNearSort, nearLatSaved, nearLngSaved]
+    );
 
     useEffect(() => {
         setGenre(filters.genre ?? '');
@@ -96,7 +108,8 @@ export default function ArtistsIndex({
         e.preventDefault();
         const form = e.currentTarget;
         const formData = new FormData(form);
-        router.get(route('artists.index'), Object.fromEntries(formData.entries()), { preserveState: true });
+        const entries = Object.fromEntries(formData.entries()) as Record<string, string>;
+        router.get(route('artists.index'), { ...entries, ...geoQuery }, { preserveState: true });
     };
 
     useEffect(() => {
@@ -110,13 +123,43 @@ export default function ArtistsIndex({
             }
             router.get(
                 route('artists.index'),
-                { search, genre, letter },
+                { search, genre, letter, ...geoQuery },
                 { preserveState: true, replace: true }
             );
         }, 250);
 
         return () => clearTimeout(timer);
-    }, [search, genre, letter, filters.search, filters.genre, filters.letter]);
+    }, [search, genre, letter, filters.search, filters.genre, filters.letter, geoQuery]);
+
+    const requestWeekStripLocationSort = useCallback(() => {
+        if (typeof globalThis.navigator === 'undefined' || !globalThis.navigator.geolocation) {
+            setGeoDenied(true);
+            return;
+        }
+        setGeoDenied(false);
+        setGeoHint('Konumunuz alınıyor…');
+        globalThis.navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setGeoHint(null);
+                router.get(
+                    route('artists.index'),
+                    {
+                        search: search || undefined,
+                        genre: genre || undefined,
+                        letter: letter || undefined,
+                        near_lat: String(pos.coords.latitude),
+                        near_lng: String(pos.coords.longitude),
+                    },
+                    { preserveState: true, replace: true }
+                );
+            },
+            () => {
+                setGeoHint(null);
+                setGeoDenied(true);
+            },
+            { enableHighAccuracy: false, timeout: 15_000, maximumAge: 0 }
+        );
+    }, [search, genre, letter]);
 
     return (
         <AppLayout>
@@ -150,7 +193,51 @@ export default function ArtistsIndex({
             </section>
 
             {artistsThisWeek.length > 0 && weekRange && (
-                <ArtistsWeekSlider artists={artistsThisWeek} weekRange={weekRange} imageSrc={imageSrc} />
+                <>
+                    <ArtistsWeekSlider artists={artistsThisWeek} weekRange={weekRange} imageSrc={imageSrc} />
+                    <div className="mx-auto max-w-7xl px-3 pb-2 pt-1 sm:px-5 lg:px-8">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200/90 bg-white/80 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between dark:border-white/[0.08] dark:bg-zinc-900/60">
+                            <p className="max-w-xl text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                {hasNearSort
+                                    ? 'Bu şerit: önce en yakın gösteri tarihi, aynı zamanda size en yakın mekâna göre sıralı.'
+                                    : 'Yaklaşan gösterisi olan sanatçıları, konumunuza göre sıralamak için izin verin.'}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={requestWeekStripLocationSort}
+                                    disabled={geoHint !== null}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100"
+                                >
+                                    <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                    {geoHint ?? 'Bu hafta — konumuma göre'}
+                                </button>
+                                {hasNearSort ? (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.get(
+                                                route('artists.index'),
+                                                {
+                                                    search: search || undefined,
+                                                    genre: genre || undefined,
+                                                    letter: letter || undefined,
+                                                },
+                                                { preserveState: true, replace: true }
+                                            )
+                                        }
+                                        className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 dark:border-white/10 dark:text-zinc-300"
+                                    >
+                                        Konum sırasını kaldır
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                        {geoDenied ? (
+                            <p className="mt-2 text-xs text-red-600 dark:text-red-400">Konum alınamadı.</p>
+                        ) : null}
+                    </div>
+                </>
             )}
 
             {/* Filter */}

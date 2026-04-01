@@ -21,6 +21,8 @@ interface Artist {
     status: string;
     view_count?: number;
     events_count?: number;
+    /** Bugün–önümüzdeki 7 gün (start ≥ şimdi), /sanatçılar ile aynı pencere */
+    weekly_events_count?: number;
     managed_by?: StageUserRef | null;
 }
 
@@ -110,6 +112,15 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(a.status)}`}>
                         {venueArtistStatusTr(a.status)}
                     </span>
+                ),
+            },
+            {
+                key: 'week',
+                header: 'Bu hafta (7 gün)',
+                mobileLabel: '7 gün',
+                className: 'text-right tabular-nums',
+                cell: (a) => (
+                    <span className="text-zinc-700 dark:text-zinc-300">{(a.weekly_events_count ?? 0).toLocaleString('tr-TR')}</span>
                 ),
             },
             {

@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
+import { MapPin } from 'lucide-react';
 import { FormEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function ChevronDown({ className }: Readonly<{ className?: string }>) {
@@ -66,6 +67,8 @@ interface Props {
         event_type?: string;
         city_id?: string | number;
         district_id?: string | number;
+        near_lat?: string;
+        near_lng?: string;
     };
 }
 
@@ -100,7 +103,13 @@ export default function EventsIndex({
     const [districts, setDistricts] = useState<LocationOption[]>([]);
     const [loadingProvinces, setLoadingProvinces] = useState(!(provincesFromServer?.length > 0));
     const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [geoHint, setGeoHint] = useState<string | null>(null);
+    const [geoDenied, setGeoDenied] = useState(false);
     const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const nearLatSaved = filters.near_lat != null && String(filters.near_lat) !== '' ? String(filters.near_lat) : '';
+    const nearLngSaved = filters.near_lng != null && String(filters.near_lng) !== '' ? String(filters.near_lng) : '';
+    const hasNearSort = nearLatSaved !== '' && nearLngSaved !== '';
 
     const filtersRef = useRef({
         search,
@@ -110,6 +119,8 @@ export default function EventsIndex({
         genre,
         city_id: cityId,
         district_id: districtId,
+        near_lat: nearLatSaved,
+        near_lng: nearLngSaved,
     });
     filtersRef.current = {
         search,
@@ -119,6 +130,8 @@ export default function EventsIndex({
         genre,
         city_id: cityId,
         district_id: districtId,
+        near_lat: nearLatSaved,
+        near_lng: nearLngSaved,
     };
 
     const applyQuery = useCallback(
@@ -131,6 +144,8 @@ export default function EventsIndex({
                 genre: string;
                 city_id: string;
                 district_id: string;
+                near_lat: string;
+                near_lng: string;
             }> = {}
         ) => {
             const q = { ...filtersRef.current, ...next };
@@ -144,6 +159,7 @@ export default function EventsIndex({
                     genre: q.genre || undefined,
                     city_id: q.city_id || undefined,
                     district_id: q.district_id || undefined,
+                    ...(q.near_lat && q.near_lng ? { near_lat: q.near_lat, near_lng: q.near_lng } : {}),
                 },
                 { preserveState: true, replace: true }
             );
@@ -215,6 +231,8 @@ export default function EventsIndex({
         filters.genre,
         filters.city_id,
         filters.district_id,
+        filters.near_lat,
+        filters.near_lng,
     ]);
 
     useEffect(() => {
@@ -284,8 +302,47 @@ export default function EventsIndex({
             filters.genre ||
             filters.event_type ||
             filters.city_id ||
-            filters.district_id,
+            filters.district_id ||
+            (filters.near_lat && filters.near_lng),
     );
+
+    const requestLocationSort = useCallback(() => {
+        if (typeof globalThis.navigator === 'undefined' || !globalThis.navigator.geolocation) {
+            setGeoDenied(true);
+            return;
+        }
+        setGeoDenied(false);
+        setGeoHint('Konumunuz alınıyor…');
+
+        globalThis.navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setGeoHint(null);
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const q = filtersRef.current;
+                router.get(
+                    route('events.index'),
+                    {
+                        search: q.search || undefined,
+                        category: q.category || undefined,
+                        period: q.period || undefined,
+                        event_type: q.event_type || undefined,
+                        genre: q.genre || undefined,
+                        city_id: q.city_id || undefined,
+                        district_id: q.district_id || undefined,
+                        near_lat: String(lat),
+                        near_lng: String(lng),
+                    },
+                    { preserveState: true, replace: true }
+                );
+            },
+            () => {
+                setGeoHint(null);
+                setGeoDenied(true);
+            },
+            { enableHighAccuracy: false, timeout: 15_000, maximumAge: 0 }
+        );
+    }, []);
 
     const activeChips = useMemo(() => {
         const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -326,6 +383,13 @@ export default function EventsIndex({
                 clear: () => clearChipAndNavigate({ city_id: '', district_id: '' }),
             });
         }
+        if (hasNearSort) {
+            chips.push({
+                key: 'near',
+                label: 'Konum sırası',
+                clear: () => applyQuery({ near_lat: '', near_lng: '' }),
+            });
+        }
         return chips;
     }, [
         category,
@@ -339,6 +403,8 @@ export default function EventsIndex({
         districtId,
         districtName,
         clearChipAndNavigate,
+        hasNearSort,
+        applyQuery,
     ]);
 
     const tickerRow = (dupKey: string) =>
@@ -544,6 +610,39 @@ export default function EventsIndex({
                                     </select>
                                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 sm:right-3" />
                                 </label>
+                                </div>
+
+                                <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-5 dark:border-white/[0.06] sm:flex-row sm:flex-wrap sm:items-center">
+                                    <p className="max-w-xl text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                                        {hasNearSort
+                                            ? 'Liste önce tarihe, aynı gün ve saatte size en yakın mekâna göre sıralanıyor.'
+                                            : 'Konum izniyle önce tarihe göre listeleyip, aynı zaman diliminde en yakın mekânı öne alabilirsiniz (şehir filtreleriyle birlikte çalışır).'}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={requestLocationSort}
+                                            disabled={geoHint !== null}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100 dark:hover:bg-amber-500/25"
+                                        >
+                                            <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+                                            {geoHint ?? 'Konumuma göre sırala'}
+                                        </button>
+                                        {hasNearSort ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuery({ near_lat: '', near_lng: '' })}
+                                                className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 dark:border-white/10 dark:text-zinc-300"
+                                            >
+                                                Konum sırasını kaldır
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                    {geoDenied ? (
+                                        <p className="w-full text-xs text-red-600 dark:text-red-400">
+                                            Konum alınamadı. Tarayıcı iznini kontrol edin.
+                                        </p>
+                                    ) : null}
                                 </div>
                             </div>
 

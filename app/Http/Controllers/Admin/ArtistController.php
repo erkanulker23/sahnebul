@@ -14,6 +14,7 @@ use App\Services\VenueRemoteCoverImporter;
 use App\Support\ArtistProfileInputs;
 use App\Support\ArtistPublicUsername;
 use App\Support\TurkishPhone;
+use App\Support\UpcomingSevenDayEventWindow;
 use App\Support\UserContactValidation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,7 +71,12 @@ class ArtistController extends Controller
     public function index(Request $request)
     {
         $artists = Artist::query()
-            ->withCount('events')
+            ->withCount([
+                'events',
+                'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(
+                    $q->whereNotNull('start_date')
+                ),
+            ])
             ->with(['managedBy:id,name,organization_display_name'])
             ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%"))
             ->when($request->status, fn ($q) => $q->where('status', $request->status))

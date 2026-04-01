@@ -20,6 +20,7 @@ interface Venue {
     is_featured?: boolean;
     view_count?: number;
     events_count?: number;
+    weekly_events_count?: number;
     city: { name: string };
     category: { name: string };
     user?: { id: number; name: string; email: string } | null;
@@ -207,6 +208,15 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(v.status)}`}>
                         {venueArtistStatusTr(v.status)}
                     </span>
+                ),
+            },
+            {
+                key: 'week',
+                header: 'Bu hafta (7 gün)',
+                mobileLabel: '7 gün',
+                className: 'text-right tabular-nums',
+                cell: (v) => (
+                    <span className="text-zinc-700 dark:text-zinc-300">{(v.weekly_events_count ?? 0).toLocaleString('tr-TR')}</span>
                 ),
             },
             {

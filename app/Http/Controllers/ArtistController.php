@@ -15,6 +15,7 @@ use App\Support\DailyUniqueEntityView;
 use App\Support\EventPromoVenueProfileModeration;
 use App\Support\InertiaDocumentMeta;
 use App\Support\PublicStructuredData;
+use App\Support\RequestGeoQuery;
 use App\Support\TurkishAlphabet;
 use App\Support\UpcomingSevenDayEventWindow;
 use Carbon\Carbon;
@@ -67,7 +68,11 @@ class ArtistController extends Controller
             ->paginate(24)
             ->withQueryString();
 
-        $artistsThisWeek = $this->artistsWithShowsInUpcomingWindow();
+        $geo = RequestGeoQuery::optionalNearLatLng($request);
+        $artistsThisWeek = $this->artistsWithShowsInUpcomingWindow(
+            $geo['lat'] ?? null,
+            $geo['lng'] ?? null
+        );
         $genreRows = Artist::approved()
             ->notIntlImport()
             ->whereNotNull('genre')
@@ -101,7 +106,12 @@ class ArtistController extends Controller
             'genres' => $genres,
             'letters' => $letters,
             'alphabetLetters' => TurkishAlphabet::LETTERS,
-            'filters' => $request->only(['search', 'genre', 'letter']),
+            'filters' => array_merge(
+                $request->only(['search', 'genre', 'letter']),
+                $geo !== null
+                    ? ['near_lat' => (string) $geo['lat'], 'near_lng' => (string) $geo['lng']]
+                    : []
+            ),
         ]);
     }
 
@@ -168,38 +178,112 @@ class ArtistController extends Controller
 
     /**
      * Sanatçılar: bugünden itibaren 7 günlük pencerede (yalnızca start_date >= şu an) en az bir yayınlanmış etkinliği olanlar.
+     * Konum verilirse aynı pencerede önce ilk gösteri tarihi, sonra mekân uzaklığı sırası uygulanır.
      *
      * @return Collection<int, array<string, mixed>>
      */
-    private function artistsWithShowsInUpcomingWindow(): Collection
+    private function artistsWithShowsInUpcomingWindow(?float $nearLat = null, ?float $nearLng = null): Collection
     {
-        $rows = UpcomingSevenDayEventWindow::applyToQuery(
-            DB::table('event_artists')
-                ->join('events', 'events.id', '=', 'event_artists.event_id')
-                ->join('venues', 'venues.id', '=', 'events.venue_id')
-                ->join('artists', 'artists.id', '=', 'event_artists.artist_id')
-                ->where('events.status', 'published')
-                ->where('venues.status', 'approved')
-                ->where('venues.is_active', true)
-                ->where('artists.status', 'approved')
-                ->where(function ($q) {
-                    $q->whereNull('artists.country_code')
-                        ->orWhere('artists.country_code', '!=', 'INT');
-                }),
-            'events.start_date'
-        )
-            ->select(
-                'event_artists.artist_id',
-                DB::raw('MIN(events.start_date) as first_show'),
-                DB::raw('COUNT(events.id) as week_events_count')
-            )
-            ->groupBy('event_artists.artist_id')
-            ->orderBy('first_show')
-            ->limit(48)
-            ->get();
+        if ($nearLat !== null && $nearLng !== null) {
+            $haversine = '(CASE WHEN v.latitude IS NOT NULL AND v.longitude IS NOT NULL '
+                .'THEN (6371 * acos(LEAST(1, GREATEST(-1, cos(radians(?)) * cos(radians(v.latitude)) '
+                .'* cos(radians(v.longitude) - radians(?)) + sin(radians(?)) * sin(radians(v.latitude)))))) '
+                .'ELSE 999999 END)';
 
-        if ($rows->isEmpty()) {
-            return collect();
+            $candidateQuery = UpcomingSevenDayEventWindow::applyToQuery(
+                DB::table('event_artists as ea')
+                    ->join('events as e', 'e.id', '=', 'ea.event_id')
+                    ->join('venues as v', 'v.id', '=', 'e.venue_id')
+                    ->join('artists', 'artists.id', '=', 'ea.artist_id')
+                    ->where('e.status', 'published')
+                    ->where('v.status', 'approved')
+                    ->where('v.is_active', true)
+                    ->where('artists.status', 'approved')
+                    ->where(function ($q) {
+                        $q->whereNull('artists.country_code')
+                            ->orWhere('artists.country_code', '!=', 'INT');
+                    }),
+                'e.start_date'
+            )
+                ->orderBy('e.start_date')
+                ->orderByRaw($haversine.' ASC', [$nearLat, $nearLng, $nearLat])
+                ->select(['ea.artist_id', 'e.start_date']);
+
+            $candidates = $candidateQuery->limit(600)->get();
+            $seen = [];
+            $orderedMeta = [];
+            foreach ($candidates as $row) {
+                $aid = (int) $row->artist_id;
+                if (isset($seen[$aid])) {
+                    continue;
+                }
+                $seen[$aid] = true;
+                $orderedMeta[] = ['artist_id' => $aid, 'first_show' => $row->start_date];
+                if (count($orderedMeta) >= 48) {
+                    break;
+                }
+            }
+
+            if ($orderedMeta === []) {
+                return collect();
+            }
+
+            $pickedIds = array_column($orderedMeta, 'artist_id');
+
+            $counts = UpcomingSevenDayEventWindow::applyToQuery(
+                DB::table('event_artists as ea')
+                    ->join('events as e', 'e.id', '=', 'ea.event_id')
+                    ->join('venues as v', 'v.id', '=', 'e.venue_id')
+                    ->join('artists', 'artists.id', '=', 'ea.artist_id')
+                    ->whereIn('ea.artist_id', $pickedIds)
+                    ->where('e.status', 'published')
+                    ->where('v.status', 'approved')
+                    ->where('v.is_active', true)
+                    ->where('artists.status', 'approved')
+                    ->where(function ($q) {
+                        $q->whereNull('artists.country_code')
+                            ->orWhere('artists.country_code', '!=', 'INT');
+                    }),
+                'e.start_date'
+            )
+                ->groupBy('ea.artist_id')
+                ->selectRaw('ea.artist_id, COUNT(e.id) as week_events_count')
+                ->pluck('week_events_count', 'artist_id');
+
+            $rows = collect($orderedMeta)->map(fn (array $meta) => (object) [
+                'artist_id' => $meta['artist_id'],
+                'first_show' => $meta['first_show'],
+                'week_events_count' => (int) ($counts[$meta['artist_id']] ?? 0),
+            ]);
+        } else {
+            $rows = UpcomingSevenDayEventWindow::applyToQuery(
+                DB::table('event_artists')
+                    ->join('events', 'events.id', '=', 'event_artists.event_id')
+                    ->join('venues', 'venues.id', '=', 'events.venue_id')
+                    ->join('artists', 'artists.id', '=', 'event_artists.artist_id')
+                    ->where('events.status', 'published')
+                    ->where('venues.status', 'approved')
+                    ->where('venues.is_active', true)
+                    ->where('artists.status', 'approved')
+                    ->where(function ($q) {
+                        $q->whereNull('artists.country_code')
+                            ->orWhere('artists.country_code', '!=', 'INT');
+                    }),
+                'events.start_date'
+            )
+                ->select(
+                    'event_artists.artist_id',
+                    DB::raw('MIN(events.start_date) as first_show'),
+                    DB::raw('COUNT(events.id) as week_events_count')
+                )
+                ->groupBy('event_artists.artist_id')
+                ->orderBy('first_show')
+                ->limit(48)
+                ->get();
+
+            if ($rows->isEmpty()) {
+                return collect();
+            }
         }
 
         $idsOrdered = $rows->pluck('artist_id')->map(fn ($id) => (int) $id)->all();

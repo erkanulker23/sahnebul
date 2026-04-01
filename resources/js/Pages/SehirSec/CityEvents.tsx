@@ -176,7 +176,11 @@ export default function SehirSecCityEvents({
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/40 via-zinc-950 to-zinc-950" />
                     <div className="relative z-10 mx-auto max-w-7xl">
                         <Link
-                            href={route('sehir-sec', { sehir: citySlug })}
+                            href={
+                                hasServerNear
+                                    ? route('sehir-sec', { sehir: citySlug, near_lat: nearLat, near_lng: nearLng })
+                                    : route('sehir-sec', { sehir: citySlug })
+                            }
                             className="inline-flex items-center gap-2 text-sm font-medium text-emerald-400/95 hover:text-emerald-300"
                         >
                             <ArrowLeft className="h-4 w-4" aria-hidden />

@@ -50,10 +50,11 @@ final class SehirSecPlatformEvents
 
     /**
      * Ana /sehir-sec: her sabit şehir slug’ı için bugünden itibaren yayınlanmış platform etkinlikleri.
+     * Konum verilirse her şehirde önce tarih, sonra kullanıcıya uzaklık sırası uygulanır.
      *
      * @return array<string, list<array<string, mixed>>>
      */
-    public static function groupedBySehirSlug(): array
+    public static function groupedBySehirSlug(?float $nearLat = null, ?float $nearLng = null): array
     {
         $slugs = array_keys(SehirSecController::CITY_ORDER);
         $out = array_fill_keys($slugs, []);
@@ -62,16 +63,30 @@ final class SehirSecPlatformEvents
             return $out;
         }
 
+        $with = [
+            'venue:id,name,slug,city_id,district_id,category_id,cover_image',
+            'venue.city:id,name,slug',
+            'venue.district:id,name',
+            'venue.category:id,name,slug',
+            'artists:id,name,slug,avatar,genre',
+        ];
+
+        if ($nearLat !== null && $nearLng !== null) {
+            foreach ($slugs as $slug) {
+                $q = EventListingQuery::base()
+                    ->whereHas('venue.city', fn ($q) => $q->where('slug', $slug));
+                EventListingQuery::applyDateThenProximityOrder($q, $nearLat, $nearLng);
+                $events = $q->with($with)->limit(self::PER_CITY_LIMIT)->get();
+                $out[$slug] = $events->map(fn (Event $e) => self::toPublicTicketCardProps($e))->all();
+            }
+
+            return $out;
+        }
+
         $events = EventListingQuery::applyDefaultOrder(
             EventListingQuery::base()
                 ->whereHas('venue.city', fn ($q) => $q->whereIn('slug', $slugs))
-                ->with([
-                    'venue:id,name,slug,city_id,district_id,category_id,cover_image',
-                    'venue.city:id,name,slug',
-                    'venue.district:id,name',
-                    'venue.category:id,name,slug',
-                    'artists:id,name,slug,avatar,genre',
-                ])
+                ->with($with)
         )->get();
 
         foreach ($events as $event) {

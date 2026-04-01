@@ -10,6 +10,11 @@ export interface User {
     organization_display_name?: string | null;
     organization_tax_office?: string | null;
     organization_tax_number?: string | null;
+    organization_public_slug?: string | null;
+    organization_about?: string | null;
+    organization_cover_image?: string | null;
+    organization_website?: string | null;
+    organization_social_links?: Record<string, string> | null;
     /** Tarayıcı bildirimi tercihi (hesap bildirimleri için) */
     browser_notifications_enabled?: boolean;
     /** Cep — etkinlik hatırlatması SMS */
@@ -61,5 +66,11 @@ export type PageProps<
         is_platform_admin?: boolean;
         /** E-posta doğrulanmadı — panellerde üst şerit */
         email_verification_banner?: boolean;
+        /** Organizasyon kamu profil özeti (yalnızca manager_organization) */
+        organization_public_profile?: {
+            published: boolean;
+            slug: string | null;
+            url: string | null;
+        } | null;
     };
 };

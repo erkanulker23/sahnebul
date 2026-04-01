@@ -55,6 +55,7 @@ use App\Http\Controllers\EventPublicController;
 use App\Http\Controllers\EventReviewController;
 use App\Http\Controllers\LiveSceneController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationDirectoryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaytrCallbackController;
 use App\Http\Controllers\PaytrEventCheckoutController;
@@ -106,6 +107,10 @@ Route::middleware(['throttle:venues-nearby', 'json.same-site'])->group(function 
     Route::get('/mekanlar/yakinindakiler', [VenueController::class, 'nearby'])->name('venues.nearby');
 });
 Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
+Route::get('/organizasyonlar', [OrganizationDirectoryController::class, 'index'])->name('organizations.index');
+Route::get('/organizasyonlar/{slug}', [OrganizationDirectoryController::class, 'show'])
+    ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('organizations.show');
 Route::post('/mekanlar/{venue:slug}/duzenme-oneri', [PublicEditSuggestionController::class, 'storeVenue'])
     ->middleware('throttle:10,1')
     ->name('venues.edit-suggestion.store');

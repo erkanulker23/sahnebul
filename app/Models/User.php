@@ -7,13 +7,14 @@ use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'organization_tax_office', 'organization_tax_number', 'email', 'phone', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active', 'stage_trusted_publisher', 'browser_notifications_enabled', 'event_reminder_email_enabled', 'event_reminder_sms_enabled', 'event_reminder_email_hour'])]
+#[Fillable(['name', 'pending_venue_name', 'organization_display_name', 'organization_tax_office', 'organization_tax_number', 'organization_public_slug', 'organization_about', 'organization_cover_image', 'organization_website', 'organization_social_links', 'organization_meta_description', 'organization_profile_published', 'organization_profile_view_count', 'email', 'phone', 'password', 'role', 'city', 'interests', 'avatar', 'google_id', 'instagram_id', 'is_active', 'stage_trusted_publisher', 'browser_notifications_enabled', 'event_reminder_email_enabled', 'event_reminder_sms_enabled', 'event_reminder_email_hour'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
@@ -37,7 +38,29 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'event_reminder_email_enabled' => 'boolean',
             'event_reminder_sms_enabled' => 'boolean',
             'event_reminder_email_hour' => 'integer',
+            'organization_social_links' => 'array',
+            'organization_profile_published' => 'boolean',
+            'organization_profile_view_count' => 'integer',
         ];
+    }
+
+    /** Kamu dizininde listelenen organizasyon firması hesapları. */
+    public function scopePublicOrganizationDirectory(Builder $query): Builder
+    {
+        return $query
+            ->where('role', 'manager_organization')
+            ->where('is_active', true)
+            ->where('organization_profile_published', true)
+            ->whereNotNull('organization_public_slug')
+            ->where('organization_public_slug', '!=', '');
+    }
+
+    public function publicOrganizationDisplayName(): string
+    {
+        $d = trim((string) ($this->organization_display_name ?? ''));
+        $n = trim((string) ($this->name ?? ''));
+
+        return $d !== '' ? $d : ($n !== '' ? $n : 'Organizasyon');
     }
 
     public function reservations(): HasMany

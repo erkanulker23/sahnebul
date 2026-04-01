@@ -10,6 +10,7 @@ use App\Support\CaseInsensitiveSearch;
 use App\Support\EventListingQuery;
 use App\Support\EventListingTypes;
 use App\Support\InertiaDocumentMeta;
+use App\Support\RequestGeoQuery;
 use App\Support\UpcomingSevenDayEventWindow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,10 +80,17 @@ class EventController extends Controller
             $query->whereHas('venue', fn ($q) => $q->where('district_id', $districtId));
         }
 
-        EventListingQuery::applyDefaultOrder($query);
+        $near = RequestGeoQuery::optionalNearLatLng($request);
+        $useNearOrder = $near !== null;
+
+        if ($useNearOrder) {
+            EventListingQuery::applyDateThenProximityOrder($query, $near['lat'], $near['lng']);
+        } else {
+            EventListingQuery::applyDefaultOrder($query);
+        }
 
         /** Üst şerit: liste ile aynı filtrelerdeki gerçek etkinlikler (tıklanınca detaya gider) */
-        $tickerEvents = (clone $query)->limit(24)->get(['id', 'slug', 'title', 'start_date']);
+        $tickerEvents = (clone $query)->limit(24)->get();
 
         $events = $query->paginate(20)->withQueryString();
 
@@ -124,7 +132,12 @@ class EventController extends Controller
             'provinces' => $provinces,
             'tickerItems' => $tickerItems,
             'tickerFallback' => 'Yakında yayınlanacak etkinlikler için bizi takip edin.',
-            'filters' => $request->only(['search', 'category', 'period', 'genre', 'event_type', 'city_id', 'district_id']),
+            'filters' => array_merge(
+                $request->only(['search', 'category', 'period', 'genre', 'event_type', 'city_id', 'district_id']),
+                $useNearOrder
+                    ? ['near_lat' => (string) $near['lat'], 'near_lng' => (string) $near['lng']]
+                    : []
+            ),
         ]);
     }
 

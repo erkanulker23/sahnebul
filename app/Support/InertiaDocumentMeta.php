@@ -58,6 +58,8 @@ final class InertiaDocumentMeta
             'Artists/Index' => self::artistsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Venues/Show' => self::venueShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Venues/Index' => self::venuesIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'Organizations/Index' => self::organizationsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
+            'Organizations/Show' => self::organizationShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Events/Show' => self::eventShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Events/Index' => self::eventsIndex($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
             'Blog/Show' => self::blogShow($props, $pathUrl, $siteName, $appUrl, $defaultDesc, $locale, $defaultOgAbs),
@@ -284,12 +286,92 @@ final class InertiaDocumentMeta
 
     /**
      * @param  array<string, mixed>  $props
+     * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
+     */
+    private static function organizationsIndex(
+        array $props,
+        string $pathUrl,
+        string $siteName,
+        string $appUrl,
+        string $defaultDesc,
+        string $locale,
+        ?string $defaultOgAbs,
+    ): array {
+        $pageTitle = 'Organizasyon firmaları - Sahnebul';
+        $desc = 'Konser ve etkinlik organizasyon firmalarını keşfedin; kadrolar ve yaklaşan etkinlikler Sahnebul’da.';
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
+
+        $out = [
+            'title' => $fullTitle,
+            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $defaultOgAbs, 'website'),
+        ];
+
+        $itemList = isset($props['listingStructuredData']) && is_array($props['listingStructuredData'])
+            ? $props['listingStructuredData']
+            : null;
+        if ($itemList !== null && $itemList !== []) {
+            $out['jsonLd'] = $itemList;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     * @return array{title: string, tags: list<array{t: string, attrs: array<string, string>}>, jsonLd?: array<string, mixed>}
+     */
+    private static function organizationShow(
+        array $props,
+        string $pathUrl,
+        string $siteName,
+        string $appUrl,
+        string $defaultDesc,
+        string $locale,
+        ?string $defaultOgAbs,
+    ): array {
+        $org = is_array($props['organization'] ?? null) ? $props['organization'] : [];
+        $name = trim((string) ($org['display_name'] ?? 'Organizasyon'));
+        $cover = trim((string) ($org['cover_image'] ?? ''));
+        $ogImage = SeoFormatting::absoluteMediaUrl($cover, $appUrl) ?? $defaultOgAbs;
+
+        $pkg = is_array($props['organizationPageSeo'] ?? null) ? $props['organizationPageSeo'] : null;
+        if ($pkg !== null
+            && isset($pkg['headTitleSegment'], $pkg['metaDescription'], $pkg['structuredData'])
+            && is_string($pkg['headTitleSegment'])
+            && is_string($pkg['metaDescription'])
+            && is_array($pkg['structuredData'])) {
+            $segment = trim($pkg['headTitleSegment']) !== '' ? trim($pkg['headTitleSegment']) : $name.' — Organizasyon';
+            $fullTitle = SeoFormatting::buildDocumentTitle($segment, $siteName);
+            $metaDesc = SeoFormatting::truncateMetaDescription($pkg['metaDescription']);
+
+            return [
+                'title' => $fullTitle,
+                'tags' => self::baseTags($fullTitle, $metaDesc, SeoFormatting::normalizeCanonical($appUrl, $pathUrl), $siteName, $locale, $ogImage, 'website'),
+                'jsonLd' => $pkg['structuredData'],
+            ];
+        }
+
+        $pageTitle = $name.' - Sahnebul';
+        $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, $pathUrl);
+        $desc = SeoFormatting::truncateMetaDescription($name.' — organizasyon profili ve etkinlik takvimi.');
+
+        return [
+            'title' => $fullTitle,
+            'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'website'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
      * @return array<string, mixed>|null
      */
     private static function eventsIndexItemList(array $props, string $appUrl): ?array
     {
         $paginator = is_array($props['events'] ?? null) ? $props['events'] : [];
         $data = is_array($paginator['data'] ?? null) ? $paginator['data'] : [];
+
         return self::eventItemListFromRows($data, $appUrl, 'Etkinlikler');
     }
 
