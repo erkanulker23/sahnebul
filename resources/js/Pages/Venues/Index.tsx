@@ -819,7 +819,7 @@ export default function VenuesIndex({
                                         {venues.total} mekandan {venues.from ?? 0}–{venues.to ?? 0} arası gösteriliyor
                                     </p>
                                 ) : null}
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+                                <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
                                     {(venues?.data ?? []).map((venue) => {
                                         const venueLocationLine = formatVenueLocationLine(venue.city?.name, venue.district?.name);
                                         const showVenueLocation = venueLocationLine !== '';
@@ -827,13 +827,13 @@ export default function VenuesIndex({
                                         const link = (
                                             <Link
                                                 href={route('venues.show', venue.slug)}
-                                                className={`group/card block h-full overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 ${
+                                                className={`group/card block h-full min-w-0 overflow-hidden rounded-xl border bg-white transition hover:-translate-y-0.5 dark:bg-zinc-900/60 sm:rounded-2xl ${
                                                     featured
                                                         ? 'rounded-[14px] border-transparent shadow-lg shadow-emerald-900/25 dark:border-white/[0.08] dark:shadow-none dark:ring-1 dark:ring-emerald-500/45'
                                                         : 'border-zinc-200 shadow-md shadow-zinc-900/[0.08] hover:border-emerald-500/35 hover:shadow-lg hover:shadow-zinc-900/12 dark:border-white/10 dark:shadow-black/45 dark:hover:border-emerald-500/30 dark:hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.65)]'
                                                 }`}
                                             >
-                                                <div className="relative h-44 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800">
+                                                <div className="relative h-32 w-full overflow-hidden bg-zinc-200 dark:bg-zinc-800 sm:h-44">
                                                     {venue.cover_image ? (
                                                         <img src={imageSrc(venue.cover_image) ?? ''} alt={venue.name} className="h-full w-full object-cover" />
                                                     ) : (
@@ -891,14 +891,16 @@ export default function VenuesIndex({
                                                     />
                                                 </div>
                                                 <div
-                                                    className={`p-4 ${
+                                                    className={`p-2.5 sm:p-4 ${
                                                         featured
                                                             ? 'bg-gradient-to-b from-emerald-50/95 to-white dark:border-t-2 dark:border-emerald-500/55 dark:bg-gradient-to-b dark:from-zinc-900 dark:to-zinc-950'
                                                             : ''
                                                     }`}
                                                 >
-                                                    <div className="flex items-start gap-2">
-                                                        <p className="min-w-0 flex-1 font-semibold text-zinc-900 dark:text-white">{venue.name}</p>
+                                                    <div className="flex items-start gap-1.5 sm:gap-2">
+                                                        <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-zinc-900 dark:text-white sm:text-base">
+                                                            {venue.name}
+                                                        </p>
                                                         {venue.is_verified_profile ? (
                                                             <VerifiedArtistProfileBadge variant="venue" className="shrink-0" />
                                                         ) : null}

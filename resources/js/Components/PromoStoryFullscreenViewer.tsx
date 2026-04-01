@@ -5,6 +5,7 @@ import {
     promoVideoSrcLooksLikeWebm,
     type PromoGalleryItem,
 } from '@/Components/PublicPromoGallerySection';
+import { cn } from '@/lib/cn';
 import { PROMO_STORY_IFRAME_ADVANCE_MS, PROMO_STORY_IMAGE_ADVANCE_MS } from '@/lib/promoStoryTiming';
 import { usePromoVideoSlidePlayback } from '@/lib/usePromoVideoSlidePlayback';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -175,123 +176,116 @@ export function PromoStoryFullscreenViewer({
             aria-modal="true"
             aria-label="Tanıtım videosu — tam ekran"
         >
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-white">
-                        {safeIdx + 1} / {n}
-                    </p>
-                    {videoSrc ? (
-                        <button
-                            type="button"
-                            onClick={() => setMuted((m) => !m)}
-                            className="rounded-full border border-white/25 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
-                        >
-                            {muted ? 'Sesi Aç' : 'Sesi Kapat'}
-                        </button>
-                    ) : null}
-                </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                    Kapat
-                </button>
-            </div>
-
-            {n > 1 ? (
-                <div className="flex shrink-0 gap-1 px-3 pt-3" role="tablist" aria-label="Tanıtım slaytları">
-                    {items.map((row, i) => (
-                        <button
-                            key={`seg-${slideDomKey(row, i)}`}
-                            type="button"
-                            role="tab"
-                            aria-selected={i === safeIdx}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIdx(i);
-                            }}
-                            className={`h-1 min-h-[4px] min-w-0 flex-1 rounded-full transition-colors ${
-                                i === safeIdx ? 'bg-amber-400' : 'bg-amber-300/25 hover:bg-amber-300/40'
-                            }`}
-                            aria-label={`Slayt ${i + 1}`}
-                            style={
-                                i < safeIdx
-                                    ? { opacity: 1 }
-                                    : i > safeIdx
-                                      ? { opacity: 0.35 }
-                                      : {
-                                            background: `linear-gradient(90deg, rgb(251 191 36) ${Math.round(slideProgress * 100)}%, rgba(252,211,77,0.28) ${Math.round(slideProgress * 100)}%)`,
-                                        }
-                            }
-                        />
-                    ))}
-                </div>
-            ) : null}
-
             <div
-                className="relative flex min-h-0 flex-1 items-center justify-center px-2 py-4 sm:px-6"
-                onClick={onClose}
-                role="presentation"
+                className="flex shrink-0 flex-col gap-2 border-b border-white/10 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-5 sm:pb-3 sm:pt-3"
             >
                 {n > 1 ? (
+                    <div className="flex gap-0.5 sm:gap-1" role="tablist" aria-label="Tanıtım slaytları">
+                        {items.map((row, i) => (
+                            <button
+                                key={`seg-${slideDomKey(row, i)}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={i === safeIdx}
+                                onClick={() => setIdx(i)}
+                                className={`h-0.5 min-h-[3px] min-w-0 flex-1 rounded-full transition-colors ${
+                                    i === safeIdx ? 'bg-amber-400' : 'bg-white/25 hover:bg-white/35'
+                                }`}
+                                aria-label={`Slayt ${i + 1}`}
+                                style={
+                                    i < safeIdx
+                                        ? { opacity: 1, background: 'rgb(251 191 36)' }
+                                        : i > safeIdx
+                                          ? { opacity: 0.35 }
+                                          : {
+                                                background: `linear-gradient(90deg, rgb(251 191 36) ${Math.round(slideProgress * 100)}%, rgba(255,255,255,0.22) ${Math.round(slideProgress * 100)}%)`,
+                                            }
+                                }
+                            />
+                        ))}
+                    </div>
+                ) : null}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <p className="text-xs font-medium text-white sm:text-sm">
+                            {safeIdx + 1} / {n}
+                        </p>
+                        {videoSrc ? (
+                            <button
+                                type="button"
+                                onClick={() => setMuted((m) => !m)}
+                                className="shrink-0 rounded-full border border-white/25 px-2.5 py-1 text-[11px] font-medium text-white sm:px-3 sm:py-1.5 sm:text-xs"
+                            >
+                                {muted ? 'Sesi Aç' : 'Sesi Kapat'}
+                            </button>
+                        ) : null}
+                    </div>
                     <button
                         type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            goPrev();
-                        }}
-                        className="absolute left-1 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:left-4"
-                        aria-label="Önceki"
+                        onClick={onClose}
+                        className="shrink-0 rounded-full border border-white/25 px-3 py-1.5 text-xs font-medium text-white sm:px-4 sm:py-2 sm:text-sm"
                     >
-                        <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        Kapat
                     </button>
-                ) : null}
+                </div>
+            </div>
 
-                <div
-                    className="relative z-10 flex h-full max-h-[min(calc(100dvh-8rem),calc(100vh-8rem))] w-full max-w-lg flex-col items-center justify-center sm:max-w-xl"
-                    onClick={(e) => e.stopPropagation()}
-                    onTouchStart={(e) => {
-                        const tch = e.changedTouches[0];
-                        if (tch) {
-                            touchStartX.current = tch.clientX;
-                            touchStartTime.current = Date.now();
-                        }
-                    }}
-                    onTouchEnd={(e) => {
-                        const start = touchStartX.current;
-                        const t0 = touchStartTime.current;
-                        touchStartX.current = null;
-                        touchStartTime.current = null;
-                        if (start == null || t0 == null || n <= 1) {
-                            return;
-                        }
-                        const end = e.changedTouches[0]?.clientX;
-                        if (end == null) {
-                            return;
-                        }
-                        const duration = Date.now() - t0;
-                        if (duration > SWIPE_MAX_DURATION_MS) {
-                            return;
-                        }
-                        const dx = end - start;
-                        if (Math.abs(dx) < SWIPE_MIN_PX) {
-                            return;
-                        }
-                        if (dx > 0) {
-                            goPrev();
-                        } else {
-                            goNext();
-                        }
-                    }}
-                    role="presentation"
-                >
+            <div className="relative flex min-h-0 flex-1">
+                <div className="absolute inset-0 z-10 flex items-stretch justify-center">
+                    <button
+                        type="button"
+                        className={cn(
+                            'touch-manipulation border-0 bg-transparent sm:max-w-[160px]',
+                            n > 1 ? 'w-[30%] min-w-[4.5rem] active:bg-white/5' : 'pointer-events-none w-0 min-w-0 opacity-0',
+                        )}
+                        aria-label="Önceki slayt"
+                        onClick={() => {
+                            if (n > 1) {
+                                goPrev();
+                            }
+                        }}
+                    />
                     <div
-                        key={slideDomKey(it, safeIdx)}
-                        className="relative mx-auto aspect-[9/16] w-full min-h-[12rem] max-h-[min(calc(100dvh-9rem),calc(100vh-9rem))] max-w-lg overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10 sm:max-w-xl"
+                        className="relative z-20 flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-1 py-2 sm:px-4 sm:py-4"
+                        onTouchStart={(e) => {
+                            const tch = e.changedTouches[0];
+                            if (tch) {
+                                touchStartX.current = tch.clientX;
+                                touchStartTime.current = Date.now();
+                            }
+                        }}
+                        onTouchEnd={(e) => {
+                            const start = touchStartX.current;
+                            const t0 = touchStartTime.current;
+                            touchStartX.current = null;
+                            touchStartTime.current = null;
+                            if (start == null || t0 == null || n <= 1) {
+                                return;
+                            }
+                            const end = e.changedTouches[0]?.clientX;
+                            if (end == null) {
+                                return;
+                            }
+                            const duration = Date.now() - t0;
+                            if (duration > SWIPE_MAX_DURATION_MS) {
+                                return;
+                            }
+                            const dx = end - start;
+                            if (Math.abs(dx) < SWIPE_MIN_PX) {
+                                return;
+                            }
+                            if (dx > 0) {
+                                goPrev();
+                            } else {
+                                goNext();
+                            }
+                        }}
+                        role="presentation"
                     >
+                        <div
+                            key={slideDomKey(it, safeIdx)}
+                            className="relative mx-auto aspect-[9/16] w-full min-h-[11rem] max-h-[min(calc(100dvh-7.5rem),calc(100vh-7.5rem))] max-w-lg overflow-hidden rounded-lg bg-zinc-950 shadow-2xl ring-1 ring-white/10 sm:min-h-[12rem] sm:max-w-xl"
+                        >
                         {videoSrc ? (
                             <>
                                 <video
@@ -375,25 +369,27 @@ export function PromoStoryFullscreenViewer({
                                 </a>
                             </div>
                         ) : null}
+                        </div>
+                        <p className="mt-2 max-w-md px-2 text-center text-[10px] leading-snug text-white/45 sm:mt-3 sm:text-xs sm:text-zinc-500">
+                            {n > 1
+                                ? 'Önceki / sonraki: ekranın sol veya sağ üçte birine dokunun. Kapat: üstte.'
+                                : 'Kapat: üstte.'}
+                        </p>
                     </div>
-                    <p className="mt-4 hidden text-center text-xs text-zinc-500 sm:block">← → veya yana dokun • Esc</p>
-                </div>
-
-                {n > 1 ? (
                     <button
                         type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            goNext();
+                        className={cn(
+                            'touch-manipulation border-0 bg-transparent sm:max-w-[160px]',
+                            n > 1 ? 'w-[30%] min-w-[4.5rem] active:bg-white/5' : 'pointer-events-none w-0 min-w-0 opacity-0',
+                        )}
+                        aria-label="Sonraki slayt"
+                        onClick={() => {
+                            if (n > 1) {
+                                goNext();
+                            }
                         }}
-                        className="absolute right-1 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 sm:right-4"
-                        aria-label="Sonraki"
-                    >
-                        <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                ) : null}
+                    />
+                </div>
             </div>
         </div>,
         document.body,

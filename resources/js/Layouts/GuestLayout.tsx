@@ -4,8 +4,7 @@ import { Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
 
 /**
- * Giriş, kayıt, şifre sıfırlama vb.: SiteShell ile aynı üst / alt bilgi,
- * ancak mobilde sabit alt «hızlı erişim» şeridi yok (hideMobileQuickNav).
+ * Giriş, kayıt, şifre: SiteShell + mobilde diğer sayfalarla aynı alt hızlı erişim şeridi.
  */
 export default function GuestLayout({
     children,
@@ -14,8 +13,8 @@ export default function GuestLayout({
     const maxW = wide ? 'max-w-xl' : 'max-w-md';
 
     return (
-        <SiteShell hideMobileQuickNav>
-            <div className="flex w-full flex-col items-center px-4 py-10 sm:py-14">
+        <SiteShell>
+            <div className="flex w-full flex-col items-center px-4 py-8 sm:py-14">
                 <div
                     className={cn(
                         'w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-ds-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80',

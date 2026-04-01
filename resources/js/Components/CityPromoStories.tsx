@@ -240,18 +240,18 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
             <div className="relative min-h-0 flex-1">
                 <button
                     type="button"
-                    className="absolute inset-y-0 left-0 z-10 w-1/4 cursor-w-resize border-0 bg-transparent"
+                    className="absolute inset-y-0 left-0 z-30 w-[30%] max-w-[160px] touch-manipulation border-0 bg-transparent active:bg-white/5"
                     aria-label="Önceki"
                     onClick={goBack}
                 />
                 <button
                     type="button"
-                    className="absolute inset-y-0 right-0 z-10 w-1/4 cursor-e-resize border-0 bg-transparent"
+                    className="absolute inset-y-0 right-0 z-30 w-[30%] max-w-[160px] touch-manipulation border-0 bg-transparent active:bg-white/5"
                     aria-label="Sonraki"
                     onClick={advance}
                 />
 
-                <div className="flex h-full items-center justify-center px-0 sm:px-6">
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-0 sm:px-6">
                     {videoSrc ? (
                         <video
                             ref={videoRef}
@@ -260,7 +260,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             autoPlay
                             muted={muted}
                             preload="auto"
-                            className="max-h-full max-w-full object-contain"
+                            className="pointer-events-auto max-h-full max-w-full object-contain"
                             poster={posterSrc ?? undefined}
                             onTimeUpdate={(e) => {
                                 const el = e.currentTarget;
@@ -281,7 +281,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             <source src={videoSrc} type={promoVideoSrcLooksLikeWebm(videoSrc) ? 'video/webm' : 'video/mp4'} />
                         </video>
                     ) : igIframeSrc ? (
-                        <div className="aspect-[9/16] h-full max-h-[85dvh] w-full max-w-[min(100%,28rem)] overflow-hidden rounded-lg bg-zinc-950">
+                        <div className="pointer-events-auto aspect-[9/16] h-full max-h-[85dvh] w-full max-w-[min(100%,28rem)] overflow-hidden rounded-lg bg-zinc-950">
                             <iframe
                                 key={`${segment.event_id}-${openSegment}-${igIframeSrc}`}
                                 src={igIframeSrc}
@@ -293,7 +293,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             />
                         </div>
                     ) : posterSrc ? (
-                        <div className="relative flex max-h-[85dvh] flex-col items-center">
+                        <div className="pointer-events-auto relative flex max-h-[85dvh] flex-col items-center">
                             <img src={posterSrc} alt="" className="max-h-[80dvh] max-w-full object-contain" />
                             {embed.includes('instagram.com') ? (
                                 <a
@@ -311,7 +311,7 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             href={embed}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-xl bg-zinc-900 px-6 py-4 text-center text-amber-400 underline"
+                            className="pointer-events-auto rounded-xl bg-zinc-900 px-6 py-4 text-center text-amber-400 underline"
                         >
                             Hikâyeyi Instagram’da aç
                         </a>
@@ -320,12 +320,12 @@ function StoryViewer({ rings, openRing, openSegment, onClose, onIndexChange }: R
                             href={embed}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-xl bg-zinc-900 px-6 py-4 text-center text-amber-400 underline"
+                            className="pointer-events-auto rounded-xl bg-zinc-900 px-6 py-4 text-center text-amber-400 underline"
                         >
                             Bağlantıyı aç
                         </a>
                     ) : (
-                        <p className="text-sm text-zinc-500">Önizleme yok</p>
+                        <p className="pointer-events-auto text-sm text-zinc-500">Önizleme yok</p>
                     )}
                 </div>
 
