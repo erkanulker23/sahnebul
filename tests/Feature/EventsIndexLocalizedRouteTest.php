@@ -36,7 +36,9 @@ class EventsIndexLocalizedRouteTest extends TestCase
 
         $this->get('/etkinlik/ankara/konser')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Events/Index'));
+            ->assertInertia(fn ($page) => $page
+                ->component('Events/Index')
+                ->where('eventTypeHubSlug', 'konser'));
     }
 
     public function test_type_only_path_returns_ok(): void
@@ -45,6 +47,7 @@ class EventsIndexLocalizedRouteTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Events/Index')
+                ->where('eventTypeHubSlug', 'konser')
                 ->where('listingSeo.kind', 'type')
                 ->where('listingSeo.eventTypeSlug', 'konser'));
     }

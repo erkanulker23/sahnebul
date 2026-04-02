@@ -151,13 +151,14 @@ export default function AdminEventCreate({
                         </div>
                         <div className="sm:col-span-2">
                             <label htmlFor="admin-event-type" className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">
-                                Etkinlik türü (isteğe bağlı)
+                                Etkinlik türü <span className="text-amber-600 dark:text-amber-500">*</span>
                             </label>
                             <select
                                 id="admin-event-type"
                                 value={data.event_type}
                                 onChange={(e) => setData('event_type', e.target.value)}
                                 className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                                required
                             >
                                 <option value="">Seçin</option>
                                 {eventTypeOptions.map((o) => (

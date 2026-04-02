@@ -78,6 +78,7 @@ class EventController extends Controller
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
             'venues' => Venue::query()->orderBy('name')->get(['id', 'name']),
+            'eventTypeLabels' => EventListingTypes::labelsBySlug(),
             'filters' => [
                 'status' => $validated['status'] ?? '',
                 'venue_id' => isset($validated['venue_id']) ? (string) $validated['venue_id'] : '',
@@ -111,7 +112,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
-            'event_type' => EventListingTypes::nullableSlugRule(),
+            'event_type' => EventListingTypes::requiredSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -174,9 +175,7 @@ class EventController extends Controller
 
         $validated = Event::applyTicketAcquisitionToValidatedArray($validated);
 
-        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
-            ? (string) $validated['event_type']
-            : null;
+        $validated['event_type'] = (string) $validated['event_type'];
 
         $artistIds = $validated['artist_ids'];
         unset($validated['artist_ids']);
@@ -252,7 +251,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'event_rules' => 'nullable|string|max:5000',
             'entry_is_paid' => 'boolean',
-            'event_type' => EventListingTypes::nullableSlugRule(),
+            'event_type' => EventListingTypes::requiredSlugRule(),
             'start_date' => 'nullable|date',
             'end_date' => [
                 'nullable',
@@ -340,9 +339,7 @@ class EventController extends Controller
 
         $validated = Event::applyTicketAcquisitionToValidatedArray($validated);
 
-        $validated['event_type'] = isset($validated['event_type']) && $validated['event_type'] !== ''
-            ? (string) $validated['event_type']
-            : null;
+        $validated['event_type'] = (string) $validated['event_type'];
 
         if ($event->title !== $validated['title']) {
             $validated['slug'] = Str::slug($validated['title']).'-'.Str::lower(Str::random(4));

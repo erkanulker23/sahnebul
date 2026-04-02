@@ -7,6 +7,7 @@ use App\Models\ExternalEvent;
 use App\Support\CrawlerHttpResponseInspector;
 use App\Support\ExternalMarketplaceCrawlJobStatus;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -106,6 +107,92 @@ class MarketplaceExternalEventImportService
             }
         }
 
+        $crawlErrorsBySource = [];
+        foreach ($bySource as $source => $info) {
+            $crawlErrorsBySource[$source] = $info['error'];
+        }
+
+        return $this->persistMergedCrawlRows(
+            $sources,
+            $merged,
+            $crawlErrorsBySource,
+            $limit,
+            $syncToDomain,
+            $dateFrom,
+            $dateTo,
+            $cityNames,
+            $categoryNames,
+            $progressToken,
+        );
+    }
+
+    public static function externalCrawlAccumCacheKey(string $token): string
+    {
+        return 'external_crawl_accum:'.trim($token);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows  _import_source atanmış satırlar
+     */
+    public function appendToExternalCrawlAccumulator(string $token, array $rows): void
+    {
+        $token = trim($token);
+        if ($token === '' || $rows === []) {
+            return;
+        }
+        $key = self::externalCrawlAccumCacheKey($token);
+        Cache::lock('lock:'.$key, 30)->block(15, function () use ($key, $rows): void {
+            $acc = Cache::get($key, []);
+            if (! is_array($acc)) {
+                $acc = [];
+            }
+            Cache::put($key, array_merge($acc, $rows), now()->addHours(6));
+        });
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function pullExternalCrawlAccumulator(string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return [];
+        }
+        $key = self::externalCrawlAccumCacheKey($token);
+        $acc = Cache::pull($key, []);
+
+        return is_array($acc) ? $acc : [];
+    }
+
+    public function initExternalCrawlAccumulator(string $token): void
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return;
+        }
+        Cache::put(self::externalCrawlAccumCacheKey($token), [], now()->addHours(6));
+    }
+
+    /**
+     * @param  list<string>  $sources
+     * @param  list<array<string, mixed>>  $merged  _import_source içeren satırlar
+     * @param  array<string, string|null>  $crawlErrorsBySource
+     * @return list<array{source: string, processed: int, synced: int, error?: string}>
+     */
+    public function persistMergedCrawlRows(
+        array $sources,
+        array $merged,
+        array $crawlErrorsBySource,
+        int $limit,
+        bool $syncToDomain,
+        ?string $dateFrom,
+        ?string $dateTo,
+        array $cityNames,
+        array $categoryNames,
+        ?string $progressToken = null,
+    ): array {
+        $configured = config('crawler.sources', []);
         $processedBySource = [];
         $syncedBySource = [];
 
@@ -119,10 +206,17 @@ class MarketplaceExternalEventImportService
             $saveTotal = count($filtered);
 
             $crawledPerSource = [];
-            foreach ($bySource as $src => $info) {
-                $crawledPerSource[$src] = $info['error'] !== null
-                    ? ['error' => $info['error']]
-                    : ['rows' => count($info['rows'])];
+            foreach ($sources as $src) {
+                $err = $crawlErrorsBySource[$src] ?? null;
+                $crawledPerSource[$src] = $err !== null && $err !== ''
+                    ? ['error' => $err]
+                    : ['rows' => 0];
+            }
+            foreach ($merged as $row) {
+                $s = (string) ($row['_import_source'] ?? '');
+                if ($s !== '' && isset($crawledPerSource[$s]) && is_array($crawledPerSource[$s]) && array_key_exists('rows', $crawledPerSource[$s])) {
+                    $crawledPerSource[$s]['rows']++;
+                }
             }
             Log::info('External marketplace import pipeline', [
                 'merged_total' => $mergedTotal,
@@ -231,13 +325,24 @@ class MarketplaceExternalEventImportService
 
         $out = [];
         foreach ($sources as $source) {
-            $info = $bySource[$source] ?? ['error' => 'Kaynak yapılandırılmamış.', 'rows' => []];
-            if ($info['error'] !== null) {
+            if (! isset($configured[$source])) {
                 $out[] = [
                     'source' => $source,
                     'processed' => 0,
                     'synced' => 0,
-                    'error' => $info['error'],
+                    'error' => 'Kaynak yapılandırılmamış.',
+                ];
+
+                continue;
+            }
+
+            $err = $crawlErrorsBySource[$source] ?? null;
+            if ($err !== null && $err !== '') {
+                $out[] = [
+                    'source' => $source,
+                    'processed' => 0,
+                    'synced' => 0,
+                    'error' => $err,
                 ];
 
                 continue;
@@ -469,7 +574,7 @@ class MarketplaceExternalEventImportService
      * @param  list<string>  $cityNames
      * @return array{bubilet_city_slugs?: list<string>}
      */
-    private function crawlOptionsForSource(string $source, array $cityNames): array
+    public function crawlOptionsForSource(string $source, array $cityNames): array
     {
         if ($source !== 'bubilet') {
             return [];

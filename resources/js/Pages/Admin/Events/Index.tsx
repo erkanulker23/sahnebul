@@ -16,6 +16,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 interface Event {
     id: number;
     title: string;
+    event_type: string | null;
     start_date: string;
     created_at: string;
     status: string;
@@ -31,13 +32,22 @@ interface Event {
 interface Props {
     events: AdminPaginatorPayload & { data: Event[] };
     venues: { id: number; name: string }[];
+    /** slug → Türkçe ad (EventListingTypes) */
+    eventTypeLabels: Record<string, string>;
     filters?: { status?: string; venue_id?: string; search?: string };
 }
 
 const fieldClass =
     'w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white sm:w-auto';
 
-export default function AdminEventsIndex({ events, venues, filters }: Readonly<Props>) {
+function eventTypeDisplay(slug: string | null | undefined, labels: Record<string, string>): string {
+    if (slug == null || slug === '') {
+        return '—';
+    }
+    return labels[slug] ?? slug;
+}
+
+export default function AdminEventsIndex({ events, venues, eventTypeLabels, filters }: Readonly<Props>) {
     const [selectedRows, setSelectedRows] = useState<Record<number, true>>({});
 
     useEffect(() => {
@@ -129,6 +139,17 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                 header: 'Etkinlik',
                 mobileLabel: 'Etkinlik',
                 cell: (e) => <span className="font-medium text-zinc-900 dark:text-white">{e.title}</span>,
+            },
+            {
+                key: 'event_type',
+                header: 'Tür',
+                mobileLabel: 'Tür',
+                className: 'max-w-[140px]',
+                cell: (e) => (
+                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {eventTypeDisplay(e.event_type, eventTypeLabels)}
+                    </span>
+                ),
             },
             {
                 key: 'created',
@@ -223,7 +244,7 @@ export default function AdminEventsIndex({ events, venues, filters }: Readonly<P
                 ),
             },
         ],
-        [],
+        [eventTypeLabels],
     );
 
     return (

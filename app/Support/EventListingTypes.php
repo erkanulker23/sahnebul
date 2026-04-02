@@ -72,6 +72,14 @@ final class EventListingTypes
     }
 
     /**
+     * @return array<int, \Illuminate\Contracts\Validation\Rule|string>
+     */
+    public static function requiredSlugRule(): array
+    {
+        return ['required', 'string', Rule::in(self::slugs())];
+    }
+
+    /**
      * schema.org Event alt türü — Google Etkinlik zengin sonuçları için doğru @type.
      */
     public static function schemaOrgEventType(?string $slug): string

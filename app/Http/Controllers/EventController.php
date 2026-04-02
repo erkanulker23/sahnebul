@@ -206,6 +206,8 @@ class EventController extends Controller
         );
 
         return Inertia::render('Events/Index', [
+            /** Hub URL (/etkinlik/{tür}, /etkinlik/{il}/{tür}) — hero banner için doğrudan rota kaynağı */
+            'eventTypeHubSlug' => $hubEventTypeSlug,
             'events' => $events,
             'listingStructuredData' => InertiaDocumentMeta::structuredDataForEventsIndexPage(
                 [

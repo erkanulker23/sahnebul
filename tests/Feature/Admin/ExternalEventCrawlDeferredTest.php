@@ -8,6 +8,7 @@ use App\Support\ExternalMarketplaceCrawlJobStatus;
 use App\Support\UserBackgroundJobPointers;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -82,6 +83,13 @@ class ExternalEventCrawlDeferredTest extends TestCase
             'total' => 1,
             'message' => 'Bitti',
         ]);
+        Cache::forever('external_events_last_crawl_snapshot', [
+            'finished_at' => '01.01.2026 12:00:00',
+            'status' => 'success',
+            'total_processed' => 3,
+            'rows' => [['source' => 'biletinial', 'processed' => 3, 'error' => null]],
+            'summary' => 'Crawl tamamlandı.',
+        ]);
 
         $this->actingAs($admin)
             ->getJson(route('admin.external-events.crawl-status', ['token' => $token], absolute: false))
@@ -89,5 +97,6 @@ class ExternalEventCrawlDeferredTest extends TestCase
             ->assertJsonPath('state', 'completed');
 
         $this->assertNull(UserBackgroundJobPointers::getExternalCrawlToken((int) $admin->id));
+        $this->assertSame('Crawl tamamlandı.', session('external_events_last_crawl.summary'));
     }
 }

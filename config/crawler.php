@@ -1,5 +1,10 @@
 <?php
 
+$biletinialListingCityPath = strtolower(trim((string) env('BILETINIAL_LISTING_CITY_PATH', 'istanbul')));
+if ($biletinialListingCityPath === '') {
+    $biletinialListingCityPath = 'istanbul';
+}
+
 return [
     'sources' => [
         /** Konser listesi — kartlar detay sayfasına gider; crawler her detaydaki tüm tarih/mekan satırlarını okur. */
@@ -7,13 +12,18 @@ return [
             'url' => 'https://biletinial.com/tr-tr/muzik',
             /**
              * Aynı URL kalıbı (/tr-tr/{kategori}/slug) için birden fazla liste sayfası; linkler birleştirilir.
-             * Yalnızca müzik değil; tiyatro, spor ve genel etkinlik listeleri de taranır.
+             * Şehir son ekli sayfalar (sinema, müzik, şehrine özel) .env: BILETINIAL_LISTING_CITY_PATH (varsayılan istanbul).
+             * Detay kotası liste başına round-robin dağıtılır; yalnızca ilk kategori (ör. müzik) doldurup diğerlerini kesmez.
              */
             'listing_urls' => [
                 'https://biletinial.com/tr-tr/muzik',
+                'https://biletinial.com/tr-tr/muzik/'.$biletinialListingCityPath,
                 'https://biletinial.com/tr-tr/etkinlik',
                 'https://biletinial.com/tr-tr/tiyatro',
                 'https://biletinial.com/tr-tr/spor',
+                'https://biletinial.com/tr-tr/sinema/'.$biletinialListingCityPath,
+                'https://biletinial.com/tr-tr/etkinlikleri/stand-up',
+                'https://biletinial.com/tr-tr/sehrineozel/'.$biletinialListingCityPath,
             ],
             'city' => 'İstanbul',
         ],
@@ -112,6 +122,34 @@ return [
      * PHP varsayılan 30 sn yetmez. Sunucu (nginx/php-fpm) limitlerini de gerektiğinde yükseltin.
      */
     'max_execution_seconds' => (int) env('CRAWLER_MAX_EXECUTION_SECONDS', 300),
+
+    /**
+     * Admin kuyruk işi: Bubilet/Biletinial detay istekleri küçük zincir işlere bölünsün mü.
+     * false: tek işte tüm tarama (CLI ile aynı; uzun sürebilir).
+     */
+    'admin_use_chunked_crawl_chain' => filter_var(
+        env('CRAWLER_ADMIN_CHUNKED_CRAWL', true),
+        FILTER_VALIDATE_BOOL,
+        ['flags' => FILTER_NULL_ON_FAILURE],
+    ) ?? true,
+
+    /** Chunk başına en fazla kaç detay sayfası (her alt iş ~ birkaç dakika) */
+    'chunk_detail_batch_size' => max(5, min(200, (int) env('CRAWLER_CHUNK_DETAIL_BATCH_SIZE', 35))),
+
+    /**
+     * Zincirde bir önceki chunk bittikten sonra, sonraki chunk başlamadan önce bekleme (saniye).
+     * 0 = arada ek bekleme yok (yine de işler sırayla çalışır). 60–120 önerilir.
+     */
+    'chunk_pause_seconds_between_batches' => max(0, min(3600, (int) env('CRAWLER_CHUNK_PAUSE_SECONDS', 60))),
+
+    /** Liste toplama + zinciri kuran ana işin zaman aşımı (saniye) */
+    'chunked_crawl_orchestrator_timeout_seconds' => max(120, min(3600, (int) env('CRAWLER_ORCHESTRATOR_TIMEOUT_SECONDS', 900))),
+
+    /** Tek bir detay-chunk işinin zaman aşımı (saniye) */
+    'chunked_crawl_detail_job_timeout_seconds' => max(60, min(3600, (int) env('CRAWLER_CHUNK_JOB_TIMEOUT_SECONDS', 300))),
+
+    /** Birleştirme + DB yazma finalize işinin zaman aşımı (saniye) */
+    'chunked_crawl_finalize_timeout_seconds' => max(120, min(3600, (int) env('CRAWLER_FINALIZE_TIMEOUT_SECONDS', 600))),
 
     /**
      * Biletinial: liste(ler)den toplanan benzersiz etkinlik yollarından kaçının detayı istenecek (üst sınır).

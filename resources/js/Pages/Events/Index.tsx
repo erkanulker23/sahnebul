@@ -1,3 +1,4 @@
+import { EventTypeHeroBanner } from '@/Components/events/EventTypeHeroBanner';
 import PublicEventTicketCard from '@/Components/PublicEventTicketCard';
 import { sanitizeHtmlForInnerHtml } from '@/Components/SafeRichContent';
 import { eventShowParam } from '@/lib/eventShowUrl';
@@ -79,6 +80,8 @@ interface Props {
         eventTypeSlug: string;
         eventTypeLabel: string;
     } | null;
+    /** Hub rotasından gelen etkinlik türü (filtre state’inden bağımsız; hero banner) */
+    eventTypeHubSlug?: string | null;
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -101,6 +104,7 @@ export default function EventsIndex({
     tickerFallback,
     filters,
     listingSeo = null,
+    eventTypeHubSlug = null,
 }: Readonly<Props>) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [category, setCategory] = useState(filters.category ?? '');
@@ -454,6 +458,35 @@ export default function EventsIndex({
 
     const hubSeoCityType = listingSeo?.kind === 'city_type' ? listingSeo : null;
     const hubSeoTypeOnly = listingSeo?.kind === 'type' ? listingSeo : null;
+
+    const heroEventTypeSlug = useMemo(() => {
+        const fromHub = typeof eventTypeHubSlug === 'string' ? eventTypeHubSlug.trim() : '';
+        if (fromHub !== '') {
+            return fromHub;
+        }
+        const fromListing =
+            listingSeo &&
+            (listingSeo.kind === 'type' || listingSeo.kind === 'city_type') &&
+            typeof listingSeo.eventTypeSlug === 'string'
+                ? listingSeo.eventTypeSlug.trim()
+                : '';
+        if (fromListing !== '') {
+            return fromListing;
+        }
+        const fromFilter = typeof filters.event_type === 'string' ? filters.event_type.trim() : '';
+        return fromFilter !== '' ? fromFilter : undefined;
+    }, [eventTypeHubSlug, listingSeo, filters.event_type]);
+
+    const heroTypeLabel = useMemo(() => {
+        if (!heroEventTypeSlug) {
+            return undefined;
+        }
+        return (
+            eventTypes.find((t) => t.slug === heroEventTypeSlug)?.label ??
+            listingSeo?.eventTypeLabel ??
+            heroEventTypeSlug
+        );
+    }, [heroEventTypeSlug, eventTypes, listingSeo?.eventTypeLabel]);
     const pageTitleSegment = useMemo(() => {
         if (hubSeoCityType) {
             return `${hubSeoCityType.cityName} ${hubSeoCityType.eventTypeLabel} etkinlikleri`;
@@ -495,6 +528,12 @@ export default function EventsIndex({
                         <p className="px-4 py-0.5 text-center text-sm text-zinc-300">{tickerFallback}</p>
                     )}
                 </div>
+
+                <EventTypeHeroBanner
+                    eventTypeSlug={heroEventTypeSlug}
+                    typeLabel={heroTypeLabel}
+                    cityName={hubSeoCityType?.cityName}
+                />
 
                 <div className="mx-auto max-w-7xl px-2 pb-10 pt-5 sm:px-4 sm:pb-14 sm:pt-8 lg:px-8 lg:pb-16">
                     <AdSlot slotKey="events_index_top" className="pb-3 pt-1" />

@@ -8,6 +8,7 @@ import {
 } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { adminUserRoleBadgeClass, adminUserRoleLabelTr } from '@/lib/adminUserRoleLabels';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -30,18 +31,6 @@ interface Props {
     filters: { search?: string; role?: string; status?: string };
     /** Süper yönetici: admin / süper admin rolü atama ve yönetici satırlarında işlemler */
     canAssignElevatedRoles?: boolean;
-}
-
-function roleLabelTr(role: string): string {
-    const map: Record<string, string> = {
-        customer: 'Müşteri',
-        artist: 'Sanatçı',
-        venue_owner: 'Mekân sahibi',
-        manager_organization: 'Management firması',
-        admin: 'Admin',
-        super_admin: 'Süper admin',
-    };
-    return map[role] ?? role;
 }
 
 const inputClass =
@@ -87,9 +76,7 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                 header: 'Rol',
                 mobileLabel: 'Rol',
                 cell: (user) => (
-                    <span className="inline-flex rounded-md bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
-                        {roleLabelTr(user.role)}
-                    </span>
+                    <span className={adminUserRoleBadgeClass(user.role)}>{adminUserRoleLabelTr(user.role)}</span>
                 ),
             },
             {

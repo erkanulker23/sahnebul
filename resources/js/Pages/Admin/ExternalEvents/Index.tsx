@@ -643,30 +643,15 @@ export default function AdminExternalEventsIndex({
 
                 <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
                     <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Harici sitelerden veri çek</h2>
-                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">Başlangıç ve bitiş tarihi zorunludur</strong> (en fazla 400 gün). Çekilen satırlar bu aralıktaki etkinlik
-                        tarihlerine göre süzülür. Kategori seçimi ek süzgeçtir. <strong className="font-medium text-zinc-800 dark:text-zinc-200">Şehirler</strong> listesinde seçim
-                        yaptığınızda Bubilet için bu, doğrudan{' '}
-                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">bubilet.com.tr/{'{şehir}'}/etiket/…</code> adresindeki şehir segmentidir (ör. Ankara seçilirse{' '}
-                        <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">/ankara/etiket/</code>). Hiç şehir seçmezseniz{' '}
-                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">tüm şehirler varsayılan seçili</strong> kabul edilir. Diğer kaynaklar
-                        için şehir, çekilen satırların şehir alanına göre süzülür. Önce önizleyip kontrol edin; «Verileri çek» isteği hemen biter (504 ağ geçidi zaman aşımı oluşmaz), asıl tarama ise
-                        sunucuda bir süre daha sürer;{' '}
-                        <strong className="font-medium text-zinc-800 dark:text-zinc-200">özet üstteki «Son veri çekme» kutusunda</strong> bittikten sonra kalır — birkaç dakika sonra sayfayı yenileyin.{' '}
-                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                            Bubilet: Konser, tiyatro, festival, elektronik müzik, stand-up, çocuk ve workshop etiketleri seçilen şehir(ler) için birlikte taranır; tarayıcıda gördüğünüzden fazlası
-                            çoğu zaman istemci tarafında yüklendiği için sunucu taramasıyla alınamaz. Site Cloudflare ile bot trafiğini keserse sunucu isteği başarısız olur; hata metninde
-                            açıklanır. Cloudflare çerezi:{' '}
-                            <Link
-                                href={safeRoute('admin.external-events.bubilet-cookies.index')}
-                                className="font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
-                            >
-                                Bubilet çerezi
-                            </Link>{' '}
-                            sayfasından Netscape dosyası yükleyebilir veya .env içinde BUBILET_COOKIES / BUBILET_COOKIES_FILE kullanın; cf_clearance mümkünse isteği atanın (sunucu veya vekil) IP’siyle uyumlu olmalı. Sunucu IP’si engelleniyorsa{' '}
-                            <code className="rounded bg-white/80 px-1 text-[0.8rem] dark:bg-zinc-800">BUBILET_HTTP_PROXY</code> ile residential çıkış deneyin. Zaten siteye aktardığınız (Aktarıldı) kayıtlar önizleme ve
-                            çekimde atlanır.
-                        </span>
+                    <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                        Başlangıç ve bitiş tarihi zorunludur (en fazla 400 gün). Bubilet şehir seçimi:{' '}
+                        <Link
+                            href={safeRoute('admin.external-events.bubilet-cookies.index')}
+                            className="font-medium text-amber-800 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-200"
+                        >
+                            çerez / engel
+                        </Link>
+                        .
                     </p>
                     {crawlBusy ? (
                         <div
@@ -680,7 +665,7 @@ export default function AdminExternalEventsIndex({
                     ) : null}
                     {crawlJobProgress ? (
                         <div
-                            className="mt-3 space-y-2 rounded-lg border border-amber-400/40 bg-amber-950/30 p-3 text-[11px] text-amber-100/95 dark:border-amber-600/35"
+                            className="mt-3 space-y-3 rounded-lg border border-amber-400/40 bg-amber-950/30 p-3 text-[11px] text-amber-100/95 dark:border-amber-600/35"
                             role="status"
                             aria-live="polite"
                         >
@@ -698,62 +683,105 @@ export default function AdminExternalEventsIndex({
                                 {crawlJobProgress.state === 'failed'
                                     ? 'Veri çekme hatası'
                                     : crawlJobProgress.state === 'completed'
-                                      ? 'Veri çekme tamamlandı'
+                                      ? 'Çekim tamamlandı — özet'
                                       : 'Harici veri içe aktarılıyor'}
                             </div>
                             <p className="text-xs leading-relaxed text-zinc-200">{crawlJobProgress.message}</p>
-                            {crawlJobProgress.state === 'completed' ? (
-                                <div className="space-y-1 text-[11px] text-zinc-200">
-                                    <p>
-                                        Toplam işlenen:{' '}
-                                        <strong className="tabular-nums">
-                                            {(crawlJobProgress.processed_total ?? 0).toLocaleString('tr-TR')}
-                                        </strong>
-                                    </p>
+                            {crawlJobProgress.state === 'completed' || crawlJobProgress.state === 'failed' ? (
+                                <div className="space-y-2 rounded-md border border-white/10 bg-black/25 p-2.5 text-zinc-100">
+                                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+                                        <span>
+                                            Veritabanına işlenen (toplam):{' '}
+                                            <strong className="tabular-nums text-white">
+                                                {(crawlJobProgress.processed_total ?? 0).toLocaleString('tr-TR')}
+                                            </strong>
+                                        </span>
+                                        {Array.isArray(crawlJobProgress.rows) && crawlJobProgress.rows.length > 0 ? (
+                                            <span className="text-zinc-400">
+                                                Hata olan kaynak:{' '}
+                                                <strong className="tabular-nums text-amber-200">
+                                                    {
+                                                        crawlJobProgress.rows.filter((r) => r.error != null && r.error !== '')
+                                                            .length
+                                                    }
+                                                </strong>
+                                                {' / '}
+                                                {crawlJobProgress.rows.length.toLocaleString('tr-TR')}
+                                            </span>
+                                        ) : null}
+                                    </div>
                                     {Array.isArray(crawlJobProgress.rows) && crawlJobProgress.rows.length > 0 ? (
-                                        <div className="max-h-28 space-y-0.5 overflow-auto rounded border border-amber-400/30 bg-black/20 px-2 py-1.5">
-                                            {crawlJobProgress.rows.map((r) => (
-                                                <p key={`${r.source}-${r.processed}-${r.error ?? ''}`}>
-                                                    <strong className="uppercase">{r.source}</strong>: {r.processed.toLocaleString('tr-TR')}
-                                                    {r.error ? ` · Hata: ${r.error}` : ''}
-                                                </p>
-                                            ))}
+                                        <div className="overflow-x-auto rounded border border-white/10">
+                                            <table className="w-full min-w-[280px] text-left text-[11px]">
+                                                <thead>
+                                                    <tr className="border-b border-white/10 text-zinc-400">
+                                                        <th className="px-2 py-1 font-semibold">Kaynak</th>
+                                                        <th className="px-2 py-1 font-semibold">İşlenen</th>
+                                                        <th className="px-2 py-1 font-semibold">Durum</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {crawlJobProgress.rows.map((r, idx) => (
+                                                        <tr key={`${r.source}-${idx}`}>
+                                                            <td className="px-2 py-1 font-mono uppercase text-zinc-200">
+                                                                {r.source}
+                                                            </td>
+                                                            <td className="px-2 py-1 tabular-nums text-zinc-100">
+                                                                {r.processed.toLocaleString('tr-TR')}
+                                                            </td>
+                                                            <td className="max-w-[min(24rem,55vw)] px-2 py-1">
+                                                                {r.error ? (
+                                                                    <span className="text-rose-300">{r.error}</span>
+                                                                ) : (
+                                                                    <span className="text-emerald-300/90">Tamam</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                    ) : null}
+                                    ) : (
+                                        <p className="text-[11px] text-zinc-500">Kaynak satırı raporu yok.</p>
+                                    )}
+                                    <p className="text-[10px] text-zinc-500">
+                                        Sayfa yenilendiğinde aynı özet üstteki «Son veri çekme» kutusunda da görünür.
+                                    </p>
                                 </div>
                             ) : null}
-                            {crawlJobProgress.active_source ? (
+                            {crawlJobProgress.active_source &&
+                            (crawlJobProgress.state === 'queued' || crawlJobProgress.state === 'running') ? (
                                 <p className="font-mono text-[10px] text-zinc-500">
                                     Kaynak: {crawlJobProgress.active_source}
                                 </p>
                             ) : null}
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] text-zinc-400">
-                                    <span>
-                                        {crawlJobProgress.phase === 'crawl' ? 'Tarama' : 'Kayıt yazma'} ·{' '}
-                                        {crawlJobProgress.current.toLocaleString('tr-TR')} /{' '}
-                                        {crawlJobProgress.total.toLocaleString('tr-TR')}
-                                    </span>
+                            {crawlJobProgress.state === 'queued' || crawlJobProgress.state === 'running' ? (
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-[10px] text-zinc-400">
+                                        <span>
+                                            {crawlJobProgress.phase === 'crawl' ? 'Tarama' : 'Kayıt yazma'} ·{' '}
+                                            {crawlJobProgress.current.toLocaleString('tr-TR')} /{' '}
+                                            {crawlJobProgress.total.toLocaleString('tr-TR')}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                                        <div
+                                            className="h-full rounded-full bg-amber-500 transition-[width] duration-300"
+                                            style={{
+                                                width: `${(() => {
+                                                    if (crawlJobProgress.state === 'queued') {
+                                                        return 4;
+                                                    }
+                                                    return Math.min(
+                                                        100,
+                                                        (crawlJobProgress.current / crawlJobProgress.total) * 100,
+                                                    );
+                                                })()}%`,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                                    <div
-                                        className={`h-full rounded-full transition-[width] duration-300 ${
-                                            crawlJobProgress.state === 'failed' ? 'bg-rose-500' : 'bg-amber-500'
-                                        }`}
-                                        style={{
-                                            width: `${(() => {
-                                                if (crawlJobProgress.state === 'queued') {
-                                                    return 4;
-                                                }
-                                                return Math.min(
-                                                    100,
-                                                    (crawlJobProgress.current / crawlJobProgress.total) * 100,
-                                                );
-                                            })()}%`,
-                                        }}
-                                    />
-                                </div>
-                            </div>
+                            ) : null}
                         </div>
                     ) : null}
                     {crawlTransportError ? (
@@ -918,10 +946,6 @@ export default function AdminExternalEventsIndex({
                         >
                             {crawlBusy ? 'Çekiliyor…' : 'Verileri çek'}
                         </button>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Varsayılan kaynak Biletinial; yalnızca bu siteden çekmek için üstteki &quot;Kaynak&quot; menüsünde{' '}
-                            <strong className="font-medium text-zinc-700 dark:text-zinc-300">biletinial</strong> kalsın.
-                        </span>
                     </div>
                 </div>
 

@@ -48,7 +48,7 @@ class ExternalEventController extends Controller
                 'filters' => ['source' => '', 'status' => 'pending', 'search' => '', 'artist' => '', 'date_from' => '', 'date_to' => ''],
                 'sources' => array_keys(config('crawler.sources', [])),
                 'crawlLookups' => $crawlLookups,
-                'lastCrawlReport' => Session::get('external_events_last_crawl'),
+                'lastCrawlReport' => $this->lastCrawlReportForInertia(),
                 'persistedLastCrawl' => $this->persistedLastCrawlSnapshotForInertia(),
                 'appTimezone' => (string) config('app.timezone'),
             ]);
@@ -119,10 +119,25 @@ class ExternalEventController extends Controller
             ],
             'sources' => array_keys(config('crawler.sources', [])),
             'crawlLookups' => $crawlLookups,
-            'lastCrawlReport' => Session::get('external_events_last_crawl'),
+            'lastCrawlReport' => $this->lastCrawlReportForInertia(),
             'persistedLastCrawl' => $this->persistedLastCrawlSnapshotForInertia(),
             'appTimezone' => (string) config('app.timezone'),
         ]);
+    }
+
+    /**
+     * Oturumdaki ayrıntılı özet (çekim bittiğinde anket uç noktası cache’ten oturuma yazılır).
+     *
+     * @return array{finished_at: string, status: string, total_processed: int, rows: list<array{source: string, processed: int, error: string|null}>, summary: string}|null
+     */
+    private function lastCrawlReportForInertia(): ?array
+    {
+        $session = Session::get('external_events_last_crawl');
+        if (! is_array($session) || ! isset($session['finished_at'], $session['summary'], $session['status'])) {
+            return null;
+        }
+
+        return $session;
     }
 
     /**
@@ -487,7 +502,7 @@ class ExternalEventController extends Controller
         return back()
             ->with(
                 'success',
-                'Veri çekme başladı; sayfa hemen yanıtlanır (504 ağ geçidi zaman aşımı oluşmaz). Aşağıdaki çubuktan ilerlemeyi izleyebilirsiniz; bittiğinde özet üstte güncellenir.',
+                'Veri çekme kuyruğa alındı. Tarama birçok küçük adımda (aralarında yapılandırılabilir bekleme) sürebilir; ilerleme aşağıda, bitince özet güncellenir.',
             )
             ->with('external_crawl_job_id', $statusToken);
     }
@@ -505,6 +520,10 @@ class ExternalEventController extends Controller
         $state = (string) ($data['state'] ?? 'unknown');
         if ($state === 'completed' || $state === 'failed') {
             UserBackgroundJobPointers::clearExternalCrawlToken((int) $request->user()->id);
+            $snapshot = Cache::get('external_events_last_crawl_snapshot');
+            if (is_array($snapshot) && isset($snapshot['finished_at'], $snapshot['summary'])) {
+                Session::put('external_events_last_crawl', $snapshot);
+            }
         }
 
         return response()->json([

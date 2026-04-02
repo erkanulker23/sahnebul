@@ -35,7 +35,9 @@ class MarketplaceCrawlerService
                 ? array_values(array_filter(array_map('strval', $options['bubilet_city_slugs'])))
                 : [];
 
-            return $this->crawlBubiletTagListing($sourceConfig, $slugs);
+            $q = $this->collectBubiletDetailQueue($sourceConfig, $slugs);
+
+            return $this->fetchBubiletDetailRowsBatch($sourceConfig, $q);
         }
 
         if ($source === 'bubilet_sehir_sec') {
@@ -43,7 +45,9 @@ class MarketplaceCrawlerService
         }
 
         if ($source === 'biletinial') {
-            return $this->crawlBiletinialListing($sourceConfig);
+            $q = $this->collectBiletinialDetailQueue($sourceConfig);
+
+            return $this->fetchBiletinialDetailRowsBatch($sourceConfig, $q, 0);
         }
 
         if ($source === 'biletix') {
@@ -72,18 +76,67 @@ class MarketplaceCrawlerService
         return $normalized;
     }
 
+    public function supportsChunkedDetailCrawl(string $source): bool
+    {
+        return $source === 'bubilet' || $source === 'biletinial';
+    }
+
     /**
-     * Bubilet etiket sayfasındaki etkinlik kartlarından link toplanır; her detay sayfasındaki JSON-LD Event okunur.
-     *
-     * @param  array<string, mixed>  $sourceConfig
-     * @param  list<string>  $citySlugs  URL ilk segmenti (örn. istanbul, ankara); boşsa config default_city_slug
+     * @param  array{bubilet_city_slugs?: list<string>}  $options
+     * @return list<array{path: string, listing_url: string}>
+     */
+    public function collectDetailPathQueue(string $source, array $options = []): array
+    {
+        $sourceConfig = config("crawler.sources.{$source}");
+        if (! is_array($sourceConfig)) {
+            return [];
+        }
+        if ($source === 'bubilet') {
+            $slugs = isset($options['bubilet_city_slugs']) && is_array($options['bubilet_city_slugs'])
+                ? array_values(array_filter(array_map('strval', $options['bubilet_city_slugs'])))
+                : [];
+
+            return $this->collectBubiletDetailQueue($sourceConfig, $slugs);
+        }
+        if ($source === 'biletinial') {
+            return $this->collectBiletinialDetailQueue($sourceConfig);
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array{bubilet_city_slugs?: list<string>}  $options
+     * @param  list<array{path: string, listing_url: string}>  $batch
      * @return list<array<string, mixed>>
      */
-    private function crawlBubiletTagListing(array $sourceConfig, array $citySlugs = []): array
+    public function fetchDetailRowsBatch(string $source, array $options, array $batch, int $globalPathOffset = 0): array
+    {
+        $sourceConfig = config("crawler.sources.{$source}");
+        if (! is_array($sourceConfig) || $batch === []) {
+            return [];
+        }
+        if ($source === 'bubilet') {
+            return $this->fetchBubiletDetailRowsBatch($sourceConfig, $batch);
+        }
+        if ($source === 'biletinial') {
+            return $this->fetchBiletinialDetailRowsBatch($sourceConfig, $batch, $globalPathOffset);
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @param  list<string>  $citySlugs
+     * @return list<array{path: string, listing_url: string}>
+     */
+    private function collectBubiletDetailQueue(array $sourceConfig, array $citySlugs = []): array
     {
         $listingUrls = $this->bubiletListingUrlsForCitySlugs($sourceConfig, $citySlugs);
 
-        $pathToListing = [];
+        /** @var array<string, list<string>> $pathsByListingUrl */
+        $pathsByListingUrl = [];
         $delayListingUs = max(0, (int) config('crawler.bubilet_listing_delay_us', 200_000));
 
         foreach ($listingUrls as $idx => $listingUrl) {
@@ -91,26 +144,34 @@ class MarketplaceCrawlerService
                 usleep($delayListingUs);
             }
             $html = $this->bubiletGet($listingUrl);
-
-            foreach ($this->extractBubiletEventPathsFromListingHtml($html) as $path) {
-                $pathToListing[$path] = $listingUrl;
+            $paths = array_values(array_unique($this->extractBubiletEventPathsFromListingHtml($html)));
+            if ($paths !== []) {
+                $pathsByListingUrl[$listingUrl] = $paths;
             }
         }
 
-        $paths = array_keys($pathToListing);
         $detailCap = max(20, min(2000, (int) config('crawler.bubilet_max_detail_pages', 400)));
-        if (count($paths) > $detailCap) {
-            $paths = array_slice($paths, 0, $detailCap);
-        }
+
+        return $this->mergeUniquePathsRoundRobinFromListings($pathsByListingUrl, $detailCap);
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @param  list<array{path: string, listing_url: string}>  $merged
+     * @return list<array<string, mixed>>
+     */
+    private function fetchBubiletDetailRowsBatch(array $sourceConfig, array $merged): array
+    {
         $normalized = [];
         $base = 'https://www.bubilet.com.tr';
 
-        foreach ($paths as $i => $path) {
+        foreach ($merged as $i => $item) {
+            $path = $item['path'];
+            $listingUrl = $item['listing_url'];
             if ($i > 0) {
                 usleep(150000);
             }
             $url = $this->normalizeUrl($path, $base);
-            $listingUrl = $pathToListing[$path] ?? '';
             $listingRef = $listingUrl !== '' ? $listingUrl : null;
             try {
                 $detailHtml = $this->bubiletGet($url, $listingRef);
@@ -144,6 +205,54 @@ class MarketplaceCrawlerService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Liste URL'leri sırayla birleştirilip detay kotası ilk sayfalarla (ör. yalnızca konser) doldurulmasın diye
+     * her kaynaktan sırayla bir yol alınarak birleştirilir.
+     *
+     * @param  array<string, list<string>>  $pathsByListingUrl
+     * @return list<array{path: string, listing_url: string}>
+     */
+    private function mergeUniquePathsRoundRobinFromListings(array $pathsByListingUrl, int $maxTotal): array
+    {
+        $queues = [];
+        foreach ($pathsByListingUrl as $listingUrl => $paths) {
+            $listingUrl = (string) $listingUrl;
+            if ($listingUrl === '' || ! is_array($paths) || $paths === []) {
+                continue;
+            }
+            $queues[$listingUrl] = array_values(array_filter(array_map('strval', $paths), static fn (string $p): bool => $p !== ''));
+        }
+        if ($queues === []) {
+            return [];
+        }
+
+        $out = [];
+        $seen = [];
+        $maxTotal = max(0, $maxTotal);
+
+        while (count($out) < $maxTotal) {
+            $progress = false;
+            foreach ($queues as $listingUrl => &$q) {
+                while ($q !== []) {
+                    $path = array_shift($q);
+                    if (isset($seen[$path])) {
+                        continue;
+                    }
+                    $seen[$path] = true;
+                    $out[] = ['path' => $path, 'listing_url' => $listingUrl];
+                    $progress = true;
+                    break;
+                }
+            }
+            unset($q);
+            if (! $progress) {
+                break;
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -693,20 +802,18 @@ class MarketplaceCrawlerService
     }
 
     /**
-     * Biletinial müzik listesi → etkinlik detay URL'leri → her detaydaki schema.org Event mikro verisi (tarih / mekan / sanatçı).
-     *
      * @param  array<string, mixed>  $sourceConfig
-     * @return list<array<string, mixed>>
+     * @return list<array{path: string, listing_url: string}>
      */
-    private function crawlBiletinialListing(array $sourceConfig): array
+    private function collectBiletinialDetailQueue(array $sourceConfig): array
     {
         $listingUrls = isset($sourceConfig['listing_urls']) && is_array($sourceConfig['listing_urls']) && $sourceConfig['listing_urls'] !== []
             ? array_values(array_unique(array_filter(array_map('strval', $sourceConfig['listing_urls']))))
             : [(string) $sourceConfig['url']];
 
         $listingDelayUs = max(0, (int) config('crawler.biletinial_listing_delay_us', 350_000));
-        /** @var array<string, string> $pathToListingSegment path => tr-tr alt segment (muzik, tiyatro, …) */
-        $pathToListingSegment = [];
+        /** @var array<string, list<string>> $pathsByListingUrl */
+        $pathsByListingUrl = [];
 
         foreach ($listingUrls as $idx => $listingUrl) {
             if ($idx > 0 && $listingDelayUs > 0) {
@@ -719,25 +826,37 @@ class MarketplaceCrawlerService
                 ->body();
 
             $segment = $this->biletinialCategorySegmentFromListingUrl($listingUrl);
-            foreach ($this->extractBiletinialEventPathsFromListingHtml($html, $segment) as $p) {
-                if (! isset($pathToListingSegment[$p])) {
-                    $pathToListingSegment[$p] = $segment;
-                }
+            $paths = $this->extractBiletinialEventPathsFromListingHtml($html, $segment);
+            if ($paths !== []) {
+                $pathsByListingUrl[$listingUrl] = array_values($paths);
             }
         }
 
-        $paths = array_keys($pathToListingSegment);
+        $maxDetailPages = max(10, min(800, (int) config('crawler.biletinial_max_detail_pages', 200)));
+
+        return $this->mergeUniquePathsRoundRobinFromListings($pathsByListingUrl, $maxDetailPages);
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @param  list<array{path: string, listing_url: string}>  $merged
+     * @return list<array<string, mixed>>
+     */
+    private function fetchBiletinialDetailRowsBatch(array $sourceConfig, array $merged, int $globalPathOffset = 0): array
+    {
         $base = 'https://biletinial.com';
         $normalized = [];
-        $maxDetailPages = max(10, min(800, (int) config('crawler.biletinial_max_detail_pages', 200)));
         $detailDelayUs = max(0, (int) config('crawler.biletinial_detail_delay_us', 120_000));
         $chunkSize = max(1, (int) config('crawler.biletinial_detail_chunk_size', 5));
         $chunkPauseUs = max(0, (int) config('crawler.biletinial_chunk_pause_us', 550_000));
 
-        foreach (array_slice($paths, 0, $maxDetailPages) as $i => $path) {
+        foreach ($merged as $i => $item) {
+            $path = $item['path'];
+            $listingUrl = $item['listing_url'];
+            $idx = $globalPathOffset + $i;
             if ($i > 0) {
                 usleep($detailDelayUs);
-                if ($i % $chunkSize === 0) {
+                if ($idx > 0 && $idx % $chunkSize === 0) {
                     usleep($chunkPauseUs);
                 }
             }
@@ -752,7 +871,7 @@ class MarketplaceCrawlerService
                 continue;
             }
 
-            $listingSegment = $pathToListingSegment[$path] ?? 'etkinlik';
+            $listingSegment = $this->biletinialCategorySegmentFromListingUrl($listingUrl);
             foreach ($this->parseBiletinialDetailHtmlToSchemaEvents($detailHtml, $url, $listingSegment) as $event) {
                 $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
                 if ($row !== null) {
@@ -775,10 +894,12 @@ class MarketplaceCrawlerService
 
         return match (true) {
             str_contains($slug, 'muzik') => 'Müzik',
+            str_contains($slug, 'sinema') => 'Sinema',
             str_contains($slug, 'tiyatro') => 'Tiyatro',
             str_contains($slug, 'spor') => 'Spor',
+            str_contains($slug, 'standup') => 'Stand-up',
+            str_contains($slug, 'sehrineozel') => 'Etkinlik',
             str_contains($slug, 'etkinlik') => 'Etkinlik',
-            str_contains($slug, 'standup') || str_contains($slug, 'stand') => 'Stand-up',
             str_contains($slug, 'cocuk') => 'Çocuk',
             str_contains($slug, 'sanat') => 'Sanat',
             default => Str::title(str_replace('-', ' ', trim($segment, '-'))),
@@ -791,7 +912,12 @@ class MarketplaceCrawlerService
         $path = trim($path, '/');
         $parts = explode('/', $path);
         if (count($parts) >= 2 && strtolower($parts[0]) === 'tr-tr') {
-            return $parts[1];
+            $rest = array_slice($parts, 1);
+            if (count($rest) >= 2 && strtolower((string) $rest[0]) === 'etkinlikleri') {
+                return $rest[0].'/'.(string) $rest[1];
+            }
+
+            return (string) $rest[0];
         }
 
         return 'muzik';
@@ -803,15 +929,16 @@ class MarketplaceCrawlerService
     private function extractBiletinialEventPathsFromListingHtml(string $html, string $categorySegment): array
     {
         $paths = [];
-        $segment = preg_quote($categorySegment, '~');
-        if (! preg_match_all('~href=["\'](/tr-tr/'.$segment.'/[^"\'?>\s]+)["\']~iu', $html, $m)) {
+        $segmentEsc = preg_quote($categorySegment, '~');
+        if (! preg_match_all('~href=["\'](/tr-tr/'.$segmentEsc.'/[^"\'?>\s]+)["\']~iu', $html, $m)) {
             return [];
         }
 
+        $segHash = preg_quote($categorySegment, '#');
         foreach ($m[1] as $p) {
             $p = html_entity_decode($p, ENT_QUOTES | ENT_HTML5);
             $p = rtrim($p, '/');
-            if ($p === '' || preg_match('#^/tr-tr/'.preg_quote($categorySegment, '#').'/?$#iu', $p)) {
+            if ($p === '' || preg_match('#^/tr-tr/'.$segHash.'/?$#iu', $p)) {
                 continue;
             }
             if (substr_count($p, '/') < 3) {
