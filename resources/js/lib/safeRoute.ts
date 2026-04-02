@@ -260,6 +260,16 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/admin/tanitim-video-instagram-cerezleri/kaldir';
         case 'discover.tonight':
             return '/kesfet/bu-aksam';
+        case 'organizations.index':
+            return `/organizasyonlar${queryString(params ?? {})}`;
+        case 'organizations.show': {
+            const slug = params?.slug;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/organizasyonlar/${encodeURIComponent(slug)}`;
+            }
+
+            return '/organizasyonlar';
+        }
         case 'admin.notifications.broadcast':
         case 'admin.notifications.broadcast.store':
             return '/admin/bildirim-gonder';

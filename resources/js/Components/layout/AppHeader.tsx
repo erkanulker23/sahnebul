@@ -6,7 +6,7 @@ import { iconClass } from '@/lib/icons';
 import { cn } from '@/lib/cn';
 import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
-import { Briefcase, Calendar, ChevronDown, Home, LogIn, MapPin, Menu, Mic2, Moon, Sun, User, UserPlus, X } from 'lucide-react';
+import { Calendar, ChevronDown, Home, LogIn, MapPin, Menu, Mic2, Moon, Sun, User, UserPlus, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -127,7 +127,6 @@ export function AppHeader() {
     const inertiaUrl = page.url;
     const navActiveState = {
         venues: navActive(['venues.index']),
-        organizations: navActive(['organizations.index', 'organizations.show']),
         events:
             navActive(['events.index', 'events.show', 'events.nearby', 'discover.tonight']) ||
             inertiaUrl.startsWith('/kesfet/bu-aksam'),
@@ -180,14 +179,6 @@ export function AppHeader() {
                                         </>
                                     ) : null}
                                 </>
-                            )}
-                        </NavFlyout>
-                        <NavFlyout label="Organizasyonlar" active={navActiveState.organizations}>
-                            {(close) => (
-                                <Link href={route('organizations.index')} className={flyoutItemClass} onClick={close} role="menuitem">
-                                    <Briefcase className="h-4 w-4 opacity-70" aria-hidden />
-                                    Organizasyon firmaları
-                                </Link>
                             )}
                         </NavFlyout>
                         <NavFlyout label="Etkinlikler" active={navActiveState.events}>
@@ -355,14 +346,6 @@ export function AppHeader() {
                             >
                                 <MapPin className={iconClass.md} />
                                 Mekanlar
-                            </Link>
-                            <Link
-                                href={route('organizations.index')}
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-zinc-900 dark:text-white"
-                                onClick={closeDrawer}
-                            >
-                                <Briefcase className={iconClass.md} />
-                                Organizasyon firmaları
                             </Link>
                             {!user ? (
                                 <div className="ms-2 flex flex-col gap-0.5 border-l border-zinc-200 py-1 pl-3 dark:border-zinc-700">

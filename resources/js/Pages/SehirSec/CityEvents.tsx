@@ -273,126 +273,124 @@ export default function SehirSecCityEvents({
                             </p>
                         ) : null}
 
-                        {districts.length > 0 && (
-                            <div className="mt-6 max-w-md">
-                                <label htmlFor="sehir-sec-ilce" className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                                    <MapPin className="h-3.5 w-3.5 text-zinc-400" aria-hidden />
-                                    İlçe
-                                </label>
-                                <select
-                                    id="sehir-sec-ilce"
-                                    value={activeDistrictSlug ?? ''}
-                                    onChange={(e) => {
-                                        const v = e.target.value;
-                                        router.get(
-                                            cityListHref(citySlug, {
-                                                ilce: v || null,
-                                                kategori: activeCategorySlug,
-                                                sanat_turu: activeGenreSlug,
-                                                ...nearPair,
-                                            }),
-                                            {},
-                                            { preserveScroll: true },
-                                        );
-                                    }}
-                                    className="w-full rounded-xl border border-white/20 bg-zinc-900/80 px-3 py-2.5 text-sm text-white outline-none ring-emerald-500/40 focus:border-emerald-500/50 focus:ring-2"
-                                >
-                                    <option value="">Tüm ilçeler</option>
-                                    {districts.map((d) => (
-                                        <option key={d.slug} value={d.slug}>
-                                            {d.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <p className="mt-1.5 text-[11px] text-zinc-500">
-                                    Konum izni verirseniz liste yakın mekânlara göre sıralanır. İlçe seçmek isterseniz listeyi daraltır; &quot;Tüm ilçeler&quot; ile sıralama korunur.
-                                </p>
-                            </div>
-                        )}
+                        {(districts.length > 0 || genres.length > 0 || categories.length > 0) && (
+                            <div className="mt-6 max-w-4xl">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    {districts.length > 0 && (
+                                        <div className="min-w-0">
+                                            <label
+                                                htmlFor="sehir-sec-ilce"
+                                                className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+                                            >
+                                                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />
+                                                İlçe
+                                            </label>
+                                            <select
+                                                id="sehir-sec-ilce"
+                                                value={activeDistrictSlug ?? ''}
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    router.get(
+                                                        cityListHref(citySlug, {
+                                                            ilce: v || null,
+                                                            kategori: activeCategorySlug,
+                                                            sanat_turu: activeGenreSlug,
+                                                            ...nearPair,
+                                                        }),
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    );
+                                                }}
+                                                className="w-full rounded-xl border border-white/20 bg-zinc-900/80 px-3 py-2.5 text-sm text-white outline-none ring-emerald-500/40 focus:border-emerald-500/50 focus:ring-2"
+                                            >
+                                                <option value="">Tüm ilçeler</option>
+                                                {districts.map((d) => (
+                                                    <option key={d.slug} value={d.slug}>
+                                                        {d.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
 
-                        {genres.length > 0 && (
-                            <div className="mt-8">
-                                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Tür (sanatçı)</p>
-                                <div className="flex flex-wrap gap-2">
-                                    <Link
-                                        href={cityListHref(citySlug, {
-                                            kategori: activeCategorySlug,
-                                            ilce: activeDistrictSlug,
-                                            sanat_turu: null,
-                                            ...nearPair,
-                                        })}
-                                        preserveScroll
-                                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                                            activeGenreSlug === null
-                                                ? 'border-emerald-400 bg-emerald-500/20 text-white'
-                                                : 'border-white/20 text-zinc-300 hover:border-emerald-400/40 hover:text-white'
-                                        }`}
-                                    >
-                                        Tümü
-                                    </Link>
-                                    {genres.map((t) => (
-                                        <Link
-                                            key={t.slug}
-                                            href={cityListHref(citySlug, {
-                                                kategori: activeCategorySlug,
-                                                ilce: activeDistrictSlug,
-                                                sanat_turu: t.slug,
-                                                ...nearPair,
-                                            })}
-                                            preserveScroll
-                                            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                                                activeGenreSlug === t.slug
-                                                    ? 'border-emerald-400 bg-emerald-500/20 text-white'
-                                                    : 'border-white/20 text-zinc-300 hover:border-emerald-400/40 hover:text-white'
-                                            }`}
-                                        >
-                                            {t.label}
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                    {genres.length > 0 && (
+                                        <div className="min-w-0">
+                                            <label
+                                                htmlFor="sehir-sec-sanat-turu"
+                                                className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500"
+                                            >
+                                                Tür (sanatçı)
+                                            </label>
+                                            <select
+                                                id="sehir-sec-sanat-turu"
+                                                value={activeGenreSlug ?? ''}
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    router.get(
+                                                        cityListHref(citySlug, {
+                                                            sanat_turu: v || null,
+                                                            kategori: activeCategorySlug,
+                                                            ilce: activeDistrictSlug,
+                                                            ...nearPair,
+                                                        }),
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    );
+                                                }}
+                                                className="w-full rounded-xl border border-white/20 bg-zinc-900/80 px-3 py-2.5 text-sm text-white outline-none ring-emerald-500/40 focus:border-emerald-500/50 focus:ring-2"
+                                            >
+                                                <option value="">Tüm türler</option>
+                                                {genres.map((t) => (
+                                                    <option key={t.slug} value={t.slug}>
+                                                        {t.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
 
-                        {categories.length > 0 && (
-                            <div className="mt-8">
-                                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">Kategori</p>
-                                <div className="flex flex-wrap gap-2">
-                                    <Link
-                                        href={cityListHref(citySlug, {
-                                            ilce: activeDistrictSlug,
-                                            sanat_turu: activeGenreSlug,
-                                            kategori: null,
-                                            ...nearPair,
-                                        })}
-                                        preserveScroll
-                                        className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                                            activeCategorySlug === null
-                                                ? 'border-emerald-400 bg-emerald-500/20 text-white'
-                                                : 'border-white/20 text-zinc-300 hover:border-emerald-400/40 hover:text-white'
-                                        }`}
-                                    >
-                                        Tümü
-                                    </Link>
-                                    {categories.map((c) => (
-                                        <Link
-                                            key={c.slug}
-                                            href={cityListHref(citySlug, {
-                                                kategori: c.slug,
-                                                ilce: activeDistrictSlug,
-                                                sanat_turu: activeGenreSlug,
-                                                ...nearPair,
-                                            })}
-                                            preserveScroll
-                                            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                                                activeCategorySlug === c.slug
-                                                    ? 'border-emerald-400 bg-emerald-500/20 text-white'
-                                                    : 'border-white/20 text-zinc-300 hover:border-emerald-400/40 hover:text-white'
-                                            }`}
-                                        >
-                                            {c.name}
-                                        </Link>
-                                    ))}
+                                    {categories.length > 0 && (
+                                        <div className="min-w-0">
+                                            <label
+                                                htmlFor="sehir-sec-kategori"
+                                                className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500"
+                                            >
+                                                Kategori
+                                            </label>
+                                            <select
+                                                id="sehir-sec-kategori"
+                                                value={activeCategorySlug ?? ''}
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    router.get(
+                                                        cityListHref(citySlug, {
+                                                            kategori: v || null,
+                                                            ilce: activeDistrictSlug,
+                                                            sanat_turu: activeGenreSlug,
+                                                            ...nearPair,
+                                                        }),
+                                                        {},
+                                                        { preserveScroll: true },
+                                                    );
+                                                }}
+                                                className="w-full rounded-xl border border-white/20 bg-zinc-900/80 px-3 py-2.5 text-sm text-white outline-none ring-emerald-500/40 focus:border-emerald-500/50 focus:ring-2"
+                                            >
+                                                <option value="">Tüm kategoriler</option>
+                                                {categories.map((c) => (
+                                                    <option key={c.slug} value={c.slug}>
+                                                        {c.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
+                                {districts.length > 0 && (
+                                    <p className="mt-3 max-w-2xl text-[11px] leading-relaxed text-zinc-500">
+                                        Konum izni verirseniz liste yakın mekânlara göre sıralanır. İlçe seçmek listeyi daraltır;
+                                        &quot;Tüm ilçeler&quot; yakınlık sıralamasını korur.
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>

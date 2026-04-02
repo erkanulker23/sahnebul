@@ -6,6 +6,7 @@ import { EditorialShareStrip } from '@/Components/EditorialShareStrip';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { toAbsoluteUrl } from '@/utils/seo';
 import AppLayout from '@/Layouts/AppLayout';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, usePage } from '@inertiajs/react';
 import { Briefcase, Calendar, Eye, Globe, Mic2, Users } from 'lucide-react';
 import { useMemo } from 'react';
@@ -244,7 +245,7 @@ export default function OrganizationShow({
                 ) : null}
 
                 <p className="mt-12 text-center text-sm text-zinc-500">
-                    <Link href={route('organizations.index')} className="text-amber-700 hover:underline dark:text-amber-400">
+                    <Link href={safeRoute('organizations.index')} className="text-amber-700 hover:underline dark:text-amber-400">
                         ← Tüm organizasyonlar
                     </Link>
                 </p>

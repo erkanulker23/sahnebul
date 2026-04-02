@@ -1,5 +1,6 @@
 import SeoHead from '@/Components/SeoHead';
 import AppLayout from '@/Layouts/AppLayout';
+import { safeRoute } from '@/lib/safeRoute';
 import { Link, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Briefcase, Search } from 'lucide-react';
@@ -58,7 +59,7 @@ export default function OrganizationsIndex({
         e.preventDefault();
         const q = search.trim();
         router.get(
-            route('organizations.index'),
+            safeRoute('organizations.index'),
             q ? { search: q } : {},
             { preserveState: true },
         );
@@ -113,7 +114,7 @@ export default function OrganizationsIndex({
                             return (
                                 <li key={row.id}>
                                     <Link
-                                        href={route('organizations.show', row.organization_public_slug)}
+                                        href={safeRoute('organizations.show', { slug: row.organization_public_slug })}
                                         className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:border-amber-400/50 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-amber-500/35"
                                     >
                                         <div className="relative aspect-[16/9] bg-zinc-200 dark:bg-zinc-800">
