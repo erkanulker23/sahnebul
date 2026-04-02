@@ -7,6 +7,11 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { buildDocumentTitle } from './utils/seo';
 
+/** Tarayıcının SPA geçişlerinde eski kaydırma konumunu «geri yükle»mesini azaltır (özellikle uzun detay sayfaları). */
+if (typeof window !== 'undefined' && 'scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({

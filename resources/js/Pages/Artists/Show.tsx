@@ -29,7 +29,7 @@ import ArtistHeroFallbackBackdrop from '@/Components/ArtistHeroFallbackBackdrop'
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Calendar, Music2, Pause, PenLine, Play, Plus, Users } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 interface Venue {
     name: string;
@@ -541,6 +541,13 @@ export default function ArtistShow({
         });
     };
 
+    useLayoutEffect(() => {
+        if (typeof window === 'undefined') return;
+        const raw = window.location.hash.replace(/^#/, '');
+        if (raw.length > 0) return;
+        window.scrollTo(0, 0);
+    }, [artist.slug]);
+
     useEffect(() => {
         const hash = window.location.hash.replace(/^#/, '');
         const goTakvim = ['takvim', 'haftalik-etkinlikler', 'yaklasan-etkinlikler'].includes(hash);
@@ -986,7 +993,7 @@ export default function ArtistShow({
                                 </div>
                             </div>
 
-                            <div className="mt-10 space-y-12">
+                            <div id="takvim" className="scroll-mt-24 mt-10 space-y-12">
                                 {upcomingEvents.length > 0 && (
                                     <div>
                                         <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">

@@ -112,7 +112,7 @@ export default function SiteShell({ children, hideMobileQuickNav = false }: Read
                     'mx-auto w-full max-w-[1600px] flex-1 px-2.5 pt-0 sm:px-4 lg:px-8',
                     hideMobileQuickNav
                         ? 'pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:pb-8'
-                        : 'pb-[max(1.5rem,env(safe-area-inset-bottom))] max-lg:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8',
+                        : 'pb-6 lg:pb-8',
                 )}
             >
                 {children}
@@ -121,7 +121,8 @@ export default function SiteShell({ children, hideMobileQuickNav = false }: Read
             <div
                 className={cn(
                     'mt-auto flex w-full flex-col',
-                    !hideMobileQuickNav && 'max-lg:pb-[calc(4rem+env(safe-area-inset-bottom,0px))]',
+                    !hideMobileQuickNav &&
+                        'max-lg:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]',
                 )}
             >
                 <AdSlot

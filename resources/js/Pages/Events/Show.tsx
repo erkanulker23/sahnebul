@@ -30,7 +30,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { sortVenueSocialEntries, venueSocialLinkTitle } from '@/utils/venueSocial';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, ExternalLink, MessageCircle, Navigation, Sparkles, Ticket } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 
 interface Artist {
     id: number;
@@ -413,6 +413,13 @@ export default function EventShow({
     const [eventReviewOpen, setEventReviewOpen] = useState(false);
     const eventReviewForm = useForm({ rating: 5, comment: '' });
     const hasEventReviewed = Boolean(authUser && eventReviews.some((r) => r.user.id === authUser.id));
+
+    useLayoutEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (window.location.hash.replace(/^#/, '').length > 0) return;
+        window.scrollTo(0, 0);
+    }, [event.id]);
+
     const submitEventReview = (e: React.FormEvent) => {
         e.preventDefault();
         if (!authed || hasEventReviewed || !canSubmitEventReview) return;
