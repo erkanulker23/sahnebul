@@ -460,13 +460,17 @@ export function AppHeader() {
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-2">
-                                    <Link href={safeRoute('login')} className="rounded-lg px-3 py-2.5" onClick={closeDrawer}>
+                                <div className="flex flex-col gap-2.5">
+                                    <Link
+                                        href={safeRoute('login')}
+                                        className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-zinc-800 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                                        onClick={closeDrawer}
+                                    >
                                         Giriş
                                     </Link>
                                     <Link
                                         href={safeRoute('register.kullanici')}
-                                        className="rounded-lg bg-amber-500 px-3 py-2.5 text-center font-semibold text-zinc-950"
+                                        className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-amber-400"
                                         onClick={closeDrawer}
                                     >
                                         Kayıt ol
