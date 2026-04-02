@@ -85,6 +85,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/sitemap-genel.xml', [SitemapController::class, 'general'])->name('sitemap.general');
+Route::get('/sitemap-etkinlikler.xml', [SitemapController::class, 'events'])->name('sitemap.events');
+Route::get('/sitemap-mekanlar.xml', [SitemapController::class, 'venues'])->name('sitemap.venues');
+Route::get('/sitemap-sanatcilar.xml', [SitemapController::class, 'artists'])->name('sitemap.artists');
 
 Route::get('/robots.txt', function () {
     $base = rtrim((string) config('app.url'), '/');

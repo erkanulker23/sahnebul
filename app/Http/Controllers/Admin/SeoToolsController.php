@@ -14,6 +14,12 @@ class SeoToolsController extends Controller
 
         return Inertia::render('Admin/SeoTools', [
             'sitemapUrl' => $base.'/sitemap.xml',
+            'sitemapChildUrls' => [
+                $base.'/sitemap-genel.xml',
+                $base.'/sitemap-etkinlikler.xml',
+                $base.'/sitemap-mekanlar.xml',
+                $base.'/sitemap-sanatcilar.xml',
+            ],
             'robotsUrl' => $base.'/robots.txt',
             'searchConsoleUrl' => 'https://search.google.com/search-console',
             'richResultsTestUrl' => 'https://search.google.com/test/rich-results',

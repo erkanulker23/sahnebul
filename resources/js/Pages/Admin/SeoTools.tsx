@@ -8,6 +8,7 @@ import { ExternalLink, FileCode2, Map, Search } from 'lucide-react';
 
 interface Props {
     sitemapUrl: string;
+    sitemapChildUrls: string[];
     robotsUrl: string;
     searchConsoleUrl: string;
     richResultsTestUrl: string;
@@ -31,7 +32,13 @@ function CopyField({ label, value }: Readonly<{ label: string; value: string }>)
     );
 }
 
-export default function AdminSeoTools({ sitemapUrl, robotsUrl, searchConsoleUrl, richResultsTestUrl }: Readonly<Props>) {
+export default function AdminSeoTools({
+    sitemapUrl,
+    sitemapChildUrls,
+    robotsUrl,
+    searchConsoleUrl,
+    richResultsTestUrl,
+}: Readonly<Props>) {
     return (
         <AdminLayout>
             <SeoHead title="SEO ve site haritası" description="Google Search Console ve XML site haritası bağlantıları." noindex />
@@ -52,10 +59,30 @@ export default function AdminSeoTools({ sitemapUrl, robotsUrl, searchConsoleUrl,
                             <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">XML site haritası</h2>
                         </div>
                         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-                            Ana sayfa, listeler, yasal sayfalar, şehir seç sayfaları ve yayında olan tüm etkinlik, mekan, sanatçı ile blog
-                            yazıları dahildir.
+                            <code className="rounded bg-zinc-200 px-1 py-0.5 text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                                sitemap.xml
+                            </code>{' '}
+                            bir site haritası indeksidir; Google standartlarına uygun dört alt harita (genel, etkinlikler, mekanlar,
+                            sanatçılar) otomatik bağlanır. Search Console’a yalnızca indeks URL’sini eklemeniz yeterlidir.
                         </p>
-                        <CopyField label="Sitemap URL (Search Console’a bu adresi verin)" value={sitemapUrl} />
+                        <CopyField label="Sitemap indeks URL (Search Console)" value={sitemapUrl} />
+                        <div className="mt-4 space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Alt site haritaları (doğrulama için)</p>
+                            <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                                {sitemapChildUrls.map((u) => (
+                                    <li key={u}>
+                                        <a
+                                            href={u}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="break-all font-mono text-xs text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                                        >
+                                            {u}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                         <div className="mt-4 flex flex-wrap gap-3">
                             <a
                                 href={sitemapUrl}
