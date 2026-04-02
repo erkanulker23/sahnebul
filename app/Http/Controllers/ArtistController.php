@@ -448,13 +448,13 @@ class ArtistController extends Controller
             && $u->canFavoriteArtists()
             && $u->favoriteArtists()->whereKey($artist->id)->exists();
 
-        $organizationAffiliation = null;
+        $managementAffiliation = null;
         if ($artist->managedBy) {
             $m = $artist->managedBy;
             $label = trim((string) ($m->organization_display_name ?? '')) !== ''
                 ? (string) $m->organization_display_name
                 : (string) $m->name;
-            $organizationAffiliation = ['label' => $label];
+            $managementAffiliation = ['label' => $label];
         }
 
         $artistEventPromoSections = [];
@@ -496,7 +496,7 @@ class ArtistController extends Controller
 
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
-            'organizationAffiliation' => $organizationAffiliation,
+            'managementAffiliation' => $managementAffiliation,
             'documentStructuredData' => PublicStructuredData::artistShowGraph($artist, $upcomingEvents),
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,

@@ -106,7 +106,7 @@ final class SahnebulMail
         $roleTr = match ($user->role) {
             'artist' => 'Sanatçı',
             'venue_owner' => 'Mekân sahibi',
-            'manager_organization' => 'Organizasyon',
+            'manager_organization' => 'Management',
             default => $user->role,
         };
 
@@ -597,11 +597,11 @@ final class SahnebulMail
             ?: $requestRow->managerUser->name;
 
         self::safeSend(new SahnebulTemplateMail(
-            emailSubject: 'Organizasyon talebi — '.config('app.name'),
+            emailSubject: 'Management talebi — '.config('app.name'),
             title: 'Müsait gününüz için talep',
             introLines: [
                 'Merhaba <strong>'.e($owner->name).'</strong>,',
-                '<strong>'.e($org).'</strong> organizasyonu, seçtiğiniz müsait gün (<strong>'.e($dateStr).'</strong>) için bir talep bıraktı.',
+                '<strong>'.e($org).'</strong> Management hesabı, seçtiğiniz müsait gün (<strong>'.e($dateStr).'</strong>) için bir talep bıraktı.',
             ],
             detailLines: [
                 'Mesaj özeti: '.e(Str::limit(strip_tags($requestRow->message), 400)),
@@ -724,7 +724,7 @@ final class SahnebulMail
     }
 
     /**
-     * Onaylı bir sanatçı katalogdan organizasyon kadrosuna alındığında adminlere bilgi (bekleyen kayıt oluşmaz, e-posta ile izlenebilir).
+     * Onaylı bir sanatçı katalogdan Management kadrosuna alındığında adminlere bilgi (bekleyen kayıt oluşmaz, e-posta ile izlenebilir).
      */
     public static function organizationArtistRosterAttached(Artist $artist, User $organization): void
     {
@@ -737,18 +737,18 @@ final class SahnebulMail
         $orgLabel = $orgDisplay !== '' ? $orgDisplay : $organization->name;
 
         self::safeSend(new SahnebulTemplateMail(
-            emailSubject: 'Organizasyon kadrosuna sanatçı eklendi — '.e($artist->name),
-            title: 'Organizasyon sanatçı kadrosu',
+            emailSubject: 'Management kadrosuna sanatçı eklendi — '.e($artist->name),
+            title: 'Management sanatçı kadrosu',
             introLines: [
-                'Bir organizasyon firması hesabı, onaylı katalogdan kendi kadrosuna sanatçı ekledi.',
+                'Bir Management firması hesabı, onaylı katalogdan kendi kadrosuna sanatçı ekledi.',
             ],
             detailLines: [
                 'Sanatçı: <strong>'.e($artist->name).'</strong> (slug: '.e($artist->slug).')',
-                'Organizasyon hesabı: <strong>'.e($orgLabel).'</strong> — '.e($organization->email),
+                'Management hesabı: <strong>'.e($orgLabel).'</strong> — '.e($organization->email),
             ],
             actionUrl: route('admin.artists.edit', $artist, absolute: true),
             actionLabel: 'Sanatçı kaydını admin panelinde aç',
-            footnote: 'Profilde organizasyon bilgisi bu bağlantıyla güncellenmiş olabilir; gerekirse kaydı kontrol edin.',
+            footnote: 'Profilde kadro bilgisi bu bağlantıyla güncellenmiş olabilir; gerekirse kaydı kontrol edin.',
         ), $admins);
     }
 }

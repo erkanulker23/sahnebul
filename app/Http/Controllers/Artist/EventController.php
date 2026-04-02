@@ -240,7 +240,7 @@ class EventController extends Controller
             ->where('status', 'approved')
             ->first();
 
-        if ($linkedArtist === null && $user->isManagerOrganization()) {
+        if ($linkedArtist === null && $user->isManagementAccount()) {
             $linkedArtist = Artist::query()
                 ->where('managed_by_user_id', $user->id)
                 ->where('status', 'approved')
@@ -872,7 +872,7 @@ class EventController extends Controller
     /** @return Collection<int, int> */
     private function managedApprovedArtistIds(User $user): Collection
     {
-        if (! $user->isManagerOrganization()) {
+        if (! $user->isManagementAccount()) {
             return collect();
         }
 

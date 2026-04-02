@@ -15,6 +15,7 @@ use App\Support\ExternalEventFingerprint;
 use App\Support\ExternalMarketplaceCrawlJobStatus;
 use App\Support\UserBackgroundJobPointers;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,9 @@ use Inertia\Response;
 
 class ExternalEventController extends Controller
 {
+    /** Toplu işlem «filtreyle tümünü seç» üst sınırı (bellek / süre). */
+    private const EXTERNAL_EVENTS_BULK_FILTER_MAX_IDS = 10000;
+
     public function __construct(
         private readonly ExternalEventDomainSyncService $externalEventSync,
         private readonly MarketplaceExternalEventImportService $marketplaceImport,
@@ -50,20 +54,8 @@ class ExternalEventController extends Controller
             ]);
         }
 
-        $filters = $request->validate([
-            'source' => ['nullable', 'string', 'max:64'],
-            'status' => ['nullable', 'in:all,pending,synced,rejected'],
-            'search' => ['nullable', 'string', 'max:120'],
-            'artist' => ['nullable', 'string', 'max:120'],
-            'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date'],
-        ]);
-
-        if (! empty($filters['date_from']) && ! empty($filters['date_to']) && $filters['date_to'] < $filters['date_from']) {
-            throw ValidationException::withMessages([
-                'date_to' => 'Bitiş tarihi başlangıçtan önce olamaz.',
-            ]);
-        }
+        $filters = $this->validateExternalEventsListFilters($request);
+        $status = $filters['status'] ?? 'pending';
 
         $select = [
             'id',
@@ -89,47 +81,7 @@ class ExternalEventController extends Controller
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
-        if (! empty($filters['source'])) {
-            $query->where('source', $filters['source']);
-        }
-
-        $status = $filters['status'] ?? 'pending';
-        if ($status === 'pending') {
-            $query->whereNull('synced_event_id')->where(function ($q): void {
-                $q->whereNull('meta')
-                    ->orWhereRaw("JSON_EXTRACT(meta, '$.rejected') IS NULL")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) != 'true'");
-            });
-        } elseif ($status === 'synced') {
-            $query->whereNotNull('synced_event_id');
-        } elseif ($status === 'rejected') {
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) = 'true'");
-        }
-
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search): void {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('venue_name', 'like', "%{$search}%")
-                    ->orWhere('city_name', 'like', "%{$search}%");
-            });
-        }
-
-        if (! empty($filters['artist'])) {
-            $artist = addcslashes((string) $filters['artist'], '%_\\');
-            $like = "%{$artist}%";
-            $query->where(function ($q) use ($like): void {
-                $q->where('meta->raw->performer', 'like', $like)
-                    ->orWhere('meta->raw->performer->name', 'like', $like);
-            });
-        }
-
-        if (! empty($filters['date_from'])) {
-            $query->whereDate('start_date', '>=', $filters['date_from']);
-        }
-        if (! empty($filters['date_to'])) {
-            $query->whereDate('start_date', '<=', $filters['date_to']);
-        }
+        $this->applyExternalEventsListFilters($query, $filters);
 
         $paginator = $query->paginate(25)->withQueryString();
         $paginator->setCollection(
@@ -334,7 +286,7 @@ class ExternalEventController extends Controller
         $sourceKeys = array_keys(config('crawler.sources', []));
         $data = $request->validate([
             'source' => ['nullable', 'string', Rule::in(array_merge(['', 'all'], $sourceKeys))],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:2000'],
             'date_from' => ['required', 'date'],
             'date_to' => ['required', 'date', 'after_or_equal:date_from'],
             'city_ids' => ['nullable', 'array'],
@@ -358,7 +310,7 @@ class ExternalEventController extends Controller
 
         return [
             'source' => $sourceOption,
-            'limit' => (int) ($data['limit'] ?? 250),
+            'limit' => (int) ($data['limit'] ?? 2000),
             'date_from' => (string) $data['date_from'],
             'date_to' => (string) $data['date_to'],
             'city_ids' => array_values(array_map('intval', $data['city_ids'] ?? [])),
@@ -429,16 +381,42 @@ class ExternalEventController extends Controller
 
     public function bulk(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'action' => ['required', 'in:sync,reject,destroy'],
-            'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:external_events,id'],
-        ]);
+        if (! Schema::hasTable('external_events')) {
+            return back()->with('error', 'external_events tablosu bulunamadı.');
+        }
 
-        $items = ExternalEvent::whereIn('id', $data['ids'])->get();
+        $action = $request->validate([
+            'action' => ['required', 'in:sync,reject,destroy'],
+        ])['action'];
+
+        $applyFilters = $request->boolean('apply_filters');
+
+        if ($applyFilters) {
+            $filters = $this->validateExternalEventsListFilters($request);
+            $query = ExternalEvent::query()->select(['id'])->orderBy('id');
+            $this->applyExternalEventsListFilters($query, $filters);
+            $ids = $query->limit(self::EXTERNAL_EVENTS_BULK_FILTER_MAX_IDS + 1)->pluck('id')->all();
+            if (count($ids) > self::EXTERNAL_EVENTS_BULK_FILTER_MAX_IDS) {
+                return back()->with(
+                    'error',
+                    'Filtreyle eşleşen çok fazla kayıt var ('.number_format(self::EXTERNAL_EVENTS_BULK_FILTER_MAX_IDS).' üst sınır). Lütfen filtreyi daraltın.',
+                );
+            }
+            if ($ids === []) {
+                return back()->with('warning', 'Seçilecek kayıt yok.');
+            }
+        } else {
+            $data = $request->validate([
+                'ids' => ['required', 'array', 'min:1'],
+                'ids.*' => ['integer', 'exists:external_events,id'],
+            ]);
+            $ids = $data['ids'];
+        }
+
+        $items = ExternalEvent::whereIn('id', $ids)->get();
         $affected = 0;
 
-        if ($data['action'] === 'destroy') {
+        if ($action === 'destroy') {
             foreach ($items as $item) {
                 $item->delete();
                 $affected++;
@@ -447,7 +425,7 @@ class ExternalEventController extends Controller
             return back()->with('success', "{$affected} aday kayıt silindi.");
         }
 
-        if ($data['action'] === 'reject') {
+        if ($action === 'reject') {
             foreach ($items as $item) {
                 $item->update(['meta' => array_merge($item->meta ?? [], ['rejected' => true])]);
                 $affected++;
@@ -548,5 +526,77 @@ class ExternalEventController extends Controller
     {
         Session::put('external_events_last_crawl', $report);
         Cache::forever('external_events_last_crawl_snapshot', $report);
+    }
+
+    /**
+     * @return array{source?: string, status?: string, search?: string, artist?: string, date_from?: string, date_to?: string}
+     */
+    private function validateExternalEventsListFilters(Request $request): array
+    {
+        $filters = $request->validate([
+            'source' => ['nullable', 'string', 'max:64'],
+            'status' => ['nullable', 'in:all,pending,synced,rejected'],
+            'search' => ['nullable', 'string', 'max:120'],
+            'artist' => ['nullable', 'string', 'max:120'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
+        if (! empty($filters['date_from']) && ! empty($filters['date_to']) && $filters['date_to'] < $filters['date_from']) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Bitiş tarihi başlangıçtan önce olamaz.',
+            ]);
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @param  Builder<ExternalEvent>  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyExternalEventsListFilters(Builder $query, array $filters): void
+    {
+        if (! empty($filters['source'])) {
+            $query->where('source', $filters['source']);
+        }
+
+        $status = $filters['status'] ?? 'pending';
+        if ($status === 'pending') {
+            $query->whereNull('synced_event_id')->where(function ($q): void {
+                $q->whereNull('meta')
+                    ->orWhereRaw("JSON_EXTRACT(meta, '$.rejected') IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) != 'true'");
+            });
+        } elseif ($status === 'synced') {
+            $query->whereNotNull('synced_event_id');
+        } elseif ($status === 'rejected') {
+            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) = 'true'");
+        }
+
+        if (! empty($filters['search'])) {
+            $search = (string) $filters['search'];
+            $query->where(function ($q) use ($search): void {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('venue_name', 'like', "%{$search}%")
+                    ->orWhere('city_name', 'like', "%{$search}%");
+            });
+        }
+
+        if (! empty($filters['artist'])) {
+            $artist = addcslashes((string) $filters['artist'], '%_\\');
+            $like = "%{$artist}%";
+            $query->where(function ($q) use ($like): void {
+                $q->where('meta->raw->performer', 'like', $like)
+                    ->orWhere('meta->raw->performer->name', 'like', $like);
+            });
+        }
+
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('start_date', '>=', $filters['date_from']);
+        }
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('start_date', '<=', $filters['date_to']);
+        }
     }
 }

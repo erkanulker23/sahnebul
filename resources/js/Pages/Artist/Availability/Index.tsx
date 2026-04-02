@@ -148,12 +148,12 @@ export default function ArtistAvailabilityIndex({ artist, days, incomingRequests
 
     return (
         <ArtistLayout>
-            <SeoHead title="Müsaitlik takvimi - Sahnebul" description="Organizasyon firmalarına göstereceğiniz boş günlerinizi yönetin." noindex />
+            <SeoHead title="Müsaitlik takvimi - Sahnebul" description="Management firmalarına göstereceğiniz boş günlerinizi yönetin." noindex />
 
             <div className="mb-8">
                 <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Müsaitlik takvimi</h1>
                 <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-                    Onaylı profilinizle bağlı hesabınızda gelecekteki boş günlerinizi işaretleyin. Yalnızca organizasyon yöneticisi hesapları, görünürlüğü açıkken bu günleri kendi sahne
+                    Onaylı profilinizle bağlı hesabınızda gelecekteki boş günlerinizi işaretleyin. Yalnızca Management yöneticisi hesapları, görünürlüğü açıkken bu günleri kendi sahne
                     panelinde görür ve size talep gönderebilir.
                 </p>
             </div>
@@ -168,7 +168,7 @@ export default function ArtistAvailabilityIndex({ artist, days, incomingRequests
                         disabled={visibilityPending}
                     />
                     <span>
-                        <span className="font-medium text-zinc-900 dark:text-white">Organizasyon yöneticilerine göster</span>
+                        <span className="font-medium text-zinc-900 dark:text-white">Management yöneticilerine göster</span>
                         <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-400">
                             Kapalıyken müsait günleriniz yönetici panellerinde listelenmez; mevcut talepler etkilenmez.
                         </span>

@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * /etkinlikler ve şehir seç sayfalarında aynı etkinlik kümesi ve sıralama.
@@ -21,6 +22,20 @@ final class EventListingQuery
 
     public static function applyDefaultOrder(Builder $query): Builder
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return $query
+                ->orderByRaw(
+                    'CASE
+                        WHEN events.end_date IS NOT NULL AND events.start_date <= datetime(\'now\') AND events.end_date >= datetime(\'now\') THEN 0
+                        WHEN date(events.start_date) = date(\'now\') THEN 1
+                        WHEN date(events.start_date) = date(\'now\', \'+1 day\') THEN 2
+                        WHEN events.start_date > datetime(\'now\') THEN 3
+                        ELSE 4
+                     END'
+                )
+                ->orderBy('events.start_date');
+        }
+
         return $query
             ->orderByRaw(
                 'CASE

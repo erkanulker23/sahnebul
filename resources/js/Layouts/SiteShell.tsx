@@ -109,7 +109,7 @@ export default function SiteShell({ children, hideMobileQuickNav = false }: Read
 
             <main
                 className={cn(
-                    'mx-auto w-full max-w-[1600px] flex-1 px-2.5 pt-0 sm:px-4 lg:px-8',
+                    'mx-auto w-full max-w-[1600px] flex-1 overflow-x-clip px-2.5 pt-0 sm:px-4 lg:px-8',
                     hideMobileQuickNav
                         ? 'pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:pb-8'
                         : 'pb-6 lg:pb-8',

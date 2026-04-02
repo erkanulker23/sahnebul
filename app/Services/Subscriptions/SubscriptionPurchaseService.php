@@ -73,8 +73,8 @@ class SubscriptionPurchaseService
             throw new InvalidArgumentException('Mekan üyeliği yalnızca size bağlı en az bir mekan varken satın alınabilir.');
         }
 
-        if ($plan->membership_type === 'manager' && ! $user->isManagerOrganization()) {
-            throw new InvalidArgumentException('Organizasyon üyeliği yalnızca organizasyon firması hesapları satın alabilir.');
+        if ($plan->membership_type === 'manager' && ! $user->isManagementAccount()) {
+            throw new InvalidArgumentException('Bu paket yalnızca Management firması hesapları tarafından satın alınabilir.');
         }
     }
 }

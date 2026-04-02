@@ -34,7 +34,7 @@ type Props = {
     artist: RosterArtistRef | null;
 };
 
-export default function OrganizationArtistProposalModal({ open, onClose, artist }: Readonly<Props>) {
+export default function ManagementArtistProposalModal({ open, onClose, artist }: Readonly<Props>) {
     const pendingForm = useForm({ message: '', name: '', bio: '' });
 
     const approvedForm = useForm({
@@ -54,7 +54,7 @@ export default function OrganizationArtistProposalModal({ open, onClose, artist 
 
     const submitPending = (e: FormEvent) => {
         e.preventDefault();
-        pendingForm.post(route('artist.organization.artists.propose-update', artist.slug), {
+        pendingForm.post(route('artist.management.artists.propose-update', artist.slug), {
             preserveScroll: true,
             onSuccess: () => {
                 onClose();
@@ -65,7 +65,7 @@ export default function OrganizationArtistProposalModal({ open, onClose, artist 
 
     const submitApproved = (e: FormEvent) => {
         e.preventDefault();
-        approvedForm.post(route('artist.organization.artists.propose-update', artist.slug), {
+        approvedForm.post(route('artist.management.artists.propose-update', artist.slug), {
             preserveScroll: true,
             onSuccess: () => {
                 onClose();

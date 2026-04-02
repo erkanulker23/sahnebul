@@ -6,11 +6,11 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class OrganizationPublicProfileTest extends TestCase
+class ManagementPublicProfileTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_unpublished_organization_profile_returns_404(): void
+    public function test_unpublished_management_profile_returns_404(): void
     {
         $org = User::factory()->create([
             'role' => 'manager_organization',
@@ -19,28 +19,28 @@ class OrganizationPublicProfileTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->get('/organizasyonlar/'.$org->organization_public_slug)->assertNotFound();
+        $this->get('/management/'.$org->organization_public_slug)->assertNotFound();
     }
 
-    public function test_published_organization_profile_is_visible(): void
+    public function test_published_management_profile_is_visible(): void
     {
-        $org = User::factory()->create([
+        User::factory()->create([
             'role' => 'manager_organization',
             'name' => 'Yetkili',
             'organization_display_name' => 'Görünür Ajans',
             'organization_public_slug' => 'gorunur-ajans',
-            'organization_about' => 'Biz konser organizasyonu yaparız.',
+            'organization_about' => 'Biz etkinlik management hizmeti veriyoruz.',
             'organization_profile_published' => true,
             'is_active' => true,
         ]);
 
-        $this->get('/organizasyonlar/gorunur-ajans')->assertOk()->assertInertia(fn ($p) => $p
-            ->component('Organizations/Show')
-            ->has('organization.display_name')
-            ->where('organization.display_name', 'Görünür Ajans'));
+        $this->get('/management/gorunur-ajans')->assertOk()->assertInertia(fn ($p) => $p
+            ->component('Management/Show')
+            ->has('managementProfile.display_name')
+            ->where('managementProfile.display_name', 'Görünür Ajans'));
     }
 
-    public function test_organization_directory_lists_published_only(): void
+    public function test_management_directory_lists_published_only(): void
     {
         User::factory()->create([
             'role' => 'manager_organization',
@@ -57,8 +57,8 @@ class OrganizationPublicProfileTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->get('/organizasyonlar')->assertOk()->assertInertia(fn ($p) => $p
-            ->component('Organizations/Index')
-            ->has('organizations.data', 1));
+        $this->get('/management')->assertOk()->assertInertia(fn ($p) => $p
+            ->component('Management/Index')
+            ->has('managementAccounts.data', 1));
     }
 }

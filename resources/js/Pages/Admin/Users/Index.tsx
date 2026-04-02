@@ -36,7 +36,7 @@ function roleLabelTr(role: string): string {
         customer: 'Müşteri',
         artist: 'Sanatçı',
         venue_owner: 'Mekân sahibi',
-        manager_organization: 'Organizasyon firması',
+        manager_organization: 'Management firması',
         admin: 'Admin',
         super_admin: 'Süper admin',
     };
@@ -116,12 +116,12 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
             <SeoHead
                 title={
                     isOrganizationFirmsList
-                        ? 'Organizasyon Firmaları - Admin | Sahnebul'
+                        ? 'Management firmaları - Admin | Sahnebul'
                         : 'Kullanıcılar - Admin | Sahnebul'
                 }
                 description={
                     isOrganizationFirmsList
-                        ? 'Organizasyon firması hesaplarını listeleyin ve yönetin.'
+                        ? 'Management firması hesaplarını listeleyin ve yönetin.'
                         : 'Kullanıcı hesaplarını yönetin.'
                 }
                 noindex
@@ -129,10 +129,10 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
 
             <div className="space-y-6">
                 <AdminPageHeader
-                    title={isOrganizationFirmsList ? 'Organizasyon Firmaları' : 'Kullanıcı Yönetimi'}
+                    title={isOrganizationFirmsList ? 'Management firmaları' : 'Kullanıcı Yönetimi'}
                     description={
                         isOrganizationFirmsList
-                            ? 'Ajans ve organizasyon şirketi hesapları; yeni firma ekleyebilir veya mevcut kayıtları düzenleyebilirsiniz.'
+                            ? 'Ajans ve Management şirketi hesapları; yeni firma ekleyebilir veya mevcut kayıtları düzenleyebilirsiniz.'
                             : 'Hesapları oluşturun, düzenleyin veya dondurun.'
                     }
                 />
@@ -173,7 +173,7 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                             <option value="customer">Müşteri</option>
                             <option value="artist">Sanatçı</option>
                             <option value="venue_owner">Mekân sahibi</option>
-                            <option value="manager_organization">Organizasyon firması</option>
+                            <option value="manager_organization">Management firması</option>
                             {canAssignElevatedRoles ? (
                                 <>
                                     <option value="admin">Admin</option>
@@ -221,7 +221,7 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                             <option value="customer">Müşteri</option>
                             <option value="artist">Sanatçı</option>
                             <option value="venue_owner">Mekân sahibi</option>
-                            <option value="manager_organization">Organizasyon firması</option>
+                            <option value="manager_organization">Management firması</option>
                             <option value="admin">Admin</option>
                             <option value="super_admin">Süper admin</option>
                         </select>

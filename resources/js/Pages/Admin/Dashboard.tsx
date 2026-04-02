@@ -5,7 +5,7 @@ import { safeRoute } from '@/lib/safeRoute';
 import {
     eventStatusTr,
     stageEventCreatorLabel,
-    stageOrganizationArtistLabel,
+    stageManagementArtistLabel,
     type StageUserRef,
     venueArtistStatusTr,
 } from '@/lib/statusLabels';
@@ -106,7 +106,7 @@ export default function AdminDashboard({
                             ) : (
                                 <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                                     {recentArtists.map((a) => {
-                                        const orgLabel = stageOrganizationArtistLabel(a.managed_by ?? null);
+                                        const orgLabel = stageManagementArtistLabel(a.managed_by ?? null);
                                         return (
                                             <Link
                                                 key={a.id}

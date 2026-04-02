@@ -46,7 +46,7 @@ class PortalLoginHardeningTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_admin_authenticates_only_via_management_portal(): void
+    public function test_admin_authenticates_via_yonetim_portal(): void
     {
         $user = User::factory()->admin()->create();
 

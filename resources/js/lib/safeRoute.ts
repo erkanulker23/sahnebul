@@ -32,8 +32,10 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/giris/sanatci';
         case 'login.mekan':
             return '/giris/mekan';
+        case 'login.management':
+            return '/giris/management';
         case 'login.organizasyon':
-            return '/giris/organizasyon';
+            return '/giris/management';
         case 'login.sahne':
             return '/giris/sahne';
         case 'login.admin':
@@ -94,33 +96,69 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
 
             return '/admin/slider';
         }
-        case 'artist.organization.artists.index':
-            return `/sahne/organizasyon/sanatcilar${queryString(params ?? {})}`;
-        case 'artist.organization.artists.store':
-            return '/sahne/organizasyon/sanatcilar';
-        case 'artist.organization.artists.attach': {
+        case 'artist.management.artists.index':
+            return `/sahne/management/sanatcilar${queryString(params ?? {})}`;
+        case 'artist.management.artists.store':
+            return '/sahne/management/sanatcilar';
+        case 'artist.management.artists.attach': {
             const slug = params?.artist;
             if (typeof slug === 'string' && slug !== '') {
-                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/kat`;
+                return `/sahne/management/sanatcilar/${encodeURIComponent(slug)}/kat`;
             }
 
-            return '/sahne/organizasyon/sanatcilar';
+            return '/sahne/management/sanatcilar';
         }
-        case 'artist.organization.artists.detach': {
+        case 'artist.management.artists.detach': {
             const slug = params?.artist;
             if (typeof slug === 'string' && slug !== '') {
-                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/birak`;
+                return `/sahne/management/sanatcilar/${encodeURIComponent(slug)}/birak`;
             }
 
-            return '/sahne/organizasyon/sanatcilar';
+            return '/sahne/management/sanatcilar';
         }
-        case 'artist.organization.artists.propose-update': {
+        case 'artist.management.artists.propose-update': {
             const slug = params?.artist;
             if (typeof slug === 'string' && slug !== '') {
-                return `/sahne/organizasyon/sanatcilar/${encodeURIComponent(slug)}/duzenme-oneri`;
+                return `/sahne/management/sanatcilar/${encodeURIComponent(slug)}/duzenme-oneri`;
             }
 
-            return '/sahne/organizasyon/sanatcilar';
+            return '/sahne/management/sanatcilar';
+        }
+        case 'artist.management.availability.index':
+            return `/sahne/management/musaitlik${queryString(params ?? {})}`;
+        case 'artist.management.availability.show': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/management/musaitlik/${encodeURIComponent(slug)}`;
+            }
+
+            return '/sahne/management/musaitlik';
+        }
+        case 'artist.management.availability.requests.store': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/management/musaitlik/${encodeURIComponent(slug)}/istek`;
+            }
+
+            return '/sahne/management/musaitlik';
+        }
+        case 'artist.manager-availability.index':
+            return `/sahne/management/musaitlik${queryString(params ?? {})}`;
+        case 'artist.manager-availability.show': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/management/musaitlik/${encodeURIComponent(slug)}`;
+            }
+
+            return '/sahne/management/musaitlik';
+        }
+        case 'artist.manager-availability.requests.store': {
+            const slug = params?.artist;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/sahne/management/musaitlik/${encodeURIComponent(slug)}/istek`;
+            }
+
+            return '/sahne/management/musaitlik';
         }
         case 'artist.public-profile.gallery.instagram.store':
             return '/sahne/sanatci-sayfam/galeri-instagram';
@@ -258,17 +296,44 @@ function pathFallback(name: string, params?: Record<string, unknown>): string {
             return '/admin/tanitim-video-instagram-cerezleri';
         case 'admin.instagram-promo-cookies.destroy':
             return '/admin/tanitim-video-instagram-cerezleri/kaldir';
+        case 'events.index.by-type': {
+            const eventTypeSlug = params?.eventTypeSlug ?? params?.event_type_slug;
+            if (typeof eventTypeSlug === 'string' && eventTypeSlug !== '') {
+                return `/etkinlik/${encodeURIComponent(eventTypeSlug)}`;
+            }
+
+            return '/etkinlikler';
+        }
+        case 'events.index.localized': {
+            const citySlug = params?.citySlug ?? params?.city_slug;
+            const eventTypeSlug = params?.eventTypeSlug ?? params?.event_type_slug;
+            if (typeof citySlug === 'string' && citySlug !== '' && typeof eventTypeSlug === 'string' && eventTypeSlug !== '') {
+                return `/etkinlik/${encodeURIComponent(citySlug)}/${encodeURIComponent(eventTypeSlug)}`;
+            }
+
+            return '/etkinlikler';
+        }
         case 'discover.tonight':
             return '/kesfet/bu-aksam';
+        case 'management.index':
+            return `/management${queryString(params ?? {})}`;
+        case 'management.show': {
+            const slug = params?.slug;
+            if (typeof slug === 'string' && slug !== '') {
+                return `/management/${encodeURIComponent(slug)}`;
+            }
+
+            return '/management';
+        }
         case 'organizations.index':
-            return `/organizasyonlar${queryString(params ?? {})}`;
+            return `/management${queryString(params ?? {})}`;
         case 'organizations.show': {
             const slug = params?.slug;
             if (typeof slug === 'string' && slug !== '') {
-                return `/organizasyonlar/${encodeURIComponent(slug)}`;
+                return `/management/${encodeURIComponent(slug)}`;
             }
 
-            return '/organizasyonlar';
+            return '/management';
         }
         case 'admin.notifications.broadcast':
         case 'admin.notifications.broadcast.store':

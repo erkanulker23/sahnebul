@@ -1,6 +1,6 @@
 import SeoHead from '@/Components/SeoHead';
 import ArtistLayout from '@/Layouts/ArtistLayout';
-import OrganizationArtistProposalModal from '@/Pages/Artist/Organization/OrganizationArtistProposalModal';
+import ManagementArtistProposalModal from '@/Pages/Artist/Management/ManagementArtistProposalModal';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { FormEvent, useState } from 'react';
@@ -47,7 +47,6 @@ function PaginationNav({ paginated, label }: Readonly<{ paginated: Paginated<unk
                     key={i}
                     href={link.url ?? '#'}
                     preserveState
-                    preserveScroll
                     className={`rounded-lg px-3 py-1.5 text-sm ${
                         link.active
                             ? 'bg-amber-500 font-medium text-zinc-900'
@@ -62,14 +61,14 @@ function PaginationNav({ paginated, label }: Readonly<{ paginated: Paginated<unk
     );
 }
 
-export default function OrganizationArtistsIndex({ roster, catalog, filters }: Readonly<Props>) {
+export default function ManagementArtistsIndex({ roster, catalog, filters }: Readonly<Props>) {
     const [proposalArtist, setProposalArtist] = useState<RosterRow | null>(null);
     const createForm = useForm({ name: '', bio: '' });
     const catalogSearchForm = useForm({ catalog_search: filters.catalog_search ?? '' });
 
     const submitCreate = (e: FormEvent) => {
         e.preventDefault();
-        createForm.post(route('artist.organization.artists.store'), {
+        createForm.post(route('artist.management.artists.store'), {
             preserveScroll: true,
             onSuccess: () => createForm.reset(),
         });
@@ -77,7 +76,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
 
     const submitCatalogSearch = (e: FormEvent) => {
         e.preventDefault();
-        catalogSearchForm.get(route('artist.organization.artists.index'), {
+        catalogSearchForm.get(route('artist.management.artists.index'), {
             preserveState: true,
             preserveScroll: true,
         });
@@ -87,11 +86,11 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
         <ArtistLayout>
             <SeoHead
                 title="Sanatçı kadrosu - Sahnebul"
-                description="Organizasyon firması: sanatçı kaydı ve kadro yönetimi; düzenlemeler site yönetimi onayından geçer."
+                description="Management: sanatçı kaydı ve kadro yönetimi; düzenlemeler site yönetimi onayından geçer."
                 noindex
             />
 
-            <OrganizationArtistProposalModal
+            <ManagementArtistProposalModal
                 key={proposalArtist?.slug ?? 'closed'}
                 open={proposalArtist !== null}
                 onClose={() => setProposalArtist(null)}
@@ -101,7 +100,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
             <div className="mb-8">
                 <h1 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Sanatçı kadrosu</h1>
                 <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-                    Yeni sanatçı kaydı oluşturabilir veya sitede kayıtlı, henüz bir organizasyona atanmamış{' '}
+                    Yeni sanatçı kaydı oluşturabilir veya sitede kayıtlı, henüz Management hesabına atanmamış{' '}
                     <strong className="font-medium text-zinc-800 dark:text-zinc-200">onaylı</strong> sanatçıları kadronuza ekleyebilirsiniz.
                     Kadrodaki profil düzenlemeleri <strong className="font-medium text-zinc-800 dark:text-zinc-200">düzenleme önerisi</strong> olarak site
                     yönetimine gider; yayınlanan içerik onay sonrası güncellenir.
@@ -201,12 +200,12 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
                                         onClick={() => {
                                             if (
                                                 !confirm(
-                                                    'Bu sanatçıyı kadronuzdan çıkarmak istediğinize emin misiniz? (Onaylı profiller sitede kalır; yalnızca organizasyon bağlantısı kalkar.)',
+                                                    'Bu sanatçıyı kadronuzdan çıkarmak istediğinize emin misiniz? (Onaylı profiller sitede kalır; yalnızca Management bağlantısı kalkar.)',
                                                 )
                                             ) {
                                                 return;
                                             }
-                                            router.post(route('artist.organization.artists.detach', a.slug), {}, { preserveScroll: true });
+                                            router.post(route('artist.management.artists.detach', a.slug), {}, { preserveScroll: true });
                                         }}
                                         className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                                     >
@@ -223,7 +222,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
             <section>
                 <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Katalogdan kadroya ekle</h2>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    Henüz bir organizasyona atanmamış, onaylı sanatçılar. Eklediğinizde profilde organizasyon bilginiz görünür.
+                    Henüz Management hesabına atanmamış, onaylı sanatçılar. Eklediğinizde profilde Management bilginiz görünür.
                 </p>
 
                 <form onSubmit={submitCatalogSearch} className="mt-4 mb-4 flex flex-wrap gap-2">
@@ -266,7 +265,7 @@ export default function OrganizationArtistsIndex({ roster, catalog, filters }: R
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        router.post(route('artist.organization.artists.attach', a.slug), {}, { preserveScroll: true })
+                                        router.post(route('artist.management.artists.attach', a.slug), {}, { preserveScroll: true })
                                     }
                                     className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-semibold text-zinc-900 hover:bg-amber-400"
                                 >

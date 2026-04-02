@@ -14,7 +14,7 @@ export default function StageLoginChooser({
         <GuestLayout>
             <SeoHead
                 title="Sahne paneli — Giriş seçimi - Sahnebul"
-                description="Sanatçı, mekân sahibi veya organizasyon firması hesabı ile sahne paneline giriş."
+                description="Sanatçı, mekân sahibi veya Management firması hesabı ile sahne paneline giriş."
                 noindex
             />
 
@@ -26,7 +26,7 @@ export default function StageLoginChooser({
 
             <h2 className="font-display text-2xl font-bold text-zinc-900 dark:text-white">Sahne paneli</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">
-                Hesap türünüze uygun giriş sayfasını seçin. Organizasyon firması ile site yönetimi (admin) farklı hesaplardır.
+                Hesap türünüze uygun giriş sayfasını seçin. Management firması ile site yönetimi (admin) farklı hesaplardır.
             </p>
 
             <ul className="mt-8 space-y-3">
@@ -52,11 +52,11 @@ export default function StageLoginChooser({
                 </li>
                 <li>
                     <Link
-                        href={safeRoute('login.organizasyon')}
+                        href={safeRoute('login.management')}
                         className="block rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-left transition hover:border-amber-500/40 hover:bg-amber-500/5 dark:border-white/10 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/70"
                     >
-                        <span className="font-semibold text-zinc-900 dark:text-white">Organizasyon firması</span>
-                        <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-400">Ajans / organizasyon yönetimi hesapları</span>
+                        <span className="font-semibold text-zinc-900 dark:text-white">Management firması</span>
+                        <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-400">Ajans / artist management hesapları</span>
                     </Link>
                 </li>
             </ul>

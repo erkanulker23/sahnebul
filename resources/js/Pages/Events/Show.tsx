@@ -438,6 +438,15 @@ export default function EventShow({
     const dateSummary = event.start_date
         ? `Tarih: ${formatTurkishEventTimeRange(event.start_date, event.end_date)}.`
         : 'Tarih yakında açıklanacak.';
+    const lineupMetaSnippet = useMemo(() => {
+        const names = event.artists.map((a) => a.name.trim()).filter(Boolean);
+        if (names.length === 0) {
+            return '';
+        }
+        const slice = names.slice(0, 4);
+        const tail = names.length > 4 ? ' ve diğerleri.' : '.';
+        return ` Kadro: ${slice.join(', ')}${tail}`;
+    }, [event.artists]);
     const eventOngoing =
         event.is_ongoing === true || isEventOngoingNow(event.start_date, event.end_date ?? null);
     const followUiVisible = eventCustomerActions.followUiVisible === true;
@@ -445,15 +454,16 @@ export default function EventShow({
         event.description,
         `${eventTypeLabel ? `${eventTypeLabel} — ` : ''}${event.title} — ${event.venue.name}${
             event.venue.city?.name ? `, ${event.venue.city.name}` : ''
-        }. ${dateSummary} Bilet ve detaylar Sahnebul’da.`,
+        } mekânında konser ve etkinlik.${lineupMetaSnippet} ${dateSummary} Sahne programı, bilet ve ayrıntılar Sahnebul’da.`,
     );
+    const eventSeoTitle = `${event.title} — Konser ve etkinlik · ${event.venue.name}`;
 
     const shareUrlForSocial = canonicalUrl ?? '';
 
     return (
         <AppLayout>
             <SeoHead
-                title={`${event.title} - Etkinlik`}
+                title={eventSeoTitle}
                 description={eventDesc}
                 image={ogImage}
                 type="article"

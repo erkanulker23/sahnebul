@@ -34,6 +34,14 @@ final class EventListingTypes
     }
 
     /**
+     * Rota kısıtı: `/etkinlik/{eventTypeSlug}` için alternasyon (regex parçası).
+     */
+    public static function slugAlternationPattern(): string
+    {
+        return implode('|', array_map(static fn (string $s): string => preg_quote($s, '/'), self::slugs()));
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function labelsBySlug(): array

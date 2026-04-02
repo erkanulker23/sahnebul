@@ -47,9 +47,9 @@ final class VenuePageSeo
         $venueName = trim($venueName) !== '' ? trim($venueName) : 'Mekan';
         $parts = [$venueName];
         if ($city !== '') {
-            $parts[] = $city.' konser ve etkinlik mekanı';
+            $parts[] = $city.' konser ve etkinlik mekânı · sahne programı';
         } else {
-            $parts[] = 'konser ve etkinlik mekanı';
+            $parts[] = 'konser ve etkinlik mekânı · sahne programı';
         }
         if ($category !== '') {
             $parts[] = $category;
@@ -101,17 +101,17 @@ final class VenuePageSeo
             $sample = implode(', ', $titles);
             $more = $nUp > count($titles) ? sprintf(' ve %d etkinlik daha', $nUp - count($titles)) : '';
             $eventsLine = sprintf(
-                'Yaklaşan konser ve etkinlikler: %s%s. ',
+                'Bu mekânda sahnelenen yaklaşan konser ve etkinlikler: %s%s. ',
                 $sample,
                 $more
             );
         } elseif ($nUp > 0) {
-            $eventsLine = sprintf('%d yaklaşan etkinlik ve konser programı. ', $nUp);
+            $eventsLine = sprintf('%d yaklaşan etkinlik ve konser; salonda gösteriler ve sahne programı. ', $nUp);
         } else {
-            $eventsLine = 'Etkinlik takvimi, yorumlar ve rezervasyon bilgisi. ';
+            $eventsLine = 'Mekân bilgisi, bu salonda çıkan konser ve etkinlikler için takvim, yorumlar ve rezervasyon. ';
         }
 
-        $tail = $catBit.'Sahnebul üzerinden programı inceleyin, yorumları okuyun ve rezervasyon yapın.';
+        $tail = $catBit.'Adres, salondaki gösteri ve etkinlik programı; yorumlar ve rezervasyon Sahnebul’da.';
 
         $raw = trim($lead !== '' ? $lead.' '.$eventsLine.$tail : $loc.'. '.$eventsLine.$tail);
 
@@ -263,7 +263,7 @@ final class VenuePageSeo
                 $graph[] = [
                     '@type' => 'ItemList',
                     '@id' => $canonical.'#upcoming-events',
-                    'name' => $name.' — yaklaşan konser ve etkinlikler',
+                    'name' => $name.' — yaklaşan konser, etkinlik ve sahne programı',
                     'numberOfItems' => count($elements),
                     'itemListElement' => $elements,
                 ];

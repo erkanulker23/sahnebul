@@ -87,7 +87,7 @@ function roleLabelTr(role: string): string {
         customer: 'Müşteri',
         artist: 'Sanatçı',
         venue_owner: 'Mekân sahibi',
-        manager_organization: 'Organizasyon firması',
+        manager_organization: 'Management firması',
         admin: 'Admin',
         super_admin: 'Süper admin',
     };
@@ -238,7 +238,7 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, s
                             <option value="customer">Müşteri</option>
                             <option value="artist">Sanatçı</option>
                             <option value="venue_owner">Mekân sahibi</option>
-                            <option value="manager_organization">Organizasyon firması</option>
+                            <option value="manager_organization">Management firması</option>
                             {canAssignElevatedRoles ? (
                                 <>
                                     <option value="admin">Admin</option>
@@ -250,9 +250,9 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, s
                     </div>
                     {form.data.role === 'manager_organization' ? (
                         <div className="space-y-4 rounded-xl border border-sky-200/80 bg-sky-50/60 p-4 dark:border-sky-500/25 dark:bg-sky-950/20">
-                            <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Kamu organizasyon sayfası</h2>
+                            <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">Kamu Management sayfası</h2>
                             <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                                Slug: <code className="rounded bg-white/80 px-1 dark:bg-zinc-900/80">/organizasyonlar/&#123;adres&#125;</code>
+                                Slug: <code className="rounded bg-white/80 px-1 dark:bg-zinc-900/80">/management/&#123;adres&#125;</code>
                                 . «Yayında» işaretliyken liste ve detay sayfası herkese açılır.
                             </p>
                             <div>
@@ -372,7 +372,7 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, s
                                     onChange={(e) => form.setData('organization_profile_published', e.target.checked)}
                                     className="rounded border-zinc-400 text-sky-600 focus:ring-sky-500"
                                 />
-                                Organizasyon sayfası yayında (herkese açık)
+                                Management sayfası yayında (herkese açık)
                             </label>
                             {form.errors.organization_profile_published && (
                                 <p className="text-sm text-red-600">{form.errors.organization_profile_published}</p>
@@ -391,7 +391,7 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, s
                             <span>
                                 <span className="font-medium text-zinc-900 dark:text-white">Güvenilir sahne yayıncısı</span>
                                 <span className="mt-1 block text-zinc-600 dark:text-zinc-400">
-                                    Açıkken bu hesabın oluşturduğu yeni mekân ve organizasyon kadrosu sanatçısı kayıtları admin onayı
+                                    Açıkken bu hesabın oluşturduğu yeni mekân ve Management kadrosu sanatçısı kayıtları admin onayı
                                     beklemeden doğrudan onaylı yayına alınır.
                                 </span>
                             </span>
@@ -420,7 +420,7 @@ export default function AdminUsersEdit({ user, canAssignElevatedRoles = false, s
 
                 {stage_activity?.kind === 'organization' ? (
                     <div className="max-w-3xl space-y-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
-                        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Organizasyon özeti</h2>
+                        <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Management özeti</h2>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">
                             Kadrodaki sanatçı:{' '}
                             <span className="font-medium text-zinc-900 dark:text-white">{stage_activity.counts.managed_artists}</span>

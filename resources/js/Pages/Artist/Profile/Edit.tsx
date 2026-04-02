@@ -10,7 +10,7 @@ export default function ArtistProfileEdit({
     mustVerifyEmail,
     status,
 }: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
-    const isOrg = usePage<PageProps>().props.auth.is_manager_organization === true;
+    const isOrg = usePage<PageProps>().props.auth.is_management_account === true;
 
     return (
         <ArtistLayout>
@@ -19,7 +19,7 @@ export default function ArtistProfileEdit({
             <h1 className="font-display mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Profil</h1>
             <p className="mb-8 text-sm text-zinc-500">
                 {isOrg
-                    ? 'Hesap bilgileri, organizasyon / firma ve vergi alanları, şifre ve hesap kapatma.'
+                    ? 'Hesap bilgileri, Management / firma ve vergi alanları, şifre ve hesap kapatma.'
                     : 'Hesap bilgileri, şifre ve hesap kapatma.'}
             </p>
 

@@ -24,8 +24,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/giris/mekan', [PortalAuthenticatedSessionController::class, 'create'])
         ->name('login.mekan');
 
-    Route::get('/giris/organizasyon', [PortalAuthenticatedSessionController::class, 'create'])
-        ->name('login.organizasyon');
+    Route::permanentRedirect('/giris/organizasyon', '/giris/management');
+
+    Route::get('/giris/management', [PortalAuthenticatedSessionController::class, 'create'])
+        ->name('login.management');
 
     Route::get('/giris/sahne', [PortalAuthenticatedSessionController::class, 'createStageLoginChooser'])
         ->name('login.sahne');
@@ -34,7 +36,7 @@ Route::middleware('guest')->group(function () {
         ->name('login.admin');
 
     Route::post('/giris/{portal}', [PortalAuthenticatedSessionController::class, 'store'])
-        ->whereIn('portal', ['kullanici', 'sanatci', 'mekan', 'organizasyon', 'yonetim'])
+        ->whereIn('portal', ['kullanici', 'sanatci', 'mekan', 'management', 'organizasyon', 'yonetim'])
         ->middleware('throttle:auth-login')
         ->name('login.store');
 

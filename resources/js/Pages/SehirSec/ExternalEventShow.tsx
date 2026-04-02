@@ -45,8 +45,7 @@ export default function ExternalEventShow({ event }: Readonly<Props>) {
                 canonicalUrl={canonicalUrl}
             />
 
-            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-                <section className="relative min-h-[min(48vh,26rem)] overflow-hidden">
+            <section className="hero-full-bleed relative min-h-[min(48vh,26rem)] overflow-hidden">
                     {event.image_url ? (
                         <img src={event.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
@@ -92,9 +91,9 @@ export default function ExternalEventShow({ event }: Readonly<Props>) {
                             </p>
                         )}
                     </div>
-                </section>
+            </section>
 
-                <div className="relative -mt-8 rounded-t-3xl bg-white px-4 pb-16 pt-10 dark:bg-zinc-900 sm:px-6 lg:px-8">
+            <div className="relative -mt-8 rounded-t-3xl bg-white px-4 pb-16 pt-10 dark:bg-zinc-900 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-4xl space-y-8">
                         <div className="grid gap-4 sm:grid-cols-2">
                             {event.dates_line && (
@@ -166,7 +165,6 @@ export default function ExternalEventShow({ event }: Readonly<Props>) {
                         </div>
                     </div>
                 </div>
-            </div>
         </AppLayout>
     );
 }

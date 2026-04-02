@@ -54,8 +54,8 @@ export type PageProps<
         linkedArtist?: LinkedArtistSummary | null;
         /** false: saf sanatçı — yan menüde Mekanlarım / Rezervasyonlar yok */
         artist_panel_show_venue_nav?: boolean;
-        /** Organizasyon yöneticisi — sanatçı müsaitlik tarayıcısı */
-        is_manager_organization?: boolean;
+        /** Management hesabı — kadro ve müsaitlik tarayıcısı */
+        is_management_account?: boolean;
         /** Üst çubukta gösterilen panel başlığı */
         stage_panel_title?: string;
         /** Kenar çubuğundaki kısa rozet metni */
@@ -66,7 +66,7 @@ export type PageProps<
         is_platform_admin?: boolean;
         /** E-posta doğrulanmadı — panellerde üst şerit */
         email_verification_banner?: boolean;
-        /** Organizasyon kamu profil özeti (yalnızca manager_organization) */
+        /** Management kamu profil özeti (yalnızca manager_organization) */
         organization_public_profile?: {
             published: boolean;
             slug: string | null;

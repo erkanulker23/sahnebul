@@ -200,6 +200,24 @@ function isEventListingTypeSlug(s: string): s is EventListingTypeSlug {
     return (EVENT_LISTING_TYPE_SLUGS as readonly string[]).includes(s);
 }
 
+/** Ana sayfa / gezinme karoları — tür slug’ına göre ikon ve gradient. */
+export type EventListingTypeTileStyle = {
+    Icon: LucideIcon;
+    surfaceClass: string;
+    iconClass: string;
+};
+
+export function getEventListingTypeTileStyle(slug: string): EventListingTypeTileStyle | null {
+    const key = typeof slug === 'string' ? slug.trim() : '';
+    if (key !== '' && isEventListingTypeSlug(key)) {
+        const v = BY_EVENT_TYPE[key];
+
+        return { Icon: v.Icon, surfaceClass: v.surfaceClass, iconClass: v.iconClass };
+    }
+
+    return null;
+}
+
 export function getEventListingPlaceholderVariant(eventId: number, slug: string, eventType?: string | null): PlaceholderVariant {
     const key = typeof eventType === 'string' ? eventType.trim() : '';
     if (key !== '' && isEventListingTypeSlug(key)) {

@@ -6,7 +6,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
 import { adminExternalEventEditPath, safeRoute } from '@/lib/safeRoute';
 import type { PageProps } from '@/types';
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Eye, Loader2, Pencil, X } from 'lucide-react';
 
 interface ExternalEventItem {
@@ -104,6 +104,12 @@ function defaultCrawlDateRangeDays(spanDays: number): { date_from: string; date_
     return { date_from: ymd(start), date_to: ymd(end) };
 }
 
+/** 1 Nisan (yıl) → 31 Aralık (aynı yıl); dış kaynak çekimi varsayılan penceresi. */
+function defaultCrawlAprilFirstToYearEnd(): { date_from: string; date_to: string } {
+    const y = new Date().getFullYear();
+    return { date_from: `${y}-04-01`, date_to: `${y}-12-31` };
+}
+
 function formatAdminInstant(iso: string | null | undefined, tz: string): string {
     return formatTurkishDateTime(iso, { timeZone: tz, empty: '—' });
 }
@@ -197,6 +203,9 @@ export default function AdminExternalEventsIndex({
     const categories = crawlLookups?.categories ?? [];
 
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    /** true: mevcut filtreyle eşleşen tüm sayfalardaki kayıtlar toplu işleme dahil (sunucu tarafında filtre ile). */
+    const [selectAllMatching, setSelectAllMatching] = useState(false);
+    const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [crawlBusy, setCrawlBusy] = useState(false);
@@ -214,10 +223,10 @@ export default function AdminExternalEventsIndex({
         date_from: filters.date_from ?? '',
         date_to: filters.date_to ?? '',
     });
-    const crawlDefaults = defaultCrawlDateRangeDays(90);
+    const crawlDefaults = defaultCrawlAprilFirstToYearEnd();
     const crawlForm = useForm({
-        source: sources.includes('biletinial') ? 'biletinial' : sources.length > 0 ? sources[0]! : 'all',
-        limit: 350,
+        source: sources.includes('bubilet') ? 'bubilet' : sources.includes('biletinial') ? 'biletinial' : sources.length > 0 ? sources[0]! : 'all',
+        limit: 2000,
         date_from: crawlDefaults.date_from,
         date_to: crawlDefaults.date_to,
         city_ids: [] as number[],
@@ -225,15 +234,53 @@ export default function AdminExternalEventsIndex({
     });
 
     const allVisibleIds = useMemo(() => items.data.map((i) => i.id), [items.data]);
-    const allSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id));
+    const allPageSelected = useMemo(
+        () =>
+            !selectAllMatching &&
+            allVisibleIds.length > 0 &&
+            allVisibleIds.every((id) => selectedIds.includes(id)),
+        [selectAllMatching, allVisibleIds, selectedIds],
+    );
+    const headerSelectChecked = selectAllMatching || allPageSelected;
+
+    useEffect(() => {
+        const el = selectAllCheckboxRef.current;
+        if (!el) return;
+        el.indeterminate =
+            !selectAllMatching && selectedIds.length > 0 && !allPageSelected;
+    }, [selectAllMatching, selectedIds, allPageSelected]);
 
     const submitFilters = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setSelectedIds([]);
+        setSelectAllMatching(false);
         router.get(safeRoute('admin.external-events.index'), queryForm.data, { preserveState: true });
     };
 
     const toggleSelectAll = () => {
-        setSelectedIds(allSelected ? [] : allVisibleIds);
+        if (selectAllMatching) {
+            setSelectAllMatching(false);
+            setSelectedIds([]);
+            return;
+        }
+        if (allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id))) {
+            setSelectedIds([]);
+            return;
+        }
+        if ((items.total ?? 0) === 0) return;
+        setSelectAllMatching(true);
+        setSelectedIds([]);
+    };
+
+    const clearSelection = () => {
+        setSelectAllMatching(false);
+        setSelectedIds([]);
+    };
+
+    const pickAllMatching = () => {
+        if ((items.total ?? 0) === 0) return;
+        setSelectAllMatching(true);
+        setSelectedIds([]);
     };
 
     const toggleId = (id: number) => {
@@ -241,18 +288,44 @@ export default function AdminExternalEventsIndex({
     };
 
     const runBulk = (action: 'sync' | 'reject' | 'destroy') => {
-        if (selectedIds.length === 0) return;
+        if (!selectAllMatching && selectedIds.length === 0) return;
         if (action === 'destroy') {
             const ok = window.confirm(
-                'Seçili aday kayıtlar kalıcı olarak silinsin mi? Veritabanından kaldırılırlar; geri alınamaz.',
+                selectAllMatching
+                    ? 'Filtreyle eşleşen tüm aday kayıtlar kalıcı olarak silinsin mi? Veritabanından kaldırılırlar; geri alınamaz.'
+                    : 'Seçili aday kayıtlar kalıcı olarak silinsin mi? Veritabanından kaldırılırlar; geri alınamaz.',
             );
             if (!ok) return;
         }
-        router.post(safeRoute('admin.external-events.bulk'), { action, ids: selectedIds }, {
-            preserveScroll: true,
-            onSuccess: () => setSelectedIds([]),
-        });
+        if (selectAllMatching) {
+            router.post(
+                safeRoute('admin.external-events.bulk'),
+                {
+                    action,
+                    apply_filters: true,
+                    ...queryForm.data,
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setSelectedIds([]);
+                        setSelectAllMatching(false);
+                    },
+                },
+            );
+            return;
+        }
+        router.post(
+            safeRoute('admin.external-events.bulk'),
+            { action, apply_filters: false, ids: selectedIds },
+            {
+                preserveScroll: true,
+                onSuccess: () => setSelectedIds([]),
+            },
+        );
     };
+
+    const bulkDisabled = !selectAllMatching && selectedIds.length === 0;
 
     const crawlPayload = useCallback(() => {
         return {
@@ -463,34 +536,6 @@ export default function AdminExternalEventsIndex({
                 <AdminPageHeader
                     title="Dış kaynak aday etkinlikler"
                     description="Biletinial müzik listesi ve diğer kaynaklardan gelen adayları inceleyin; aktarınca etkinlik taslak, mekan ve sanatçılar otomatik eşleştirilir veya oluşturulur."
-                    actions={
-                        <>
-                            <button
-                                type="button"
-                                onClick={() => runBulk('sync')}
-                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
-                                disabled={selectedIds.length === 0}
-                            >
-                                Seçilileri aktar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => runBulk('reject')}
-                                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-40"
-                                disabled={selectedIds.length === 0}
-                            >
-                                Seçilileri reddet
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => runBulk('destroy')}
-                                className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-950/50 disabled:opacity-40 dark:border-red-900/60"
-                                disabled={selectedIds.length === 0}
-                            >
-                                Seçilileri sil
-                            </button>
-                        </>
-                    }
                 />
 
                 {persistedLastCrawl ? (
@@ -777,7 +822,7 @@ export default function AdminExternalEventsIndex({
                             <input
                                 type="number"
                                 min={1}
-                                max={500}
+                                max={2000}
                                 value={crawlForm.data.limit}
                                 onChange={(e) => crawlForm.setData('limit', Number(e.target.value) || 1)}
                                 className={selectClass}
@@ -1122,6 +1167,62 @@ export default function AdminExternalEventsIndex({
                     </button>
                 </form>
 
+                <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {selectAllMatching ? (
+                            <button
+                                type="button"
+                                onClick={clearSelection}
+                                className="rounded-lg border border-zinc-400 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                            >
+                                Seçimi kaldır
+                            </button>
+                        ) : typeof items.total === 'number' && items.total > 0 ? (
+                            <button
+                                type="button"
+                                onClick={pickAllMatching}
+                                className="rounded-lg border border-amber-500/60 bg-amber-100/90 px-3 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200 dark:hover:bg-amber-500/25"
+                            >
+                                Filtreyle tümünü seç ({items.total.toLocaleString('tr-TR')} kayıt)
+                            </button>
+                        ) : null}
+                    </div>
+                    {selectAllMatching && typeof items.total === 'number' && (
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                            Bu filtreyle eşleşen{' '}
+                            <strong className="tabular-nums">{items.total.toLocaleString('tr-TR')}</strong> kaydın{' '}
+                            <strong>tamamı</strong> toplu işleme dahil (tüm sayfalar). Tablodaki kutular gezinirken işaretli
+                            görünür; tek tek kaldırmak için önce «Seçimi kaldır»a basın.
+                        </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-700">
+                        <button
+                            type="button"
+                            onClick={() => runBulk('sync')}
+                            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
+                            disabled={bulkDisabled}
+                        >
+                            Seçilileri aktar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => runBulk('reject')}
+                            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-40"
+                            disabled={bulkDisabled}
+                        >
+                            Seçilileri reddet
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => runBulk('destroy')}
+                            className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-950/50 disabled:opacity-40 dark:border-red-900/60"
+                            disabled={bulkDisabled}
+                        >
+                            Seçilileri sil
+                        </button>
+                    </div>
+                </div>
+
                 {typeof items.total === 'number' && (
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                         Toplam{' '}
@@ -1153,7 +1254,13 @@ export default function AdminExternalEventsIndex({
                             <thead className="bg-zinc-100/90 dark:bg-zinc-900/90">
                                 <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                                     <th className="px-4 py-3">
-                                        <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="Tümünü seç" />
+                                        <input
+                                            ref={selectAllCheckboxRef}
+                                            type="checkbox"
+                                            checked={headerSelectChecked}
+                                            onChange={toggleSelectAll}
+                                            aria-label="Filtreyle eşleşen tüm kayıtları seç veya seçimi kaldır"
+                                        />
                                     </th>
                                     <th className="px-4 py-3">Başlık</th>
                                     <th className="px-4 py-3">Kaynak</th>
@@ -1177,7 +1284,8 @@ export default function AdminExternalEventsIndex({
                                             <td className="px-4 py-3">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedIds.includes(item.id)}
+                                                    checked={selectAllMatching || selectedIds.includes(item.id)}
+                                                    disabled={selectAllMatching}
                                                     onChange={() => toggleId(item.id)}
                                                     aria-label={`Seç: ${item.title}`}
                                                 />
@@ -1241,7 +1349,8 @@ export default function AdminExternalEventsIndex({
                                     <input
                                         type="checkbox"
                                         className="mt-1 h-4 w-4 shrink-0"
-                                        checked={selectedIds.includes(item.id)}
+                                        checked={selectAllMatching || selectedIds.includes(item.id)}
+                                        disabled={selectAllMatching}
                                         onChange={() => toggleId(item.id)}
                                         aria-label={`Seç: ${item.title}`}
                                     />
@@ -1304,7 +1413,6 @@ export default function AdminExternalEventsIndex({
                                     key={`${label}-${idx}`}
                                     href={link.url}
                                     preserveState
-                                    preserveScroll
                                     className={`rounded-lg border px-3 py-2 text-sm font-medium ${
                                         link.active
                                             ? 'border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-300'

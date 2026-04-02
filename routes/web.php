@@ -39,8 +39,8 @@ use App\Http\Controllers\Artist\ArtistAvailabilityController;
 use App\Http\Controllers\Artist\DashboardController as ArtistDashboardController;
 use App\Http\Controllers\Artist\EventArtistReportController as ArtistEventArtistReportController;
 use App\Http\Controllers\Artist\EventController as ArtistEventController;
+use App\Http\Controllers\Artist\ManagementArtistController;
 use App\Http\Controllers\Artist\ManagerArtistAvailabilityController;
-use App\Http\Controllers\Artist\OrganizationArtistController;
 use App\Http\Controllers\Artist\ProfileController as ArtistProfileController;
 use App\Http\Controllers\Artist\PublicArtistProfileController;
 use App\Http\Controllers\Artist\ReservationController as ArtistReservationController;
@@ -54,8 +54,8 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventPublicController;
 use App\Http\Controllers\EventReviewController;
 use App\Http\Controllers\LiveSceneController;
+use App\Http\Controllers\ManagementDirectoryController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\OrganizationDirectoryController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaytrCallbackController;
 use App\Http\Controllers\PaytrEventCheckoutController;
@@ -80,6 +80,7 @@ use App\Http\Controllers\VenueClaimController;
 use App\Http\Controllers\VenueController;
 use App\Models\ExternalEvent;
 use App\Models\Venue;
+use App\Support\EventListingTypes;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -107,10 +108,15 @@ Route::middleware(['throttle:venues-nearby', 'json.same-site'])->group(function 
     Route::get('/mekanlar/yakinindakiler', [VenueController::class, 'nearby'])->name('venues.nearby');
 });
 Route::get('/mekanlar/{venue:slug}', [VenueController::class, 'show'])->name('venues.show');
-Route::get('/organizasyonlar', [OrganizationDirectoryController::class, 'index'])->name('organizations.index');
-Route::get('/organizasyonlar/{slug}', [OrganizationDirectoryController::class, 'show'])
+Route::permanentRedirect('/organizasyonlar', '/management');
+Route::get('/organizasyonlar/{slug}', function (string $slug) {
+    return redirect("/management/{$slug}", 301);
+})->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*');
+
+Route::get('/management', [ManagementDirectoryController::class, 'index'])->name('management.index');
+Route::get('/management/{slug}', [ManagementDirectoryController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
-    ->name('organizations.show');
+    ->name('management.show');
 Route::post('/mekanlar/{venue:slug}/duzenme-oneri', [PublicEditSuggestionController::class, 'storeVenue'])
     ->middleware('throttle:10,1')
     ->name('venues.edit-suggestion.store');
@@ -119,6 +125,15 @@ Route::get('/sahneler/{venue:slug}', function (Venue $venue) {
     return redirect()->route('venues.show', $venue->slug, 301);
 });
 Route::get('/etkinlikler', [EventController::class, 'index'])->name('events.index');
+Route::get('/etkinlik/{eventTypeSlug}', [EventController::class, 'indexByEventType'])
+    ->where('eventTypeSlug', EventListingTypes::slugAlternationPattern())
+    ->name('events.index.by-type');
+Route::get('/etkinlik/{citySlug}/{eventTypeSlug}', [EventController::class, 'indexByCityAndType'])
+    ->where([
+        'citySlug' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+        'eventTypeSlug' => '[a-z0-9]+(?:-[a-z0-9]+)*',
+    ])
+    ->name('events.index.localized');
 Route::middleware(['throttle:events-nearby', 'json.same-site'])->group(function () {
     Route::get('/etkinlikler/yakinindakiler', [EventController::class, 'nearby'])->name('events.nearby');
 });
@@ -325,25 +340,28 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::patch('/musaitlik/istekler/{availabilityRequest}', [ArtistAvailabilityController::class, 'updateIncomingRequest'])
         ->name('availability.incoming-requests.update');
 
-    Route::get('/organizasyon/sanatcilar', [OrganizationArtistController::class, 'index'])->name('organization.artists.index');
-    Route::post('/organizasyon/sanatcilar', [OrganizationArtistController::class, 'store'])
-        ->middleware('throttle:20,1')
-        ->name('organization.artists.store');
-    Route::post('/organizasyon/sanatcilar/{artist:slug}/kat', [OrganizationArtistController::class, 'attach'])
-        ->middleware('throttle:40,1')
-        ->name('organization.artists.attach');
-    Route::post('/organizasyon/sanatcilar/{artist:slug}/birak', [OrganizationArtistController::class, 'detach'])
-        ->middleware('throttle:40,1')
-        ->name('organization.artists.detach');
-    Route::post('/organizasyon/sanatcilar/{artist:slug}/duzenme-oneri', [OrganizationArtistController::class, 'proposeUpdate'])
-        ->middleware('throttle:20,1')
-        ->name('organization.artists.propose-update');
+    Route::permanentRedirect('/organizasyon/sanatcilar', '/sahne/management/sanatcilar');
+    Route::permanentRedirect('/organizasyon/musaitlik', '/sahne/management/musaitlik');
 
-    Route::get('/organizasyon/musaitlik', [ManagerArtistAvailabilityController::class, 'index'])->name('manager-availability.index');
-    Route::get('/organizasyon/musaitlik/{artist:slug}', [ManagerArtistAvailabilityController::class, 'show'])->name('manager-availability.show');
-    Route::post('/organizasyon/musaitlik/{artist:slug}/istek', [ManagerArtistAvailabilityController::class, 'storeRequest'])
+    Route::get('/management/sanatcilar', [ManagementArtistController::class, 'index'])->name('management.artists.index');
+    Route::post('/management/sanatcilar', [ManagementArtistController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('management.artists.store');
+    Route::post('/management/sanatcilar/{artist:slug}/kat', [ManagementArtistController::class, 'attach'])
+        ->middleware('throttle:40,1')
+        ->name('management.artists.attach');
+    Route::post('/management/sanatcilar/{artist:slug}/birak', [ManagementArtistController::class, 'detach'])
+        ->middleware('throttle:40,1')
+        ->name('management.artists.detach');
+    Route::post('/management/sanatcilar/{artist:slug}/duzenme-oneri', [ManagementArtistController::class, 'proposeUpdate'])
+        ->middleware('throttle:20,1')
+        ->name('management.artists.propose-update');
+
+    Route::get('/management/musaitlik', [ManagerArtistAvailabilityController::class, 'index'])->name('management.availability.index');
+    Route::get('/management/musaitlik/{artist:slug}', [ManagerArtistAvailabilityController::class, 'show'])->name('management.availability.show');
+    Route::post('/management/musaitlik/{artist:slug}/istek', [ManagerArtistAvailabilityController::class, 'storeRequest'])
         ->middleware('throttle:30,1')
-        ->name('manager-availability.requests.store');
+        ->name('management.availability.requests.store');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

@@ -435,7 +435,6 @@ export default function SehirSecCityEvents({
                                     <Link
                                         key={link.url}
                                         href={link.url}
-                                        preserveScroll
                                         className={`min-w-[2.25rem] rounded-full px-3 py-1.5 text-center text-xs font-semibold transition ${
                                             link.active
                                                 ? 'bg-emerald-600 text-white'

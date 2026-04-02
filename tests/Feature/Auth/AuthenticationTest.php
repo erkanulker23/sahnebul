@@ -58,14 +58,14 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect('/');
     }
 
-    public function test_organization_firm_can_authenticate_via_organization_portal(): void
+    public function test_management_firm_can_authenticate_via_management_portal(): void
     {
         $user = User::factory()->create([
             'role' => 'manager_organization',
             'organization_display_name' => 'Test Ajans',
         ]);
 
-        $response = $this->post('/giris/organizasyon', [
+        $response = $this->post('/giris/management', [
             'email' => $user->email,
             'password' => 'password',
         ]);
@@ -74,11 +74,11 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('artist.dashboard', absolute: false));
     }
 
-    public function test_customer_cannot_use_organization_login_portal(): void
+    public function test_customer_cannot_use_management_login_portal(): void
     {
         $user = User::factory()->create(['role' => 'customer']);
 
-        $this->post('/giris/organizasyon', [
+        $this->post('/giris/management', [
             'email' => $user->email,
             'password' => 'password',
         ]);

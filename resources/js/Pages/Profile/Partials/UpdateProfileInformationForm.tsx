@@ -75,7 +75,7 @@ export default function UpdateProfileInformation({
     const { auth } = usePage<PageProps>().props;
     const user = auth.user!;
     const linkedArtist = auth.linkedArtist;
-    const isManagerOrganization = auth.is_manager_organization === true;
+    const isManagementAccount = auth.is_management_account === true;
     const orgPublic = auth.organization_public_profile ?? null;
     const [interestInput, setInterestInput] = useState('');
 
@@ -245,14 +245,14 @@ export default function UpdateProfileInformation({
                     <InputError className="mt-2" message={errors.phone} />
                 </div>
 
-                {isManagerOrganization && (
+                {isManagementAccount && (
                     <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
-                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200/90">Organizasyon / firma bilgileri</p>
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200/90">Management / firma bilgileri</p>
                         <p className="text-xs text-zinc-600 dark:text-zinc-500">
                             Firma unvanı ve vergi alanları yalnızca hesabınız ve yönetim kayıtları için kullanılır; herkese açık sanatçı sayfalarından ayrıdır.
                         </p>
                         <div>
-                            <InputLabel htmlFor="organization_display_name" value="Firma / organizasyon adı" />
+                            <InputLabel htmlFor="organization_display_name" value="Firma / görünen ad" />
                             <TextInput
                                 id="organization_display_name"
                                 className="mt-1 block w-full"
@@ -299,7 +299,7 @@ export default function UpdateProfileInformation({
                                 </p>
                             ) : (
                                 <p className="text-xs text-zinc-600 dark:text-zinc-500">
-                                    İçeriği burada düzenlersiniz; sayfanın herkese açılması site yönetiminde «Organizasyon sayfası yayında» ile yapılır.
+                                    İçeriği burada düzenlersiniz; sayfanın herkese açılması site yönetiminde «Management sayfası yayında» ile yapılır.
                                 </p>
                             )}
                             <div>

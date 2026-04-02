@@ -411,7 +411,6 @@ export default function ArtistEventsIndex({
                             key={i}
                             href={link.url || '#'}
                             preserveState
-                            preserveScroll
                             className={`min-w-[2.25rem] rounded-lg px-3 py-2 text-sm ${
                                 link.active
                                     ? 'bg-amber-500 font-semibold text-zinc-950'

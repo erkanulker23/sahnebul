@@ -109,7 +109,7 @@ export default function Register({
 }: Readonly<{
     claimVenue?: ClaimProfile | null;
     claimArtist?: ClaimProfile | null;
-    initialMembership: 'artist' | 'venue' | 'organization';
+    initialMembership: 'artist' | 'venue' | 'management';
 }>) {
     const venueTabRef = useRef<HTMLButtonElement>(null);
     const artistTabRef = useRef<HTMLButtonElement>(null);
@@ -153,8 +153,8 @@ export default function Register({
                 claim_artist: claimArtist.slug,
             });
         }
-        if (data.membership_type === 'organization') {
-            return route('login.organizasyon');
+        if (data.membership_type === 'management') {
+            return route('login.management');
         }
         return data.membership_type === 'venue' ? route('login.mekan') : route('login.sanatci');
     }, [claimVenue, claimArtist, data.membership_type]);
@@ -168,7 +168,7 @@ export default function Register({
         });
     };
 
-    const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, current: 'venue' | 'artist' | 'organization') => {
+    const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, current: 'venue' | 'artist' | 'management') => {
         if (claimFlow) {
             if (e.key === 'ArrowRight' && current === 'venue') {
                 e.preventDefault();
@@ -187,7 +187,7 @@ export default function Register({
                 setData((prev) => ({ ...prev, membership_type: 'artist', venue_name: '', organization_display_name: '' }));
                 artistTabRef.current?.focus();
             } else if (current === 'artist') {
-                setData((prev) => ({ ...prev, membership_type: 'organization', venue_name: '' }));
+                setData((prev) => ({ ...prev, membership_type: 'management', venue_name: '' }));
                 orgTabRef.current?.focus();
             } else {
                 setData((prev) => ({ ...prev, membership_type: 'venue', organization_display_name: '' }));
@@ -195,14 +195,14 @@ export default function Register({
             }
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            if (current === 'organization') {
+            if (current === 'management') {
                 setData((prev) => ({ ...prev, membership_type: 'artist', organization_display_name: '' }));
                 artistTabRef.current?.focus();
             } else if (current === 'artist') {
                 setData((prev) => ({ ...prev, membership_type: 'venue', venue_name: '' }));
                 venueTabRef.current?.focus();
             } else {
-                setData((prev) => ({ ...prev, membership_type: 'organization', venue_name: '' }));
+                setData((prev) => ({ ...prev, membership_type: 'management', venue_name: '' }));
                 orgTabRef.current?.focus();
             }
         } else if (e.key === 'Home') {
@@ -211,13 +211,13 @@ export default function Register({
             venueTabRef.current?.focus();
         } else if (e.key === 'End') {
             e.preventDefault();
-            setData((prev) => ({ ...prev, membership_type: 'organization', venue_name: '' }));
+            setData((prev) => ({ ...prev, membership_type: 'management', venue_name: '' }));
             orgTabRef.current?.focus();
         }
     };
 
     const isVenue = data.membership_type === 'venue';
-    const isOrganization = data.membership_type === 'organization';
+    const isManagementMembership = data.membership_type === 'management';
 
     return (
         <GuestLayout wide>
@@ -310,24 +310,24 @@ export default function Register({
                         ref={orgTabRef}
                         type="button"
                         role="tab"
-                        aria-selected={data.membership_type === 'organization'}
-                        tabIndex={data.membership_type === 'organization' ? 0 : -1}
+                        aria-selected={data.membership_type === 'management'}
+                        tabIndex={data.membership_type === 'management' ? 0 : -1}
                         onClick={() =>
                             setData((prev) => ({
                                 ...prev,
-                                membership_type: 'organization',
+                                membership_type: 'management',
                                 venue_name: '',
                             }))
                         }
-                        onKeyDown={(e) => handleTabKeyDown(e, 'organization')}
+                        onKeyDown={(e) => handleTabKeyDown(e, 'management')}
                         className={`flex min-h-11 w-full items-center justify-center rounded-lg px-3 py-2.5 text-center text-sm font-medium leading-snug transition ${
-                            data.membership_type === 'organization'
+                            data.membership_type === 'management'
                                 ? 'bg-amber-500 text-zinc-950 shadow-sm'
                                 : 'text-zinc-600 hover:bg-white hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
-                        }`}
-                    >
-                        Organizasyon firması
-                    </button>
+                    }`}
+                >
+                    Management firması
+                </button>
                 ) : null}
             </div>
             <InputError message={errors.membership_type} className="mt-2" />
@@ -350,9 +350,9 @@ export default function Register({
                     </div>
                 )}
 
-                {isOrganization && (
+                {isManagementMembership && (
                     <div>
-                        <InputLabel htmlFor="organization_display_name" value="Organizasyon / şirket adı" />
+                        <InputLabel htmlFor="organization_display_name" value="Firma / şirket adı" />
                         <TextInput
                             id="organization_display_name"
                             name="organization_display_name"
@@ -370,7 +370,7 @@ export default function Register({
                 <div>
                     <InputLabel
                         htmlFor="name"
-                        value={isVenue ? 'İlgili kişi' : isOrganization ? 'Yetkili adı soyadı' : 'Ad Soyad'}
+                        value={isVenue ? 'İlgili kişi' : isManagementMembership ? 'Yetkili adı soyadı' : 'Ad Soyad'}
                     />
                     <TextInput
                         id="name"
@@ -378,7 +378,7 @@ export default function Register({
                         value={data.name}
                         className="mt-2 block w-full"
                         autoComplete="name"
-                        isFocused={!isVenue && !isOrganization}
+                        isFocused={!isVenue && !isManagementMembership}
                         onChange={(e) => setData('name', e.target.value)}
                         required
                     />

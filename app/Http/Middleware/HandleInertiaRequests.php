@@ -90,17 +90,17 @@ class HandleInertiaRequests extends Middleware
             $linkedArtist = Artist::query()->where('user_id', $user->id)->first(['id', 'name', 'slug', 'avatar']);
         }
         $firstVenueName = null;
-        if ($user !== null && ! $user->isManagerOrganization() && $linkedArtist === null && ($user->venues_count ?? 0) > 0) {
+        if ($user !== null && ! $user->isManagementAccount() && $linkedArtist === null && ($user->venues_count ?? 0) > 0) {
             $firstVenueName = $user->venues()->orderBy('name')->value('name');
         }
         $stagePanelTitle = 'Sahne yönetimi';
         $stageSidebarNavBadge = 'Sahne paneli';
         if ($user !== null) {
-            if ($user->isManagerOrganization()) {
+            if ($user->isManagementAccount()) {
                 $orgName = trim((string) ($user->organization_display_name ?? ''));
                 $display = $orgName !== '' ? $orgName : $user->name;
                 $stagePanelTitle = $display.' Yönetim Paneli';
-                $stageSidebarNavBadge = $display.' — Organizasyon';
+                $stageSidebarNavBadge = $display.' — Management';
             } elseif ($linkedArtist !== null) {
                 $stagePanelTitle = $linkedArtist->name.' Yönetim Paneli';
                 $stageSidebarNavBadge = $linkedArtist->name.' — Sanatçı';
@@ -156,15 +156,15 @@ class HandleInertiaRequests extends Middleware
                 /** admin / super_admin: müşteri rezervasyon menüsü ve akışı kapalı */
                 'is_platform_admin' => $user !== null && $user->isAdmin(),
                 'is_super_admin' => $user !== null && $user->isSuperAdmin(),
-                'is_manager_organization' => $user !== null && $user->isManagerOrganization(),
-                'organization_public_profile' => $user !== null && $user->isManagerOrganization()
+                'is_management_account' => $user !== null && $user->isManagementAccount(),
+                'organization_public_profile' => $user !== null && $user->isManagementAccount()
                     ? [
                         'published' => (bool) ($user->organization_profile_published ?? false),
                         'slug' => is_string($user->organization_public_slug) ? $user->organization_public_slug : null,
                         'url' => ((bool) ($user->organization_profile_published ?? false)
                             && is_string($user->organization_public_slug)
                             && trim($user->organization_public_slug) !== '')
-                            ? url('/organizasyonlar/'.trim($user->organization_public_slug))
+                            ? url('/management/'.trim($user->organization_public_slug))
                             : null,
                     ]
                     : null,

@@ -12,6 +12,7 @@ use App\Models\VenueClaimRequest;
 use App\Services\AppSettingsService;
 use App\Support\CaseInsensitiveSearch;
 use App\Support\DailyUniqueEntityView;
+use App\Support\EventListingTypes;
 use App\Support\EventPromoVenueProfileModeration;
 use App\Support\HomeHeroSlideDefaults;
 use App\Support\HomeHeroSlides;
@@ -119,7 +120,7 @@ class VenueController extends Controller
         $canAddVenue = $user && (
             $user->isArtist()
             || $user->isVenueOwner()
-            || $user->isManagerOrganization()
+            || $user->isManagementAccount()
             || $user->hasActiveMembership('venue')
             || $user->hasActiveMembership('manager')
             || $pendingVenue
@@ -177,6 +178,7 @@ class VenueController extends Controller
         $lcpHeroUrl = $heroImageUrls[0] ?? $defaultHeroLcp;
 
         $contentSliders = [];
+        $homeEventTypes = null;
         if (! $request->is('mekanlar')) {
             $contentSliders = ContentSlider::query()
                 ->where('placement', ContentSlider::PLACEMENT_FEATURED)
@@ -192,10 +194,30 @@ class VenueController extends Controller
                     'image_url' => $this->appSettings->publicStorageUrl($s->image_path),
                 ])
                 ->all();
+
+            $typeSlugs = EventListingTypes::slugs();
+            $upcomingTypeCounts = Event::query()
+                ->published()
+                ->whereHas('venue', fn ($q) => $q->listedPublicly())
+                ->where('start_date', '>=', now()->startOfDay())
+                ->whereIn('event_type', $typeSlugs)
+                ->selectRaw('event_type, COUNT(*) as c')
+                ->groupBy('event_type')
+                ->pluck('c', 'event_type');
+
+            $homeEventTypes = collect(EventListingTypes::options())
+                ->map(fn (array $row): array => [
+                    'slug' => $row['slug'],
+                    'label' => $row['label'],
+                    'upcoming_count' => (int) ($upcomingTypeCounts[$row['slug']] ?? 0),
+                ])
+                ->values()
+                ->all();
         }
 
         $inertia = Inertia::render('Venues/Index', [
             'isVenuesPage' => $request->is('mekanlar'),
+            'homeEventTypes' => $homeEventTypes,
             'contentSliders' => $contentSliders,
             'heroImageUrls' => $heroImageUrls,
             'homeHeroSlideContents' => HomeHeroSlideDefaults::resolveBlocks($rawHomeCopy, HomeHeroSlideDefaults::homeDefaults()),

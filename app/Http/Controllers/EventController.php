@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artist;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Event;
 use App\Services\TurkeyProvincesSync;
 use App\Support\CaseInsensitiveSearch;
@@ -13,13 +14,68 @@ use App\Support\InertiaDocumentMeta;
 use App\Support\RequestGeoQuery;
 use App\Support\UpcomingSevenDayEventWindow;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class EventController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response|RedirectResponse
     {
+        if ($this->shouldRedirectBareEventTypeQueryToPath($request)) {
+            $slug = (string) $request->query('event_type');
+            $url = route('events.index.by-type', ['eventTypeSlug' => $slug]);
+            $pageQ = $request->query('page');
+            if ($pageQ !== null && $pageQ !== '' && $pageQ !== '1') {
+                $url .= (str_contains($url, '?') ? '&' : '?').'page='.urlencode((string) $pageQ);
+            }
+
+            return redirect($url, 301);
+        }
+
+        return $this->eventsIndexResponse($request, null, null);
+    }
+
+    public function indexByEventType(Request $request, string $eventTypeSlug): Response
+    {
+        if (! in_array($eventTypeSlug, EventListingTypes::slugs(), true)) {
+            abort(404);
+        }
+
+        return $this->eventsIndexResponse($request, null, $eventTypeSlug);
+    }
+
+    public function indexByCityAndType(Request $request, string $citySlug, string $eventTypeSlug): Response
+    {
+        if (! in_array($eventTypeSlug, EventListingTypes::slugs(), true)) {
+            abort(404);
+        }
+
+        $city = City::query()->turkiyeProvinces()->where('slug', $citySlug)->first();
+        if ($city === null) {
+            abort(404);
+        }
+
+        return $this->eventsIndexResponse($request, $city, $eventTypeSlug);
+    }
+
+    private function eventsIndexResponse(Request $request, ?City $hubCity, ?string $hubEventTypeSlug): Response
+    {
+        $effectiveCityId = $request->filled('city_id') ? (int) $request->input('city_id') : null;
+        $effectiveEventType = $request->filled('event_type') ? (string) $request->string('event_type') : null;
+
+        if ($hubCity !== null) {
+            $effectiveCityId = $hubCity->id;
+        }
+        if ($hubEventTypeSlug !== null) {
+            $effectiveEventType = $hubEventTypeSlug;
+        }
+
+        if ($effectiveEventType !== null && ! in_array($effectiveEventType, EventListingTypes::slugs(), true)) {
+            $effectiveEventType = null;
+        }
+
         $query = EventListingQuery::base()->with([
             'venue:id,name,slug,address,cover_image,category_id,city_id,district_id',
             'venue.category:id,name,slug',
@@ -36,7 +92,6 @@ class EventController extends Controller
         }
 
         if ($request->filled('period')) {
-            // $request->string() returns Stringable; strict === against 'tomorrow' etc. never matches.
             $period = (string) $request->string('period');
             if ($period === 'today') {
                 $todayStart = now()->startOfDay();
@@ -58,11 +113,8 @@ class EventController extends Controller
             }
         }
 
-        if ($request->filled('event_type')) {
-            $type = (string) $request->string('event_type');
-            if (in_array($type, EventListingTypes::slugs(), true)) {
-                $query->where('events.event_type', $type);
-            }
+        if ($effectiveEventType !== null) {
+            $query->where('events.event_type', $effectiveEventType);
         }
 
         if ($request->filled('genre')) {
@@ -70,9 +122,8 @@ class EventController extends Controller
             $query->whereHas('artists', fn ($q) => $q->whereGenreLabelMatches($genre));
         }
 
-        if ($request->filled('city_id')) {
-            $cityId = (int) $request->input('city_id');
-            $query->whereHas('venue', fn ($q) => $q->where('city_id', $cityId));
+        if ($effectiveCityId !== null) {
+            $query->whereHas('venue', fn ($q) => $q->where('city_id', $effectiveCityId));
         }
 
         if ($request->filled('district_id')) {
@@ -120,10 +171,48 @@ class EventController extends Controller
 
         $appUrl = rtrim((string) config('app.url'), '/');
 
+        $listingSeo = null;
+        $listingItemListName = 'Etkinlikler';
+        if ($hubCity !== null && $hubEventTypeSlug !== null) {
+            $typeLabel = EventListingTypes::labelFor($hubEventTypeSlug) ?? $hubEventTypeSlug;
+            $listingSeo = [
+                'kind' => 'city_type',
+                'cityId' => $hubCity->id,
+                'citySlug' => $hubCity->slug,
+                'cityName' => $hubCity->name,
+                'eventTypeSlug' => $hubEventTypeSlug,
+                'eventTypeLabel' => $typeLabel,
+            ];
+            $listingItemListName = $hubCity->name.' '.$typeLabel.' etkinlikleri';
+        } elseif ($hubCity === null && $hubEventTypeSlug !== null) {
+            $typeLabel = EventListingTypes::labelFor($hubEventTypeSlug) ?? $hubEventTypeSlug;
+            $listingSeo = [
+                'kind' => 'type',
+                'eventTypeSlug' => $hubEventTypeSlug,
+                'eventTypeLabel' => $typeLabel,
+            ];
+            $listingItemListName = $typeLabel.' etkinlikleri';
+        }
+
+        $filters = array_merge(
+            $request->only(['search', 'category', 'period', 'genre', 'district_id']),
+            [
+                'event_type' => $effectiveEventType ?? '',
+                'city_id' => $effectiveCityId !== null ? (string) $effectiveCityId : '',
+            ],
+            $useNearOrder
+                ? ['near_lat' => (string) $near['lat'], 'near_lng' => (string) $near['lng']]
+                : []
+        );
+
         return Inertia::render('Events/Index', [
             'events' => $events,
             'listingStructuredData' => InertiaDocumentMeta::structuredDataForEventsIndexPage(
-                ['events' => $events->toArray()],
+                [
+                    'events' => $events->toArray(),
+                    'listingItemListName' => $listingItemListName,
+                    'listingSeo' => $listingSeo,
+                ],
                 $appUrl,
             ),
             'categories' => $categories,
@@ -132,12 +221,8 @@ class EventController extends Controller
             'provinces' => $provinces,
             'tickerItems' => $tickerItems,
             'tickerFallback' => 'Yakında yayınlanacak etkinlikler için bizi takip edin.',
-            'filters' => array_merge(
-                $request->only(['search', 'category', 'period', 'genre', 'event_type', 'city_id', 'district_id']),
-                $useNearOrder
-                    ? ['near_lat' => (string) $near['lat'], 'near_lng' => (string) $near['lng']]
-                    : []
-            ),
+            'filters' => $filters,
+            'listingSeo' => $listingSeo,
         ]);
     }
 
@@ -179,5 +264,28 @@ class EventController extends Controller
         return response()->json([
             'events' => $events,
         ]);
+    }
+
+    /**
+     * Eski ?event_type=… adreslerini /etkinlik/{tür} kalıcı adresine taşır (yalnızca tür filtresi varken).
+     */
+    private function shouldRedirectBareEventTypeQueryToPath(Request $request): bool
+    {
+        if (! $request->filled('event_type')) {
+            return false;
+        }
+        $slug = (string) $request->string('event_type');
+        if (! in_array($slug, EventListingTypes::slugs(), true)) {
+            return false;
+        }
+
+        $blocked = ['search', 'category', 'period', 'genre', 'city_id', 'district_id', 'near_lat', 'near_lng'];
+        foreach ($blocked as $key) {
+            if ($request->filled($key)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

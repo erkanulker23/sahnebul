@@ -33,11 +33,11 @@ const portalMeta: Record<
         headline: 'Mekan paneli',
         sub: 'Mekân kaydı veya mekânınız bağlı kullanıcı hesabı ile giriş',
     },
-    organizasyon: {
-        title: 'Organizasyon girişi - Sahnebul',
-        description: 'Organizasyon firması hesabı ile sahne paneli: mekân ve etkinlik yönetimi, sanatçı müsaitlik talepleri.',
-        headline: 'Organizasyon firması',
-        sub: 'Organizasyon / ajans hesabınızla giriş yapın',
+    management: {
+        title: 'Management girişi - Sahnebul',
+        description: 'Management firması hesabı ile sahne paneli: mekân ve etkinlik yönetimi, sanatçı müsaitlik talepleri.',
+        headline: 'Management firması',
+        sub: 'Ajans / Management hesabınızla giriş yapın',
     },
     yonetim: {
         title: 'Site yönetimi girişi - Sahnebul',
@@ -94,8 +94,8 @@ export default function LoginPortal({
             }
             return safeRoute('register', { uyelik: 'mekan' });
         }
-        if (portal === 'organizasyon') {
-            return safeRoute('register', { uyelik: 'organizasyon' });
+        if (portal === 'management') {
+            return safeRoute('register', { uyelik: 'management' });
         }
         return safeRoute('register.kullanici');
     }, [portal, claimVenueSlug, claimArtistSlug]);
@@ -125,7 +125,7 @@ export default function LoginPortal({
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-500">{meta.sub}</p>
             {portal === 'kullanici' && (
                 <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-zinc-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-zinc-400">
-                    Bu sayfa bireysel kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya organizasyon firması hesabı için aşağıdaki «Diğer girişler» bağlantılarını kullanın.
+                    Bu sayfa bireysel kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya Management firması hesabı için aşağıdaki «Diğer girişler» bağlantılarını kullanın.
                 </p>
             )}
             {portal === 'mekan' && (
@@ -138,12 +138,12 @@ export default function LoginPortal({
                     >
                         Sanatçı paneli girişi
                     </Link>
-                    , organizasyon firması için{' '}
+                    , Management firması için{' '}
                     <Link
-                        href={safeRoute('login.organizasyon')}
+                        href={safeRoute('login.management')}
                         className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                     >
-                        Organizasyon girişi
+                        Management girişi
                     </Link>{' '}
                     kullanılır.
                 </p>
@@ -231,10 +231,10 @@ export default function LoginPortal({
                             Mekan
                         </Link>
                         <Link
-                            href={safeRoute('login.organizasyon')}
+                            href={safeRoute('login.management')}
                             className="text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                         >
-                            Organizasyon
+                            Management
                         </Link>
                     </div>
                 </div>
@@ -273,14 +273,14 @@ export default function LoginPortal({
                     </a>
                 </p>
             )}
-            {portal === 'organizasyon' && (
+            {portal === 'management' && (
                 <p className="mt-4 text-center text-sm text-zinc-600 dark:text-zinc-500">
                     Hesabınız yok mu?{' '}
                     <a
                         href={registerHref}
                         className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                     >
-                        Organizasyon kaydı
+                        Management kaydı
                     </a>
                 </p>
             )}

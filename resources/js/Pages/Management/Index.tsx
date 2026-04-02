@@ -5,7 +5,7 @@ import { Link, router } from '@inertiajs/react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Briefcase, Search } from 'lucide-react';
 
-interface OrgRow {
+interface MgmtRow {
     id: number;
     organization_display_name: string | null;
     name: string;
@@ -16,8 +16,8 @@ interface OrgRow {
 }
 
 interface Props {
-    organizations: {
-        data: OrgRow[];
+    managementAccounts: {
+        data: MgmtRow[];
         links: Array<{ url: string | null; label: string; active: boolean }>;
         total?: number;
         from?: number | null;
@@ -27,12 +27,12 @@ interface Props {
     filters?: { search?: string };
 }
 
-function displayName(row: OrgRow): string {
+function displayName(row: MgmtRow): string {
     const d = row.organization_display_name?.trim();
     return d ? d : row.name;
 }
 
-function coverSrc(row: OrgRow): string | null {
+function coverSrc(row: MgmtRow): string | null {
     const c = row.organization_cover_image?.trim();
     if (c) {
         return c.startsWith('http://') || c.startsWith('https://') ? c : `/storage/${c.replace(/^\//, '')}`;
@@ -44,8 +44,8 @@ function coverSrc(row: OrgRow): string | null {
     return null;
 }
 
-export default function OrganizationsIndex({
-    organizations,
+export default function ManagementIndex({
+    managementAccounts,
     listingStructuredData = null,
     filters,
 }: Readonly<Props>) {
@@ -59,7 +59,7 @@ export default function OrganizationsIndex({
         e.preventDefault();
         const q = search.trim();
         router.get(
-            safeRoute('organizations.index'),
+            safeRoute('management.index'),
             q ? { search: q } : {},
             { preserveState: true },
         );
@@ -68,8 +68,8 @@ export default function OrganizationsIndex({
     return (
         <AppLayout>
             <SeoHead
-                title="Organizasyon firmaları"
-                description="Konser ve etkinlik organizasyon firmalarını keşfedin; kadroları ve yaklaşan etkinlikleri görün."
+                title="Management firmaları"
+                description="Konser ve etkinlik Management firmalarını keşfedin; kadroları ve yaklaşan etkinlikleri görün."
                 jsonLd={listingStructuredData ?? undefined}
             />
 
@@ -77,10 +77,10 @@ export default function OrganizationsIndex({
                 <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h1 className="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white lg:text-4xl">
-                            Organizasyon firmaları
+                            Management firmaları
                         </h1>
                         <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-                            Sahnedeki organizasyonları ve kadrolarını tek yerde görün; firma sayfasından etkinliklere geçin.
+                            Sahnedeki Management şirketlerini ve kadrolarını tek yerde görün; firma sayfasından etkinliklere geçin.
                         </p>
                     </div>
                     <form onSubmit={submitSearch} className="flex w-full max-w-md gap-2">
@@ -103,18 +103,18 @@ export default function OrganizationsIndex({
                     </form>
                 </header>
 
-                {organizations.data.length === 0 ? (
+                {managementAccounts.data.length === 0 ? (
                     <p className="rounded-2xl border border-zinc-200 bg-zinc-50 px-6 py-10 text-center text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-400">
-                        Henüz yayındaki organizasyon profili yok. Yakında burada listelenecek.
+                        Henüz yayındaki Management profili yok. Yakında burada listelenecek.
                     </p>
                 ) : (
                     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {organizations.data.map((row) => {
+                        {managementAccounts.data.map((row) => {
                             const src = coverSrc(row);
                             return (
                                 <li key={row.id}>
                                     <Link
-                                        href={safeRoute('organizations.show', { slug: row.organization_public_slug })}
+                                        href={safeRoute('management.show', { slug: row.organization_public_slug })}
                                         className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:border-amber-400/50 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-amber-500/35"
                                     >
                                         <div className="relative aspect-[16/9] bg-zinc-200 dark:bg-zinc-800">
@@ -143,9 +143,9 @@ export default function OrganizationsIndex({
                     </ul>
                 )}
 
-                {organizations.links.length > 3 ? (
+                {managementAccounts.links.length > 3 ? (
                     <nav className="mt-10 flex flex-wrap justify-center gap-2" aria-label="Sayfalandırma">
-                        {organizations.links.map((l, i) => {
+                        {managementAccounts.links.map((l, i) => {
                             if (l.url === null) {
                                 return (
                                     <span

@@ -49,7 +49,7 @@ export function stageEventCreatorLabel(user: StageUserRef | null | undefined): s
     }
     if (user.role === 'manager_organization') {
         const org = user.organization_display_name?.trim();
-        return org ? `Organizasyon: ${org}` : `Organizasyon: ${user.name}`;
+        return org ? `Management: ${org}` : `Management: ${user.name}`;
     }
     if (user.role === 'venue_owner') {
         return `Mekân sahibi: ${user.name}`;
@@ -57,10 +57,10 @@ export function stageEventCreatorLabel(user: StageUserRef | null | undefined): s
     return user.name;
 }
 
-export function stageOrganizationArtistLabel(user: StageUserRef | null | undefined): string | null {
+export function stageManagementArtistLabel(user: StageUserRef | null | undefined): string | null {
     if (!user) {
         return null;
     }
     const org = user.organization_display_name?.trim();
-    return org ? `Organizasyon kadrosu (${org})` : `Organizasyon kadrosu (${user.name})`;
+    return org ? `Management kadrosu (${org})` : `Management kadrosu (${user.name})`;
 }

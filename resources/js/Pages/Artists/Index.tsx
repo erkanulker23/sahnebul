@@ -432,7 +432,6 @@ export default function ArtistsIndex({
                                             key={`${label}-${idx}`}
                                             href={link.url}
                                             preserveState
-                                            preserveScroll
                                             className={`rounded-lg border px-3 py-2 text-sm font-medium ${
                                                 link.active
                                                     ? 'border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-300'

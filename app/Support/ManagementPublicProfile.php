@@ -4,7 +4,7 @@ namespace App\Support;
 
 use Illuminate\Validation\Rule;
 
-final class OrganizationPublicProfile
+final class ManagementPublicProfile
 {
     /**
      * @return list<string>
@@ -12,7 +12,7 @@ final class OrganizationPublicProfile
     public static function reservedSlugs(): array
     {
         return [
-            'organizasyonlar', 'mekanlar', 'etkinlikler', 'sanatcilar', 'blog', 'iletisim',
+            'management', 'organizasyonlar', 'mekanlar', 'etkinlikler', 'sanatcilar', 'blog', 'iletisim',
             'admin', 'sahne', 'giris', 'kayit', 'api', 'kesfet', 'sayfalar', 'sehir-sec',
             'search', 'hesabim', 'panel', 'login', 'register', 'logout', 'public', 'storage',
             'build', 'live-scene',

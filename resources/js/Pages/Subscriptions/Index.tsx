@@ -43,7 +43,7 @@ function SubscriptionContent({
                 noindex
             />
             <h1 className="font-display text-3xl font-bold text-zinc-900 dark:text-white">Üyelik Paketleri</h1>
-            <p className="mt-2 text-zinc-600 dark:text-zinc-400">Sanatçı, mekan ve organizasyon üyelik paketlerini buradan seçebilirsiniz.</p>
+            <p className="mt-2 text-zinc-600 dark:text-zinc-400">Sanatçı, mekan ve Management üyelik paketlerini buradan seçebilirsiniz.</p>
             <div className="mt-4 flex flex-wrap gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1 dark:border-white/10 dark:bg-zinc-900/50">
                 <Link
                     href={route('subscriptions.index', { type: 'venue' })}
@@ -73,7 +73,7 @@ function SubscriptionContent({
                             : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
                     }`}
                 >
-                    Organizasyon firması
+                    Management firması
                 </Link>
             </div>
 
@@ -86,7 +86,7 @@ function SubscriptionContent({
             {!canPurchase && (
                 <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-950 dark:text-amber-200">
                     Paket satın almak için hesabınızın <strong>sanatçı</strong>, <strong>mekân sahibi</strong> veya{' '}
-                    <strong>organizasyon firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
+                    <strong>Management firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
                 </div>
             )}
 
@@ -176,7 +176,7 @@ export default function SubscriptionIndex({
                 {!canPurchase && (
                     <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
                         Paket satın almak için hesabınızın <strong>sanatçı</strong>, <strong>mekân sahibi</strong> veya{' '}
-                    <strong>organizasyon firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
+                    <strong>Management firması</strong> hesabı olması ya da size bağlı en az bir <strong>mekân</strong> bulunması gerekir.
                     </div>
                 )}
 

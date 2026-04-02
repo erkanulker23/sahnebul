@@ -16,8 +16,8 @@ class ManagerArtistAvailabilityController extends Controller
 {
     public function index(Request $request): Response|RedirectResponse
     {
-        if (! $request->user()->isManagerOrganization()) {
-            abort(403, 'Bu sayfa yalnızca organizasyon firması hesapları içindir.');
+        if (! $request->user()->isManagementAccount()) {
+            abort(403, 'Bu sayfa yalnızca Management hesapları içindir.');
         }
 
         $search = trim((string) $request->input('search', ''));
@@ -46,7 +46,7 @@ class ManagerArtistAvailabilityController extends Controller
 
     public function show(Request $request, Artist $artist): Response
     {
-        if (! $request->user()->isManagerOrganization()) {
+        if (! $request->user()->isManagementAccount()) {
             abort(403);
         }
 
@@ -99,7 +99,7 @@ class ManagerArtistAvailabilityController extends Controller
 
     public function storeRequest(Request $request, Artist $artist)
     {
-        if (! $request->user()->isManagerOrganization()) {
+        if (! $request->user()->isManagementAccount()) {
             abort(403);
         }
 

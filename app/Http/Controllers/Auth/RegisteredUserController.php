@@ -55,8 +55,8 @@ class RegisteredUserController extends Controller
                 $membership = 'artist';
             } elseif ($uyelik === 'mekan') {
                 $membership = 'venue';
-            } elseif ($uyelik === 'organizasyon') {
-                $membership = 'organization';
+            } elseif ($uyelik === 'management' || $uyelik === 'organizasyon') {
+                $membership = 'management';
             }
         }
 
@@ -107,23 +107,23 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => array_merge(UserContactValidation::emailRequired(), ['unique:'.User::class]),
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'membership_type' => ['required', 'in:artist,venue,organization'],
+            'membership_type' => ['required', 'in:artist,venue,management'],
             'venue_name' => ['required_if:membership_type,venue', 'nullable', 'string', 'max:255'],
-            'organization_display_name' => ['required_if:membership_type,organization', 'nullable', 'string', 'max:255'],
+            'organization_display_name' => ['required_if:membership_type,management', 'nullable', 'string', 'max:255'],
             'return_to' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $role = match ($request->input('membership_type')) {
             'artist' => 'artist',
             'venue' => 'venue_owner',
-            'organization' => 'manager_organization',
+            'management' => 'manager_organization',
             default => 'customer',
         };
 
         $user = User::create([
             'name' => $request->name,
             'pending_venue_name' => $request->input('membership_type') === 'venue' ? $request->input('venue_name') : null,
-            'organization_display_name' => $request->input('membership_type') === 'organization'
+            'organization_display_name' => $request->input('membership_type') === 'management'
                 ? $request->input('organization_display_name')
                 : null,
             'email' => $request->email,
@@ -138,7 +138,7 @@ class RegisteredUserController extends Controller
         $welcome = match ($request->input('membership_type')) {
             'artist' => RegistrationWelcomeMessages::STAGE_ARTIST,
             'venue' => RegistrationWelcomeMessages::STAGE_VENUE,
-            'organization' => RegistrationWelcomeMessages::STAGE_ORGANIZATION,
+            'management' => RegistrationWelcomeMessages::STAGE_MANAGEMENT,
             default => RegistrationWelcomeMessages::STAGE_ARTIST,
         };
 
@@ -149,6 +149,10 @@ class RegisteredUserController extends Controller
 
         if ($user->isArtist()) {
             return redirect(route('dashboard', absolute: false))->with('success', $welcome);
+        }
+
+        if ($user->isManagementAccount()) {
+            return redirect(route('artist.dashboard', absolute: false))->with('success', $welcome);
         }
 
         return redirect(route('artist.venues.create', absolute: false))->with('success', $welcome);

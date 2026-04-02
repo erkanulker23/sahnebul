@@ -94,7 +94,7 @@ final class PublicStructuredData
      * @param  LengthAwarePaginator<User>  $paginator
      * @return array<string, mixed>|null
      */
-    public static function organizationsIndexItemList(LengthAwarePaginator $paginator, string $appUrl): ?array
+    public static function managementDirectoryIndexItemList(LengthAwarePaginator $paginator, string $appUrl): ?array
     {
         $appUrl = rtrim($appUrl, '/');
         $elements = [];
@@ -111,7 +111,7 @@ final class PublicStructuredData
             if ($name === '') {
                 $name = trim((string) $row->name);
             }
-            $url = SeoFormatting::normalizeCanonical($appUrl, '/organizasyonlar/'.$slug);
+            $url = SeoFormatting::normalizeCanonical($appUrl, '/management/'.$slug);
             $elements[] = [
                 '@type' => 'ListItem',
                 'position' => $pos,
@@ -131,7 +131,7 @@ final class PublicStructuredData
         return [
             '@context' => 'https://schema.org',
             '@type' => 'ItemList',
-            'name' => 'Organizasyon firmaları',
+            'name' => 'Management firmaları',
             'numberOfItems' => count($elements),
             'itemListElement' => $elements,
         ];

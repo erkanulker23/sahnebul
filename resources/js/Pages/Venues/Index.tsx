@@ -8,6 +8,7 @@ import EventCarousel from '@/Components/EventCarousel';
 import PublicEventTicketCard, { type PublicEventTicketCardEvent } from '@/Components/PublicEventTicketCard';
 import SeoHead from '@/Components/SeoHead';
 import ThisWeekEventsBadge from '@/Components/ThisWeekEventsBadge';
+import { HomeEventTypesSection } from '@/Components/HomeEventTypesSection';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
@@ -221,6 +222,8 @@ interface Props {
     contentSliders?: { id: number; title: string; subtitle: string | null; link_url: string | null; image_url: string | null }[];
     /** Organization + WebSite (@graph) — SEO, sunucuda üretilir */
     homeStructuredData?: Record<string, unknown> | null;
+    /** Ana sayfa — etkinlik türleri kartları (yalnızca /) */
+    homeEventTypes?: { slug: string; label: string; upcoming_count: number }[] | null;
 }
 
 export default function VenuesIndex({
@@ -238,6 +241,7 @@ export default function VenuesIndex({
     upcomingWeekEvents = [],
     contentSliders = [],
     homeStructuredData = null,
+    homeEventTypes = null,
 }: Readonly<Props>) {
     const page = usePage();
     const { auth, seo } = page.props as {
@@ -442,6 +446,9 @@ export default function VenuesIndex({
                         </span>
                     </Link>
                 </section>
+            ) : null}
+            {!isVenuesPage && homeEventTypes && homeEventTypes.length > 0 ? (
+                <HomeEventTypesSection types={homeEventTypes} />
             ) : null}
             {!isVenuesPage && contentSliders.length > 0 ? (
                 <section className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5 lg:px-8" aria-label="Öne çıkan içerikler">

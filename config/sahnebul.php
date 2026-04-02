@@ -124,24 +124,32 @@ return [
             'description' => 'Salon, kulüp ve canlı müzik mekânları; yorumlar ve program {site_name} üzerinden.',
         ],
         'venue_show' => [
-            'title' => '{venue_name} — Mekân ve etkinlik programı',
-            'description' => '{venue_name}: yorumlar, adres ve yaklaşan etkinlikler. Rezervasyon {site_name}’da.',
+            'title' => '{venue_name} — Konser, etkinlik ve sahne programı',
+            'description' => '{venue_name}: mekân profili; bu salonda sahnelenen konser ve etkinlikler, yaklaşan gösteriler ve rezervasyon. Program {site_name}’da.',
         ],
         'events_index' => [
             'title' => 'Yaklaşan konserler ve etkinlikler | {site_name}',
             'description' => 'Tarih, şehir ve türe göre filtreleyin. Bilet ve mekân bilgisi {site_name}’da, {year}.',
         ],
+        'events_index_localized' => [
+            'title' => '{city_name} {event_type_label} etkinlikleri | {site_name}',
+            'description' => '{city_name}’de yaklaşan {event_type_label} etkinlikleri; program ve mekân bilgisi {site_name}’da, {year}.',
+        ],
+        'events_index_by_type' => [
+            'title' => '{event_type_label} etkinlikleri | {site_name}',
+            'description' => 'Yaklaşan {event_type_label} etkinlikleri; şehir, mekân ve program {site_name}’da, {year}.',
+        ],
         'event_show' => [
-            'title' => '{event_title} — Etkinlik',
-            'description' => '{event_title}: etkinlik detayı, tarih ve bilet bilgisi {site_name}’da.',
+            'title' => '{event_title} — Konser ve etkinlik{venue_title_suffix}',
+            'description' => '{event_title}: {venue_name} mekânında konser ve etkinlik; tarih, sahne programı, kadro ve bilet {site_name}’da.',
         ],
         'artists_index' => [
             'title' => 'Sanatçılar ve gruplar | {site_name}',
             'description' => 'Konser sanatçıları ve gruplar; takvim ve mekân bağlantıları {site_name} üzerinden.',
         ],
         'artist_show' => [
-            'title' => '{artist_name} — Konserleri ve etkinlikleri',
-            'description' => '{artist_name} konser ve performans programı; yaklaşan tarihler ve mekân bilgisi {site_name}’da.',
+            'title' => '{artist_name} — Konserler, etkinlikler ve sahne programı',
+            'description' => '{artist_name}: konser ve canlı performans takvimi, sahneler ve etkinlik programı; hangi mekânlarda sahne aldığı ve bilet bilgisi {site_name}’da.',
         ],
         'contact' => [
             'title' => 'İletişim ve destek | {site_name}',

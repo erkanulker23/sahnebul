@@ -34,12 +34,12 @@ function routeMatches(pattern: string): boolean {
 type Item = { key: string; href: string; label: string; icon: LucideIcon; active: boolean };
 
 /**
- * Sahne paneli (sanatçı / mekân / organizasyon) sol menüsü — AccountSidebar ile aynı görsel dil.
+ * Sahne paneli (sanatçı / mekân / Management) sol menüsü — AccountSidebar ile aynı görsel dil.
  */
 export function StagePanelSidebar({ className }: Readonly<{ className?: string }>) {
     const auth = usePage<PageProps>().props.auth;
     const { linkedArtist } = auth;
-    const isManagerOrganization = auth.is_manager_organization === true;
+    const isManagementAccount = auth.is_management_account === true;
     const showVenueNav = auth.artist_panel_show_venue_nav !== false;
     const navBadge = auth.stage_sidebar_nav_badge ?? (showVenueNav === true ? 'Mekân ve etkinlik' : 'Sanatçı paneli');
 
@@ -106,27 +106,27 @@ export function StagePanelSidebar({ className }: Readonly<{ className?: string }
               ]
             : [];
 
-        const orgItems: Item[] = isManagerOrganization
+        const orgItems: Item[] = isManagementAccount
             ? [
                   {
                       key: 'org-artists',
-                      href: route('artist.organization.artists.index'),
+                      href: route('artist.management.artists.index'),
                       label: 'Sanatçı kadrosu',
                       icon: Mic,
-                      active: routeMatches('artist.organization.artists.*'),
+                      active: routeMatches('artist.management.artists.*'),
                   },
                   {
                       key: 'mgr-avail',
-                      href: route('artist.manager-availability.index'),
+                      href: route('artist.management.availability.index'),
                       label: 'Sanatçı müsaitlikleri',
                       icon: Users,
-                      active: routeMatches('artist.manager-availability.*'),
+                      active: routeMatches('artist.management.availability.*'),
                   },
               ]
             : [];
 
         return [...core, ...venueItems, ...linkedArtistItems, ...orgItems];
-    }, [linkedArtist, isManagerOrganization, showVenueNav]);
+    }, [linkedArtist, isManagementAccount, showVenueNav]);
 
     const linkClass = (active: boolean) =>
         cn(

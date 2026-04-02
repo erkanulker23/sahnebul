@@ -15,11 +15,11 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class OrganizationArtistController extends Controller
+class ManagementArtistController extends Controller
 {
     public function index(Request $request): Response
     {
-        $this->assertManager($request);
+        $this->assertManagementAccount($request);
 
         $roster = Artist::query()
             ->where('managed_by_user_id', $request->user()->id)
@@ -43,7 +43,7 @@ class OrganizationArtistController extends Controller
             ->paginate(10, ['*'], 'catalog_page')
             ->withQueryString();
 
-        return Inertia::render('Artist/Organization/ArtistsIndex', [
+        return Inertia::render('Artist/Management/ArtistsIndex', [
             'roster' => $roster,
             'catalog' => $catalog,
             'filters' => ['catalog_search' => $catalogSearch],
@@ -52,7 +52,7 @@ class OrganizationArtistController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->assertManager($request);
+        $this->assertManagementAccount($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -80,7 +80,7 @@ class OrganizationArtistController extends Controller
         ]);
 
         return redirect()
-            ->route('artist.organization.artists.index')
+            ->route('artist.management.artists.index')
             ->with(
                 'success',
                 $trusted
@@ -91,7 +91,7 @@ class OrganizationArtistController extends Controller
 
     public function attach(Request $request, Artist $artist): RedirectResponse
     {
-        $this->assertManager($request);
+        $this->assertManagementAccount($request);
 
         if ($artist->status !== 'approved') {
             return back()->with('error', 'Yalnızca onaylı sanatçılar kadroya eklenebilir.');
@@ -102,7 +102,7 @@ class OrganizationArtistController extends Controller
                 return back()->with('success', 'Bu sanatçı zaten kadronuzda.');
             }
 
-            return back()->with('error', 'Bu sanatçı başka bir organizasyona bağlı. Önce mevcut bağlantının kaldırılması gerekir.');
+            return back()->with('error', 'Bu sanatçı başka bir Management hesabına bağlı. Önce mevcut bağlantının kaldırılması gerekir.');
         }
 
         $artist->update(['managed_by_user_id' => $request->user()->id]);
@@ -114,7 +114,7 @@ class OrganizationArtistController extends Controller
 
     public function detach(Request $request, Artist $artist): RedirectResponse
     {
-        $this->assertManager($request);
+        $this->assertManagementAccount($request);
 
         if ((int) $artist->managed_by_user_id !== (int) $request->user()->id) {
             abort(403);
@@ -130,7 +130,7 @@ class OrganizationArtistController extends Controller
      */
     public function proposeUpdate(Request $request, Artist $artist): RedirectResponse
     {
-        $this->assertManager($request);
+        $this->assertManagementAccount($request);
 
         if ((int) $artist->managed_by_user_id !== (int) $request->user()->id) {
             abort(403);
@@ -194,8 +194,8 @@ class OrganizationArtistController extends Controller
         ];
     }
 
-    private function assertManager(Request $request): void
+    private function assertManagementAccount(Request $request): void
     {
-        abort_unless($request->user()?->isManagerOrganization(), 403, 'Bu sayfa yalnızca organizasyon firması hesapları içindir.');
+        abort_unless($request->user()?->isManagementAccount(), 403, 'Bu sayfa yalnızca Management hesapları içindir.');
     }
 }

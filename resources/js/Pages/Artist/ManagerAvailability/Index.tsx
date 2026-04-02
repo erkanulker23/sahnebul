@@ -28,7 +28,7 @@ export default function ManagerAvailabilityIndex({ artists, filters }: Props) {
 
     const submitSearch = (e: FormEvent) => {
         e.preventDefault();
-        searchForm.get(route('artist.manager-availability.index'), { preserveState: true });
+        searchForm.get(route('artist.management.availability.index'), { preserveState: true });
     };
 
     return (
@@ -72,7 +72,7 @@ export default function ManagerAvailabilityIndex({ artists, filters }: Props) {
                     {artists.data.map((a) => (
                         <li key={a.id}>
                             <Link
-                                href={route('artist.manager-availability.show', a.slug)}
+                                href={route('artist.management.availability.show', a.slug)}
                                 className="flex items-center justify-between gap-4 rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-amber-500/40 hover:bg-amber-500/5 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-amber-500/30"
                             >
                                 <span className="font-medium text-zinc-900 dark:text-white">{a.name}</span>

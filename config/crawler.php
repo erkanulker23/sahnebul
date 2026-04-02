@@ -87,6 +87,27 @@ return [
     'bubilet_listing_delay_us' => (int) env('BUBILET_LISTING_DELAY_US', 200_000),
 
     /**
+     * Admin’de şehir seçilmediğinde veritabanındaki tüm iller Bubilet için kullanılırsa
+     * (şehir × etiket) istek sayısı patlar ve iş zaman aşımına düşer. Bu durumda yalnızca
+     * bu listedeki şehir slug’ları (DB’de varsa) kullanılır.
+     *
+     * @var list<string>
+     */
+    'bubilet_preferred_city_slugs' => array_values(array_filter(array_map(
+        'strtolower',
+        array_map('trim', explode(',', (string) env(
+            'BUBILET_PREFERRED_CITY_SLUGS',
+            'istanbul,ankara,izmir,antalya,bursa,adana,gaziantep,konya,eskisehir,trabzon,kayseri,mersin,mugla,denizli'
+        )))
+    ))),
+
+    /** Yukarıdaki tercih listesiyle sınırlandırma yalnızca bu kadar şehirden fazlası seçildiyse devreye girer */
+    'bubilet_max_city_slugs_per_crawl' => max(1, (int) env('BUBILET_MAX_CITY_SLUGS_PER_CRAWL', 14)),
+
+    /** Bubilet: liste sayfalarından toplanan benzersiz etkinlik yolları için detay isteği üst sınırı */
+    'bubilet_max_detail_pages' => max(20, min(2000, (int) env('BUBILET_MAX_DETAIL_PAGES', 400))),
+
+    /**
      * Admin “Verileri çek” / önizleme HTTP isteği — çok sayıda harici sayfa açıldığı için
      * PHP varsayılan 30 sn yetmez. Sunucu (nginx/php-fpm) limitlerini de gerektiğinde yükseltin.
      */

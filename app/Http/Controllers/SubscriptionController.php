@@ -36,7 +36,7 @@ class SubscriptionController extends Controller
             'useArtistPanel' => $user->canAccessStagePanel(),
             'canPurchase' => $user->isArtist()
                 || $user->isVenueOwner()
-                || $user->isManagerOrganization()
+                || $user->isManagementAccount()
                 || $user->venues_count > 0,
         ]);
     }

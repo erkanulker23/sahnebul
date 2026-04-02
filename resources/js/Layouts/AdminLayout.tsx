@@ -66,7 +66,7 @@ const navItems: AdminNavItem[] = [
     {
         navKey: 'admin.users.organization_firms',
         href: 'admin.users.index',
-        label: 'Organizasyon Firmaları',
+        label: 'Management firmaları',
         icon: Briefcase,
         query: { role: 'manager_organization' },
     },

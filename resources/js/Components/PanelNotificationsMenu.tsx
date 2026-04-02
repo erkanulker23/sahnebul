@@ -33,7 +33,7 @@ export default function PanelNotificationsMenu({
     const auth = page.props.auth;
 
     const showSahneFooter = useMemo(() => {
-        if (auth?.is_manager_organization === true) {
+        if (auth?.is_management_account === true) {
             return true;
         }
         if (auth?.linkedArtist != null) {

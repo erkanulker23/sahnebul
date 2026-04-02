@@ -98,6 +98,10 @@ class MarketplaceCrawlerService
         }
 
         $paths = array_keys($pathToListing);
+        $detailCap = max(20, min(2000, (int) config('crawler.bubilet_max_detail_pages', 400)));
+        if (count($paths) > $detailCap) {
+            $paths = array_slice($paths, 0, $detailCap);
+        }
         $normalized = [];
         $base = 'https://www.bubilet.com.tr';
 
@@ -116,8 +120,7 @@ class MarketplaceCrawlerService
 
             $ldEvents = $this->extractJsonLdEvents($detailHtml);
             foreach ($ldEvents as $event) {
-                $type = strtolower((string) ($event['@type'] ?? ''));
-                if ($type !== 'event') {
+                if (! $this->schemaOrgLdRepresentsEvent($event['@type'] ?? null)) {
                     continue;
                 }
                 $event['url'] = $url;
@@ -636,16 +639,26 @@ class MarketplaceCrawlerService
     private function extractBubiletEventPathsFromListingHtml(string $html): array
     {
         $paths = [];
-        if (preg_match_all('#href=(["\'])(/[^"\']+/etkinlik/[^"\']+)\1#u', $html, $matches)) {
-            foreach ($matches[2] as $path) {
-                $path = html_entity_decode($path, ENT_QUOTES | ENT_HTML5);
+        $patterns = [
+            '#href\s*=\s*(["\'])(/[^"\']+/etkinlik/[^"\']+)\1#u',
+            '#href\s*=\s*(["\'])(https://www\.bubilet\.com\.tr/[^"\']+/etkinlik/[^"\']+)\1#iu',
+        ];
+        foreach ($patterns as $pattern) {
+            if (! preg_match_all($pattern, $html, $matches)) {
+                continue;
+            }
+            foreach ($matches[2] as $raw) {
+                $path = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5);
+                if (preg_match('~^https://www\.bubilet\.com\.tr(/[^?\s#]*)~iu', $path, $m)) {
+                    $path = $m[1];
+                }
                 if (str_contains($path, '/etkinlik/')) {
                     $paths[] = $path;
                 }
             }
         }
 
-        return $paths;
+        return array_values(array_unique($paths));
     }
 
     private function extractBiletixEvents(string $html): array
@@ -1217,12 +1230,38 @@ class MarketplaceCrawlerService
         return $events;
     }
 
+    private function schemaOrgLdRepresentsEvent(mixed $type): bool
+    {
+        $types = [];
+        if (is_string($type)) {
+            $types = [$type];
+        } elseif (is_array($type)) {
+            foreach ($type as $t) {
+                if (is_string($t)) {
+                    $types[] = $t;
+                }
+            }
+        }
+        foreach ($types as $raw) {
+            $t = strtolower(trim($raw));
+            if ($t === '') {
+                continue;
+            }
+            if (str_contains($t, '://schema.org/')) {
+                $t = substr($t, (int) strrpos($t, '/') + 1);
+            }
+            if ($t === 'event' || str_ends_with($t, 'event') || $t === 'festival') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function flattenEventsFromLd(array $node): array
     {
         $results = [];
-        $type = strtolower((string) ($node['@type'] ?? ''));
-
-        if ($type === 'event') {
+        if ($this->schemaOrgLdRepresentsEvent($node['@type'] ?? null)) {
             return [$node];
         }
 

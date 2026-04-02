@@ -145,7 +145,7 @@ final class PanelNotificationService
             }
         }
 
-        if ($user->isManagerOrganization()) {
+        if ($user->isManagementAccount()) {
             $pendingRoster = Artist::query()
                 ->where('managed_by_user_id', $user->id)
                 ->where('status', 'pending')
@@ -155,7 +155,7 @@ final class PanelNotificationService
                     'key' => 'org_pending_roster_artists',
                     'label' => 'Kadronuzda onay bekleyen sanatçı',
                     'count' => $pendingRoster,
-                    'href' => route('artist.organization.artists.index', absolute: false),
+                    'href' => route('artist.management.artists.index', absolute: false),
                 ];
             }
 
@@ -169,7 +169,7 @@ final class PanelNotificationService
                         'key' => 'org_pending_availability_replies',
                         'label' => 'Müsaitlik talebiniz (sanatçı yanıtı bekleniyor)',
                         'count' => $orgWaitingAv,
-                        'href' => route('artist.manager-availability.index', absolute: false),
+                        'href' => route('artist.management.availability.index', absolute: false),
                     ];
                 }
             }

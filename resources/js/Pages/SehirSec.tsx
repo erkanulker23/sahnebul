@@ -109,8 +109,7 @@ export default function SehirSec({ citySections, initialSlug, nearLat = null, ne
                 description="Şehrine göre Sahnebul etkinlikleri — /etkinlikler ile aynı yayınlanmış program."
             />
 
-            <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-                <section className="relative min-h-[min(52vh,28rem)] overflow-hidden">
+            <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden">
                     <img
                         src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2400&auto=format&fit=crop"
                         alt=""
@@ -188,9 +187,9 @@ export default function SehirSec({ citySections, initialSlug, nearLat = null, ne
                             </p>
                         )}
                     </div>
-                </section>
+            </section>
 
-                <div className="relative -mt-12 rounded-t-3xl bg-white px-4 pb-16 pt-10 shadow-[0_-12px_48px_rgba(0,0,0,0.12)] dark:bg-zinc-900 dark:shadow-black/40 sm:px-6 lg:px-8">
+            <div className="relative -mt-12 rounded-t-3xl bg-white px-4 pb-16 pt-10 shadow-[0_-12px_48px_rgba(0,0,0,0.12)] dark:bg-zinc-900 dark:shadow-black/40 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-7xl">
                         <p className="mb-10 text-sm text-zinc-600 dark:text-zinc-400">
                             Aşağıda her şehir için popüler etkinlikler ayrı bölümde listelenir.
@@ -229,11 +228,17 @@ export default function SehirSec({ citySections, initialSlug, nearLat = null, ne
                                     </div>
                                 ) : (
                                     <div className="relative">
-                                        <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-6 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden">
+                                        {/*
+                                          Mobil: yatay kaydırma — kart genişliği viewport’a göre, son kart için sağ boşluk.
+                                          md+: grid ile kartlar her zaman tam görünür (sabit 320px × 4 sığmadığında kesilme oluyordu).
+                                        */}
+                                        <div
+                                            className="-mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto scroll-pb-2 pb-6 pl-4 pr-4 pt-0.5 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [scroll-padding-inline:1rem] sm:pl-6 sm:pr-6 md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-4 md:pt-0 lg:grid-cols-3 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden"
+                                        >
                                             {section.events.map((ev) => (
                                                 <div
                                                     key={ev.id}
-                                                    className="h-full min-w-[min(100%,320px)] max-w-[320px] shrink-0 snap-start"
+                                                    className="w-[min(20rem,calc(100vw-2.5rem))] shrink-0 snap-start self-stretch sm:w-[19rem] md:w-auto md:min-w-0 md:snap-none"
                                                 >
                                                     <PublicEventTicketCard event={ev} />
                                                 </div>
@@ -249,7 +254,6 @@ export default function SehirSec({ citySections, initialSlug, nearLat = null, ne
                         </p>
                     </div>
                 </div>
-            </div>
         </AppLayout>
     );
 }

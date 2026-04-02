@@ -85,7 +85,7 @@ interface Props {
     defaultArtistId?: number | null;
     lockArtistsToSelf?: boolean;
     linkedArtistName?: string | null;
-    /** Organizasyon: yalnızca kadrodaki onaylı sanatçılar seçilebilir */
+    /** Management: yalnızca kadrodaki onaylı sanatçılar seçilebilir */
     managedRosterArtistPicker?: boolean;
     categories?: Category[];
     googleMapsBrowserKey?: string | null;

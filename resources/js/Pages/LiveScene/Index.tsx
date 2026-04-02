@@ -155,35 +155,48 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                 description="Yakınınızdaki konser ve etkinlikleri haritada keşfedin; tarza göre süzün, yoğun bölgeleri görün, etkinliğe veya yol tarifine geçin."
             />
 
-            <div className="isolate min-h-screen overflow-x-clip bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-                <section className="relative isolate ml-[calc(50%-50vw)] w-screen max-w-[100vw] overflow-x-clip border-b border-zinc-200/80 bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 px-3 py-16 text-white sm:px-5 sm:py-20 lg:px-8 lg:py-24">
-                    <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/25 blur-3xl" />
-                    <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl" />
-                    <div className="relative mx-auto max-w-7xl">
+            {/*
+              overflow-x-clip koymayın: hero-full-bleed ana içerik padding’ini negatif margin ile aşar; üst sarmalayıcı clip
+              tam genişlik hero’yu yanlardan kırpar. Kırpma yalnızca hero section içinde (overflow-hidden).
+            */}
+            <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+                <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden border-b border-white/10 text-white sm:min-h-[min(56vh,32rem)]">
+                    <img
+                        src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2400&auto=format&fit=crop"
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-zinc-950/88 to-zinc-950" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_-20%,rgba(251,191,36,0.18),transparent_55%)]" />
+                    <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-fuchsia-500/15 blur-3xl" />
+                    <div className="relative z-10 mx-auto max-w-7xl px-3 py-14 sm:px-5 sm:py-20 lg:px-8 lg:py-24">
                         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/95">
                             <Sparkles className="h-4 w-4" aria-hidden />
                             Yakındaki etkinlikler
                         </div>
-                        <h1 className="mt-4 font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                        <h1 className="mt-4 max-w-4xl font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
                             Nereye mi{' '}
-                            <span className="text-transparent bg-gradient-to-r from-amber-300 via-amber-400 to-orange-300 bg-clip-text">gidelim?</span>
+                            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-300 bg-clip-text text-transparent">
+                                gidelim?
+                            </span>
                         </h1>
-                        <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-300 sm:text-lg">
-                            Harita <strong className="font-semibold text-zinc-100">bugünden itibaren 7 gün</strong> içindeki etkinlikleri gösterir;{' '}
-                            <strong className="font-semibold text-zinc-100">bugünkü olanlar</strong> listede ve işaretçi açılır penceresinde öne çıkar. Yoğunluk,
-                            seçtiğiniz tarza göre bu penceredeki etkinlik sayısına göre hesaplanır.
+                        <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-200 sm:text-lg">
+                            Harita <strong className="font-semibold text-white">bugünden itibaren 7 gün</strong> içindeki etkinlikleri gösterir;{' '}
+                            <strong className="font-semibold text-white">bugünkü olanlar</strong> listede ve işaretçi açılır penceresinde öne çıkar.
+                            Yoğunluk, seçtiğiniz tarza göre bu penceredeki etkinlik sayısına göre hesaplanır.
                         </p>
                         <div className="mt-8 flex flex-wrap gap-3">
                             <Link
                                 href={browseWeekHref}
-                                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-500/15 transition hover:bg-amber-300"
+                                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-amber-900/25 transition hover:bg-amber-300"
                             >
                                 7 günlük etkinlik listesi
                                 <ArrowRight className="h-4 w-4" aria-hidden />
                             </Link>
                             <Link
                                 href={browseTodayHref}
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-md transition hover:bg-white/18"
                             >
                                 <Calendar className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
                                 Sadece bugün
@@ -191,7 +204,7 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                             <button
                                 type="button"
                                 onClick={() => void fetchMap(vibe)}
-                                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/10"
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-black/25 px-5 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-black/35"
                             >
                                 <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden />
                                 Yenile

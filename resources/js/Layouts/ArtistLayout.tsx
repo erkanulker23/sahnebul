@@ -3,7 +3,7 @@ import SiteShell from '@/Layouts/SiteShell';
 import { PropsWithChildren } from 'react';
 
 /**
- * Sahne paneli (sanatçı / mekân / organizasyon): SiteShell + sol menü — kullanıcı paneli ile aynı görsel bütünlük.
+ * Sahne paneli (sanatçı / mekân / Management): SiteShell + sol menü — kullanıcı paneli ile aynı görsel bütünlük.
  */
 export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) {
     return (

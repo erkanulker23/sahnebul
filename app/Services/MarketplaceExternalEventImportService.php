@@ -8,6 +8,7 @@ use App\Support\CrawlerHttpResponseInspector;
 use App\Support\ExternalMarketplaceCrawlJobStatus;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -109,10 +110,28 @@ class MarketplaceExternalEventImportService
         $syncedBySource = [];
 
         if ($merged !== []) {
-            $filtered = $this->rowFilter->filter($merged, $dateFrom, $dateTo, $cityNames, $categoryNames);
-            $filtered = $this->excludeCrawlRowsAlreadySyncedToDomain($filtered);
+            $mergedTotal = count($merged);
+            $afterRowFilter = $this->rowFilter->filter($merged, $dateFrom, $dateTo, $cityNames, $categoryNames);
+            $afterRowFilterTotal = count($afterRowFilter);
+            $filtered = $this->excludeCrawlRowsAlreadySyncedToDomain($afterRowFilter);
+            $afterExcludeSyncedTotal = count($filtered);
             $filtered = array_slice($filtered, 0, $limit);
             $saveTotal = count($filtered);
+
+            $crawledPerSource = [];
+            foreach ($bySource as $src => $info) {
+                $crawledPerSource[$src] = $info['error'] !== null
+                    ? ['error' => $info['error']]
+                    : ['rows' => count($info['rows'])];
+            }
+            Log::info('External marketplace import pipeline', [
+                'merged_total' => $mergedTotal,
+                'after_date_city_category_filter' => $afterRowFilterTotal,
+                'after_exclude_already_synced' => $afterExcludeSyncedTotal,
+                'after_limit' => $saveTotal,
+                'limit' => $limit,
+                'crawl_per_source' => $crawledPerSource,
+            ]);
 
             if ($progressToken !== null) {
                 ExternalMarketplaceCrawlJobStatus::put($progressToken, [
@@ -458,7 +477,27 @@ class MarketplaceExternalEventImportService
 
         $slugs = $this->bubiletCitySlugsFromAdminSelection($cityNames);
 
-        return $slugs === [] ? [] : ['bubilet_city_slugs' => $slugs];
+        $max = max(1, (int) config('crawler.bubilet_max_city_slugs_per_crawl', 14));
+        if (count($slugs) > $max) {
+            /** @var list<string> $preferred */
+            $preferred = config('crawler.bubilet_preferred_city_slugs', []);
+            if (! is_array($preferred)) {
+                $preferred = [];
+            }
+            $preferred = array_values(array_filter(array_map(
+                static fn ($s) => strtolower(trim((string) $s)),
+                $preferred,
+            )));
+            $picked = array_values(array_intersect($preferred, $slugs));
+            if ($picked === []) {
+                $picked = array_slice($slugs, 0, $max);
+            } elseif (count($picked) > $max) {
+                $picked = array_slice($picked, 0, $max);
+            }
+            $slugs = $picked;
+        }
+
+        return ['bubilet_city_slugs' => $slugs];
     }
 
     /**

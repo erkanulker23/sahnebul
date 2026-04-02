@@ -520,7 +520,7 @@ export function GlobalSearch({ className }: Readonly<{ className?: string }>) {
                                             {globalSearch.event_type_tags.map((t) => (
                                                 <Link
                                                     key={t.slug}
-                                                    href={route('events.index', { event_type: t.slug })}
+                                                    href={route('events.index.by-type', { eventTypeSlug: t.slug })}
                                                     onClick={() => setOpen(false)}
                                                     className={tagPillClass}
                                                 >

@@ -8,23 +8,23 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * Organizasyon firma sayfası — başlık, meta ve JSON-LD.
+ * Management (eski adı organizasyon) firma sayfası — başlık, meta ve JSON-LD.
  */
-final class OrganizationPageSeo
+final class ManagementPageSeo
 {
     /**
      * @param  Collection<int, Artist>  $roster
      * @param  Collection<int, Event>  $upcomingSample
      * @return array{headTitleSegment: string, metaDescription: string, structuredData: array<string, mixed>}
      */
-    public static function forPublicOrganization(User $org, Collection $roster, Collection $upcomingSample, string $appUrl): array
+    public static function forPublicManagementAccount(User $org, Collection $roster, Collection $upcomingSample, string $appUrl): array
     {
         $appUrl = rtrim($appUrl, '/');
         $slug = trim((string) $org->organization_public_slug);
-        $canonical = SeoFormatting::normalizeCanonical($appUrl, '/organizasyonlar/'.$slug);
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, '/management/'.$slug);
 
         $name = self::displayName($org);
-        $headTitleSegment = $name.' · Konser ve etkinlik organizasyonu';
+        $headTitleSegment = $name.' · Management';
 
         $plainAbout = SeoFormatting::stripHtmlToText((string) ($org->organization_about ?? ''));
         $metaFromField = trim((string) ($org->organization_meta_description ?? ''));
@@ -86,7 +86,7 @@ final class OrganizationPageSeo
         }
         $n = trim((string) ($org->name ?? ''));
 
-        return $n !== '' ? $n : 'Organizasyon';
+        return $n !== '' ? $n : 'Management';
     }
 
     /**
@@ -104,7 +104,7 @@ final class OrganizationPageSeo
         }
         $rosterCount = $roster->count();
         $upcomingCount = $upcomingSample->count();
-        $bits = [$name.' — Sahnebul’daki organizasyon profili.'];
+        $bits = [$name.' — Sahnebul’daki Management profili.'];
         if ($rosterCount > 0) {
             $bits[] = 'Kadrosunda '.$rosterCount.' sanatçı.';
         }

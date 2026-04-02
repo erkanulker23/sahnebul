@@ -47,7 +47,7 @@ interface PaginatorLink {
     active: boolean;
 }
 
-export type LocationOption = { id: number; name: string };
+export type LocationOption = { id: number; name: string; slug?: string };
 
 interface Props {
     events: { data: EventItem[]; links: PaginatorLink[]; total?: number; from?: number | null; to?: number | null };
@@ -70,6 +70,15 @@ interface Props {
         near_lat?: string;
         near_lng?: string;
     };
+    /** Şehir + tür (/etkinlik/{il}/{tür}) veya yalnız tür (/etkinlik/{tür}) SEO */
+    listingSeo?: {
+        kind: string;
+        cityId?: number;
+        citySlug?: string;
+        cityName?: string;
+        eventTypeSlug: string;
+        eventTypeLabel: string;
+    } | null;
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -91,6 +100,7 @@ export default function EventsIndex({
     tickerItems,
     tickerFallback,
     filters,
+    listingSeo = null,
 }: Readonly<Props>) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [category, setCategory] = useState(filters.category ?? '');
@@ -134,7 +144,7 @@ export default function EventsIndex({
         near_lng: nearLngSaved,
     };
 
-    const applyQuery = useCallback(
+    const navigateEventsIndex = useCallback(
         (
             next: Partial<{
                 search: string;
@@ -149,22 +159,43 @@ export default function EventsIndex({
             }> = {}
         ) => {
             const q = { ...filtersRef.current, ...next };
-            router.get(
-                route('events.index'),
-                {
-                    search: q.search || undefined,
-                    category: q.category || undefined,
-                    period: q.period || undefined,
-                    event_type: q.event_type || undefined,
-                    genre: q.genre || undefined,
-                    city_id: q.city_id || undefined,
-                    district_id: q.district_id || undefined,
-                    ...(q.near_lat && q.near_lng ? { near_lat: q.near_lat, near_lng: q.near_lng } : {}),
-                },
-                { preserveState: true, replace: true }
-            );
+            const qs = {
+                search: q.search || undefined,
+                category: q.category || undefined,
+                period: q.period || undefined,
+                event_type: q.event_type || undefined,
+                genre: q.genre || undefined,
+                city_id: q.city_id || undefined,
+                district_id: q.district_id || undefined,
+                ...(q.near_lat && q.near_lng ? { near_lat: q.near_lat, near_lng: q.near_lng } : {}),
+            };
+            const et = typeof qs.event_type === 'string' ? qs.event_type.trim() : '';
+            const citySlug =
+                qs.city_id && provinces.length > 0
+                    ? provinces.find((p) => String(p.id) === String(qs.city_id))?.slug?.trim()
+                    : undefined;
+
+            if (citySlug && et !== '') {
+                router.get(route('events.index.localized', { citySlug, eventTypeSlug: et }), qs, {
+                    preserveState: true,
+                    replace: true,
+                });
+                return;
+            }
+
+            if (et !== '') {
+                const qsClean = { ...qs };
+                delete qsClean.event_type;
+                router.get(route('events.index.by-type', { eventTypeSlug: et }), qsClean, {
+                    preserveState: true,
+                    replace: true,
+                });
+                return;
+            }
+
+            router.get(route('events.index'), qs, { preserveState: true, replace: true });
         },
-        []
+        [provinces]
     );
 
     const provinceCountFromServer = provincesFromServer?.length ?? 0;
@@ -239,16 +270,16 @@ export default function EventsIndex({
         if (searchDebounce.current) clearTimeout(searchDebounce.current);
         searchDebounce.current = setTimeout(() => {
             if (search === (filters.search ?? '')) return;
-            applyQuery({ search });
+            navigateEventsIndex({ search });
         }, 400);
         return () => {
             if (searchDebounce.current) clearTimeout(searchDebounce.current);
         };
-    }, [search, filters.search, applyQuery]);
+    }, [search, filters.search, navigateEventsIndex]);
 
     const handleFilterSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        applyQuery();
+        navigateEventsIndex();
     };
 
     const clearChipAndNavigate = useCallback(
@@ -271,9 +302,9 @@ export default function EventsIndex({
                 if (patch.city_id === '') setDistrictId('');
             }
             if (patch.district_id !== undefined) setDistrictId(patch.district_id);
-            applyQuery(patch);
+            navigateEventsIndex(patch);
         },
-        [applyQuery]
+        [navigateEventsIndex]
     );
 
     const categoryName = useMemo(
@@ -320,21 +351,17 @@ export default function EventsIndex({
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 const q = filtersRef.current;
-                router.get(
-                    route('events.index'),
-                    {
-                        search: q.search || undefined,
-                        category: q.category || undefined,
-                        period: q.period || undefined,
-                        event_type: q.event_type || undefined,
-                        genre: q.genre || undefined,
-                        city_id: q.city_id || undefined,
-                        district_id: q.district_id || undefined,
-                        near_lat: String(lat),
-                        near_lng: String(lng),
-                    },
-                    { preserveState: true, replace: true }
-                );
+                navigateEventsIndex({
+                    search: q.search || undefined,
+                    category: q.category || undefined,
+                    period: q.period || undefined,
+                    event_type: q.event_type || undefined,
+                    genre: q.genre || undefined,
+                    city_id: q.city_id || undefined,
+                    district_id: q.district_id || undefined,
+                    near_lat: String(lat),
+                    near_lng: String(lng),
+                });
             },
             () => {
                 setGeoHint(null);
@@ -342,7 +369,7 @@ export default function EventsIndex({
             },
             { enableHighAccuracy: false, timeout: 15_000, maximumAge: 0 }
         );
-    }, []);
+    }, [navigateEventsIndex]);
 
     const activeChips = useMemo(() => {
         const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -387,7 +414,7 @@ export default function EventsIndex({
             chips.push({
                 key: 'near',
                 label: 'Konum sırası',
-                clear: () => applyQuery({ near_lat: '', near_lng: '' }),
+                clear: () => navigateEventsIndex({ near_lat: '', near_lng: '' }),
             });
         }
         return chips;
@@ -404,7 +431,7 @@ export default function EventsIndex({
         districtName,
         clearChipAndNavigate,
         hasNearSort,
-        applyQuery,
+        navigateEventsIndex,
     ]);
 
     const tickerRow = (dupKey: string) =>
@@ -425,13 +452,30 @@ export default function EventsIndex({
             </Fragment>
         ));
 
+    const hubSeoCityType = listingSeo?.kind === 'city_type' ? listingSeo : null;
+    const hubSeoTypeOnly = listingSeo?.kind === 'type' ? listingSeo : null;
+    const pageTitleSegment = useMemo(() => {
+        if (hubSeoCityType) {
+            return `${hubSeoCityType.cityName} ${hubSeoCityType.eventTypeLabel} etkinlikleri`;
+        }
+        if (hubSeoTypeOnly) {
+            return `${hubSeoTypeOnly.eventTypeLabel} etkinlikleri`;
+        }
+        return 'Etkinlikler & Konserler & Performanslar';
+    }, [hubSeoCityType, hubSeoTypeOnly]);
+    const pageDescription = useMemo(() => {
+        if (hubSeoCityType) {
+            return `${hubSeoCityType.cityName}’de yaklaşan ${hubSeoCityType.eventTypeLabel} etkinliklerini keşfedin; tarih, mekân ve program bilgisi bu sayfada.`;
+        }
+        if (hubSeoTypeOnly) {
+            return `Yaklaşan ${hubSeoTypeOnly.eventTypeLabel} etkinlikleri — şehir ve mekâna göre filtreleyin; program bilgisi bu sayfada.`;
+        }
+        return 'Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri.';
+    }, [hubSeoCityType, hubSeoTypeOnly]);
+
     return (
         <AppLayout>
-            <SeoHead
-                title="Etkinlikler & Konserler & Performanslar - Sahnebul"
-                description="Zaman, tarz, kategori ve konuma göre filtreleyin; yaklaşan konserleri, performansları ve etkinlikleri keşfedin. Sahnebul’da bilet fiyatları ve mekan bilgileri."
-                jsonLd={listingStructuredData ?? undefined}
-            />
+            <SeoHead title={pageTitleSegment} description={pageDescription} jsonLd={listingStructuredData ?? undefined} />
 
             <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
                 <div className="relative overflow-hidden border-b border-zinc-200/80 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 py-2.5 text-zinc-100 dark:border-white/10">
@@ -460,10 +504,18 @@ export default function EventsIndex({
                                 <div className="min-w-0 flex-1">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Etkinlikler</p>
                                     <h1 className="mt-2 scroll-mt-24 text-balance font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
-                                        Konser ve etkinlikleri keşfedin
+                                        {hubSeoCityType
+                                            ? `${hubSeoCityType.cityName} ${hubSeoCityType.eventTypeLabel} etkinlikleri`
+                                            : hubSeoTypeOnly
+                                              ? `${hubSeoTypeOnly.eventTypeLabel} etkinlikleri`
+                                              : 'Konser ve etkinlikleri keşfedin'}
                                     </h1>
                                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
-                                        Tarih, etkinlik türü, müzik tarzı, mekân kategorisi ve şehre göre filtreleyin; yaklaşan gösterileri tek yerde listeleyin.
+                                        {hubSeoCityType
+                                            ? `${hubSeoCityType.cityName}’deki yaklaşan ${hubSeoCityType.eventTypeLabel} programını filtreleyin; diğer şehir ve türler için filtreleri kullanın.`
+                                            : hubSeoTypeOnly
+                                              ? `Yaklaşan ${hubSeoTypeOnly.eventTypeLabel} etkinliklerini şehir ve mekâna göre daraltın; diğer türler için filtreleri kullanın.`
+                                              : 'Tarih, etkinlik türü, müzik tarzı, mekân kategorisi ve şehre göre filtreleyin; yaklaşan gösterileri tek yerde listeleyin.'}
                                     </p>
                                 </div>
                                 <div className="w-full shrink-0 lg:max-w-md">
@@ -491,7 +543,7 @@ export default function EventsIndex({
                                         onChange={(e) => {
                                             const v = e.target.value;
                                             setPeriod(v);
-                                            applyQuery({ period: v });
+                                            navigateEventsIndex({ period: v });
                                         }}
                                         className={FILTER_SELECT_CLASS}
                                     >
@@ -510,7 +562,7 @@ export default function EventsIndex({
                                         onChange={(e) => {
                                             const v = e.target.value;
                                             setEventType(v);
-                                            applyQuery({ event_type: v });
+                                            navigateEventsIndex({ event_type: v });
                                         }}
                                         className={FILTER_SELECT_CLASS}
                                     >
@@ -531,7 +583,7 @@ export default function EventsIndex({
                                         onChange={(e) => {
                                             const v = e.target.value;
                                             setGenre(v);
-                                            applyQuery({ genre: v });
+                                            navigateEventsIndex({ genre: v });
                                         }}
                                         className={FILTER_SELECT_CLASS}
                                     >
@@ -552,7 +604,7 @@ export default function EventsIndex({
                                         onChange={(e) => {
                                             const v = e.target.value;
                                             setCategory(v);
-                                            applyQuery({ category: v });
+                                            navigateEventsIndex({ category: v });
                                         }}
                                         className={FILTER_SELECT_CLASS}
                                     >
@@ -574,7 +626,7 @@ export default function EventsIndex({
                                             const v = e.target.value;
                                             setCityId(v);
                                             setDistrictId('');
-                                            applyQuery({ city_id: v, district_id: '' });
+                                            navigateEventsIndex({ city_id: v, district_id: '' });
                                         }}
                                         disabled={loadingProvinces}
                                         className={FILTER_SELECT_CLASS}
@@ -596,7 +648,7 @@ export default function EventsIndex({
                                         onChange={(e) => {
                                             const v = e.target.value;
                                             setDistrictId(v);
-                                            applyQuery({ district_id: v });
+                                            navigateEventsIndex({ district_id: v });
                                         }}
                                         disabled={loadingDistricts || !cityId}
                                         className={FILTER_SELECT_CLASS}
@@ -631,7 +683,7 @@ export default function EventsIndex({
                                         {hasNearSort ? (
                                             <button
                                                 type="button"
-                                                onClick={() => applyQuery({ near_lat: '', near_lng: '' })}
+                                                onClick={() => navigateEventsIndex({ near_lat: '', near_lng: '' })}
                                                 className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 dark:border-white/10 dark:text-zinc-300"
                                             >
                                                 Konum sırasını kaldır
@@ -721,7 +773,6 @@ export default function EventsIndex({
                                     <Link
                                         key={link.url}
                                         href={link.url}
-                                        preserveScroll
                                         className={`min-w-[2.5rem] rounded-xl px-3 py-2 text-center text-sm font-semibold transition ${
                                             link.active
                                                 ? 'bg-amber-500 text-zinc-950 shadow-sm'

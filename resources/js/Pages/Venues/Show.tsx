@@ -411,9 +411,10 @@ export default function VenueShow({
         })
         .filter((x): x is { id: number; src: string } => x !== null);
     const heroBackdrop = cover ?? galleryPhotos[0]?.src ?? null;
+    const venueCityLabel = venue.city?.name ?? '';
     const venueDesc = metaDescriptionFromContent(
         venue.description,
-        `${venue.name} — ${venue.city.name}. ${venue.category?.name ?? 'Etkinlik mekanı'}. Yorumlar, takvim ve rezervasyon Sahnebul’da.`,
+        `${venue.name}${venueCityLabel ? ` — ${venueCityLabel}` : ''}. ${venue.category?.name ?? 'Etkinlik mekânı'}. Bu mekânda sahnelenen konser ve etkinlikler, yaklaşan gösteriler ve sahne programı; yorumlar ve rezervasyon Sahnebul’da.`,
     );
 
     const appUrl = (seo?.appUrl ?? '').replace(/\/$/, '');
@@ -434,7 +435,7 @@ export default function VenueShow({
 
     const seoTitle =
         venuePageSeo?.headTitleSegment?.trim() ||
-        `${venue.name} — ${venue.city?.name ? `${venue.city.name} ` : ''}konser ve etkinlik mekanı`;
+        `${venue.name}${venueCityLabel ? ` — ${venueCityLabel}` : ''} — konser ve etkinlik mekânı, sahne programı`;
     const seoDescription = venuePageSeo?.metaDescription?.trim() || venueDesc;
 
     return (

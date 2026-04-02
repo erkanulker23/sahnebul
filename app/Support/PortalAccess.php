@@ -8,13 +8,15 @@ use Illuminate\Validation\ValidationException;
 final class PortalAccess
 {
     /**
-     * @param  'kullanici'|'sanatci'|'mekan'|'organizasyon'|'yonetim'  $portal
+     * @param  'kullanici'|'sanatci'|'mekan'|'management'|'organizasyon'|'yonetim'  $portal
      */
     public static function ensure(User $user, string $portal): void
     {
+        $portal = $portal === 'organizasyon' ? 'management' : $portal;
+
         $ok = match ($portal) {
             'yonetim' => $user->isAdmin(),
-            'organizasyon' => $user->isManagerOrganization(),
+            'management' => $user->isManagementAccount(),
             'sanatci' => $user->isArtist(),
             'mekan' => self::canAccessVenuePortal($user),
             'kullanici' => $user->isCustomer(),
@@ -56,11 +58,11 @@ final class PortalAccess
     private static function messageFor(string $portal): string
     {
         return match ($portal) {
-            'yonetim' => 'Bu giriş yalnızca site yönetimi (süper yönetici / admin) hesapları içindir. Organizasyon firması hesabınız varsa «Organizasyon girişi» sayfasını kullanın.',
-            'organizasyon' => 'Bu giriş yalnızca organizasyon firması hesapları içindir. Site yönetimi veya sanatçı / mekân paneli için ilgili giriş sayfasını kullanın.',
+            'yonetim' => 'Bu giriş yalnızca site yönetimi (süper yönetici / admin) hesapları içindir. Management hesabınız varsa «Management girişi» sayfasını kullanın.',
+            'management' => 'Bu giriş yalnızca Management hesapları içindir. Site yönetimi veya sanatçı / mekân paneli için ilgili giriş sayfasını kullanın.',
             'sanatci' => 'Bu giriş yalnızca sanatçı hesapları içindir.',
             'mekan' => 'Bu giriş mekân sahibi hesapları veya hesabınıza kayıtlı mekân / mekân üyeliği olan kullanıcı hesapları içindir. Sanatçı hesabınız varsa «Sanatçı paneli» girişini kullanın.',
-            'kullanici' => 'Bu giriş yalnızca standart kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya organizasyon firması hesabınız varsa ilgili giriş sayfasını kullanın.',
+            'kullanici' => 'Bu giriş yalnızca standart kullanıcı hesapları içindir. Sanatçı, mekân sahibi veya Management hesabınız varsa ilgili giriş sayfasını kullanın.',
             default => 'Bu hesap bu giriş kapısı için uygun değil.',
         };
     }

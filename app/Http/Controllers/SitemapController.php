@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Artist;
 use App\Models\BlogPost;
+use App\Models\City;
 use App\Models\Event;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\EventListingTypes;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Response;
@@ -53,11 +55,35 @@ class SitemapController extends Controller
         $push('/', $catalogHubLm, 'hourly', '1.0');
         $push('/kesfet/bu-aksam', $eventsLm, 'hourly', '0.85');
         $push('/etkinlikler', $eventsLm, 'hourly', '0.95');
+
+        foreach (EventListingTypes::slugs() as $typeSlug) {
+            $push('/etkinlik/'.$typeSlug, $eventsLm, 'weekly', '0.78');
+        }
+
+        $citySlugsForHub = City::query()
+            ->turkiyeProvinces()
+            ->whereHas('venues', function ($vq) {
+                $vq->listedPublicly()
+                    ->whereHas('events', function ($eq) {
+                        $eq->published()->whereStillVisibleOnPublicListing();
+                    });
+            })
+            ->orderBy('name')
+            ->pluck('slug');
+        foreach ($citySlugsForHub as $cSlug) {
+            $cs = strtolower(trim((string) $cSlug));
+            if ($cs === '') {
+                continue;
+            }
+            foreach (EventListingTypes::slugs() as $typeSlug) {
+                $push('/etkinlik/'.$cs.'/'.$typeSlug, $eventsLm, 'weekly', '0.72');
+            }
+        }
         $push('/sanatcilar', $artistsLm, 'hourly', '0.95');
         $push('/mekanlar', $venuesLm, 'hourly', '0.95');
-        $orgsMaxAt = User::query()->publicOrganizationDirectory()->max('updated_at');
+        $orgsMaxAt = User::query()->publicManagementDirectory()->max('updated_at');
         $orgsLm = $toCarbon($orgsMaxAt);
-        $push('/organizasyonlar', $orgsLm, 'weekly', '0.85');
+        $push('/management', $orgsLm, 'weekly', '0.85');
         $push('/blog', $blogLm, 'hourly', '0.7');
         $push('/iletisim', null, 'monthly', '0.4');
         $push('/sehir-sec', $eventsLm, 'hourly', '0.6');
@@ -104,7 +130,7 @@ class SitemapController extends Controller
             });
 
         User::query()
-            ->publicOrganizationDirectory()
+            ->publicManagementDirectory()
             ->select(['id', 'organization_public_slug', 'updated_at'])
             ->orderBy('id')
             ->chunkById(500, function ($users) use (&$push): void {
@@ -114,7 +140,7 @@ class SitemapController extends Controller
                     if ($slug === '') {
                         continue;
                     }
-                    $push('/organizasyonlar/'.$slug, $u->updated_at, 'weekly', '0.78');
+                    $push('/management/'.$slug, $u->updated_at, 'weekly', '0.78');
                 }
             });
 

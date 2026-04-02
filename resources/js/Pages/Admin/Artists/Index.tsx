@@ -7,7 +7,7 @@ import {
     type AdminPaginatorPayload,
 } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { stageOrganizationArtistLabel, venueArtistStatusTr, type StageUserRef } from '@/lib/statusLabels';
+import { stageManagementArtistLabel, venueArtistStatusTr, type StageUserRef } from '@/lib/statusLabels';
 import SeoHead from '@/Components/SeoHead';
 import { Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -87,10 +87,10 @@ export default function AdminArtistsIndex({ artists, filters }: Readonly<Props>)
             },
             {
                 key: 'org',
-                header: 'Organizasyon',
+                header: 'Management',
                 mobileLabel: 'Org.',
                 cell: (a) => {
-                    const label = stageOrganizationArtistLabel(a.managed_by ?? null);
+                    const label = stageManagementArtistLabel(a.managed_by ?? null);
                     return label ? (
                         <span className="text-sm text-violet-700 dark:text-violet-300">{label}</span>
                     ) : (

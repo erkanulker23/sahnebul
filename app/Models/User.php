@@ -44,8 +44,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         ];
     }
 
-    /** Kamu dizininde listelenen organizasyon firması hesapları. */
-    public function scopePublicOrganizationDirectory(Builder $query): Builder
+    /** Kamu dizininde listelenen Management (organizasyon) firması rolleri — DB’de `manager_organization`. */
+    public function scopePublicManagementDirectory(Builder $query): Builder
     {
         return $query
             ->where('role', 'manager_organization')
@@ -55,12 +55,12 @@ class User extends Authenticatable implements MustVerifyEmailContract
             ->where('organization_public_slug', '!=', '');
     }
 
-    public function publicOrganizationDisplayName(): string
+    public function publicManagementDisplayName(): string
     {
         $d = trim((string) ($this->organization_display_name ?? ''));
         $n = trim((string) ($this->name ?? ''));
 
-        return $d !== '' ? $d : ($n !== '' ? $n : 'Organizasyon');
+        return $d !== '' ? $d : ($n !== '' ? $n : 'Management');
     }
 
     public function reservations(): HasMany
@@ -89,7 +89,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return $this->hasMany(Venue::class);
     }
 
-    /** Organizasyon firması hesabının yönettiği sanatçı kayıtları (`artists.managed_by_user_id`). */
+    /** Management hesabının yönettiği sanatçı kayıtları (`artists.managed_by_user_id`). */
     public function managedArtists(): HasMany
     {
         return $this->hasMany(Artist::class, 'managed_by_user_id');
@@ -199,7 +199,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return $this->role === 'venue_owner';
     }
 
-    public function isManagerOrganization(): bool
+    public function isManagementAccount(): bool
     {
         return $this->role === 'manager_organization';
     }
@@ -210,7 +210,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function hasStageSelfPublishTrust(): bool
     {
         return (bool) $this->stage_trusted_publisher
-            && ($this->isManagerOrganization() || $this->isVenueOwner());
+            && ($this->isManagementAccount() || $this->isVenueOwner());
     }
 
     /** Sahne panelinden oluşturulan etkinlikler (created_by_user_id). */
@@ -220,7 +220,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
-     * /sahne paneli ve mekan/etkinlik yönetimi (sanatçı, mekân sahibi, organizasyon yöneticisi veya bağlı içerik).
+     * /sahne paneli ve mekan/etkinlik yönetimi (sanatçı, mekân sahibi, Management hesabı veya bağlı içerik).
      */
     public function canAccessStagePanel(): bool
     {
@@ -229,7 +229,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             return false;
         }
 
-        if ($this->isArtist() || $this->isVenueOwner() || $this->isManagerOrganization()) {
+        if ($this->isArtist() || $this->isVenueOwner() || $this->isManagementAccount()) {
             return true;
         }
 

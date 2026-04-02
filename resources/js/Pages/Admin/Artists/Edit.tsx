@@ -480,9 +480,9 @@ export default function AdminArtistEdit({
                             ) : null}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Organizasyon firması</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-400">Management firması</label>
                             <p className="mt-0.5 text-xs text-zinc-500">
-                                Yalnızca «Organizasyon firması» rolündeki kullanıcı hesapları. Sitede sanatçı profilinde organizasyon notu gösterilir.
+                                Yalnızca «Management firması» rolündeki kullanıcı hesapları. Sitede sanatçı profilinde Management notu gösterilir.
                             </p>
                             <select
                                 value={data.managed_by_user_id}

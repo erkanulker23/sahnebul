@@ -6,21 +6,21 @@ use App\Models\Artist;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\DailyUniqueEntityView;
-use App\Support\OrganizationPageSeo;
+use App\Support\ManagementPageSeo;
 use App\Support\PublicStructuredData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class OrganizationDirectoryController extends Controller
+class ManagementDirectoryController extends Controller
 {
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
 
-        $organizations = User::query()
-            ->publicOrganizationDirectory()
+        $managementAccounts = User::query()
+            ->publicManagementDirectory()
             ->withCount(['managedArtists as roster_count' => fn ($q) => $q->where('status', 'approved')])
             ->when($search !== '', function ($q) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
@@ -35,10 +35,10 @@ class OrganizationDirectoryController extends Controller
 
         $appUrl = rtrim((string) config('app.url'), '/');
 
-        return Inertia::render('Organizations/Index', [
-            'organizations' => $organizations,
+        return Inertia::render('Management/Index', [
+            'managementAccounts' => $managementAccounts,
             'filters' => ['search' => $search],
-            'listingStructuredData' => PublicStructuredData::organizationsIndexItemList($organizations, $appUrl),
+            'listingStructuredData' => PublicStructuredData::managementDirectoryIndexItemList($managementAccounts, $appUrl),
         ]);
     }
 
@@ -101,7 +101,7 @@ class OrganizationDirectoryController extends Controller
             ->get(['id', 'name', 'slug', 'avatar', 'genre']);
 
         $appUrl = rtrim((string) config('app.url'), '/');
-        $pageSeo = OrganizationPageSeo::forPublicOrganization($org, $roster, $upcomingEvents, $appUrl);
+        $pageSeo = ManagementPageSeo::forPublicManagementAccount($org, $roster, $upcomingEvents, $appUrl);
 
         $mapEvent = function (Event $e): array {
             return [
@@ -134,9 +134,9 @@ class OrganizationDirectoryController extends Controller
             ];
         };
 
-        return Inertia::render('Organizations/Show', [
-            'organization' => [
-                'display_name' => $org->publicOrganizationDisplayName(),
+        return Inertia::render('Management/Show', [
+            'managementProfile' => [
+                'display_name' => $org->publicManagementDisplayName(),
                 'slug' => $org->organization_public_slug,
                 'about' => $org->organization_about,
                 'cover_image' => $org->organization_cover_image,
@@ -145,7 +145,7 @@ class OrganizationDirectoryController extends Controller
                 'avatar' => $org->avatar,
                 'view_count' => (int) ($org->organization_profile_view_count ?? 0),
             ],
-            'organizationPageSeo' => $pageSeo,
+            'managementPageSeo' => $pageSeo,
             'roster' => $roster,
             'upcomingEvents' => $upcomingEvents->map($mapEvent)->values()->all(),
             'pastEvents' => $pastEvents->map($mapEvent)->values()->all(),

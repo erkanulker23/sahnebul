@@ -64,7 +64,7 @@ class SubscriptionPlanSeeder extends Seeder
         SubscriptionPlan::updateOrCreate(
             ['slug' => 'org-monthly'],
             [
-                'name' => 'Organizasyon firması — Aylık',
+                'name' => 'Management firması — Aylık',
                 'membership_type' => 'manager',
                 'interval' => 'monthly',
                 'trial_days' => 0,
@@ -77,7 +77,7 @@ class SubscriptionPlanSeeder extends Seeder
         SubscriptionPlan::updateOrCreate(
             ['slug' => 'org-yearly'],
             [
-                'name' => 'Organizasyon firması — Yıllık',
+                'name' => 'Management firması — Yıllık',
                 'membership_type' => 'manager',
                 'interval' => 'yearly',
                 'trial_days' => 0,

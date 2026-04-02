@@ -54,6 +54,8 @@ class BroadcastNotificationController extends Controller
 
         return redirect()
             ->route('admin.notifications.broadcast')
-            ->with('success', "Bildirim kuyruğa alındı. Hedef: {$count} kullanıcı.");
+            ->with('success', $count === 0
+                ? 'Hedef kitlede kullanıcı yok; bildirim gönderilmedi.'
+                : "Bildirim {$count} kullanıcıya iletildi. Tarayıcı uyarısı yalnızca bildirim izni verenlerde görünür; tümü «Bildirimler» sayfasında.");
     }
 }

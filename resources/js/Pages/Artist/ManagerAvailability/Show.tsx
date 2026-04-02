@@ -52,7 +52,7 @@ export default function ManagerAvailabilityShow({ artist, days, myRequests }: Pr
     const submitRequest = (e: FormEvent) => {
         e.preventDefault();
         if (!requestForm.data.artist_availability_day_id) return;
-        requestForm.post(route('artist.manager-availability.requests.store', artist.slug), {
+        requestForm.post(route('artist.management.availability.requests.store', artist.slug), {
             preserveScroll: true,
             onSuccess: () => requestForm.reset('message'),
         });
@@ -63,7 +63,7 @@ export default function ManagerAvailabilityShow({ artist, days, myRequests }: Pr
             <SeoHead title={`${artist.name} — müsaitlik - Sahnebul`} description="Müsait günlere talep gönderin." noindex />
 
             <Link
-                href={route('artist.manager-availability.index')}
+                href={route('artist.management.availability.index')}
                 className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-amber-600 dark:text-zinc-400"
             >
                 <ArrowLeft className="h-4 w-4" aria-hidden />

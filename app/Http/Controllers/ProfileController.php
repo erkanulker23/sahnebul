@@ -23,7 +23,7 @@ class ProfileController extends Controller
         if ($user->isAdmin()) {
             return redirect()->route('admin.profile');
         }
-        if ($user->isArtist() || $user->isManagerOrganization() || $user->isVenueOwner()) {
+        if ($user->isArtist() || $user->isManagementAccount() || $user->isVenueOwner()) {
             return redirect()->route('artist.profile');
         }
 
@@ -47,7 +47,7 @@ class ProfileController extends Controller
             $user->avatar = $request->file('avatar')->store('avatars', 'public');
         }
 
-        if ($request->hasFile('organization_cover') && $user->isManagerOrganization()) {
+        if ($request->hasFile('organization_cover') && $user->isManagementAccount()) {
             if (is_string($user->organization_cover_image) && $user->organization_cover_image !== '') {
                 Storage::disk('public')->delete($user->organization_cover_image);
             }
@@ -61,7 +61,7 @@ class ProfileController extends Controller
         }
         $user->fill($attributes);
 
-        if ($user->isManagerOrganization()) {
+        if ($user->isManagementAccount()) {
             $social = ArtistProfileInputs::normalizeSocialLinks($request->input('organization_social_links'));
             $user->organization_social_links = $social;
             $slug = trim((string) $user->organization_public_slug);
@@ -76,7 +76,7 @@ class ProfileController extends Controller
 
         $redirect = match (true) {
             $user->isAdmin() => 'admin.profile',
-            $user->isArtist(), $user->isManagerOrganization(), $user->isVenueOwner() => 'artist.profile',
+            $user->isArtist(), $user->isManagementAccount(), $user->isVenueOwner() => 'artist.profile',
             default => 'profile.edit',
         };
 

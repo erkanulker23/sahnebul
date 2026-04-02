@@ -20,7 +20,7 @@ class PortalAuthenticatedSessionController extends Controller
             'login' => 'kullanici',
             'login.sanatci' => 'sanatci',
             'login.mekan' => 'mekan',
-            'login.organizasyon' => 'organizasyon',
+            'login.management' => 'management',
             'login.admin' => 'yonetim',
             default => abort(404),
         };
@@ -59,19 +59,22 @@ class PortalAuthenticatedSessionController extends Controller
 
     public function store(LoginRequest $request, string $portal): RedirectResponse
     {
-        $allowed = ['kullanici', 'sanatci', 'mekan', 'organizasyon', 'yonetim'];
+        $allowed = ['kullanici', 'sanatci', 'mekan', 'management', 'organizasyon', 'yonetim'];
         abort_unless(in_array($portal, $allowed, true), 404);
 
-        $request->authenticateForPortal($portal);
+        $normalizedPortal = $portal === 'organizasyon' ? 'management' : $portal;
+
+        $request->authenticateForPortal($normalizedPortal);
 
         $request->session()->regenerate();
 
-        $default = match ($portal) {
+        $default = match ($normalizedPortal) {
             'kullanici' => route('dashboard', absolute: false),
             'sanatci' => route('artist.dashboard', absolute: false),
             'mekan' => route('artist.venues.index', absolute: false),
-            'organizasyon' => route('artist.dashboard', absolute: false),
+            'management' => route('artist.dashboard', absolute: false),
             'yonetim' => route('admin.dashboard', absolute: false),
+            default => route('dashboard', absolute: false),
         };
 
         return redirect()->intended($default);

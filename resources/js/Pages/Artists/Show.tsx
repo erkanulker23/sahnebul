@@ -293,7 +293,7 @@ interface Props {
     };
     claimStatus?: string | null;
     artistFavorite?: { canToggle: boolean; isFavorited: boolean };
-    organizationAffiliation?: { label: string } | null;
+    managementAffiliation?: { label: string } | null;
     artistEventPromoSections?: ArtistEventPromoSection[];
 }
 
@@ -373,7 +373,7 @@ export default function ArtistShow({
     stats,
     claimStatus,
     artistFavorite = { canToggle: false, isFavorited: false },
-    organizationAffiliation = null,
+    managementAffiliation = null,
     artistEventPromoSections = [],
 }: Readonly<Props>) {
     const page = usePage().props as {
@@ -589,10 +589,10 @@ export default function ArtistShow({
     const bannerPhoto = imageSrc(artist.banner_image ?? null);
     const avatarUrl = profilePhoto;
     const shareUrlForSocial = resolvedShareUrl;
-    const seoKeywordLead = `${artist.name} konserleri, performansları ve etkinlikleri`;
+    const seoKeywordLead = `${artist.name} konserleri, etkinlikleri ve sahnedeki performansları`;
     const bioPlain = metaDescriptionFromContent(artist.bio, '');
     const seoGenreSuffix = artist.genre ? ` Tür: ${artist.genre}.` : '';
-    const seoDescFallback = `${seoKeywordLead}. Yaklaşan ve geçmiş konserler, canlı performanslar ve etkinlik takvimi Sahnebul’da.${seoGenreSuffix}`;
+    const seoDescFallback = `${seoKeywordLead}. Yaklaşan ve geçmiş tarihler, hangi mekânlarda sahne aldığı ve bilet bilgisi Sahnebul’da.${seoGenreSuffix}`;
     const upcomingMetaExtra = buildArtistUpcomingMetaSnippet(upcomingEvents);
     const artistDesc = truncateMetaDescription(
         (bioPlain ? `${seoKeywordLead}. ${bioPlain}` : seoDescFallback) + upcomingMetaExtra,
@@ -601,7 +601,7 @@ export default function ArtistShow({
     return (
         <AppLayout>
             <SeoHead
-                title={`${artist.name} Konserleri, Performansları ve Etkinlikleri`}
+                title={`${artist.name} — Konserler, etkinlikler ve sahne programı`}
                 description={artistDesc}
                 image={avatarUrl}
                 canonicalUrl={canonicalUrl}
@@ -940,10 +940,10 @@ export default function ArtistShow({
                                     />
                                 ) : null}
                                 <div className="flex min-w-0 flex-1 flex-col gap-3">
-                            {organizationAffiliation ? (
+                            {managementAffiliation ? (
                                 <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-                                    <span className="font-semibold text-amber-700 dark:text-amber-400">{organizationAffiliation.label}</span>{' '}
-                                    organizasyonu bünyesinde listelenmektedir.
+                                    <span className="font-semibold text-amber-700 dark:text-amber-400">{managementAffiliation.label}</span>{' '}
+                                    Management bünyesinde listelenmektedir.
                                 </p>
                             ) : null}
                             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">

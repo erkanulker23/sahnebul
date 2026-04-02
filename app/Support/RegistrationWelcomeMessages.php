@@ -15,5 +15,5 @@ final class RegistrationWelcomeMessages
 
     public const STAGE_VENUE = 'Hoş geldiniz! Mekân sahibi hesabınız oluşturuldu. E-postanızdaki doğrulama bağlantısından sonra mekân bilgilerinizi girebilirsiniz.';
 
-    public const STAGE_ORGANIZATION = 'Hoş geldiniz! Organizasyon hesabınız oluşturuldu. E-postanızdaki doğrulama bağlantısı ile adresinizi onaylayın.';
+    public const STAGE_MANAGEMENT = 'Hoş geldiniz! Management hesabınız oluşturuldu. E-postanızdaki doğrulama bağlantısı ile adresinizi onaylayın.';
 }

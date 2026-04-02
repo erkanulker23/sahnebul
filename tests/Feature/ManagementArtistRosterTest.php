@@ -9,27 +9,27 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
-class OrganizationArtistManagementTest extends TestCase
+class ManagementArtistRosterTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_non_manager_cannot_open_organization_artists_page(): void
+    public function test_non_manager_cannot_open_management_artists_page(): void
     {
         $user = User::factory()->create(['role' => 'customer']);
 
-        $this->actingAs($user)->get('/sahne/organizasyon/sanatcilar')->assertForbidden();
+        $this->actingAs($user)->get('/sahne/management/sanatcilar')->assertForbidden();
     }
 
-    public function test_manager_can_create_pending_artist_under_organization(): void
+    public function test_manager_can_create_pending_artist_under_management(): void
     {
         $org = User::factory()->create(['role' => 'manager_organization']);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar', [
+            ->post('/sahne/management/sanatcilar', [
                 'name' => 'Yeni Orkestra',
                 'bio' => 'Kısa tanıtım metni.',
             ])
-            ->assertRedirect('/sahne/organizasyon/sanatcilar');
+            ->assertRedirect('/sahne/management/sanatcilar');
 
         $this->assertDatabaseHas('artists', [
             'name' => 'Yeni Orkestra',
@@ -46,11 +46,11 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar', [
+            ->post('/sahne/management/sanatcilar', [
                 'name' => 'Güven Orkestra',
                 'bio' => null,
             ])
-            ->assertRedirect('/sahne/organizasyon/sanatcilar');
+            ->assertRedirect('/sahne/management/sanatcilar');
 
         $this->assertDatabaseHas('artists', [
             'name' => 'Güven Orkestra',
@@ -70,7 +70,7 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/kat')
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/kat')
             ->assertRedirect();
 
         $this->assertSame($org->id, $artist->fresh()->managed_by_user_id);
@@ -99,16 +99,16 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/kat')
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/kat')
             ->assertRedirect();
 
         Mail::assertSent(SahnebulTemplateMail::class, function (SahnebulTemplateMail $mail): bool {
-            return str_contains($mail->emailSubject, 'Organizasyon kadrosuna sanatçı eklendi')
+            return str_contains($mail->emailSubject, 'Management kadrosuna sanatçı eklendi')
                 && str_contains($mail->emailSubject, 'Mail Sanatçı');
         });
     }
 
-    public function test_manager_cannot_attach_artist_managed_by_other_org(): void
+    public function test_manager_cannot_attach_artist_managed_by_other_management(): void
     {
         $orgA = User::factory()->create(['role' => 'manager_organization']);
         $orgB = User::factory()->create(['role' => 'manager_organization']);
@@ -120,7 +120,7 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($orgB)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/kat')
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/kat')
             ->assertSessionHas('error');
 
         $this->assertSame($orgA->id, $artist->fresh()->managed_by_user_id);
@@ -137,7 +137,7 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/birak')
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/birak')
             ->assertRedirect();
 
         $this->assertNull($artist->fresh()->managed_by_user_id);
@@ -154,8 +154,8 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
-                'bio' => 'Organizasyon tarafından önerilen güncel biyografi metni.',
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
+                'bio' => 'Management tarafından önerilen güncel biyografi metni.',
                 'message' => '',
             ])
             ->assertRedirect();
@@ -179,7 +179,7 @@ class OrganizationArtistManagementTest extends TestCase
         ]);
 
         $this->actingAs($org)
-            ->post('/sahne/organizasyon/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
+            ->post('/sahne/management/sanatcilar/'.$artist->slug.'/duzenme-oneri', [
                 'bio' => 'Yetkisiz deneme metni burada yeterince uzun olsun.',
             ])
             ->assertForbidden();

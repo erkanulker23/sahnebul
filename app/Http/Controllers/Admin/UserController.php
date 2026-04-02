@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Support\AdminAssignableUserRoles;
 use App\Support\ArtistProfileInputs;
-use App\Support\OrganizationPublicProfile;
+use App\Support\ManagementPublicProfile;
 use App\Support\UserContactValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -82,7 +82,7 @@ class UserController extends Controller
      */
     private static function stageActivityPayload(User $user): ?array
     {
-        if ($user->isManagerOrganization()) {
+        if ($user->isManagementAccount()) {
             $managed = Artist::query()
                 ->where('managed_by_user_id', $user->id)
                 ->latest()
@@ -215,7 +215,7 @@ class UserController extends Controller
 
         if ($request->input('role') === 'manager_organization') {
             $rules['organization_display_name'] = ['nullable', 'string', 'max:255'];
-            $rules['organization_public_slug'] = OrganizationPublicProfile::slugValidationRules($user->id);
+            $rules['organization_public_slug'] = ManagementPublicProfile::slugValidationRules($user->id);
             $rules['organization_about'] = ['nullable', 'string', 'max:200000'];
             $rules['organization_cover_image'] = ['nullable', 'string', 'max:2048'];
             $rules['organization_website'] = ['nullable', 'string', 'max:2048'];

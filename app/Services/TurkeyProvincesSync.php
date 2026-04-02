@@ -98,9 +98,9 @@ class TurkeyProvincesSync
     }
 
     /**
-     * Arayüz select'leri için id + name (senkron sonrası).
+     * Arayüz select'leri için id + name + slug (senkron sonrası).
      *
-     * @return array<int, array{id: int, name: string}>
+     * @return array<int, array{id: int, name: string, slug: string}>
      */
     public function forSelect(): array
     {
@@ -108,8 +108,12 @@ class TurkeyProvincesSync
 
         return City::query()
             ->turkiyeProvinces()
-            ->get(['id', 'name'])
-            ->map(fn (City $c) => ['id' => $c->id, 'name' => $c->name])
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (City $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'slug' => strtolower(trim((string) $c->slug)),
+            ])
             ->values()
             ->all();
     }

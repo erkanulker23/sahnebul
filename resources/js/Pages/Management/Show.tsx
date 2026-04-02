@@ -11,13 +11,13 @@ import { Link, usePage } from '@inertiajs/react';
 import { Briefcase, Calendar, Eye, Globe, Mic2, Users } from 'lucide-react';
 import { useMemo } from 'react';
 
-interface OrganizationPageSeo {
+interface ManagementPageSeo {
     headTitleSegment: string;
     metaDescription: string;
     structuredData: Record<string, unknown>;
 }
 
-interface OrganizationPayload {
+interface ManagementProfilePayload {
     display_name: string;
     slug: string;
     about: string | null;
@@ -37,8 +37,8 @@ interface RosterArtist {
 }
 
 interface Props {
-    organization: OrganizationPayload;
-    organizationPageSeo: OrganizationPageSeo;
+    managementProfile: ManagementProfilePayload;
+    managementPageSeo: ManagementPageSeo;
     roster: RosterArtist[];
     upcomingEvents: DetailEventListItem[];
     pastEvents: DetailEventListItem[];
@@ -72,9 +72,9 @@ function resolveSocialHref(key: string, value: string): string {
     return `https://${v.replace(/^\/+/, '')}`;
 }
 
-export default function OrganizationShow({
-    organization,
-    organizationPageSeo,
+export default function ManagementShow({
+    managementProfile,
+    managementPageSeo,
     roster,
     upcomingEvents,
     pastEvents,
@@ -85,15 +85,15 @@ export default function OrganizationShow({
     const appUrl = (seo?.appUrl ?? '').replace(/\/$/, '') || (typeof window !== 'undefined' ? window.location.origin : '');
 
     const coverAbs = useMemo(() => {
-        const c = storageUrl(organization.cover_image);
+        const c = storageUrl(managementProfile.cover_image);
         return c ? toAbsoluteUrl(c, appUrl) : null;
-    }, [organization.cover_image, appUrl]);
+    }, [managementProfile.cover_image, appUrl]);
 
-    const canonicalUrl = `${appUrl}/organizasyonlar/${organization.slug}`;
+    const canonicalUrl = `${appUrl}/management/${managementProfile.slug}`;
 
     const imageSrc = (path: string | null | undefined) => storageUrl(path);
 
-    const socialEntries = useMemo(() => sortVenueSocialEntries(organization.social_links ?? {}), [organization.social_links]);
+    const socialEntries = useMemo(() => sortVenueSocialEntries(managementProfile.social_links ?? {}), [managementProfile.social_links]);
 
     const upcomingGrouped = useMemo(
         () => groupDetailEventsByMonthForDisplay(upcomingEvents, 'asc'),
@@ -101,16 +101,16 @@ export default function OrganizationShow({
     );
     const pastGrouped = useMemo(() => groupDetailEventsByMonthForDisplay(pastEvents, 'desc'), [pastEvents]);
 
-    const heroSrc = storageUrl(organization.cover_image) ?? storageUrl(organization.avatar);
+    const heroSrc = storageUrl(managementProfile.cover_image) ?? storageUrl(managementProfile.avatar);
 
     return (
         <AppLayout>
             <SeoHead
-                title={organizationPageSeo.headTitleSegment}
-                description={organizationPageSeo.metaDescription}
+                title={managementPageSeo.headTitleSegment}
+                description={managementPageSeo.metaDescription}
                 image={coverAbs}
                 canonicalUrl={canonicalUrl}
-                jsonLd={organizationPageSeo.structuredData}
+                jsonLd={managementPageSeo.structuredData}
             />
 
             <div className="relative">
@@ -125,7 +125,7 @@ export default function OrganizationShow({
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 mx-auto max-w-5xl px-4 pb-8 pt-16">
                         <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                            {organization.display_name}
+                            {managementProfile.display_name}
                         </h1>
                         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-zinc-200">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1">
@@ -138,7 +138,7 @@ export default function OrganizationShow({
                             </span>
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1">
                                 <Eye className="h-4 w-4" aria-hidden />
-                                {organization.view_count.toLocaleString('tr-TR')} görüntülenme
+                                {managementProfile.view_count.toLocaleString('tr-TR')} görüntülenme
                             </span>
                         </div>
                     </div>
@@ -146,12 +146,12 @@ export default function OrganizationShow({
             </div>
 
             <div className="mx-auto max-w-5xl px-4 py-10">
-                <EditorialShareStrip shareUrl={canonicalUrl} shareTitle={organization.display_name} />
+                <EditorialShareStrip shareUrl={canonicalUrl} shareTitle={managementProfile.display_name} />
 
                 <div className="mt-8 flex flex-wrap gap-3">
-                    {organization.website?.trim() ? (
+                    {managementProfile.website?.trim() ? (
                         <a
-                            href={resolveWebsiteHref(organization.website)}
+                            href={resolveWebsiteHref(managementProfile.website)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm hover:border-amber-400/50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
@@ -174,11 +174,11 @@ export default function OrganizationShow({
                     ))}
                 </div>
 
-                {organization.about?.trim() ? (
+                {managementProfile.about?.trim() ? (
                     <section className="mt-10 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
                         <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-white">Hakkında</h2>
                         <div className="mt-4 text-zinc-700 dark:text-zinc-300">
-                            <RichOrPlainContent content={organization.about} />
+                            <RichOrPlainContent content={managementProfile.about} />
                         </div>
                     </section>
                 ) : null}
@@ -245,8 +245,8 @@ export default function OrganizationShow({
                 ) : null}
 
                 <p className="mt-12 text-center text-sm text-zinc-500">
-                    <Link href={safeRoute('organizations.index')} className="text-amber-700 hover:underline dark:text-amber-400">
-                        ← Tüm organizasyonlar
+                    <Link href={safeRoute('management.index')} className="text-amber-700 hover:underline dark:text-amber-400">
+                        ← Tüm Management firmaları
                     </Link>
                 </p>
             </div>

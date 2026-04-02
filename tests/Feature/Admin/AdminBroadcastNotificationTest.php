@@ -76,4 +76,22 @@ class AdminBroadcastNotificationTest extends TestCase
             'audience' => 'all_members',
         ])->assertSessionHasErrors('action_url');
     }
+
+    public function test_broadcast_persists_database_notification_without_queue_worker(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($admin)->post(route('admin.notifications.broadcast.store'), [
+            'title' => 'Duyuru',
+            'message' => 'İçerik',
+            'audience' => 'all_members',
+        ])->assertRedirect(route('admin.notifications.broadcast'));
+
+        $this->assertDatabaseCount('notifications', 1);
+        $n = $customer->notifications()->first();
+        $this->assertNotNull($n);
+        $this->assertSame('admin_broadcast', $n->data['kind'] ?? null);
+        $this->assertSame('İçerik', $n->data['message'] ?? null);
+    }
 }

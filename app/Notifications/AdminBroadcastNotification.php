@@ -3,18 +3,18 @@
 namespace App\Notifications;
 
 use App\Http\Controllers\User\BrowserNotificationController;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
  * Yönetim panelinden tüm üyelere veya yalnızca tarayıcı bildirimi açık kullanıcılara gönderilen duyuru.
  * Ön yüz: veritabanı bildirimi + açık sekmede {@see BrowserNotificationController} özeti.
+ *
+ * Not: ShouldQueue kullanılmaz; böylece queue worker kurulmamış ortamlarda da bildirimler anında
+ * `notifications` tablosuna yazılır. Çok büyük üye listelerinde gönderim süresi uzayabilir — o durumda
+ * ayrı bir job ile toplu gönderim tercih edilmelidir.
  */
-class AdminBroadcastNotification extends Notification implements ShouldQueue
+class AdminBroadcastNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public string $message,
         public ?string $title = null,
