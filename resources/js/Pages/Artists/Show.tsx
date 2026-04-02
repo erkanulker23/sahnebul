@@ -15,7 +15,8 @@ import DetailEventList, { groupDetailEventsByMonthForDisplay } from '@/Component
 import { SocialPlatformIcon } from '@/Components/SocialPlatformIcon';
 import { eventShowParam } from '@/lib/eventShowUrl';
 import { sanitizeEmailInput } from '@/lib/trPhoneInput';
-import { formatTurkishDateTime } from '@/lib/formatTurkishDateTime';
+import { formatTurkishDateTime, SAHNE_EVENT_DISPLAY_TZ } from '@/lib/formatTurkishDateTime';
+import { parseSahnebulEventInstant } from '@/lib/sahneEventInstant';
 import { claimRequestStatusTr } from '@/lib/statusLabels';
 import SeoHead, { metaDescriptionFromContent } from '@/Components/SeoHead';
 import { truncateMetaDescription } from '@/utils/seo';
@@ -51,6 +52,33 @@ interface Event {
     ticket_acquisition_mode?: string;
     sahnebul_reservation_enabled?: boolean;
     venue: Venue;
+}
+
+/** Meta açıklama için kısa tarih (InertiaDocumentMeta ile aynı mantık: gün + ay adı + yıl). */
+function formatArtistSeoEventDay(iso: string): string {
+    const ms = parseSahnebulEventInstant(iso);
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('tr-TR', {
+        timeZone: SAHNE_EVENT_DISPLAY_TZ,
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    }).format(d);
+}
+
+function buildArtistUpcomingMetaSnippet(events: readonly Event[]): string {
+    const rows = events.slice(0, 3);
+    if (rows.length === 0) return '';
+    const parts = rows.map((ev) => {
+        const dateStr = formatArtistSeoEventDay(ev.start_date);
+        const vn = ev.venue?.name?.trim() ?? '';
+        let s = ev.title;
+        if (dateStr !== '') s += ` (${dateStr})`;
+        if (vn !== '') s += ` — ${vn}`;
+        return s;
+    });
+    return ` Yaklaşan: ${parts.join('; ')}.`;
 }
 
 interface ArtistMediaItem {
@@ -565,8 +593,9 @@ export default function ArtistShow({
     const bioPlain = metaDescriptionFromContent(artist.bio, '');
     const seoGenreSuffix = artist.genre ? ` Tür: ${artist.genre}.` : '';
     const seoDescFallback = `${seoKeywordLead}. Yaklaşan ve geçmiş konserler, canlı performanslar ve etkinlik takvimi Sahnebul’da.${seoGenreSuffix}`;
+    const upcomingMetaExtra = buildArtistUpcomingMetaSnippet(upcomingEvents);
     const artistDesc = truncateMetaDescription(
-        bioPlain ? `${seoKeywordLead}. ${bioPlain}` : seoDescFallback,
+        (bioPlain ? `${seoKeywordLead}. ${bioPlain}` : seoDescFallback) + upcomingMetaExtra,
     );
 
     return (

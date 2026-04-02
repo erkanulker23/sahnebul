@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Carbon\Carbon;
+
 /**
  * İlk tam sayfa yanıtında (X-Inertia yok) Open Graph / Twitter / canonical üretir.
  * Sosyal ve arama önizlemeleri JS çalıştırmadan meta görsün diye Blade ile yazılır.
@@ -200,6 +202,7 @@ final class InertiaDocumentMeta
             $pageTitle,
             $descDefault,
         );
+        $descRaw .= self::artistShowUpcomingSnippetFromProps($props);
         $fullTitle = SeoFormatting::buildDocumentTitle($pageTitle, $siteName);
         $desc = SeoFormatting::truncateMetaDescription($descRaw);
 
@@ -216,6 +219,58 @@ final class InertiaDocumentMeta
             'tags' => self::baseTags($fullTitle, $desc, $canonical, $siteName, $locale, $ogImage, 'website'),
             'jsonLd' => $jsonLd,
         ];
+    }
+
+    /**
+     * Arama önizlemesinde yaklaşan etkinlikleri kısaca göstermek için (props dizisi — Inertia serialization).
+     *
+     * @param  array<string, mixed>  $props
+     */
+    private static function artistShowUpcomingSnippetFromProps(array $props): string
+    {
+        $upcoming = $props['upcomingEvents'] ?? null;
+        if (! is_array($upcoming) || $upcoming === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach (array_slice($upcoming, 0, 3) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $title = trim((string) ($row['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $start = $row['start_date'] ?? null;
+            $dateStr = '';
+            if (is_string($start) && $start !== '') {
+                try {
+                    $dateStr = Carbon::parse($start)->locale((string) app()->getLocale())->translatedFormat('j F Y');
+                } catch (\Throwable) {
+                    $dateStr = '';
+                }
+            }
+            $venueName = '';
+            $vn = $row['venue'] ?? null;
+            if (is_array($vn)) {
+                $venueName = trim((string) ($vn['name'] ?? ''));
+            }
+            $chunk = $title;
+            if ($dateStr !== '') {
+                $chunk .= ' ('.$dateStr.')';
+            }
+            if ($venueName !== '') {
+                $chunk .= ' — '.$venueName;
+            }
+            $parts[] = $chunk;
+        }
+
+        if ($parts === []) {
+            return '';
+        }
+
+        return ' Yaklaşan: '.implode('; ', $parts).'.';
     }
 
     /**

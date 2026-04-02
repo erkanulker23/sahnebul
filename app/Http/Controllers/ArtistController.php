@@ -371,7 +371,7 @@ class ArtistController extends Controller
         $upcomingEvents = $baseArtistEvents()
             ->whereNotNull('events.start_date')
             ->whereStillVisibleOnPublicListing()
-            ->with(['venue.city', 'venue.district'])
+            ->with(['venue.city', 'venue.district', 'artists', 'ticketTiers'])
             ->orderBy('start_date')
             ->limit(120)
             ->get();
@@ -497,7 +497,7 @@ class ArtistController extends Controller
         return Inertia::render('Artists/Show', [
             'artist' => $artist,
             'organizationAffiliation' => $organizationAffiliation,
-            'documentStructuredData' => PublicStructuredData::artistShowGraph($artist),
+            'documentStructuredData' => PublicStructuredData::artistShowGraph($artist, $upcomingEvents),
             'upcomingEvents' => $upcomingEvents,
             'pastEvents' => $pastEvents,
             'stats' => $stats,

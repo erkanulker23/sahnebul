@@ -138,17 +138,16 @@ final class PublicStructuredData
     }
 
     /**
+     * Tek etkinlik için schema.org Event düğümü (sanatçı profili @graph tekrarı ve etkinlik sayfası ile aynı @id).
+     *
      * @return array<string, mixed>
      */
-    public static function eventShowGraph(Event $event): array
+    public static function buildEventSchemaNode(Event $event): array
     {
         $ctx = self::siteContextForStructuredData();
         $siteName = $ctx['siteName'];
         $appUrl = $ctx['appUrl'];
-        $logoAbsolute = $ctx['logoAbsolute'];
         $canonical = SeoFormatting::normalizeCanonical($appUrl, '/etkinlikler/'.$event->publicUrlSegment());
-
-        $org = self::organizationNode($siteName, $appUrl, $logoAbsolute);
 
         $plainDesc = SeoFormatting::stripHtmlToText((string) ($event->description ?? ''));
         $description = SeoFormatting::truncateMetaDescription(
@@ -254,6 +253,23 @@ final class PublicStructuredData
         if ($offers !== null) {
             $eventNode['offers'] = $offers;
         }
+
+        return $eventNode;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function eventShowGraph(Event $event): array
+    {
+        $ctx = self::siteContextForStructuredData();
+        $siteName = $ctx['siteName'];
+        $appUrl = $ctx['appUrl'];
+        $logoAbsolute = $ctx['logoAbsolute'];
+        $canonical = SeoFormatting::normalizeCanonical($appUrl, '/etkinlikler/'.$event->publicUrlSegment());
+
+        $org = self::organizationNode($siteName, $appUrl, $logoAbsolute);
+        $eventNode = self::buildEventSchemaNode($event);
 
         $breadcrumbs = [
             '@type' => 'BreadcrumbList',
@@ -371,9 +387,10 @@ final class PublicStructuredData
     }
 
     /**
+     * @param  iterable<int, mixed>  $upcomingEvents  Yaklaşan yayınlanmış etkinlikler (venue + city yüklü; JSON-LD için artists ve ticketTiers önerilir)
      * @return array<string, mixed>
      */
-    public static function artistShowGraph(Artist $artist): array
+    public static function artistShowGraph(Artist $artist, iterable $upcomingEvents = []): array
     {
         $ctx = self::siteContextForStructuredData();
         $siteName = $ctx['siteName'];
@@ -449,9 +466,46 @@ final class PublicStructuredData
             ],
         ];
 
+        $graph = [$org, $musicGroup];
+
+        $listed = [];
+        foreach ($upcomingEvents as $ev) {
+            if ($ev instanceof Event) {
+                $listed[] = $ev;
+            }
+        }
+        $listed = array_slice($listed, 0, 24);
+
+        if ($listed !== []) {
+            $listItems = [];
+            $pos = 1;
+            foreach ($listed as $ev) {
+                $eventUrl = SeoFormatting::normalizeCanonical($appUrl, '/etkinlikler/'.$ev->publicUrlSegment());
+                $listItems[] = [
+                    '@type' => 'ListItem',
+                    'position' => $pos,
+                    'name' => $ev->title,
+                    'item' => $eventUrl,
+                ];
+                $pos++;
+            }
+            $graph[] = [
+                '@type' => 'ItemList',
+                '@id' => $canonical.'#upcoming-events',
+                'name' => $name.' — yaklaşan etkinlikler',
+                'numberOfItems' => count($listItems),
+                'itemListElement' => $listItems,
+            ];
+            foreach ($listed as $ev) {
+                $graph[] = self::buildEventSchemaNode($ev);
+            }
+        }
+
+        $graph[] = $breadcrumbs;
+
         return [
             '@context' => 'https://schema.org',
-            '@graph' => [$org, $musicGroup, $breadcrumbs],
+            '@graph' => $graph,
         ];
     }
 
