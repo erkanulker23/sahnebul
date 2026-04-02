@@ -463,7 +463,7 @@ export function AppHeader() {
                                 <div className="flex flex-col gap-2.5">
                                     <Link
                                         href={safeRoute('login')}
-                                        className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-zinc-800 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                                        className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-white px-4 py-3 text-center text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:bg-zinc-700 dark:text-white dark:hover:bg-zinc-600"
                                         onClick={closeDrawer}
                                     >
                                         Giriş
