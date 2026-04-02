@@ -17,6 +17,7 @@ type HeroTheme = {
     /** bg-gradient-to-br için dark:from / dark:via / dark:to */
     bgDark: string;
     accent: string;
+    /** Yalnızca koyu tema — mutlaka `dark:` ile başlamalı (aksi halde açık modda da uygulanır). */
     accentDark: string;
     decorations: ReactNode;
 };
@@ -39,7 +40,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-amber-100/90 via-amber-50 to-zinc-100',
         bgDark: 'dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950',
         accent: 'text-zinc-900',
-        accentDark: 'text-white',
+        accentDark: 'dark:text-white',
         decorations: (
             <>
                 <div
@@ -76,7 +77,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-amber-100/80 via-stone-200/70 to-zinc-100',
         bgDark: 'dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950',
         accent: 'text-zinc-900',
-        accentDark: 'text-amber-50',
+        accentDark: 'dark:text-amber-50',
         decorations: (
             <>
                 <svg
@@ -114,7 +115,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-stone-200 via-amber-100/80 to-zinc-100',
         bgDark: 'dark:from-zinc-900 dark:via-stone-950 dark:to-zinc-950',
         accent: 'text-zinc-900',
-        accentDark: 'text-stone-100',
+        accentDark: 'dark:text-stone-100',
         decorations: (
             <>
                 <svg
@@ -142,7 +143,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-sky-200/90 via-emerald-100 to-amber-100/90',
         bgDark: 'dark:from-sky-950/60 dark:via-emerald-950/40 dark:to-zinc-950',
         accent: 'text-emerald-950',
-        accentDark: 'text-emerald-200',
+        accentDark: 'dark:text-emerald-200',
         decorations: (
             <>
                 <svg
@@ -167,15 +168,15 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-amber-200/90 via-orange-100/80 to-zinc-100',
         bgDark: 'dark:from-amber-950/50 dark:via-zinc-900 dark:to-zinc-950',
         accent: 'text-amber-950',
-        accentDark: 'text-amber-200',
+        accentDark: 'dark:text-amber-200',
         decorations: (
             <>
                 <div
-                    className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-[60%] rounded-full border-[3px] border-amber-700/45 dark:border-amber-400/15"
+                    className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-48 w-48 -translate-x-1/2 -translate-y-[60%] rounded-full border-[3px] border-amber-700/45 dark:border-amber-400/15"
                     aria-hidden
                 />
                 <svg
-                    className="absolute bottom-2 left-[18%] h-24 w-10 text-zinc-800/60 dark:text-zinc-200/15"
+                    className="absolute bottom-2 left-[4%] h-24 w-10 text-zinc-800/60 dark:text-zinc-200/15 max-sm:left-1 max-sm:opacity-40"
                     viewBox="0 0 40 96"
                     aria-hidden
                 >
@@ -190,7 +191,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-sky-100 via-amber-100/90 to-lime-100/80',
         bgDark: 'dark:from-sky-950/40 dark:via-amber-950/30 dark:to-zinc-950',
         accent: 'text-sky-950',
-        accentDark: 'text-sky-100',
+        accentDark: 'dark:text-sky-100',
         decorations: (
             <>
                 <svg
@@ -236,7 +237,7 @@ const themes: Record<EventTypeHeroSlug, HeroTheme> = {
         bg: 'from-teal-100 via-cyan-100/90 to-zinc-100',
         bgDark: 'dark:from-teal-950/45 dark:via-zinc-900 dark:to-zinc-950',
         accent: 'text-teal-950',
-        accentDark: 'text-teal-100',
+        accentDark: 'dark:text-teal-100',
         decorations: (
             <>
                 <svg
@@ -293,7 +294,7 @@ export function EventTypeHeroBanner({
                 {theme.decorations}
             </div>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-30%,rgba(245,158,11,0.28),transparent)] dark:bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(245,158,11,0.08),transparent)]" />
-            <div className="relative mx-auto flex min-h-[168px] max-w-7xl flex-col justify-center px-4 py-8 sm:min-h-[200px] sm:px-6 sm:py-10 lg:min-h-[220px] lg:px-8">
+            <div className="relative z-10 mx-auto flex min-h-[168px] max-w-7xl flex-col justify-center px-4 py-8 sm:min-h-[200px] sm:px-6 sm:py-10 lg:min-h-[220px] lg:px-8">
                 <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-400/90">Etkinlik türü</p>
                 <h2
                     id="event-type-hero-heading"
