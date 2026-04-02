@@ -31,7 +31,7 @@ fi
 # Sunucu 1GB ise Forge'da swap açın veya droplet RAM artırın.
 export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 
-# Sunucuda tsc atlanır (bellek + süre); tipler push öncesi yerelde `npm run build` ile doğrulanmalı
+# Sunucuda yalnızca vite (package.json `build` = vite; tsc RAM tüketir). Tip kontrolü: yerelde veya CI `npm run typecheck` / `build:verify`.
 npm run build:deploy
 
 if [[ ! -f public/build/manifest.json ]]; then

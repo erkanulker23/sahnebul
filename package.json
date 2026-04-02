@@ -3,9 +3,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "tsc && vite build",
+        "dev": "vite",
+        "typecheck": "tsc --noEmit",
+        "build": "vite build",
         "build:deploy": "vite build",
-        "dev": "vite"
+        "build:verify": "tsc --noEmit && vite build"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",

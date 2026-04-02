@@ -1,6 +1,6 @@
 @php
     /**
-     * Yerelde `npm run dev` → public/hot; üretimde `npm run build` → public/build/manifest.json.
+     * Yerelde `npm run dev` → public/hot; üretimde `npm run build` (vite) → public/build/manifest.json. Tam kontrol: `npm run build:verify`.
      * Üretimde yanlışlıkla kalan `public/hot` dosyası `viteReady` true yapıp @vite'i manifest'e zorlar → 500.
      */
     $hasManifest = is_file(public_path('build/manifest.json'));
