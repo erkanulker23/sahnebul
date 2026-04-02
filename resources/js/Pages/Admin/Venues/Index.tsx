@@ -8,6 +8,7 @@ import {
 } from '@/Components/Admin';
 import AdminLayout from '@/Layouts/AdminLayout';
 import SeoHead from '@/Components/SeoHead';
+import { venueAdderKindLabelTr } from '@/lib/adminUserRoleLabels';
 import { venueArtistStatusTr } from '@/lib/statusLabels';
 import { Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ interface Venue {
     weekly_events_count?: number;
     city: { name: string };
     category: { name: string };
-    user?: { id: number; name: string; email: string } | null;
+    user?: { id: number; name: string; email: string; role: string } | null;
 }
 
 interface Props {
@@ -179,16 +180,25 @@ export default function AdminVenuesIndex({ venues, filters }: Readonly<Props>) {
                 key: 'owner',
                 header: 'Ekleyen',
                 mobileLabel: 'Ekleyen',
-                className: 'max-w-[200px]',
-                cell: (v) =>
-                    v.user ? (
+                className: 'max-w-[220px]',
+                cell: (v) => {
+                    const kind = venueAdderKindLabelTr(v.user);
+                    return (
                         <div className="min-w-0 text-xs">
-                            <p className="truncate font-medium text-zinc-800 dark:text-zinc-200">{v.user.name}</p>
-                            <p className="truncate text-zinc-500 dark:text-zinc-400">{v.user.email}</p>
+                            <span className="mb-1 inline-flex rounded-full bg-zinc-500/15 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-400/15 dark:text-zinc-300">
+                                {kind}
+                            </span>
+                            {v.user ? (
+                                <>
+                                    <p className="truncate font-medium text-zinc-800 dark:text-zinc-200">{v.user.name}</p>
+                                    <p className="truncate text-zinc-500 dark:text-zinc-400">{v.user.email}</p>
+                                </>
+                            ) : (
+                                <p className="text-zinc-500 dark:text-zinc-400">Sahip atanmamış</p>
+                            )}
                         </div>
-                    ) : (
-                        <span className="text-zinc-400">—</span>
-                    ),
+                    );
+                },
             },
             {
                 key: 'loc',

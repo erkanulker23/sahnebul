@@ -94,7 +94,7 @@ export default function SiteShell({ children, hideMobileQuickNav = false }: Read
     };
 
     return (
-        <div className="flex min-h-[100dvh] flex-col overflow-x-clip bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
+        <div className="flex min-h-[100dvh] flex-col overflow-x-visible bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
             <AppHeader />
             <EmailVerificationBanner />
             <BrowserNotificationsBar />
@@ -107,9 +107,14 @@ export default function SiteShell({ children, hideMobileQuickNav = false }: Read
                 className="w-full border-b border-zinc-200 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/40"
             />
 
+            {/*
+              Tam genişlik <main>: hero / tam ekran bantlar viewport kenarına kadar gider (sanatçı detayı gibi).
+              Eski max-w-[1600px] + px burada içeriği kutuya hapsediyordu. Kenar boşluğu sayfa içinde
+              mx-auto max-w-* ile verilir; hesap paneli düzenlerinde dış flex’e px eklenir.
+            */}
             <main
                 className={cn(
-                    'mx-auto w-full max-w-[1600px] flex-1 overflow-x-clip px-2.5 pt-0 sm:px-4 lg:px-8',
+                    'w-full max-w-none flex-1 overflow-x-visible px-0 pt-0',
                     hideMobileQuickNav
                         ? 'pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:pb-8'
                         : 'pb-6 lg:pb-8',

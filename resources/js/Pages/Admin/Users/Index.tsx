@@ -20,6 +20,7 @@ interface User {
     role: string;
     is_active: boolean;
     created_at: string;
+    last_login_at: string | null;
     /** Hesaba bağlı sanatçı kaydı (admin sanatçı düzenleme) */
     linked_artist_id?: number | null;
 }
@@ -98,6 +99,17 @@ export default function AdminUsersIndex({ users, filters, canAssignElevatedRoles
                 cell: (user) => (
                     <span className={user.is_active ? 'font-medium text-emerald-600 dark:text-emerald-400' : 'font-medium text-red-600 dark:text-red-400'}>
                         {user.is_active ? 'Aktif' : 'Dondurulmuş'}
+                    </span>
+                ),
+            },
+            {
+                key: 'last_login',
+                header: 'Son giriş',
+                mobileLabel: 'Son giriş',
+                className: 'max-w-[200px]',
+                cell: (user) => (
+                    <span className="text-zinc-600 dark:text-zinc-400">
+                        {formatTurkishDateTime(user.last_login_at, { empty: 'Henüz yok' })}
                     </span>
                 ),
             },

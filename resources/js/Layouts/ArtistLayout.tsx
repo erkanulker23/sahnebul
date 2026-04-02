@@ -8,7 +8,7 @@ import { PropsWithChildren } from 'react';
 export default function ArtistLayout({ children }: Readonly<PropsWithChildren>) {
     return (
         <SiteShell>
-            <div className="flex flex-col gap-6 pt-4 lg:flex-row lg:items-start lg:gap-10 lg:pt-6">
+            <div className="flex flex-col gap-6 px-2.5 pt-4 sm:px-4 lg:flex-row lg:items-start lg:gap-10 lg:px-8 lg:pt-6">
                 <StagePanelSidebar />
                 <div className="min-w-0 flex-1">
                     <div className="mx-auto w-full max-w-7xl pb-8">{children}</div>

@@ -155,10 +155,6 @@ export default function LiveSceneIndex({ vibes, initialVibe }: Readonly<Props>) 
                 description="Yakınınızdaki konser ve etkinlikleri haritada keşfedin; tarza göre süzün, yoğun bölgeleri görün, etkinliğe veya yol tarifine geçin."
             />
 
-            {/*
-              overflow-x-clip koymayın: hero-full-bleed ana içerik padding’ini negatif margin ile aşar; üst sarmalayıcı clip
-              tam genişlik hero’yu yanlardan kırpar. Kırpma yalnızca hero section içinde (overflow-hidden).
-            */}
             <div className="isolate min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
                 <section className="hero-full-bleed relative min-h-[min(52vh,28rem)] overflow-hidden border-b border-white/10 text-white sm:min-h-[min(56vh,32rem)]">
                     <img

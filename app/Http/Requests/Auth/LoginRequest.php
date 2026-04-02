@@ -61,6 +61,10 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        if ($user !== null) {
+            $user->recordLastLoginAt();
+        }
     }
 
     /**
@@ -99,6 +103,10 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        if ($user !== null) {
+            $user->recordLastLoginAt();
+        }
     }
 
     /**

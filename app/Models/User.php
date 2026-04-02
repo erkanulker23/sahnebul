@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
             'interests' => 'array',
             'is_active' => 'boolean',
@@ -239,5 +240,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
             || $this->venues()->exists()
             || $this->hasActiveMembership('venue')
             || $this->hasActiveMembership('manager');
+    }
+
+    /** Başarılı oturum açma / Google girişi / kayıt sonrası ilk oturum — admin «son giriş» listesi için. */
+    public function recordLastLoginAt(): void
+    {
+        $this->forceFill(['last_login_at' => now()])->saveQuietly();
     }
 }

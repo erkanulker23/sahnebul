@@ -49,29 +49,15 @@
 
 @layer utilities {
     /**
-     * AppLayout <main> içindeki hero’ları viewport kenarına kadar genişletir
-     * (max-width + yatay padding kırılması). Üst boşluk yok: <main> pt-0.
-     * 100vw + 50vw klasik taşma: dikey scrollbar varken vw > %; svw daha stabil.
-     */
-    /**
-     * İkinci margin taşmayı dengeler; üstte ince çizgi boşluğunu kapatır (header altı).
+     * Tam genişlik hero bandı. SiteShell <main> artık max-width / yatay padding olmadan viewport kadar;
+     * bant doğal olarak kenardan kenara gider (sanatçı detayı ile aynı mantık).
      */
     .hero-full-bleed {
         position: relative;
-        overflow-x: clip;
-        width: 100vw;
-        max-width: 100vw;
-        margin-left: calc(50% - 50vw);
-        margin-right: calc(50% - 50vw);
+        width: 100%;
+        max-width: none;
         margin-top: -1px;
-    }
-    @supports (width: 1svw) {
-        .hero-full-bleed {
-            width: 100svw;
-            max-width: 100svw;
-            margin-left: calc(50% - 50svw);
-            margin-right: calc(50% - 50svw);
-        }
+        overflow-x: clip;
     }
 }
 

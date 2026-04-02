@@ -96,6 +96,7 @@ class GoogleCredentialAuthController extends Controller
 
             Auth::login($user, true);
             $request->session()->regenerate();
+            $user->recordLastLoginAt();
 
             $intended = SafeRedirect::relativePath($request->input('redirect'));
 
@@ -115,6 +116,7 @@ class GoogleCredentialAuthController extends Controller
 
         Auth::login($user, true);
         $request->session()->regenerate();
+        $user->recordLastLoginAt();
 
         $intended = SafeRedirect::relativePath($request->input('redirect'));
 

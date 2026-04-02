@@ -80,7 +80,7 @@ class VenueController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
 
-        $venues = Venue::with(['city', 'category', 'user:id,name,email'])
+        $venues = Venue::with(['city', 'category', 'user:id,name,email,role'])
             ->withCount([
                 'events',
                 'events as weekly_events_count' => fn ($q) => UpcomingSevenDayEventWindow::applyToEloquent(

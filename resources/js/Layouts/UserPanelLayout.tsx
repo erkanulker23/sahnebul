@@ -9,7 +9,7 @@ import SiteShell from '@/Layouts/SiteShell';
 export default function UserPanelLayout({ children }: Readonly<PropsWithChildren>) {
     return (
         <SiteShell>
-            <div className="flex flex-col gap-6 pt-4 lg:flex-row lg:items-start lg:gap-10 lg:pt-6">
+            <div className="flex flex-col gap-6 px-2.5 pt-4 sm:px-4 lg:flex-row lg:items-start lg:gap-10 lg:px-8 lg:pt-6">
                 <AccountSidebar />
                 <div className="min-w-0 flex-1">{children}</div>
             </div>

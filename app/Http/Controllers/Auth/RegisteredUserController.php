@@ -91,6 +91,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        $user->recordLastLoginAt();
 
         return redirect(route('dashboard', absolute: false))
             ->with('success', RegistrationWelcomeMessages::CUSTOMER);
@@ -134,6 +135,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        $user->recordLastLoginAt();
 
         $welcome = match ($request->input('membership_type')) {
             'artist' => RegistrationWelcomeMessages::STAGE_ARTIST,
