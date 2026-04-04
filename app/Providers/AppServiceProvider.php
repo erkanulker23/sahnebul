@@ -124,5 +124,14 @@ class AppServiceProvider extends ServiceProvider
                 (int) config('services.rate_limits.live_scene_per_minute', 60)
             )->by($request->ip());
         });
+
+        /** Instagram / URL ile tanıtım galerisi — tek istek çoklu satır işleyebilir; genel throttle:20,1 ile kova paylaşımı 429 üretmesin. */
+        RateLimiter::for('promo-gallery-url-import', function (Request $request) {
+            $by = $request->user() !== null
+                ? 'user:'.(string) $request->user()->getAuthIdentifier()
+                : 'ip:'.$request->ip();
+
+            return Limit::perMinute(120)->by($by);
+        });
     }
 }

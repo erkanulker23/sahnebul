@@ -63,6 +63,38 @@ return [
         'bubilet_sehir_sec' => [
             'url' => 'https://www.bubilet.com.tr/sehir-sec',
         ],
+        /**
+         * https://biletsirasi.com — fiyat karşılaştırma; etkinlik detaylarında schema.org Event (JSON-LD).
+         * Liste sayfalarından /{kategori}/{slug} linkleri toplanır, detayda LD+JSON okunur.
+         */
+        'biletsirasi' => [
+            'url' => 'https://biletsirasi.com/',
+            'listing_urls' => [
+                'https://biletsirasi.com/konser',
+                'https://biletsirasi.com/tiyatro',
+                'https://biletsirasi.com/stand-up',
+                'https://biletsirasi.com/spor',
+                'https://biletsirasi.com/sinema',
+                'https://biletsirasi.com/cocuk',
+                'https://biletsirasi.com/festival',
+                'https://biletsirasi.com/parti',
+                'https://biletsirasi.com/dans',
+                'https://biletsirasi.com/opera',
+                'https://biletsirasi.com/muzikal',
+                'https://biletsirasi.com/sergi',
+                'https://biletsirasi.com/gosteri',
+                'https://biletsirasi.com/atolye',
+                'https://biletsirasi.com/tema-parki',
+                'https://biletsirasi.com/muze',
+                'https://biletsirasi.com/egitim',
+                'https://biletsirasi.com/konferans',
+                'https://biletsirasi.com/fuar',
+                'https://biletsirasi.com/sirk',
+                'https://biletsirasi.com/yemek',
+                'https://biletsirasi.com/diger',
+            ],
+            'city' => 'İstanbul',
+        ],
     ],
     'user_agent' => 'SahnebulBot/1.0 (+https://sahnebul.com)',
 
@@ -124,7 +156,7 @@ return [
     'max_execution_seconds' => (int) env('CRAWLER_MAX_EXECUTION_SECONDS', 300),
 
     /**
-     * Admin kuyruk işi: Bubilet/Biletinial detay istekleri küçük zincir işlere bölünsün mü.
+     * Admin kuyruk işi: Bubilet/Biletinial/Biletsirasi detay istekleri küçük zincir işlere bölünsün mü.
      * false: tek işte tüm tarama (CLI ile aynı; uzun sürebilir).
      */
     'admin_use_chunked_crawl_chain' => filter_var(
@@ -176,4 +208,15 @@ return [
     'biletix_page_chunk_size' => max(1, (int) env('BILETIX_PAGE_CHUNK_SIZE', 5)),
 
     'biletix_chunk_pause_us' => (int) env('BILETIX_CHUNK_PAUSE_US', 500_000),
+
+    /** Biletsirasi: liste(ler)den toplanan benzersiz etkinlik yolları için detay isteği üst sınırı */
+    'biletsirasi_max_detail_pages' => (int) env('BILETSIRASI_CRAWL_MAX_DETAIL_PAGES', 300),
+
+    'biletsirasi_listing_delay_us' => (int) env('BILETSIRASI_LISTING_DELAY_US', 250_000),
+
+    'biletsirasi_detail_delay_us' => (int) env('BILETSIRASI_DETAIL_DELAY_US', 100_000),
+
+    'biletsirasi_detail_chunk_size' => max(1, (int) env('BILETSIRASI_DETAIL_CHUNK_SIZE', 5)),
+
+    'biletsirasi_chunk_pause_us' => (int) env('BILETSIRASI_CHUNK_PAUSE_US', 400_000),
 ];

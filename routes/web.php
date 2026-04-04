@@ -279,7 +279,7 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::delete('/sanatci-sayfam/galeri/{media}', [PublicArtistProfileController::class, 'destroyGallery'])
         ->name('public-profile.gallery.destroy');
     Route::post('/sanatci-sayfam/adresten-tanitim-medya', [PublicArtistProfileController::class, 'importPromoMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('public-profile.promo.import-media');
     Route::post('/sanatci-sayfam/tanitim-dosya-yukle', [PublicArtistProfileController::class, 'appendPromoFiles'])
         ->middleware('throttle:15,1')
@@ -304,7 +304,7 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::post('/mekanlarim/{venue}/galeri', [ArtistVenueController::class, 'storeMedia'])->name('venues.media.store');
     Route::delete('/mekanlarim/{venue}/galeri/{media}', [ArtistVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::post('/mekanlarim/{venue}/adresten-tanitim-medya', [ArtistVenueController::class, 'importPromoMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('venues.import-promo-media');
     Route::post('/mekanlarim/{venue}/tanitim-dosya-yukle', [ArtistVenueController::class, 'appendPromoFiles'])
         ->middleware('throttle:15,1')
@@ -323,7 +323,7 @@ Route::middleware(['auth', 'artist'])->prefix('sahne')->name('artist.')->group(f
     Route::get('/etkinlikler/{event}/duzenle', [ArtistEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [ArtistEventController::class, 'update'])->name('events.update');
     Route::post('/etkinlikler/{event}/adresten-medya', [ArtistEventController::class, 'importEventPromoMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('events.import-promo-media');
     Route::post('/etkinlikler/{event}/tanitim-dosya-yukle', [ArtistEventController::class, 'appendEventPromoFiles'])
         ->middleware('throttle:15,1')
@@ -413,7 +413,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/mekanlar/{venue}/galeri/{media}', [AdminVenueController::class, 'destroyMedia'])->name('venues.media.destroy');
     Route::put('/mekanlar/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
     Route::post('/mekanlar/{venue}/adresten-tanitim-medya', [AdminVenueController::class, 'importPromoMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('venues.import-promo-media');
     Route::post('/mekanlar/{venue}/tanitim-dosya-yukle', [AdminVenueController::class, 'appendPromoFiles'])
         ->middleware('throttle:15,1')
@@ -438,7 +438,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/etkinlikler/{event}/duzenle', [AdminEventController::class, 'edit'])->name('events.edit');
     Route::put('/etkinlikler/{event}', [AdminEventController::class, 'update'])->name('events.update');
     Route::post('/etkinlikler/{event}/adresten-medya', [AdminEventController::class, 'importMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('events.import-media');
     Route::post('/etkinlikler/{event}/tanitim-dosya-yukle', [AdminEventController::class, 'appendPromoFiles'])
         ->middleware('throttle:15,1')
@@ -495,7 +495,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/sanatcilar/{artist:id}/galeri/{media}', [AdminArtistController::class, 'destroyMedia'])->name('artists.media.destroy');
     Route::put('/sanatcilar/{artist:id}', [AdminArtistController::class, 'update'])->name('artists.update');
     Route::post('/sanatcilar/{artist:id}/adresten-tanitim-medya', [AdminArtistController::class, 'importPromoMediaFromUrl'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:promo-gallery-url-import')
         ->name('artists.import-promo-media');
     Route::post('/sanatcilar/{artist:id}/tanitim-dosya-yukle', [AdminArtistController::class, 'appendPromoFiles'])
         ->middleware('throttle:15,1')

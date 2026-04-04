@@ -50,6 +50,12 @@ class MarketplaceCrawlerService
             return $this->fetchBiletinialDetailRowsBatch($sourceConfig, $q, 0);
         }
 
+        if ($source === 'biletsirasi') {
+            $q = $this->collectBiletsirasiDetailQueue($sourceConfig);
+
+            return $this->fetchBiletsirasiDetailRowsBatch($sourceConfig, $q, 0);
+        }
+
         if ($source === 'biletix') {
             return $this->crawlBiletixPagedListing($sourceConfig);
         }
@@ -78,7 +84,7 @@ class MarketplaceCrawlerService
 
     public function supportsChunkedDetailCrawl(string $source): bool
     {
-        return $source === 'bubilet' || $source === 'biletinial';
+        return $source === 'bubilet' || $source === 'biletinial' || $source === 'biletsirasi';
     }
 
     /**
@@ -101,6 +107,9 @@ class MarketplaceCrawlerService
         if ($source === 'biletinial') {
             return $this->collectBiletinialDetailQueue($sourceConfig);
         }
+        if ($source === 'biletsirasi') {
+            return $this->collectBiletsirasiDetailQueue($sourceConfig);
+        }
 
         return [];
     }
@@ -121,6 +130,9 @@ class MarketplaceCrawlerService
         }
         if ($source === 'biletinial') {
             return $this->fetchBiletinialDetailRowsBatch($sourceConfig, $batch, $globalPathOffset);
+        }
+        if ($source === 'biletsirasi') {
+            return $this->fetchBiletsirasiDetailRowsBatch($sourceConfig, $batch, $globalPathOffset);
         }
 
         return [];
@@ -882,6 +894,184 @@ class MarketplaceCrawlerService
         }
 
         return $normalized;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function biletsirasiListingCategorySlugs(): array
+    {
+        return [
+            'stand-up',
+            'tema-parki',
+            'konser',
+            'tiyatro',
+            'spor',
+            'sinema',
+            'cocuk',
+            'festival',
+            'parti',
+            'dans',
+            'opera',
+            'muzikal',
+            'sergi',
+            'gosteri',
+            'atolye',
+            'muze',
+            'egitim',
+            'konferans',
+            'fuar',
+            'sirk',
+            'yemek',
+            'diger',
+        ];
+    }
+
+    private function biletsirasiCategorySlugRegexAlternation(): string
+    {
+        $slugs = $this->biletsirasiListingCategorySlugs();
+        usort($slugs, fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        return implode('|', array_map(static fn (string $s): string => preg_quote($s, '~'), $slugs));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractBiletsirasiEventPathsFromListingHtml(string $html): array
+    {
+        $alt = $this->biletsirasiCategorySlugRegexAlternation();
+        if (! preg_match_all('~href=["\'](/(?:'.$alt.')/([a-z0-9][a-z0-9-]*))["\']~iu', $html, $m)) {
+            return [];
+        }
+
+        $paths = [];
+        foreach ($m[1] as $raw) {
+            $p = html_entity_decode((string) $raw, ENT_QUOTES | ENT_HTML5);
+            $p = '/'.trim($p, '/');
+            if (substr_count($p, '/') !== 2) {
+                continue;
+            }
+            $paths[$p] = true;
+        }
+
+        return array_keys($paths);
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @return list<array{path: string, listing_url: string}>
+     */
+    private function collectBiletsirasiDetailQueue(array $sourceConfig): array
+    {
+        $listingUrls = isset($sourceConfig['listing_urls']) && is_array($sourceConfig['listing_urls']) && $sourceConfig['listing_urls'] !== []
+            ? array_values(array_unique(array_filter(array_map('strval', $sourceConfig['listing_urls']))))
+            : [(string) $sourceConfig['url']];
+
+        $listingDelayUs = max(0, (int) config('crawler.biletsirasi_listing_delay_us', 250_000));
+        /** @var array<string, list<string>> $pathsByListingUrl */
+        $pathsByListingUrl = [];
+
+        foreach ($listingUrls as $idx => $listingUrl) {
+            if ($idx > 0 && $listingDelayUs > 0) {
+                usleep($listingDelayUs);
+            }
+            $html = Http::timeout((int) config('crawler.timeout', 25))
+                ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                ->get($listingUrl)
+                ->throw()
+                ->body();
+
+            $paths = $this->extractBiletsirasiEventPathsFromListingHtml($html);
+            if ($paths !== []) {
+                $pathsByListingUrl[$listingUrl] = array_values($paths);
+            }
+        }
+
+        $maxDetailPages = max(10, min(800, (int) config('crawler.biletsirasi_max_detail_pages', 300)));
+
+        return $this->mergeUniquePathsRoundRobinFromListings($pathsByListingUrl, $maxDetailPages);
+    }
+
+    /**
+     * @param  array<string, mixed>  $sourceConfig
+     * @param  list<array{path: string, listing_url: string}>  $merged
+     * @return list<array<string, mixed>>
+     */
+    private function fetchBiletsirasiDetailRowsBatch(array $sourceConfig, array $merged, int $globalPathOffset = 0): array
+    {
+        $base = 'https://biletsirasi.com';
+        $normalized = [];
+        $detailDelayUs = max(0, (int) config('crawler.biletsirasi_detail_delay_us', 100_000));
+        $chunkSize = max(1, (int) config('crawler.biletsirasi_detail_chunk_size', 5));
+        $chunkPauseUs = max(0, (int) config('crawler.biletsirasi_chunk_pause_us', 400_000));
+
+        foreach ($merged as $i => $item) {
+            $path = $item['path'];
+            $idx = $globalPathOffset + $i;
+            if ($i > 0) {
+                usleep($detailDelayUs);
+                if ($idx > 0 && $idx % $chunkSize === 0) {
+                    usleep($chunkPauseUs);
+                }
+            }
+            $url = $this->normalizeUrl($path, $base);
+            try {
+                $detailHtml = Http::timeout((int) config('crawler.timeout', 25))
+                    ->withHeaders(['User-Agent' => (string) config('crawler.user_agent')])
+                    ->get($url)
+                    ->throw()
+                    ->body();
+            } catch (\Throwable) {
+                continue;
+            }
+
+            foreach ($this->extractJsonLdEvents($detailHtml) as $event) {
+                if (! $this->schemaOrgLdRepresentsEvent($event['@type'] ?? null)) {
+                    continue;
+                }
+                $event['url'] = $url;
+                $row = $this->normalizeSchemaOrgEventRow($event, $sourceConfig);
+                if ($row !== null) {
+                    $row['category_name'] = $this->categoryNameFromBiletsirasiEventPath($path);
+                    $normalized[] = $row;
+                }
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function categoryNameFromBiletsirasiEventPath(string $path): string
+    {
+        $path = trim($path, '/');
+        $seg = mb_strtolower(explode('/', $path, 2)[0] ?? '', 'UTF-8');
+
+        return match ($seg) {
+            'konser' => 'Müzik',
+            'tiyatro' => 'Tiyatro',
+            'stand-up' => 'Stand-up',
+            'spor' => 'Spor',
+            'sinema' => 'Sinema',
+            'cocuk' => 'Çocuk',
+            'festival' => 'Festival',
+            'parti' => 'Parti',
+            'dans' => 'Dans',
+            'opera' => 'Opera',
+            'muzikal' => 'Müzikal',
+            'sergi' => 'Sergi',
+            'gosteri' => 'Gösteri',
+            'atolye' => 'Workshop',
+            'tema-parki' => 'Etkinlik',
+            'muze' => 'Sergi',
+            'egitim' => 'Eğitim',
+            'konferans' => 'Konferans',
+            'fuar' => 'Fuar',
+            'sirk' => 'Gösteri',
+            'yemek' => 'Etkinlik',
+            'diger' => 'Etkinlik',
+            default => $this->normalizeCategoryName(str_replace('-', ' ', $seg)),
+        };
     }
 
     /**

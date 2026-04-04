@@ -42,7 +42,6 @@ class ExternalEventBulkTest extends TestCase
                 'action' => 'reject',
                 'apply_filters' => true,
                 'source' => '',
-                // sqlite test DB lacks MySQL JSON_UNQUOTE; «all» avoids pending meta raw
                 'status' => 'all',
                 'search' => '',
                 'artist' => '',

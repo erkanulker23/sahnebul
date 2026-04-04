@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Services\Instagram\InstagramPromoVideoPipeline;
 use App\Support\FfmpegBinaryResolver;
 use App\Support\InstagramNetscapeCookies;
+use App\Support\InstagramPostUrl;
 use App\Support\InstagramPromoResolveCache;
 use App\Support\InstagramYtdlpCookiesPath;
 use App\Support\YtDlpBinaryResolver;
@@ -42,6 +43,23 @@ final class EventMediaImportFromUrlService
     private const VIDEO_TIMEOUT = 180;
 
     private const MAX_PROMO_GALLERY_ITEMS = 12;
+
+    /**
+     * Guzzle varsayılanı en fazla 5 yönlendirme; Instagram / Facebook CDN ve kısaltıcı zincirleri bazen daha uzun.
+     *
+     * @return array<string, mixed>
+     */
+    private static function httpClientRedirectOptions(): array
+    {
+        return [
+            'allow_redirects' => [
+                'max' => 20,
+                'strict' => false,
+                'referer' => true,
+                'protocols' => ['http', 'https'],
+            ],
+        ];
+    }
 
     public function __construct(
         private readonly InstagramPuppeteerHtmlClient $instagramPuppeteerHtmlClient,
@@ -478,6 +496,13 @@ final class EventMediaImportFromUrlService
             return ['success' => false, 'message' => $msg];
         }
 
+        if (InstagramPostUrl::isInstagramHost($normalized)) {
+            $igPermalink = InstagramPostUrl::canonicalPermalink($normalized);
+            if ($igPermalink !== null) {
+                $normalized = $igPermalink;
+            }
+        }
+
         if ($mode === 'promo_video' && $promoPosterEmbedOnly) {
             $pathOnly = parse_url($normalized, PHP_URL_PATH);
             if (is_string($pathOnly) && preg_match('/\.(mp4|webm)$/i', $pathOnly)) {
@@ -505,11 +530,24 @@ final class EventMediaImportFromUrlService
             ? $this->normalizeInstagramStoryCanonical($normalized)
             : null;
 
+        $igPostShortcode = $this->isInstagramHost($normalized) ? $this->extractInstagramShortcode($normalized) : null;
+        $continuePosterOnlyWithoutMainHtml = $mode === 'promo_video'
+            && $promoPosterEmbedOnly
+            && is_string($igPostShortcode)
+            && $igPostShortcode !== '';
+
         if (! $htmlResp->successful()) {
             if ($mode === 'promo_video' && $storyCanonicalIfAny !== null) {
                 Log::notice('Instagram hikâye: ilk HTML alınamadı; yt-dlp ile devam (YTDLP_COOKIES_FILE önerilir)', [
                     'status' => $htmlResp->status(),
                     'url' => Str::limit($normalized, 120),
+                ]);
+                $html = '';
+            } elseif ($continuePosterOnlyWithoutMainHtml) {
+                Log::notice('Instagram gönderi (yalnız kapak/embed): ana sayfa HTML alınamadı; kısa kod ile embed ve önizleme uçları deneniyor', [
+                    'status' => $htmlResp->status(),
+                    'url' => Str::limit($normalized, 120),
+                    'shortcode' => $igPostShortcode,
                 ]);
                 $html = '';
             } else {
@@ -1498,13 +1536,13 @@ final class EventMediaImportFromUrlService
     {
         $resp = Http::withHeaders($headers)
             ->timeout(self::FETCH_TIMEOUT)
-            ->withOptions(['allow_redirects' => true])
+            ->withOptions(self::httpClientRedirectOptions())
             ->get($url);
         if ($this->isInstagramHost($url) && $resp->status() === 429) {
             sleep(3);
             $resp = Http::withHeaders($headers)
                 ->timeout(self::FETCH_TIMEOUT)
-                ->withOptions(['allow_redirects' => true])
+                ->withOptions(self::httpClientRedirectOptions())
                 ->get($url);
         }
 
@@ -1743,6 +1781,7 @@ final class EventMediaImportFromUrlService
 
         $resp = Http::withHeaders($headers)
             ->timeout(self::FETCH_TIMEOUT)
+            ->withOptions(self::httpClientRedirectOptions())
             ->get($imageUrl);
 
         if (! $resp->successful()) {
@@ -1809,6 +1848,7 @@ final class EventMediaImportFromUrlService
 
                 $response = Http::withHeaders($headers)
                     ->timeout(self::VIDEO_TIMEOUT)
+                    ->withOptions(self::httpClientRedirectOptions())
                     ->sink($tmp)
                     ->get($videoUrl);
 

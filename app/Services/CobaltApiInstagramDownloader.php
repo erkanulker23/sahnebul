@@ -18,13 +18,27 @@ final class CobaltApiInstagramDownloader
     private const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
     /**
+     * @return array<string, mixed>
+     */
+    private static function httpRedirectOptions(): array
+    {
+        return [
+            'allow_redirects' => [
+                'max' => 20,
+                'strict' => false,
+                'referer' => true,
+                'protocols' => ['http', 'https'],
+            ],
+        ];
+    }
+
+    /**
      * @return null|non-falsy-string public disk path (event-promo/….mp4)
      */
     public function tryDownloadToPublicStorage(
         string $instagramPageUrl,
         ?string $preferredStoryMediaId = null,
-    ): ?string
-    {
+    ): ?string {
         $base = rtrim((string) config('services.cobalt.api_url', ''), '/');
         if ($base === '' || ! preg_match('#^https?://#i', $base)) {
             return null;
@@ -44,6 +58,7 @@ final class CobaltApiInstagramDownloader
 
         try {
             $post = Http::timeout(min($timeout, 90))
+                ->withOptions(self::httpRedirectOptions())
                 ->withHeaders($headers)
                 ->post($endpoint, [
                     'url' => $instagramPageUrl,
@@ -169,6 +184,7 @@ final class CobaltApiInstagramDownloader
 
         try {
             $response = Http::timeout($timeout)
+                ->withOptions(self::httpRedirectOptions())
                 ->withHeaders([
                     'User-Agent' => 'Sahnebul/1.0 (+https://sahnebul.com)',
                     'Accept' => '*/*',

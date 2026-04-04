@@ -584,13 +584,18 @@ class ExternalEventController extends Controller
         if ($status === 'pending') {
             $query->whereNull('synced_event_id')->where(function ($q): void {
                 $q->whereNull('meta')
-                    ->orWhereRaw("JSON_EXTRACT(meta, '$.rejected') IS NULL")
-                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) != 'true'");
+                    ->orWhere(function ($q2): void {
+                        $q2->whereNull('meta->rejected')
+                            ->orWhere('meta->rejected', false);
+                    });
             });
         } elseif ($status === 'synced') {
             $query->whereNotNull('synced_event_id');
         } elseif ($status === 'rejected') {
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.rejected')) = 'true'");
+            $query->where(function ($q): void {
+                $q->where('meta->rejected', true)
+                    ->orWhere('meta->rejected', 1);
+            });
         }
 
         if (! empty($filters['search'])) {

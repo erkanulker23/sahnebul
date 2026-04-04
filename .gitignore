@@ -22,6 +22,8 @@
 /storage/app/private/instagram_ytdlp_cookies.txt
 /storage/app/private/bubilet_crawler_cookies.txt
 /vendor
+/database/database.sqlite
+/database/database.sqlite-journal
 Homestead.json
 Homestead.yaml
 Thumbs.db

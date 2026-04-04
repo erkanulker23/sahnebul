@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\ExternalMarketplaceCrawlReportBuilder;
+use App\Services\MarketplaceCrawlerService;
 use App\Services\MarketplaceExternalEventImportService;
 use App\Support\CrawlerHttpResponseInspector;
 use App\Support\ExternalMarketplaceCrawlJobStatus;
@@ -77,7 +78,7 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
         set_time_limit($seconds);
         ini_set('max_execution_time', (string) $seconds);
 
-        $crawler = app(\App\Services\MarketplaceCrawlerService::class);
+        $crawler = app(MarketplaceCrawlerService::class);
         $configured = config('crawler.sources', []);
         $sources = $this->sourceOption === 'all' || $this->sourceOption === ''
             ? array_keys($configured)
@@ -93,7 +94,8 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
 
         /** @var list<array{type: string, source: string, batch?: list<array{path: string, listing_url: string}>, offset?: int}> $planned */
         $planned = [];
-        $biletinialGlobalOffset = 0;
+        /** @var array<string, int> $chunkPathOffsetBySource kümülatif detay sırası (Biletinial/Biletsirasi gecikme aralıkları için) */
+        $chunkPathOffsetBySource = [];
 
         try {
             foreach ($sources as $source) {
@@ -114,15 +116,15 @@ class ImportExternalMarketplaceEventsJob implements ShouldQueue
 
                     $chunks = array_chunk($queue, $batchSize);
                     foreach ($chunks as $batch) {
-                        $off = $source === 'biletinial' ? $biletinialGlobalOffset : 0;
+                        $off = (int) ($chunkPathOffsetBySource[$source] ?? 0);
                         $planned[] = [
                             'type' => 'chunk',
                             'source' => $source,
                             'batch' => $batch,
                             'offset' => $off,
                         ];
-                        if ($source === 'biletinial') {
-                            $biletinialGlobalOffset += count($batch);
+                        if ($source === 'biletinial' || $source === 'biletsirasi') {
+                            $chunkPathOffsetBySource[$source] = $off + count($batch);
                         }
                     }
                 } else {
